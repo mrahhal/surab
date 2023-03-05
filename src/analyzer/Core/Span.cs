@@ -1,37 +1,27 @@
 ﻿namespace Surab.Analyzer.Core;
 
-public readonly struct LinePosition
+public readonly record struct LinePosition(
+    int Line,
+    int Char);
+
+public readonly record struct FileSpan(
+    int Start,
+    int End)
 {
-    public required int Line { get; init; }
-
-    public required int Char { get; init; }
-}
-
-public readonly struct FileSpan
-{
-    public required int Start { get; init; }
-
-    public required int End { get; init; }
-
     public Range GetRange()
     {
         return Start..End;
     }
 }
 
-public readonly struct LineSpan
+public readonly record struct LineSpan(
+    LinePosition Start,
+    LinePosition End);
+
+public readonly record struct Span(
+    FileSpan File,
+    LineSpan Line)
 {
-    public required LinePosition Start { get; init; }
-
-    public required LinePosition End { get; init; }
-}
-
-public readonly struct Span
-{
-    public required FileSpan File { get; init; }
-
-    public required LineSpan Line { get; init; }
-
     public static Span FromTo(Span from, Span to)
     {
         return new()
