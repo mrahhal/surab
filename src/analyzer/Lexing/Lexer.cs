@@ -234,7 +234,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
     private Token MakeToken(TokenKind tokenKind, object? data = null) => new()
     {
         Kind = tokenKind,
-        Span = ConsumedSpan(),
+        Span = ConsumedTextSpan(),
         Data = data,
     };
 
@@ -375,39 +375,33 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
         return _src.Span[ConsumedFileSpan().GetRange()];
     }
 
-    private FileSpan ConsumedFileSpan()
+    private FileSpan ConsumedFileSpan() => new()
     {
-        return new FileSpan
+        Start = _posIterStart.File,
+        End = _pos.File,
+    };
+
+    private TextSpan ConsumedTextSpan() => new()
+    {
+        File = new()
         {
             Start = _posIterStart.File,
             End = _pos.File,
-        };
-    }
-
-    private Span ConsumedSpan()
-    {
-        return new()
+        },
+        Line = new()
         {
-            File = new()
+            Start = new()
             {
-                Start = _posIterStart.File,
-                End = _pos.File,
+                Line = _posIterStart.Line,
+                Char = _posIterStart.Char,
             },
-            Line = new()
+            End = new()
             {
-                Start = new()
-                {
-                    Line = _posIterStart.Line,
-                    Char = _posIterStart.Char,
-                },
-                End = new()
-                {
-                    Line = _pos.Line,
-                    Char = _pos.Char,
-                },
+                Line = _pos.Line,
+                Char = _pos.Char,
             },
-        };
-    }
+        },
+    };
 
     private void IterStart()
     {

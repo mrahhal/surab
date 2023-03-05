@@ -68,7 +68,7 @@ public class Token
 {
     public required TokenKind Kind { get; init; }
 
-    public required Span Span { get; init; }
+    public required TextSpan Span { get; init; }
 
     /// <summary>
     /// An optional data object. The actual type (if it exists) is always well known for each <see cref="Kind"/>.
