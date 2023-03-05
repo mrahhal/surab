@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Diagnostics;
 using Surab.Analyzer.Core;
 
 namespace Surab.Analyzer.Lexing;
@@ -45,6 +46,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
     private Position _pos;
     private Position _posIterStart;
     private Token? _current;
+    private char _prev;
 
     public LexerImpl(string src)
     {
@@ -118,6 +120,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
         _pos = new();
         _posIterStart = new();
         _current = null;
+        _prev = Chars.EOF;
     }
 
     public void Dispose()
@@ -142,6 +145,8 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
             _pos.Line++;
             _pos.Char = 0;
         }
+
+        _prev = ch;
 
         return ch;
     }
@@ -235,7 +240,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 
     private Token ConsumeLineComment()
     {
-        // TODO: Debug.Assert(_prev == '/' && P1() == '/');
+        Debug.Assert(_prev == '/' && P1() == '/');
 
         EatWhile(ch => ch != '\n');
         return MakeToken(TokenKind.LineComment);
@@ -243,7 +248,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 
     private Token ConsumeBlockComment()
     {
-        // Debug.Assert(_prev == '/' && P1() == '*');
+        Debug.Assert(_prev == '/' && P1() == '*');
 
         var depth = 1;
         while (true)
@@ -274,7 +279,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 
     private Token ConsumeWhitespace()
     {
-        // Debug.Assert(Chars.IsWhitespace(_prev));
+        Debug.Assert(Chars.IsWhitespace(_prev));
 
         EatWhile(Chars.IsWhitespace);
         return MakeToken(TokenKind.Whitespace);
@@ -282,7 +287,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 
     private Token ConsumeChar()
     {
-        // Debug.Assert(_prev == '\'');
+        Debug.Assert(_prev == '\'');
 
         var terminated = AdvanceUntil('\'');
         return MakeToken(TokenKind.CharLiteral, new CharLiteralTokenData { IsTerminated = terminated });
@@ -290,7 +295,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 
     private Token ConsumeString()
     {
-        // Debug.Assert(_prev == '"');
+        Debug.Assert(_prev == '"');
 
         var terminated = AdvanceUntil('"');
         return MakeToken(TokenKind.StringLiteral, new StringLiteralTokenData { IsTerminated = terminated });
@@ -328,7 +333,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 
     private Token ConsumeNumber()
     {
-        // debug_assert!(self.prev.is_ascii_digit());
+        Debug.Assert(char.IsAsciiDigit(_prev));
 
         EatDecimalDigits();
 
@@ -343,7 +348,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 
     private Token ConsumeKeywordOrIdentifier()
     {
-        // debug_assert!(is_ident_start(self.prev));
+        Debug.Assert(Chars.IsIdentifierStart(_prev));
 
         while (true)
         {
