@@ -355,6 +355,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 
                 default:
                     var lexeme = SliceConsumed();
+                    // TODO: Optimize this when dictionaries start supporting spans.
                     if (!KeywordsMap.TryGetValue(lexeme.ToString(), out var tokenKind))
                     {
                         tokenKind = TokenKind.Identifier;
