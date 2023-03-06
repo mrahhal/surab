@@ -35,7 +35,6 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
         { "false" , TokenKind.False},
         { "let" , TokenKind.Let},
         { "const" , TokenKind.Const},
-        { "null" , TokenKind.Null},
         { "field" , TokenKind.Field},
         { "public" , TokenKind.Public},
         { "return" , TokenKind.Return },

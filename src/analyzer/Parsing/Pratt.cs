@@ -75,7 +75,6 @@ public static class Pratt
         TokenKind.StringLiteral or
         TokenKind.True or
         TokenKind.False or
-        TokenKind.Null or
         TokenKind.Plus or
         TokenKind.Minus or
         TokenKind.Bang;

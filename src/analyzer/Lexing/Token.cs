@@ -44,7 +44,6 @@ public enum TokenKind
     False,
     Let,
     Const,
-    Null,
     Field,
     Public,
     Return,
@@ -120,7 +119,6 @@ public class Token
             False => "false",
             Let => "let",
             Const => "const",
-            Null => "null",
             Field => "field",
             Public => "public",
             Return => "return",
@@ -181,7 +179,6 @@ public static class TokenKindExtensions
     public static bool IsLiteral(this TokenKind kind) => kind is
         False or
         True or
-        Null or
         NumberLiteral or
         CharLiteral or
         StringLiteral;
