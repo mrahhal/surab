@@ -1,0 +1,531 @@
+{
+  "Nodes": [
+    {
+      "Name": "Module",
+      "Members": [
+        {
+          "Name": "declarations",
+          "Type": "DeclarationNode",
+          "List": true
+        }
+      ]
+    },
+    {
+      "Name": "ConstDeclaration",
+      "Base": "DeclarationNode",
+      "Members": [
+        {
+          "Name": "publicToken",
+          "Type": "SimpleToken",
+          "Optional": true
+        },
+        {
+          "Name": "constToken",
+          "Type": "SimpleToken"
+        },
+        {
+          "Name": "identifier",
+          "Type": "IdentifierToken"
+        },
+        {
+          "Name": "ty",
+          "Type": "ColonTyNode",
+          "Optional": true
+        },
+        {
+          "Name": "equalToken",
+          "Type": "SimpleToken"
+        },
+        {
+          "Name": "value",
+          "Type": "ExpressionNode",
+          "Comment": "Well formed: Literal"
+        }
+      ]
+    },
+    {
+      "Name": "FunctionDeclaration",
+      "Base": "DeclarationNode",
+      "Members": [
+        {
+          "Name": "publicToken",
+          "Type": "SimpleToken",
+          "Optional": true
+        },
+        {
+          "Name": "functionToken",
+          "Type": "SimpleToken"
+        },
+        {
+          "Name": "signature",
+          "Type": "FunctionSignatureNode"
+        },
+        {
+          "Name": "body",
+          "Type": "BlockNode"
+        }
+      ]
+    },
+    {
+      "Name": "ClassDeclaration",
+      "Base": "DeclarationNode",
+      "Members": [
+        {
+          "Name": "publicToken",
+          "Type": "SimpleToken",
+          "Optional": true
+        },
+        {
+          "Name": "classToken",
+          "Type": "SimpleToken"
+        },
+        {
+          "Name": "identifier",
+          "Type": "IdentifierToken"
+        },
+        {
+          "Name": "openBraceToken",
+          "Type": "SimpleToken"
+        },
+        {
+          "Name": "members",
+          "Type": "DeclarationNode",
+          "List": true
+        },
+        {
+          "Name": "closedBraceToken",
+          "Type": "SimpleToken"
+        }
+      ]
+    },
+    {
+      "Name": "FieldDeclaration",
+      "Base": "DeclarationNode",
+      "Members": [
+        {
+          "Name": "publicToken",
+          "Type": "SimpleToken",
+          "Optional": true
+        },
+        {
+          "Name": "identifier",
+          "Type": "IdentifierToken"
+        },
+        {
+          "Name": "ty",
+          "Type": "ColonTyNode",
+          "Optional": true
+        },
+        {
+          "Name": "initializer",
+          "Type": "EqualsValueClauseNode"
+        },
+        {
+          "Name": "semicolonToken",
+          "Type": "SimpleToken"
+        }
+      ]
+    },
+    {
+      "Name": "MethodDeclaration",
+      "Base": "DeclarationNode",
+      "Members": [
+        {
+          "Name": "publicToken",
+          "Type": "SimpleToken",
+          "Optional": true
+        },
+        {
+          "Name": "signature",
+          "Type": "FunctionSignatureNode"
+        },
+        {
+          "Name": "body",
+          "Type": "BlockNode"
+        }
+      ]
+    },
+    {
+      "Name": "SkippedTokensDeclaration",
+      "Base": "DeclarationNode",
+      "Members": [
+        {
+          "Name": "skipped",
+          "Type": "SkippedToken"
+        }
+      ]
+    },
+    {
+      "Name": "LetStatement",
+      "Base": "StatementNode",
+      "Members": [
+        {
+          "Name": "letToken",
+          "Type": "SimpleToken"
+        },
+        {
+          "Name": "identifier",
+          "Type": "IdentifierToken"
+        },
+        {
+          "Name": "ty",
+          "Type": "ColonTyNode",
+          "Optional": true
+        },
+        {
+          "Name": "initializer",
+          "Type": "EqualsValueClauseNode"
+        },
+        {
+          "Name": "semicolonToken",
+          "Type": "SimpleToken"
+        }
+      ]
+    },
+    {
+      "Name": "ReturnStatement",
+      "Base": "StatementNode",
+      "Members": [
+        {
+          "Name": "returnToken",
+          "Type": "SimpleToken"
+        },
+        {
+          "Name": "expression",
+          "Type": "ExpressionNode"
+        },
+        {
+          "Name": "semicolonToken",
+          "Type": "SimpleToken"
+        }
+      ]
+    },
+    {
+      "Name": "ExpressionStatement",
+      "Base": "StatementNode",
+      "Comment": "An expression statement (`expr();`).",
+      "Members": [
+        {
+          "Name": "expression",
+          "Type": "ExpressionNode"
+        },
+        {
+          "Name": "semicolonToken",
+          "Type": "SimpleToken"
+        }
+      ]
+    },
+    {
+      "Name": "BareExpressionStatement",
+      "Base": "StatementNode",
+      "Comment": "An expression statement without the trailing semicolon (`expr()`).",
+      "Members": [
+        {
+          "Name": "expression",
+          "Type": "ExpressionNode"
+        }
+      ]
+    },
+    {
+      "Name": "SkippedTokensStatement",
+      "Base": "StatementNode",
+      "Members": [
+        {
+          "Name": "skipped",
+          "Type": "SkippedToken"
+        }
+      ]
+    },
+    {
+      "Name": "AssignmentExpression",
+      "Base": "ExpressionNode",
+      "Members": [
+        {
+          "Name": "lhs",
+          "Type": "ExpressionNode"
+        },
+        {
+          "Name": "equalToken",
+          "Type": "SimpleToken"
+        },
+        {
+          "Name": "rhs",
+          "Type": "ExpressionNode"
+        }
+      ]
+    },
+    {
+      "Name": "UnaryExpression",
+      "Base": "ExpressionNode",
+      "Members": [
+        {
+          "Name": "op",
+          "Type": "UnaryOperatorToken"
+        },
+        {
+          "Name": "expression",
+          "Type": "ExpressionNode"
+        }
+      ]
+    },
+    {
+      "Name": "BinaryExpression",
+      "Base": "ExpressionNode",
+      "Members": [
+        {
+          "Name": "left",
+          "Type": "ExpressionNode"
+        },
+        {
+          "Name": "op",
+          "Type": "BinaryOperatorToken"
+        },
+        {
+          "Name": "right",
+          "Type": "ExpressionNode"
+        }
+      ]
+    },
+    {
+      "Name": "GroupingExpression",
+      "Base": "ExpressionNode",
+      "Members": [
+        {
+          "Name": "openParenToken",
+          "Type": "SimpleToken"
+        },
+        {
+          "Name": "expression",
+          "Type": "ExpressionNode"
+        },
+        {
+          "Name": "closedParenToken",
+          "Type": "SimpleToken"
+        }
+      ]
+    },
+    {
+      "Name": "CallExpression",
+      "Base": "ExpressionNode",
+      "Comment": "A function/method call (`callee(args)`).",
+      "Members": [
+        {
+          "Name": "callee",
+          "Type": "ExpressionNode"
+        },
+        {
+          "Name": "arguments",
+          "Type": "ArgumentsListNode"
+        }
+      ]
+    },
+    {
+      "Name": "AccessExpression",
+      "Base": "ExpressionNode",
+      "Comment": "A member access (`target.identifier`).",
+      "Members": [
+        {
+          "Name": "target",
+          "Type": "ExpressionNode"
+        },
+        {
+          "Name": "dotToken",
+          "Type": "SimpleToken"
+        },
+        {
+          "Name": "identifier",
+          "Type": "IdentifierToken"
+        }
+      ]
+    },
+    {
+      "Name": "LiteralExpression",
+      "Base": "ExpressionNode",
+      "Members": [
+        {
+          "Name": "literal",
+          "Type": "LiteralToken"
+        }
+      ]
+    },
+    {
+      "Name": "IdentifierExpression",
+      "Base": "ExpressionNode",
+      "Members": [
+        {
+          "Name": "identifier",
+          "Type": "IdentifierToken"
+        }
+      ]
+    },
+    {
+      "Name": "ThisExpression",
+      "Base": "ExpressionNode",
+      "Members": [
+        {
+          "Name": "keywordToken",
+          "Type": "SimpleToken"
+        }
+      ]
+    },
+    {
+      "Name": "SkippedTokensExpression",
+      "Base": "ExpressionNode",
+      "Members": [
+        {
+          "Name": "skipped",
+          "Type": "SkippedToken"
+        }
+      ]
+    },
+    {
+      "Name": "ParametersList",
+      "Members": [
+        {
+          "Name": "openParenToken",
+          "Type": "SimpleToken"
+        },
+        {
+          "Name": "parameters",
+          "Type": "ParameterNode",
+          "List": true
+        },
+        {
+          "Name": "closedParenToken",
+          "Type": "SimpleToken"
+        }
+      ]
+    },
+    {
+      "Name": "Parameter",
+      "Members": [
+        {
+          "Name": "fieldToken",
+          "Type": "SimpleToken",
+          "Optional": true
+        },
+        {
+          "Name": "identifier",
+          "Type": "IdentifierToken"
+        },
+        {
+          "Name": "ty",
+          "Type": "ColonTyNode"
+        },
+        {
+          "Name": "commaToken",
+          "Type": "SimpleToken",
+          "Optional": true
+        }
+      ]
+    },
+    {
+      "Name": "ArgumentsList",
+      "Members": [
+        {
+          "Name": "openParenToken",
+          "Type": "SimpleToken"
+        },
+        {
+          "Name": "arguments",
+          "Type": "ArgumentNode",
+          "List": true
+        },
+        {
+          "Name": "closedParenToken",
+          "Type": "SimpleToken"
+        }
+      ]
+    },
+    {
+      "Name": "Argument",
+      "Members": [
+        {
+          "Name": "expression",
+          "Type": "ExpressionNode"
+        },
+        {
+          "Name": "commaToken",
+          "Type": "SimpleToken",
+          "Optional": true
+        }
+      ]
+    },
+    {
+      "Name": "ColonTy",
+      "Members": [
+        {
+          "Name": "colonToken",
+          "Type": "SimpleToken"
+        },
+        {
+          "Name": "ty",
+          "Type": "TyNode"
+        }
+      ]
+    },
+    {
+      "Name": "Ty",
+      "Members": [
+        {
+          "Name": "identifier",
+          "Type": "IdentifierToken"
+        },
+        {
+          "Name": "nullableToken",
+          "Type": "SimpleToken",
+          "Optional": true
+        }
+      ]
+    },
+    {
+      "Name": "Block",
+      "Members": [
+        {
+          "Name": "openBraceToken",
+          "Type": "SimpleToken"
+        },
+        {
+          "Name": "statements",
+          "Type": "StatementNode",
+          "List": true
+        },
+        {
+          "Name": "closedBraceToken",
+          "Type": "SimpleToken"
+        }
+      ]
+    },
+    {
+      "Name": "FunctionSignature",
+      "Members": [
+        {
+          "Name": "identifier",
+          "Type": "IdentifierToken"
+        },
+        {
+          "Name": "parameters",
+          "Type": "ParametersListNode"
+        },
+        {
+          "Name": "returnTy",
+          "Type": "ColonTyNode",
+          "Optional": true
+        }
+      ]
+    },
+    {
+      "Name": "EqualsValueClause",
+      "Members": [
+        {
+          "Name": "equalToken",
+          "Type": "SimpleToken"
+        },
+        {
+          "Name": "expression",
+          "Type": "ExpressionNode"
+        }
+      ]
+    }
+  ]
+}
