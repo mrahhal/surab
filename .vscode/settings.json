@@ -1,7 +1,7 @@
 {
   "files.exclude": {
     "**/.vs": true,
-    "src/target": true
+    "target": true
   },
   "explorer.fileNesting.enabled": true,
   "explorer.fileNesting.patterns": {
