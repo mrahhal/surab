@@ -9,7 +9,7 @@ public class LexerTests
     [InlineData("// Comment \t\r\n")]
     public void EmptyWhitespaceComments(string src)
     {
-        var tokens = Lexer.LexWithoutTrivia(src);
+        var tokens = Lexer.LexSkipTrivia(src);
         Assert.Empty(tokens);
     }
 
@@ -29,7 +29,7 @@ public class LexerTests
     [InlineData("0.01")]
     public void Number(string src)
     {
-        var tokens = Lexer.LexWithoutTrivia(src).ToList();
+        var tokens = Lexer.LexSkipTrivia(src).ToList();
         tokens.Should().HaveCount(1);
         tokens[0].Kind.Should().Be(TokenKind.NumberLiteral);
     }
@@ -37,7 +37,7 @@ public class LexerTests
     [Fact]
     public void Bool()
     {
-        var tokens = Lexer.LexWithoutTrivia("true.").ToList();
+        var tokens = Lexer.LexSkipTrivia("true.").ToList();
         tokens.Should().HaveCount(2);
         tokens[0].Kind.Should().Be(TokenKind.True);
         tokens[1].Kind.Should().Be(TokenKind.Dot);
@@ -51,7 +51,7 @@ public class LexerTests
     [InlineData("'ab", false)] // Invalid
     public void Char(string src, bool expectedIsTerminated)
     {
-        var tokens = Lexer.LexWithoutTrivia(src).ToList();
+        var tokens = Lexer.LexSkipTrivia(src).ToList();
         tokens.Should().HaveCount(1);
         tokens[0].Kind.Should().Be(TokenKind.CharLiteral);
         tokens[0].Data.Should().BeOfType<CharLiteralTokenData>().Which.IsTerminated.Should().Be(expectedIsTerminated);
@@ -61,7 +61,7 @@ public class LexerTests
     [InlineData("'ab;")] // Invalid
     public void CharSemicolon(string src)
     {
-        var tokens = Lexer.LexWithoutTrivia(src).ToList();
+        var tokens = Lexer.LexSkipTrivia(src).ToList();
         tokens.Should().HaveCount(2);
         tokens[0].Kind.Should().Be(TokenKind.CharLiteral);
         tokens[0].Data.Should().BeOfType<CharLiteralTokenData>().Which.IsTerminated.Should().BeFalse();
@@ -74,7 +74,7 @@ public class LexerTests
     [InlineData("\"a", false)] // Invalid
     public void String(string src, bool expectedIsTerminated)
     {
-        var tokens = Lexer.LexWithoutTrivia(src).ToList();
+        var tokens = Lexer.LexSkipTrivia(src).ToList();
         tokens.Should().HaveCount(1);
         tokens[0].Kind.Should().Be(TokenKind.StringLiteral);
         tokens[0].Data.Should().BeOfType<StringLiteralTokenData>().Which.IsTerminated.Should().Be(expectedIsTerminated);
@@ -84,7 +84,7 @@ public class LexerTests
     [InlineData("\"a\n")]
     public void StringInvalidNewline(string src)
     {
-        var tokens = Lexer.LexWithoutTrivia(src).ToList();
+        var tokens = Lexer.LexSkipTrivia(src).ToList();
         tokens.Should().HaveCount(1);
         tokens[0].Kind.Should().Be(TokenKind.StringLiteral);
         tokens[0].Data.Should().BeOfType<StringLiteralTokenData>().Which.IsTerminated.Should().BeFalse();
@@ -98,7 +98,7 @@ public class LexerTests
     [InlineData("trueFoo")]
     public void Identifier(string src)
     {
-        var tokens = Lexer.LexWithoutTrivia(src).ToList();
+        var tokens = Lexer.LexSkipTrivia(src).ToList();
         tokens.Should().HaveCount(1);
         tokens[0].Kind.Should().Be(TokenKind.Identifier);
     }
@@ -107,7 +107,7 @@ public class LexerTests
     [InlineData("foo№bar")]
     public void IdentifierUnknownIdentifier(string src)
     {
-        var tokens = Lexer.LexWithoutTrivia(src).ToList();
+        var tokens = Lexer.LexSkipTrivia(src).ToList();
         tokens.Should().HaveCount(3);
         tokens[0].Kind.Should().Be(TokenKind.Identifier);
         tokens[1].Kind.Should().Be(TokenKind.Unknown);
@@ -118,7 +118,7 @@ public class LexerTests
     [InlineData("№")]
     public void Unknown(string src)
     {
-        var tokens = Lexer.LexWithoutTrivia(src).ToList();
+        var tokens = Lexer.LexSkipTrivia(src).ToList();
         tokens.Should().HaveCount(1);
         tokens[0].Kind.Should().Be(TokenKind.Unknown);
     }
@@ -128,7 +128,7 @@ public class LexerTests
     [InlineData("0.")]
     public void NumberDot(string src)
     {
-        var tokens = Lexer.LexWithoutTrivia(src).ToList();
+        var tokens = Lexer.LexSkipTrivia(src).ToList();
         tokens.Should().HaveCount(2);
         tokens[0].Kind.Should().Be(TokenKind.NumberLiteral);
         tokens[1].Kind.Should().Be(TokenKind.Dot);
@@ -137,7 +137,7 @@ public class LexerTests
     [Fact]
     public void Span()
     {
-        var tokens = Lexer.LexWithoutTrivia("name\n.").ToList();
+        var tokens = Lexer.LexSkipTrivia("name\n.").ToList();
         tokens.Should().HaveCount(2);
 
         var token = tokens[0];

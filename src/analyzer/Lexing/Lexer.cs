@@ -4,14 +4,14 @@ using Surab.Analyzer.Core;
 
 namespace Surab.Analyzer.Lexing;
 
-public class Lexer
+public static class Lexer
 {
     public static IEnumerable<Token> Lex(string src)
     {
         return new LexerImpl(src);
     }
 
-    public static IEnumerable<Token> LexWithoutTrivia(string src) => Lex(src).WithoutTrivia();
+    public static IEnumerable<Token> LexSkipTrivia(string src) => Lex(src).SkipTrivia();
 }
 
 internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
@@ -410,6 +410,6 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 
 public static class LexerExtensions
 {
-    public static IEnumerable<Token> WithoutTrivia(this IEnumerable<Token> tokens) =>
+    public static IEnumerable<Token> SkipTrivia(this IEnumerable<Token> tokens) =>
         tokens.Where(t => !t.Kind.IsTrivia());
 }

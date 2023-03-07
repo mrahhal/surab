@@ -14,7 +14,7 @@ public abstract class SyntaxEntity : IVisitable
 {
     public SyntaxNode? Parent { get; private set; }
 
-    public required TextSpan Span { get; init; }
+    public TextSpan Span { get; init; }
 
     public void SetParent(SyntaxNode? parent)
     {
@@ -75,9 +75,9 @@ public class SimpleToken : SyntaxToken
     {
     }
 
-    public required SimpleTokenKind SimpleTokenKind { get; init; }
+    public SimpleTokenKind SimpleTokenKind { get; init; }
 
-    public required bool IsMissing { get; init; }
+    public bool IsMissing { get; init; }
 
     public static SimpleToken From(
         Token token,
@@ -133,7 +133,7 @@ public class UnaryOperatorToken : SyntaxToken
     {
     }
 
-    public required UnaryOperatorTokenKind UnaryOperatorTokenKind { get; init; }
+    public UnaryOperatorTokenKind UnaryOperatorTokenKind { get; init; }
 
     public static UnaryOperatorToken From(
         Token token) => new()
@@ -188,7 +188,7 @@ public class BinaryOperatorToken : SyntaxToken
     {
     }
 
-    public required BinaryOperatorTokenKind BinaryOperatorTokenKind { get; init; }
+    public BinaryOperatorTokenKind BinaryOperatorTokenKind { get; init; }
 
     public static BinaryOperatorToken From(
         Token token) => new()
@@ -249,7 +249,7 @@ public class IdentifierToken : SyntaxToken
     {
     }
 
-    public required string Identifier { get; init; }
+    public string Identifier { get; init; }
 
     public override void Accept(IVisitor visitor)
     {
@@ -271,9 +271,9 @@ public class LiteralToken : SyntaxToken
     {
     }
 
-    public required LiteralTokenKind LiteralTokenKind { get; init; }
+    public LiteralTokenKind LiteralTokenKind { get; init; }
 
-    public required object Data { get; init; }
+    public object Data { get; init; }
 
     public bool TryGetNumberValue(out double value)
     {
@@ -331,7 +331,7 @@ public class SkippedToken : SyntaxToken
     {
     }
 
-    public required List<Token> Tokens { get; init; }
+    public List<Token> Tokens { get; init; }
 
     public override void Accept(IVisitor visitor)
     {
@@ -341,11 +341,11 @@ public class SkippedToken : SyntaxToken
 
 public abstract class SyntaxNode : SyntaxEntity
 {
-    public required SyntaxNodeKind Kind { get; init; }
+    public SyntaxNodeKind Kind { get; init; }
 
-    public required List<SyntaxNode?> ChildNodes { get; init; }
+    public List<SyntaxNode?> ChildNodes { get; protected set; } = default!;
 
-    public required List<SyntaxToken?> ChildTokens { get; init; }
+    public List<SyntaxToken?> ChildTokens { get; protected set; } = default!;
 
     protected void SetChildrenParent()
     {
