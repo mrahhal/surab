@@ -79,5 +79,9 @@ public static class Pratt
         TokenKind.Minus or
         TokenKind.Bang;
 
-    public static InfixRule GetInfixRule(TokenKind tokenKind) => InfixRules[tokenKind];
+    public static InfixRule? GetInfixRule(TokenKind tokenKind)
+    {
+        InfixRules.TryGetValue(tokenKind, out var rule);
+        return rule;
+    }
 }
