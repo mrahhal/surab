@@ -79,13 +79,20 @@ public class SimpleToken : SyntaxToken
 
     public bool IsMissing { get; init; }
 
+    public static SimpleToken Missing(TokenKind tokenKind, TextSpan span) =>
+        From(tokenKind, span, isMissing: true);
+
+    public static SimpleToken From(Token token, bool isMissing = false) =>
+        From(token.Kind, token.Span, isMissing);
+
     public static SimpleToken From(
-        Token token,
-        bool isMissing) => new()
+        TokenKind tokenKind,
+        TextSpan span,
+        bool isMissing = false) => new()
         {
-            Span = token.Span,
+            Span = span,
             IsMissing = isMissing,
-            SimpleTokenKind = token.Kind switch
+            SimpleTokenKind = tokenKind switch
             {
                 TokenKind.LeftParen => SimpleTokenKind.LeftParen,
                 TokenKind.RightParen => SimpleTokenKind.RightParen,
@@ -245,8 +252,11 @@ public class BinaryOperatorToken : SyntaxToken
 
 public class IdentifierToken : SyntaxToken
 {
-    public IdentifierToken() : base(SyntaxTokenKind.Identifier)
+    public IdentifierToken(TextSpan span, string identifier)
+        : base(SyntaxTokenKind.Identifier)
     {
+        Span = span;
+        Identifier = identifier;
     }
 
     public string Identifier { get; init; }
@@ -267,13 +277,28 @@ public enum LiteralTokenKind
 
 public class LiteralToken : SyntaxToken
 {
-    public LiteralToken() : base(SyntaxTokenKind.Literal)
+    public LiteralToken(TextSpan span, LiteralTokenKind literalTokenKind, object? data) : base(SyntaxTokenKind.Literal)
     {
+        Span = span;
+        LiteralTokenKind = literalTokenKind;
+        Data = data;
     }
 
     public LiteralTokenKind LiteralTokenKind { get; init; }
 
-    public object Data { get; init; }
+    public object? Data { get; init; }
+
+    public static LiteralToken FromBool(Token token, bool value) =>
+        new(token.Span, LiteralTokenKind.Bool, value);
+
+    public static LiteralToken FromNumber(Token token, double value) =>
+        new(token.Span, LiteralTokenKind.Number, value);
+
+    public static LiteralToken FromChar(Token token, char? value) =>
+        new(token.Span, LiteralTokenKind.Char, value);
+
+    public static LiteralToken FromString(Token token, string? value) =>
+        new(token.Span, LiteralTokenKind.String, value);
 
     public bool TryGetNumberValue(out double value)
     {
@@ -282,7 +307,7 @@ public class LiteralToken : SyntaxToken
         {
             return false;
         }
-        value = (double)Data;
+        value = (double)Data!;
         return true;
     }
 
@@ -315,7 +340,7 @@ public class LiteralToken : SyntaxToken
         {
             return false;
         }
-        value = (bool)Data;
+        value = (bool)Data!;
         return true;
     }
 
@@ -327,8 +352,11 @@ public class LiteralToken : SyntaxToken
 
 public class SkippedToken : SyntaxToken
 {
-    public SkippedToken() : base(SyntaxTokenKind.Skipped)
+    public SkippedToken(TextSpan span, List<Token> tokens)
+        : base(SyntaxTokenKind.Skipped)
     {
+        Span = span;
+        Tokens = tokens;
     }
 
     public List<Token> Tokens { get; init; }
