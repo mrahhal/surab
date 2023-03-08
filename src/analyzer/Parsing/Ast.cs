@@ -108,7 +108,7 @@ public class SimpleToken : SyntaxToken
                 TokenKind.Field => SimpleTokenKind.Field,
                 TokenKind.Public => SimpleTokenKind.Public,
                 TokenKind.Return => SimpleTokenKind.Return,
-                _ => throw new Exception($"TokenKind {token.Kind} not supported."),
+                _ => throw new Exception($"TokenKind {tokenKind} not supported."),
             },
         };
 
