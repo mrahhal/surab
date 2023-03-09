@@ -50,7 +50,7 @@ internal class ParserImpl
     private Token? _current;
     private Token? _prev;
     private readonly List<Token> _tokensConsumed = new();
-    private DiagnosticsBag _diagnostics = new();
+    private DiagnosticBag _diagnostics = new();
 
     public ParserImpl(
         string src,

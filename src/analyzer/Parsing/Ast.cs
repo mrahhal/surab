@@ -4,7 +4,7 @@ public class SyntaxTree
 {
     public required SyntaxNode Root { get; init; }
 
-    public required DiagnosticsBag Diagnostics { get; init; }
+    public required DiagnosticBag Diagnostics { get; init; }
 }
 
 public abstract class SyntaxEntity : IVisitable

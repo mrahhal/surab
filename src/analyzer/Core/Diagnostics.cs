@@ -23,7 +23,7 @@ public interface IDiagnosticsProvider
     bool IsHealthy();
 }
 
-public class DiagnosticsBag
+public class DiagnosticBag
 {
     public List<Diagnostic> Diagnostics { get; } = new();
 
