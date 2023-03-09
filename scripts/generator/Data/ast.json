@@ -62,7 +62,7 @@
         },
         {
           "Name": "body",
-          "Type": "BlockStatementNode"
+          "Type": "BlockExpressionNode"
         }
       ]
     },
@@ -141,7 +141,7 @@
         },
         {
           "Name": "body",
-          "Type": "BlockStatementNode"
+          "Type": "BlockExpressionNode"
         }
       ]
     },
@@ -152,25 +152,6 @@
         {
           "Name": "skipped",
           "Type": "SkippedToken"
-        }
-      ]
-    },
-    {
-      "Name": "BlockStatement",
-      "Base": "StatementNode",
-      "Members": [
-        {
-          "Name": "openBraceToken",
-          "Type": "SimpleToken"
-        },
-        {
-          "Name": "statements",
-          "Type": "StatementNode",
-          "List": true
-        },
-        {
-          "Name": "closedBraceToken",
-          "Type": "SimpleToken"
         }
       ]
     },
@@ -252,6 +233,25 @@
         {
           "Name": "skipped",
           "Type": "SkippedToken"
+        }
+      ]
+    },
+    {
+      "Name": "BlockExpression",
+      "Base": "ExpressionNode",
+      "Members": [
+        {
+          "Name": "openBraceToken",
+          "Type": "SimpleToken"
+        },
+        {
+          "Name": "statements",
+          "Type": "StatementNode",
+          "List": true
+        },
+        {
+          "Name": "closedBraceToken",
+          "Type": "SimpleToken"
         }
       ]
     },

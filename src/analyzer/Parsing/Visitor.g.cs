@@ -42,11 +42,6 @@ public partial interface IVisitor
         Walk(skippedTokensDeclarationNode);
     }
 
-    public void VisitBlockStatement(BlockStatementNode blockStatementNode)
-    {
-        Walk(blockStatementNode);
-    }
-
     public void VisitLetStatement(LetStatementNode letStatementNode)
     {
         Walk(letStatementNode);
@@ -70,6 +65,11 @@ public partial interface IVisitor
     public void VisitSkippedTokensStatement(SkippedTokensStatementNode skippedTokensStatementNode)
     {
         Walk(skippedTokensStatementNode);
+    }
+
+    public void VisitBlockExpression(BlockExpressionNode blockExpressionNode)
+    {
+        Walk(blockExpressionNode);
     }
 
     public void VisitAssignmentExpression(AssignmentExpressionNode assignmentExpressionNode)

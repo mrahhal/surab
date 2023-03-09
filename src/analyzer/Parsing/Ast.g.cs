@@ -58,12 +58,12 @@ public enum SyntaxNodeKind
     FieldDeclaration,
     MethodDeclaration,
     SkippedTokensDeclaration,
-    BlockStatement,
     LetStatement,
     ReturnStatement,
     ExpressionStatement,
     BareExpressionStatement,
     SkippedTokensStatement,
+    BlockExpression,
     AssignmentExpression,
     UnaryExpression,
     BinaryExpression,
@@ -131,7 +131,7 @@ public class ConstDeclarationNode : DeclarationNode
 
 public class FunctionDeclarationNode : DeclarationNode
 {
-    public FunctionDeclarationNode(SimpleToken? publicToken, SimpleToken functionToken, FunctionSignatureNode signature, BlockStatementNode body)
+    public FunctionDeclarationNode(SimpleToken? publicToken, SimpleToken functionToken, FunctionSignatureNode signature, BlockExpressionNode body)
         : base(SyntaxNodeKind.FunctionDeclaration)
     {
         ChildTokens = new() { publicToken, functionToken, };
@@ -144,7 +144,7 @@ public class FunctionDeclarationNode : DeclarationNode
     public SimpleToken? PublicToken => (SimpleToken?)ChildTokens[0]!;
     public SimpleToken FunctionToken => (SimpleToken)ChildTokens[1]!;
     public FunctionSignatureNode Signature => (FunctionSignatureNode)ChildNodes[0]!;
-    public BlockStatementNode Body => (BlockStatementNode)ChildNodes[1]!;
+    public BlockExpressionNode Body => (BlockExpressionNode)ChildNodes[1]!;
 
     public override void Accept(IVisitor visitor)
     {
@@ -203,7 +203,7 @@ public class FieldDeclarationNode : DeclarationNode
 
 public class MethodDeclarationNode : DeclarationNode
 {
-    public MethodDeclarationNode(SimpleToken? publicToken, FunctionSignatureNode signature, BlockStatementNode body)
+    public MethodDeclarationNode(SimpleToken? publicToken, FunctionSignatureNode signature, BlockExpressionNode body)
         : base(SyntaxNodeKind.MethodDeclaration)
     {
         ChildTokens = new() { publicToken, };
@@ -215,7 +215,7 @@ public class MethodDeclarationNode : DeclarationNode
 
     public SimpleToken? PublicToken => (SimpleToken?)ChildTokens[0]!;
     public FunctionSignatureNode Signature => (FunctionSignatureNode)ChildNodes[0]!;
-    public BlockStatementNode Body => (BlockStatementNode)ChildNodes[1]!;
+    public BlockExpressionNode Body => (BlockExpressionNode)ChildNodes[1]!;
 
     public override void Accept(IVisitor visitor)
     {
@@ -240,28 +240,6 @@ public class SkippedTokensDeclarationNode : DeclarationNode
     public override void Accept(IVisitor visitor)
     {
         visitor.VisitSkippedTokensDeclaration(this);
-    }
-}
-
-public class BlockStatementNode : StatementNode
-{
-    public BlockStatementNode(SimpleToken openBraceToken, IEnumerable<StatementNode> statements, SimpleToken closedBraceToken)
-        : base(SyntaxNodeKind.BlockStatement)
-    {
-        ChildTokens = new() { openBraceToken, closedBraceToken, };
-        ChildNodes = statements.Cast<SyntaxNode?>().ToList();
-
-        Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
-        SetChildrenParent();
-    }
-
-    public SimpleToken OpenBraceToken => (SimpleToken)ChildTokens[0]!;
-    public IEnumerable<StatementNode> Statements => ChildNodes.Cast<StatementNode>();
-    public SimpleToken ClosedBraceToken => (SimpleToken)ChildTokens[1]!;
-
-    public override void Accept(IVisitor visitor)
-    {
-        visitor.VisitBlockStatement(this);
     }
 }
 
@@ -369,6 +347,28 @@ public class SkippedTokensStatementNode : StatementNode
     public override void Accept(IVisitor visitor)
     {
         visitor.VisitSkippedTokensStatement(this);
+    }
+}
+
+public class BlockExpressionNode : ExpressionNode
+{
+    public BlockExpressionNode(SimpleToken openBraceToken, IEnumerable<StatementNode> statements, SimpleToken closedBraceToken)
+        : base(SyntaxNodeKind.BlockExpression)
+    {
+        ChildTokens = new() { openBraceToken, closedBraceToken, };
+        ChildNodes = statements.Cast<SyntaxNode?>().ToList();
+
+        Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+        SetChildrenParent();
+    }
+
+    public SimpleToken OpenBraceToken => (SimpleToken)ChildTokens[0]!;
+    public IEnumerable<StatementNode> Statements => ChildNodes.Cast<StatementNode>();
+    public SimpleToken ClosedBraceToken => (SimpleToken)ChildTokens[1]!;
+
+    public override void Accept(IVisitor visitor)
+    {
+        visitor.VisitBlockExpression(this);
     }
 }
 

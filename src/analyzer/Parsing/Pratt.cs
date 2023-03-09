@@ -67,6 +67,7 @@ public static class Pratt
 
     public static bool IsPrefixRule(TokenKind tokenKind) => tokenKind is
         TokenKind.LeftParen or
+        TokenKind.LeftBrace or
         TokenKind.Identifier or
         TokenKind.NumberLiteral or
         TokenKind.CharLiteral or

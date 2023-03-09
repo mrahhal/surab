@@ -376,7 +376,7 @@ internal class ParserImpl
         var functionToken = EatAssertedSimpleToken(TokenKind.Function);
         var signature = ParseFunctionSignature();
         if (signature == null) return null;
-        var body = ParseBlock();
+        var body = ParseBlockExpression();
         if (body == null) return null;
 
         return new FunctionDeclarationNode(visibility, functionToken, signature, body);
@@ -427,7 +427,7 @@ internal class ParserImpl
     {
         var signature = ParseFunctionSignature();
         if (signature == null) return null;
-        var body = ParseBlock();
+        var body = ParseBlockExpression();
         if (body == null) return null;
 
         return new MethodDeclarationNode(visibility, signature, body);
@@ -533,6 +533,7 @@ internal class ParserImpl
         return token.Kind switch
         {
             TokenKind.LeftParen => ParseGroupingExpression(),
+            TokenKind.LeftBrace => ParseBlockExpression(),
             TokenKind.Identifier => ParseIdentifierExpression(),
             _ when token.Kind.IsUnary() => ParseUnaryExpression(),
             _ when token.Kind.IsLiteral() => ParseLiteralExpression(),
@@ -643,7 +644,6 @@ internal class ParserImpl
         }
     }
 
-
     private ExpressionNode? ParseInfixExpression(InfixRule rule, ExpressionNode left)
     {
         var token = AssertedCurrent();
@@ -698,6 +698,24 @@ internal class ParserImpl
         if (right == null) return null;
 
         return new BinaryExpressionNode(left, op, right);
+    }
+
+    /// <summary>
+    /// Parses `{ ... }`
+    /// </summary>
+    private BlockExpressionNode? ParseBlockExpression()
+    {
+        var openBraceToken = EatAssertedSimpleToken(TokenKind.LeftBrace);
+        var statements = new List<StatementNode>();
+
+        while (!CheckToken(TokenKind.RightBrace))
+        {
+            statements.Add(ParseStatement());
+        }
+
+        var closedBraceToken = EatExpectedSimpleToken(TokenKind.RightBrace);
+
+        return new BlockExpressionNode(openBraceToken, statements, closedBraceToken);
     }
 
     // ---
@@ -852,24 +870,6 @@ internal class ParserImpl
         if (!elided && returnTy == null) return null;
 
         return new FunctionSignatureNode(identifier, parameters, returnTy);
-    }
-
-    /// <summary>
-    /// Parses `{ ... }`
-    /// </summary>
-    private BlockStatementNode? ParseBlock()
-    {
-        var openBraceToken = EatAssertedSimpleToken(TokenKind.LeftBrace);
-        var statements = new List<StatementNode>();
-
-        while (!CheckToken(TokenKind.RightBrace))
-        {
-            statements.Add(ParseStatement());
-        }
-
-        var closedBraceToken = EatExpectedSimpleToken(TokenKind.RightBrace);
-
-        return new BlockStatementNode(openBraceToken, statements, closedBraceToken);
     }
 
     private IdentifierToken? ParseIdentifier()
