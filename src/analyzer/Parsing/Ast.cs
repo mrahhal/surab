@@ -16,7 +16,7 @@ public abstract class SyntaxEntity : IVisitable
 
     public TextSpan Span { get; init; }
 
-    public void SetParent(SyntaxNode? parent)
+    internal void SetParent(SyntaxNode? parent)
     {
         Parent = parent;
     }
@@ -369,6 +369,11 @@ public class SkippedToken : SyntaxToken
 
 public abstract class SyntaxNode : SyntaxEntity
 {
+    public SyntaxNode(SyntaxNodeKind kind)
+    {
+        Kind = kind;
+    }
+
     public SyntaxNodeKind Kind { get; init; }
 
     public List<SyntaxNode?> ChildNodes { get; protected set; } = default!;
@@ -390,12 +395,24 @@ public abstract class SyntaxNode : SyntaxEntity
 
 public abstract class DeclarationNode : SyntaxNode
 {
+    public DeclarationNode(SyntaxNodeKind kind)
+        : base(kind)
+    {
+    }
 }
 
 public abstract class StatementNode : SyntaxNode
 {
+    public StatementNode(SyntaxNodeKind kind)
+        : base(kind)
+    {
+    }
 }
 
 public abstract class ExpressionNode : SyntaxNode
 {
+    public ExpressionNode(SyntaxNodeKind kind)
+        : base(kind)
+    {
+    }
 }

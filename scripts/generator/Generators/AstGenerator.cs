@@ -93,6 +93,7 @@ public class AstGenerator : GeneratorBase
                 public class {{node.TypeName}} : {{node.Base}}
                 {
                     public {{node.TypeName}}({{OCtorParams(node)}})
+                        : base(SyntaxNodeKind.{{node.Name}})
                     {
                         {{T(SyntaxNodeMemberStoredFields.All, storedField => OSetStoredChildren(node, storedField))}}
 
@@ -103,7 +104,7 @@ public class AstGenerator : GeneratorBase
                 {{OMembers(node)}}
                     public override void Accept(IVisitor visitor)
                     {
-                        visitor.Visit{{node.TypeName}}(this);
+                        visitor.Visit{{node.Name}}(this);
                     }
                 }
                 """.NL(isLast ? 1 : 2));

@@ -62,7 +62,7 @@
         },
         {
           "Name": "body",
-          "Type": "BlockNode"
+          "Type": "BlockStatementNode"
         }
       ]
     },
@@ -141,7 +141,7 @@
         },
         {
           "Name": "body",
-          "Type": "BlockNode"
+          "Type": "BlockStatementNode"
         }
       ]
     },
@@ -152,6 +152,25 @@
         {
           "Name": "skipped",
           "Type": "SkippedToken"
+        }
+      ]
+    },
+    {
+      "Name": "BlockStatement",
+      "Base": "StatementNode",
+      "Members": [
+        {
+          "Name": "openBraceToken",
+          "Type": "SimpleToken"
+        },
+        {
+          "Name": "statements",
+          "Type": "StatementNode",
+          "List": true
+        },
+        {
+          "Name": "closedBraceToken",
+          "Type": "SimpleToken"
         }
       ]
     },
@@ -475,24 +494,6 @@
           "Name": "nullableToken",
           "Type": "SimpleToken",
           "Optional": true
-        }
-      ]
-    },
-    {
-      "Name": "Block",
-      "Members": [
-        {
-          "Name": "openBraceToken",
-          "Type": "SimpleToken"
-        },
-        {
-          "Name": "statements",
-          "Type": "StatementNode",
-          "List": true
-        },
-        {
-          "Name": "closedBraceToken",
-          "Type": "SimpleToken"
         }
       ]
     },

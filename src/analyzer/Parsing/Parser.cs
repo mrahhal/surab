@@ -861,7 +861,7 @@ internal class ParserImpl
     /// <summary>
     /// Parses `{ ... }`
     /// </summary>
-    private BlockNode? ParseBlock()
+    private BlockStatementNode? ParseBlock()
     {
         var openBraceToken = EatAssertedSimpleToken(TokenKind.LeftBrace);
         var statements = new List<StatementNode>();
@@ -873,7 +873,7 @@ internal class ParserImpl
 
         var closedBraceToken = EatExpectedSimpleToken(TokenKind.RightBrace);
 
-        return new BlockNode(openBraceToken, statements, closedBraceToken);
+        return new BlockStatementNode(openBraceToken, statements, closedBraceToken);
     }
 
     private IdentifierToken? ParseIdentifier()
