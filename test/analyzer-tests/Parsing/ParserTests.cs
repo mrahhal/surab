@@ -172,6 +172,39 @@ public class ParserTests
     }
 
     [Fact]
+    public void Expression_Binary_4()
+    {
+        var src = "2 + -3";
+        var node = ParseExpression(src).Should().BeOfType<BinaryExpressionNode>().Subject;
+        node.Op.BinaryOperatorTokenKind.Should().Be(BinaryOperatorTokenKind.Add);
+        node.Left.Should().BeOfType<LiteralExpressionNode>();
+        {
+            var right = node.Right.Should().BeOfType<UnaryExpressionNode>().Subject;
+            right.Op.UnaryOperatorTokenKind.Should().Be(UnaryOperatorTokenKind.Neg);
+            right.Expression.Should().BeOfType<LiteralExpressionNode>();
+        }
+    }
+
+    [Fact]
+    public void BlockAsExpression()
+    {
+        var src = "let a = { 2 };";
+        var node = ParseStatement(src).Should().BeOfType<LetStatementNode>().Subject;
+        var block = node.Initializer.Expression.Should().BeOfType<BlockExpressionNode>().Subject;
+        block.Statements.Should().HaveCount(1);
+        var bareExpression = block.Statements.ElementAt(0).Should().BeOfType<BareExpressionStatementNode>().Subject;
+        bareExpression.Expression.Should().BeOfType<LiteralExpressionNode>();
+    }
+
+    [Fact]
+    public void BlockAsStatement()
+    {
+        var src = "{ }";
+        var node = ParseStatement(src).Should().BeOfType<BareExpressionStatementNode>().Subject;
+        node.Expression.Should().BeOfType<BlockExpressionNode>();
+    }
+
+    [Fact]
     public void SkippedTokens()
     {
         var src = "saunk ;";
