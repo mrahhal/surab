@@ -1,4 +1,4 @@
-﻿namespace Surab.Analyzer.Parsing;
+﻿namespace Surab.Analyzer;
 
 public class ParserTests
 {

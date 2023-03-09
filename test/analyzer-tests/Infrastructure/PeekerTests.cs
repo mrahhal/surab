@@ -1,4 +1,4 @@
-﻿namespace Surab.Analyzer.Infrastructure;
+﻿namespace Surab.Analyzer;
 
 public class PeekerTests
 {

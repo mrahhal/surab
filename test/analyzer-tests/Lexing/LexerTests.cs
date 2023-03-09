@@ -1,4 +1,4 @@
-﻿namespace Surab.Analyzer.Lexing;
+﻿namespace Surab.Analyzer;
 
 public class LexerTests
 {
