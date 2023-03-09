@@ -3,9 +3,7 @@
 
 #nullable restore
 
-using Surab.Analyzer.Core;
-
-namespace Surab.Analyzer.Parsing;
+namespace Surab.Analyzer;
 
 file static class Helper
 {

@@ -23,9 +23,7 @@ public class AstGenerator : GeneratorBase
     private void GenerateHeader()
     {
         _sb.Append("""
-            using Surab.Analyzer.Core;
-
-            namespace Surab.Analyzer.Parsing;
+            namespace Surab.Analyzer;
             """.NL(2));
     }
 

@@ -1,7 +1,6 @@
-﻿using Surab.Analyzer.Core;
-using static Surab.Analyzer.Lexing.TokenKind;
+﻿using static Surab.Analyzer.TokenKind;
 
-namespace Surab.Analyzer.Lexing;
+namespace Surab.Analyzer;
 
 /// <summary>
 /// A lexical token kind.

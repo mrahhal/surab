@@ -1,6 +1,4 @@
-﻿using Surab.Analyzer.Lexing;
-
-namespace Surab.Analyzer.Parsing;
+﻿namespace Surab.Analyzer;
 
 public enum Associativity
 {

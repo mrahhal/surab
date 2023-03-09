@@ -1,6 +1,6 @@
-﻿namespace Surab.Analyzer.Core;
+﻿namespace Surab.Analyzer;
 
-public static class Chars
+internal static class Chars
 {
     public const char EOF = '\0';
 

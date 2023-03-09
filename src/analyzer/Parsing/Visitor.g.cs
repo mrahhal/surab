@@ -3,7 +3,7 @@
 
 #nullable restore
 
-namespace Surab.Analyzer.Parsing;
+namespace Surab.Analyzer;
 
 public partial interface IVisitor
 {

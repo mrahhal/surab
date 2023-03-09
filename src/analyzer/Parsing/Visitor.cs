@@ -1,4 +1,4 @@
-﻿namespace Surab.Analyzer.Parsing;
+﻿namespace Surab.Analyzer;
 
 /// <summary>
 /// Represents a type that can be visited by an <see cref="IVisitor"/>.

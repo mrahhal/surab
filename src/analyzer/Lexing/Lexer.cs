@@ -1,10 +1,9 @@
 ﻿using System.Collections;
 using System.Diagnostics;
-using Surab.Analyzer.Core;
 
-namespace Surab.Analyzer.Lexing;
+namespace Surab.Analyzer;
 
-public static class Lexer
+internal static class Lexer
 {
     public static IEnumerable<Token> Lex(string src)
     {
@@ -408,7 +407,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
     }
 }
 
-public static class LexerExtensions
+internal static class LexerExtensions
 {
     public static IEnumerable<Token> SkipTrivia(this IEnumerable<Token> tokens) =>
         tokens.Where(t => !t.Kind.IsTrivia());

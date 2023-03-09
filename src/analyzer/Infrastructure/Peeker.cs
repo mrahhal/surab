@@ -1,6 +1,6 @@
 ﻿using System.Collections;
 
-namespace Surab.Analyzer.Infrastructure;
+namespace Surab.Analyzer;
 
 internal class Peeker<T> : IEnumerable<T>, IEnumerator<T>
     where T : notnull

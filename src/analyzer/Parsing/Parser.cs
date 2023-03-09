@@ -1,8 +1,4 @@
-﻿using Surab.Analyzer.Core;
-using Surab.Analyzer.Infrastructure;
-using Surab.Analyzer.Lexing;
-
-namespace Surab.Analyzer.Parsing;
+﻿namespace Surab.Analyzer;
 
 public static class Parser
 {

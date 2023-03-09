@@ -23,7 +23,7 @@ public class AstVisitorsGenerator : GeneratorBase
     private void GenerateHeader()
     {
         _sb.Append("""
-            namespace Surab.Analyzer.Parsing;
+            namespace Surab.Analyzer;
             """.NL(2));
     }
 
