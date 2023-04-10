@@ -38,6 +38,10 @@ class Greeter {
   }
 
   public get_name(): String { // Return type will be inferred if omitted
+    foreach (a in b) {
+      @last
+    }
+
     return this.name;
   }
 
