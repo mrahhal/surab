@@ -8,6 +8,8 @@ public readonly record struct TextSpan(
     FileSpan File,
     LineSpan Line)
 {
+    public static TextSpan Empty { get; } = new();
+
     public static TextSpan FromTo(TextSpan from, TextSpan to) => new()
     {
         File = new()
