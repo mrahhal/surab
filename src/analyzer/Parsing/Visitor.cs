@@ -46,11 +46,17 @@ public partial interface IVisitor
     {
         foreach (var child in node.ChildTokens)
         {
-            child?.Accept(this);
+            if (child != null)
+            {
+                Visit(child);
+            }
         }
         foreach (var child in node.ChildNodes)
         {
-            child?.Accept(this);
+            if (child != null)
+            {
+                Visit(child);
+            }
         }
     }
 
