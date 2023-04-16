@@ -91,8 +91,6 @@ public class SemanticModel
     /// <summary>
     /// Gets the <see cref="TypeSymbol"/>, if any, that represents the given node.
     /// </summary>
-    /// <param name="node"></param>
-    /// <returns></returns>
     public TypeSymbol? GetTypeSymbol(SyntaxNode node)
     {
         return node switch
