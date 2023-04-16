@@ -388,6 +388,66 @@ public abstract class SyntaxNode : SyntaxEntity
             c?.SetParent(this);
         }
     }
+
+    /// <summary>
+    /// Enumerates ancestor nodes in breadth first order.
+    /// </summary>
+    public IEnumerable<SyntaxNode> Ancestors() => AncestorsCore(includeSelf: false);
+
+    /// <summary>
+    /// Enumerates ancestor nodes and self in breadth first order.
+    /// </summary>
+    public IEnumerable<SyntaxNode> AncestorsAndSelf() => AncestorsCore(includeSelf: true);
+
+    private IEnumerable<SyntaxNode> AncestorsCore(bool includeSelf)
+    {
+        if (includeSelf)
+        {
+            yield return this;
+        }
+
+        for (var current = Parent; current != null; current = current.Parent)
+        {
+            yield return current;
+        }
+    }
+
+    /// <summary>
+    /// Enumerates descendant nodes in breadth first order.
+    /// </summary>
+    public IEnumerable<SyntaxNode> DescendantNodes() => DescendantNodesCore(includeSelf: false);
+
+    /// <summary>
+    /// Enumerates descendant nodes and self in breadth first order.
+    /// </summary>
+    public IEnumerable<SyntaxNode> DescendantNodesAndSelf() => DescendantNodesCore(includeSelf: true);
+
+    private IEnumerable<SyntaxNode> DescendantNodesCore(bool includeSelf)
+    {
+        if (includeSelf)
+        {
+            yield return this;
+        }
+
+        foreach (var child in ChildNodes)
+        {
+            if (child != null)
+            {
+                yield return child;
+            }
+        }
+
+        foreach (var child in ChildNodes)
+        {
+            if (child != null)
+            {
+                foreach (var item in child.DescendantNodes())
+                {
+                    yield return item;
+                }
+            }
+        }
+    }
 }
 
 public abstract class DeclarationNode : SyntaxNode
