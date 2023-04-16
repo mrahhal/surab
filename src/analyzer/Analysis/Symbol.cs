@@ -116,7 +116,7 @@ public class FunctionSymbol : Symbol
         var builder = ImmutableArray.CreateBuilder<ParameterSymbol>();
         foreach (var parameterNode in _node.Parameters.Parameters)
         {
-            if (Context.SemanticModel.TryGetSymbol(parameterNode, out var symbol))
+            if (Context.SemanticModel.TryGetDeclaredSymbol(parameterNode, out var symbol))
             {
                 builder.Add((ParameterSymbol)symbol);
             }
@@ -215,10 +215,10 @@ public abstract class TypeSymbol : Symbol
 
 public class NamedTypeSymbol : TypeSymbol
 {
-    private readonly DeclarationNode _node;
+    private readonly DeclarationNode? _node;
     private ImmutableArray<Symbol> _members;
 
-    internal NamedTypeSymbol(DeclarationNode node)
+    internal NamedTypeSymbol(DeclarationNode? node)
     {
         _node = node;
     }
@@ -233,7 +233,7 @@ public class NamedTypeSymbol : TypeSymbol
         _ => null,
     };
 
-    public ImmutableArray<Symbol> Members
+    public virtual ImmutableArray<Symbol> Members
     {
         get
         {
@@ -251,7 +251,7 @@ public class NamedTypeSymbol : TypeSymbol
         var builder = ImmutableArray.CreateBuilder<Symbol>();
         foreach (var node in EnumerateMembers())
         {
-            if (Context.SemanticModel.TryGetSymbol(node, out var symbol))
+            if (Context.SemanticModel.TryGetDeclaredSymbol(node, out var symbol))
             {
                 builder.Add(symbol);
             }

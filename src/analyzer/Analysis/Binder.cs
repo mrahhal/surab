@@ -39,7 +39,7 @@ internal abstract class Binder
     /// <summary>
     /// Looks up `this` starting from the given binder's scope and walking up.
     /// </summary>
-    public Symbol? LookupThis()
+    public TypeSymbol? LookupThis()
     {
         var current = this;
         while (current != null)
@@ -65,7 +65,7 @@ internal abstract class Binder
     /// <summary>
     /// Looks up `this` in this binder's scope.
     /// </summary>
-    public virtual Symbol? LookupThisHere() => null;
+    public virtual TypeSymbol? LookupThisHere() => null;
 
     protected static T? LookupIdentifierIn<T>(ImmutableArray<T> array, IdentifierToken identifier)
         where T : Symbol
@@ -137,7 +137,7 @@ internal class ModuleBinder : Binder
         var builder = ImmutableArray.CreateBuilder<Symbol>();
         foreach (var declaration in _module.Declarations)
         {
-            if (SemanticModel.TryGetSymbol(declaration, out var symbol))
+            if (SemanticModel.TryGetDeclaredSymbol(declaration, out var symbol))
             {
                 builder.Add(symbol);
             }
@@ -162,6 +162,11 @@ internal class ClassDeclarationBinder : Binder
     public override Symbol? LookupIdentifierHere(IdentifierToken identifier)
     {
         return LookupIdentifierIn(_symbol.Members, identifier);
+    }
+
+    public override TypeSymbol? LookupThisHere()
+    {
+        return _symbol;
     }
 }
 
@@ -226,7 +231,7 @@ internal class BlockExpressionBinder : Binder, IBinderHasLocals
         var builder = ImmutableArray.CreateBuilder<LocalSymbol>();
         foreach (var declaration in _block.Statements)
         {
-            if (SemanticModel.TryGetSymbol(declaration, out var symbol) && symbol is LocalSymbol localSymbol)
+            if (SemanticModel.TryGetDeclaredSymbol(declaration, out var symbol) && symbol is LocalSymbol localSymbol)
             {
                 builder.Add(localSymbol);
             }
