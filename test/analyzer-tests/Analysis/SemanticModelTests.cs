@@ -5,7 +5,9 @@ public class SemanticModelTests
     [Fact]
     public void CreatesSymbols()
     {
-        var src = "const a = 2;";
+        var src = """
+            const a = 2;
+            """;
         var tree = Parser.ParseModule(src);
         var model = SemanticModel.Create(tree);
 
@@ -17,7 +19,9 @@ public class SemanticModelTests
     [Fact]
     public void CreatesBinders()
     {
-        var src = "const a = 2;";
+        var src = """
+            const a = 2;
+            """;
         var tree = Parser.ParseModule(src);
         var model = SemanticModel.Create(tree);
 
@@ -64,5 +68,38 @@ public class SemanticModelTests
         model.GetTypeSymbol(declaration2.Value).Should().Be(BuiltInTypeSystem.Char);
         model.GetTypeSymbol(declaration3.Value).Should().Be(BuiltInTypeSystem.String);
         model.GetTypeSymbol(declaration4.Value).Should().Be(BuiltInTypeSystem.Bool);
+    }
+
+    [Fact]
+    public void LocalSymbolType_Null()
+    {
+        var src = """
+            function f() {
+                let a = { 2 };
+            }
+            """;
+        var tree = Parser.ParseModule(src);
+        var model = SemanticModel.Create(tree);
+
+        var letStatement = tree.Root.DescendantNodes().OfType<LetStatementNode>().Single();
+        model.TryGetDeclaredSymbol(letStatement, out var symbol).Should().BeTrue();
+        var localSymbol = symbol.Should().BeOfType<LocalSymbol>().Subject;
+        localSymbol.Type.Should().BeNull();
+    }
+
+    [Fact]
+    public void GetTypeSymbol_Block()
+    {
+        var src = """
+            function f() {
+                let a = { 2 };
+            }
+            """;
+        var tree = Parser.ParseModule(src);
+        var model = SemanticModel.Create(tree);
+
+        var letStatement = tree.Root.DescendantNodes().OfType<LetStatementNode>().Single();
+        var initializerSymbol = model.GetTypeSymbol(letStatement.Initializer);
+        initializerSymbol.Should().Be(BuiltInTypeSystem.Number);
     }
 }

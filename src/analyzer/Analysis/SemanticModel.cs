@@ -97,6 +97,10 @@ public class SemanticModel
         {
             BareExpressionStatementNode bareExpressionStatement => GetTypeSymbol(bareExpressionStatement),
             ExpressionNode expressionNode => GetTypeSymbol(expressionNode),
+
+            // For convenience.
+            EqualsValueClauseNode equalsValueClause => GetTypeSymbol(equalsValueClause.Expression),
+
             _ => null,
         };
     }
