@@ -276,6 +276,24 @@ public class NamedTypeSymbol : TypeSymbol
     }
 }
 
+public class BuiltInNamedTypeSymbol : NamedTypeSymbol
+{
+    private readonly IdentifierToken _name;
+    private readonly ImmutableArray<Symbol> _members;
+
+    internal BuiltInNamedTypeSymbol(
+        IdentifierToken name,
+        IEnumerable<Symbol> members) : base(null)
+    {
+        _name = name;
+        _members = members.ToImmutableArray();
+    }
+
+    public override IdentifierToken? Name => _name;
+
+    public override ImmutableArray<Symbol> Members => _members;
+}
+
 public class ArrayTypeSymbol : TypeSymbol
 {
     public override SymbolKind Kind => SymbolKind.ArrayType;
