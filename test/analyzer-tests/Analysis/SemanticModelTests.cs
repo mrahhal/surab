@@ -30,7 +30,7 @@ public class SemanticModelTests
     }
 
     [Fact]
-    public void GetSymbol()
+    public void LookupSymbol()
     {
         var src = """
             const a = 2;
@@ -41,14 +41,14 @@ public class SemanticModelTests
 
         var declaration1 = tree.Root.DescendantNodes().OfType<ConstDeclarationNode>().First();
         var declaration2 = tree.Root.DescendantNodes().OfType<ConstDeclarationNode>().Skip(1).Single();
-        var valueSymbol = model.GetSymbol(declaration2.Value);
+        var valueSymbol = model.LookupSymbol(declaration2.Value);
         model.TryGetDeclaredSymbol(declaration1, out var symbol).Should().BeTrue();
 
         valueSymbol.Should().NotBeNull().And.Be(symbol);
     }
 
     [Fact]
-    public void GetTypeSymbol()
+    public void LookupType()
     {
         var src = """
             const a = 2;
@@ -64,10 +64,10 @@ public class SemanticModelTests
         var declaration3 = tree.Root.DescendantNodes().OfType<ConstDeclarationNode>().Skip(2).First();
         var declaration4 = tree.Root.DescendantNodes().OfType<ConstDeclarationNode>().Skip(3).Single();
 
-        model.GetTypeSymbol(declaration1.Value).Should().Be(BuiltInTypeSystem.Number);
-        model.GetTypeSymbol(declaration2.Value).Should().Be(BuiltInTypeSystem.Char);
-        model.GetTypeSymbol(declaration3.Value).Should().Be(BuiltInTypeSystem.String);
-        model.GetTypeSymbol(declaration4.Value).Should().Be(BuiltInTypeSystem.Bool);
+        model.LookupType(declaration1.Value).Should().Be(BuiltInTypeSystem.Number);
+        model.LookupType(declaration2.Value).Should().Be(BuiltInTypeSystem.Char);
+        model.LookupType(declaration3.Value).Should().Be(BuiltInTypeSystem.String);
+        model.LookupType(declaration4.Value).Should().Be(BuiltInTypeSystem.Bool);
     }
 
     [Fact]
@@ -88,7 +88,7 @@ public class SemanticModelTests
     }
 
     [Fact]
-    public void GetTypeSymbol_Block()
+    public void LookupType_Block()
     {
         var src = """
             function f() {
@@ -99,7 +99,7 @@ public class SemanticModelTests
         var model = SemanticModel.Create(tree);
 
         var letStatement = tree.Root.DescendantNodes().OfType<LetStatementNode>().Single();
-        var initializerSymbol = model.GetTypeSymbol(letStatement.Initializer);
+        var initializerSymbol = model.LookupType(letStatement.Initializer);
         initializerSymbol.Should().Be(BuiltInTypeSystem.Number);
     }
 }

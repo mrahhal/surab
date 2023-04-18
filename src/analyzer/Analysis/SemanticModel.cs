@@ -67,67 +67,67 @@ public class SemanticModel
     }
 
     /// <summary>
-    /// Gets the <see cref="Symbol"/>, if any, that is referred to in the given node.
+    /// Looks up the <see cref="Symbol"/>, if any, that is referred to in the given node.
     /// </summary>
-    public Symbol? GetSymbol(SyntaxNode node)
+    public Symbol? LookupSymbol(SyntaxNode node)
     {
         var result = node switch
         {
-            IdentifierExpressionNode identifierExpression => GetSymbol(identifierExpression),
+            IdentifierExpressionNode identifierExpression => LookupSymbol(identifierExpression),
             _ => null,
         };
 
-        return result ?? GetTypeSymbol(node);
+        return result ?? LookupType(node);
     }
 
-    public Symbol? GetSymbol(IdentifierExpressionNode node)
+    public Symbol? LookupSymbol(IdentifierExpressionNode node)
     {
         var binder = GetEnclosingBinder(node);
         return binder?.LookupIdentifier(node.Identifier);
     }
 
     /// <summary>
-    /// Gets the <see cref="TypeSymbol"/>, if any, that represents the given node.
+    /// Looks up the <see cref="TypeSymbol"/>, if any, that represents the given node.
     /// </summary>
-    public TypeSymbol? GetTypeSymbol(SyntaxNode node)
+    public TypeSymbol? LookupType(SyntaxNode node)
     {
         return node switch
         {
-            BareExpressionStatementNode bareExpressionStatement => GetTypeSymbol(bareExpressionStatement),
-            ExpressionNode expressionNode => GetTypeSymbol(expressionNode),
+            BareExpressionStatementNode bareExpressionStatement => LookupType(bareExpressionStatement),
+            ExpressionNode expressionNode => LookupType(expressionNode),
 
             // For convenience.
-            EqualsValueClauseNode equalsValueClause => GetTypeSymbol(equalsValueClause.Expression),
+            EqualsValueClauseNode equalsValueClause => LookupType(equalsValueClause.Expression),
 
             _ => null,
         };
     }
 
-    private TypeSymbol? GetTypeSymbol(BareExpressionStatementNode node)
+    private TypeSymbol? LookupType(BareExpressionStatementNode node)
     {
-        return GetTypeSymbol(node.Expression);
+        return LookupType(node.Expression);
     }
 
-    private TypeSymbol? GetTypeSymbol(ExpressionNode node)
+    private TypeSymbol? LookupType(ExpressionNode node)
     {
         return node switch
         {
-            BlockExpressionNode blockExpression => GetTypeSymbol(blockExpression),
-            AssignmentExpressionNode assignmentExpression => GetTypeSymbol(assignmentExpression.Lhs),
-            UnaryExpressionNode unaryExpression => GetTypeSymbol(unaryExpression.Expression),
-            BinaryExpressionNode binaryExpression => GetTypeSymbol(binaryExpression),
-            GroupingExpressionNode groupingExpression => GetTypeSymbol(groupingExpression.Expression),
-            CallExpressionNode callExpression => GetTypeSymbol(callExpression),
-            AccessExpressionNode accessExpression => GetTypeSymbol(accessExpression),
-            LiteralExpressionNode literalExpression => GetTypeSymbol(literalExpression),
-            IdentifierExpressionNode identifierExpression => GetTypeSymbol(identifierExpression),
-            ThisExpressionNode thisExpression => GetTypeSymbol(thisExpression),
+            BlockExpressionNode blockExpression => LookupType(blockExpression),
+            AssignmentExpressionNode assignmentExpression => LookupType(assignmentExpression.Lhs),
+            UnaryExpressionNode unaryExpression => LookupType(unaryExpression.Expression),
+            BinaryExpressionNode binaryExpression => LookupType(binaryExpression),
+            GroupingExpressionNode groupingExpression => LookupType(groupingExpression.Expression),
+            CallExpressionNode callExpression => LookupType(callExpression),
+            AccessExpressionNode accessExpression => LookupType(accessExpression),
+            LiteralExpressionNode literalExpression => LookupType(literalExpression),
+            IdentifierExpressionNode identifierExpression => LookupType(identifierExpression),
+            ThisExpressionNode thisExpression => LookupType(thisExpression),
 
             _ => null,
         };
     }
 
-    private TypeSymbol? GetTypeSymbol(BlockExpressionNode node)
+    private TypeSymbol? LookupType(BlockExpressionNode node)
     {
         var lastStatement = node.Statements.LastOrDefault();
         if (lastStatement == null)
@@ -135,13 +135,13 @@ public class SemanticModel
             return null;
         }
 
-        return GetTypeSymbol(lastStatement);
+        return LookupType(lastStatement);
     }
 
-    private TypeSymbol? GetTypeSymbol(BinaryExpressionNode node)
+    private TypeSymbol? LookupType(BinaryExpressionNode node)
     {
-        var leftType = GetTypeSymbol(node.Left);
-        var rightType = GetTypeSymbol(node.Right);
+        var leftType = LookupType(node.Left);
+        var rightType = LookupType(node.Right);
 
         if (leftType != null && rightType != null && leftType != rightType)
         {
@@ -151,15 +151,15 @@ public class SemanticModel
         return leftType;
     }
 
-    private TypeSymbol? GetTypeSymbol(CallExpressionNode node)
+    private TypeSymbol? LookupType(CallExpressionNode node)
     {
-        var calleeSymbol = GetSymbol(node.Callee);
+        var calleeSymbol = LookupSymbol(node.Callee);
         return calleeSymbol is FunctionSymbol functionSymbol ? functionSymbol.ReturnType : null;
     }
 
-    private TypeSymbol? GetTypeSymbol(AccessExpressionNode node)
+    private TypeSymbol? LookupType(AccessExpressionNode node)
     {
-        var targetSymbol = GetSymbol(node.Target);
+        var targetSymbol = LookupSymbol(node.Target);
         return targetSymbol switch
         {
             NamedTypeSymbol namedTypeSymbol => GetMemberTypeSymbol(namedTypeSymbol),
@@ -183,7 +183,7 @@ public class SemanticModel
         }
     }
 
-    private static TypeSymbol? GetTypeSymbol(LiteralExpressionNode node)
+    private static TypeSymbol? LookupType(LiteralExpressionNode node)
     {
         return node.Literal.LiteralTokenKind switch
         {
@@ -196,13 +196,13 @@ public class SemanticModel
         };
     }
 
-    private TypeSymbol? GetTypeSymbol(IdentifierExpressionNode node)
+    private TypeSymbol? LookupType(IdentifierExpressionNode node)
     {
         var binder = GetEnclosingBinder(node);
         return binder?.LookupIdentifier(node.Identifier) as TypeSymbol;
     }
 
-    private TypeSymbol? GetTypeSymbol(ThisExpressionNode node)
+    private TypeSymbol? LookupType(ThisExpressionNode node)
     {
         var binder = GetEnclosingBinder(node);
         return binder?.LookupThis();
