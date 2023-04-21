@@ -2,9 +2,15 @@
 
 public class SyntaxTree
 {
-    public required SyntaxNode Root { get; init; }
+    public SyntaxTree(SyntaxNode root, DiagnosticBag diagnostics)
+    {
+        Root = root;
+        Diagnostics = diagnostics;
+    }
 
-    public required DiagnosticBag Diagnostics { get; init; }
+    public SyntaxNode Root { get; }
+
+    public DiagnosticBag Diagnostics { get; }
 }
 
 public abstract class SyntaxEntity : IVisitable

@@ -68,11 +68,7 @@ internal class ParserImpl
         var diagnostics = _diagnostics;
         _diagnostics = new();
 
-        return new()
-        {
-            Root = root,
-            Diagnostics = diagnostics,
-        };
+        return new(root, diagnostics);
     }
 
     /// <summary>

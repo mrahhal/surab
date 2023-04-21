@@ -64,9 +64,16 @@ public enum TokenKind
 /// </summary>
 public class Token
 {
-    public required TokenKind Kind { get; init; }
+    public Token(TokenKind kind, TextSpan span, object? data)
+    {
+        Kind = kind;
+        Span = span;
+        Data = data;
+    }
 
-    public required TextSpan Span { get; init; }
+    public TokenKind Kind { get; }
+
+    public TextSpan Span { get; }
 
     /// <summary>
     /// An optional data object. The actual type (if it exists) is always well known for each <see cref="Kind"/>.
@@ -77,7 +84,7 @@ public class Token
     /// - <see cref="TokenKind.StringLiteral"/>
     /// - <see cref="TokenKind.BlockComment"/>
     /// </remarks>
-    public object? Data { get; init; }
+    public object? Data { get; }
 
     public override string ToString()
     {
@@ -137,17 +144,17 @@ public class Token
 
 public class CharLiteralTokenData
 {
-    public required bool IsTerminated { get; init; }
+    public bool IsTerminated { get; init; }
 }
 
 public class StringLiteralTokenData
 {
-    public required bool IsTerminated { get; init; }
+    public bool IsTerminated { get; init; }
 }
 
 public class BlockCommentTokenData
 {
-    public required bool IsTerminated { get; init; }
+    public bool IsTerminated { get; init; }
 }
 
 public static class TokenKindExtensions

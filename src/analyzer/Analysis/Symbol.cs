@@ -296,10 +296,15 @@ public class BuiltInNamedTypeSymbol : NamedTypeSymbol
 
 public class ArrayTypeSymbol : TypeSymbol
 {
+    public ArrayTypeSymbol(TypeSymbol elementType)
+    {
+        ElementType = elementType;
+    }
+
     public override SymbolKind Kind => SymbolKind.ArrayType;
 
     /// <summary>
     /// The type symbol representing the element of the array. (i.e the `T` in `[T]`)
     /// </summary>
-    public required TypeSymbol ElementType { get; init; }
+    public TypeSymbol ElementType { get; }
 }

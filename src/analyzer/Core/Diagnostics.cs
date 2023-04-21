@@ -9,11 +9,18 @@ public enum DiagnosticLevel
 
 public class Diagnostic
 {
-    public required TextSpan Span { get; init; }
+    public Diagnostic(TextSpan span, DiagnosticLevel level, string message)
+    {
+        Span = span;
+        Level = level;
+        Message = message;
+    }
 
-    public required DiagnosticLevel Level { get; init; }
+    public TextSpan Span { get; }
 
-    public required string Message { get; init; }
+    public DiagnosticLevel Level { get; }
+
+    public string Message { get; }
 }
 
 public interface IDiagnosticsProvider
@@ -29,7 +36,7 @@ public class DiagnosticBag
 
     public Diagnostic Add(TextSpan span, DiagnosticLevel level, string message)
     {
-        var diagnostic = new Diagnostic { Span = span, Level = level, Message = message };
+        var diagnostic = new Diagnostic(span, level, message);
         Diagnostics.Add(diagnostic);
         return diagnostic;
     }

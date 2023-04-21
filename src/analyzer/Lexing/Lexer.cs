@@ -229,12 +229,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 
     private bool IsAtEnd() => _window.IsEmpty;
 
-    private Token MakeToken(TokenKind tokenKind, object? data = null) => new()
-    {
-        Kind = tokenKind,
-        Span = ConsumedTextSpan(),
-        Data = data,
-    };
+    private Token MakeToken(TokenKind tokenKind, object? data = null) => new(tokenKind, ConsumedTextSpan(), data);
 
     private Token ConsumeLineComment()
     {
