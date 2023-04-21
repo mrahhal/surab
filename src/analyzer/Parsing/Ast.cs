@@ -18,7 +18,7 @@ public abstract class SyntaxEntity : IVisitable
         Parent = parent;
     }
 
-    public abstract void Accept(IVisitor visitor);
+    public abstract void Accept(Visitor visitor);
 }
 
 public enum SyntaxTokenKind
@@ -118,7 +118,7 @@ public class SimpleToken : SyntaxToken
 
     public override string ToString() => SimpleTokenKind.ToString();
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitSimpleToken(this);
     }
@@ -160,7 +160,7 @@ public class UnaryOperatorToken : SyntaxToken
         _ => throw new NotImplementedException(),
     };
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitUnaryOperatorToken(this);
     }
@@ -241,7 +241,7 @@ public class BinaryOperatorToken : SyntaxToken
         _ => throw new NotImplementedException(),
     };
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitBinaryOperatorToken(this);
     }
@@ -258,7 +258,7 @@ public class IdentifierToken : SyntaxToken
 
     public string Identifier { get; init; }
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitIdentifierToken(this);
     }
@@ -341,7 +341,7 @@ public class LiteralToken : SyntaxToken
         return true;
     }
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitLiteralToken(this);
     }
@@ -358,7 +358,7 @@ public class SkippedToken : SyntaxToken
 
     public List<Token> Tokens { get; init; }
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitSkippedToken(this);
     }

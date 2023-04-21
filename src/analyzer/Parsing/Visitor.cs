@@ -1,20 +1,20 @@
 ﻿namespace Surab.Analyzer;
 
 /// <summary>
-/// Represents a type that can be visited by an <see cref="IVisitor"/>.
+/// Represents a type that can be visited by an <see cref="Visitor"/>.
 /// </summary>
 public interface IVisitable
 {
     /// <summary>
     /// Calls the Visit* method on the visitor that is respective to the current type.
     /// </summary>
-    void Accept(IVisitor visitor);
+    void Accept(Visitor visitor);
 }
 
 /// <summary>
 /// An AST visitor.
 /// </summary>
-public partial interface IVisitor
+public abstract partial class Visitor
 {
     // Visit*
     // ======
@@ -26,7 +26,7 @@ public partial interface IVisitor
     /// <summary>
     /// Visits the given node. Calls the respective concrete Visit* method.
     /// </summary>
-    public void Visit(SyntaxNode node)
+    public virtual void Visit(SyntaxNode node)
     {
         node.Accept(this);
     }
@@ -34,7 +34,7 @@ public partial interface IVisitor
     /// <summary>
     /// Visits the given token. Calls the respective concrete Visit* method.
     /// </summary>
-    public void Visit(SyntaxToken token)
+    public virtual void Visit(SyntaxToken token)
     {
         token.Accept(this);
     }
@@ -42,7 +42,10 @@ public partial interface IVisitor
     /// <summary>
     /// Walks the node's children (child tokens first, then child nodes) calling the respective Visit* method for each child.
     /// </summary>
-    public void Walk(SyntaxNode node)
+    /// <remarks>
+    /// This method is virtual so that walking can be overriden and disabled if necessary.
+    /// </remarks>
+    protected virtual void Walk(SyntaxNode node)
     {
         foreach (var child in node.ChildTokens)
         {
@@ -62,17 +65,17 @@ public partial interface IVisitor
 
     // Tokens
 
-    public void VisitSimpleToken(SimpleToken simpleToken) { }
+    public virtual void VisitSimpleToken(SimpleToken simpleToken) { }
 
-    public void VisitUnaryOperatorToken(UnaryOperatorToken unaryOperatorToken) { }
+    public virtual void VisitUnaryOperatorToken(UnaryOperatorToken unaryOperatorToken) { }
 
-    public void VisitBinaryOperatorToken(BinaryOperatorToken binaryOperatorToken) { }
+    public virtual void VisitBinaryOperatorToken(BinaryOperatorToken binaryOperatorToken) { }
 
-    public void VisitIdentifierToken(IdentifierToken identifierToken) { }
+    public virtual void VisitIdentifierToken(IdentifierToken identifierToken) { }
 
-    public void VisitLiteralToken(LiteralToken literalToken) { }
+    public virtual void VisitLiteralToken(LiteralToken literalToken) { }
 
-    public void VisitSkippedToken(SkippedToken skippedToken) { }
+    public virtual void VisitSkippedToken(SkippedToken skippedToken) { }
 
     // Rest of the impl is in the generated Visitor.g.cs file.
 }

@@ -208,7 +208,7 @@ public class SemanticModel
         return binder?.LookupThis();
     }
 
-    private class Builder : IVisitor
+    private class Builder : Visitor
     {
         private readonly SemanticModel _model;
         private Binder? _parentBinder;
@@ -226,7 +226,7 @@ public class SemanticModel
             return builder._model;
         }
 
-        public void Visit(SyntaxNode node)
+        public override void Visit(SyntaxNode node)
         {
             var symbol = CreateSymbol(node);
             var binder = CreateBinder(node, symbol);
@@ -249,7 +249,7 @@ public class SemanticModel
                 _parentBinder = binder;
             }
 
-            ((IVisitor)this).Walk(node);
+            Walk(node);
 
             if (prevParentSymbol != null)
             {

@@ -98,7 +98,7 @@ public class ModuleNode : SyntaxNode
 
     public IEnumerable<DeclarationNode> Declarations => ChildNodes.Cast<DeclarationNode>();
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitModule(this);
     }
@@ -123,7 +123,7 @@ public class ConstDeclarationNode : DeclarationNode
     public SimpleToken EqualToken => (SimpleToken)ChildTokens[3]!;
     public ExpressionNode Value => (ExpressionNode)ChildNodes[1]!;
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitConstDeclaration(this);
     }
@@ -146,7 +146,7 @@ public class FunctionDeclarationNode : DeclarationNode
     public FunctionSignatureNode Signature => (FunctionSignatureNode)ChildNodes[0]!;
     public BlockExpressionNode Body => (BlockExpressionNode)ChildNodes[1]!;
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitFunctionDeclaration(this);
     }
@@ -171,7 +171,7 @@ public class ClassDeclarationNode : DeclarationNode
     public IEnumerable<DeclarationNode> Members => ChildNodes.Cast<DeclarationNode>();
     public SimpleToken ClosedBraceToken => (SimpleToken)ChildTokens[4]!;
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitClassDeclaration(this);
     }
@@ -195,7 +195,7 @@ public class FieldDeclarationNode : DeclarationNode
     public EqualsValueClauseNode Initializer => (EqualsValueClauseNode)ChildNodes[1]!;
     public SimpleToken SemicolonToken => (SimpleToken)ChildTokens[2]!;
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitFieldDeclaration(this);
     }
@@ -217,7 +217,7 @@ public class MethodDeclarationNode : DeclarationNode
     public FunctionSignatureNode Signature => (FunctionSignatureNode)ChildNodes[0]!;
     public BlockExpressionNode Body => (BlockExpressionNode)ChildNodes[1]!;
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitMethodDeclaration(this);
     }
@@ -237,7 +237,7 @@ public class SkippedTokensDeclarationNode : DeclarationNode
 
     public SkippedToken Skipped => (SkippedToken)ChildTokens[0]!;
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitSkippedTokensDeclaration(this);
     }
@@ -261,7 +261,7 @@ public class LetStatementNode : StatementNode
     public EqualsValueClauseNode Initializer => (EqualsValueClauseNode)ChildNodes[1]!;
     public SimpleToken SemicolonToken => (SimpleToken)ChildTokens[2]!;
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitLetStatement(this);
     }
@@ -283,7 +283,7 @@ public class ReturnStatementNode : StatementNode
     public ExpressionNode Expression => (ExpressionNode)ChildNodes[0]!;
     public SimpleToken SemicolonToken => (SimpleToken)ChildTokens[1]!;
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitReturnStatement(this);
     }
@@ -304,7 +304,7 @@ public class ExpressionStatementNode : StatementNode
     public ExpressionNode Expression => (ExpressionNode)ChildNodes[0]!;
     public SimpleToken SemicolonToken => (SimpleToken)ChildTokens[0]!;
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitExpressionStatement(this);
     }
@@ -324,7 +324,7 @@ public class BareExpressionStatementNode : StatementNode
 
     public ExpressionNode Expression => (ExpressionNode)ChildNodes[0]!;
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitBareExpressionStatement(this);
     }
@@ -344,7 +344,7 @@ public class SkippedTokensStatementNode : StatementNode
 
     public SkippedToken Skipped => (SkippedToken)ChildTokens[0]!;
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitSkippedTokensStatement(this);
     }
@@ -366,7 +366,7 @@ public class BlockExpressionNode : ExpressionNode
     public IEnumerable<StatementNode> Statements => ChildNodes.Cast<StatementNode>();
     public SimpleToken ClosedBraceToken => (SimpleToken)ChildTokens[1]!;
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitBlockExpression(this);
     }
@@ -388,7 +388,7 @@ public class AssignmentExpressionNode : ExpressionNode
     public SimpleToken EqualToken => (SimpleToken)ChildTokens[0]!;
     public ExpressionNode Rhs => (ExpressionNode)ChildNodes[1]!;
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitAssignmentExpression(this);
     }
@@ -409,7 +409,7 @@ public class UnaryExpressionNode : ExpressionNode
     public UnaryOperatorToken Op => (UnaryOperatorToken)ChildTokens[0]!;
     public ExpressionNode Expression => (ExpressionNode)ChildNodes[0]!;
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitUnaryExpression(this);
     }
@@ -431,7 +431,7 @@ public class BinaryExpressionNode : ExpressionNode
     public BinaryOperatorToken Op => (BinaryOperatorToken)ChildTokens[0]!;
     public ExpressionNode Right => (ExpressionNode)ChildNodes[1]!;
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitBinaryExpression(this);
     }
@@ -453,7 +453,7 @@ public class GroupingExpressionNode : ExpressionNode
     public ExpressionNode Expression => (ExpressionNode)ChildNodes[0]!;
     public SimpleToken ClosedParenToken => (SimpleToken)ChildTokens[1]!;
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitGroupingExpression(this);
     }
@@ -474,7 +474,7 @@ public class CallExpressionNode : ExpressionNode
     public ExpressionNode Callee => (ExpressionNode)ChildNodes[0]!;
     public ArgumentsListNode Arguments => (ArgumentsListNode)ChildNodes[1]!;
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitCallExpression(this);
     }
@@ -496,7 +496,7 @@ public class AccessExpressionNode : ExpressionNode
     public SimpleToken DotToken => (SimpleToken)ChildTokens[0]!;
     public IdentifierToken Identifier => (IdentifierToken)ChildTokens[1]!;
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitAccessExpression(this);
     }
@@ -516,7 +516,7 @@ public class LiteralExpressionNode : ExpressionNode
 
     public LiteralToken Literal => (LiteralToken)ChildTokens[0]!;
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitLiteralExpression(this);
     }
@@ -536,7 +536,7 @@ public class IdentifierExpressionNode : ExpressionNode
 
     public IdentifierToken Identifier => (IdentifierToken)ChildTokens[0]!;
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitIdentifierExpression(this);
     }
@@ -556,7 +556,7 @@ public class ThisExpressionNode : ExpressionNode
 
     public SimpleToken KeywordToken => (SimpleToken)ChildTokens[0]!;
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitThisExpression(this);
     }
@@ -576,7 +576,7 @@ public class SkippedTokensExpressionNode : ExpressionNode
 
     public SkippedToken Skipped => (SkippedToken)ChildTokens[0]!;
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitSkippedTokensExpression(this);
     }
@@ -598,7 +598,7 @@ public class ParametersListNode : SyntaxNode
     public IEnumerable<ParameterNode> Parameters => ChildNodes.Cast<ParameterNode>();
     public SimpleToken ClosedParenToken => (SimpleToken)ChildTokens[1]!;
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitParametersList(this);
     }
@@ -621,7 +621,7 @@ public class ParameterNode : SyntaxNode
     public ColonTyNode Ty => (ColonTyNode)ChildNodes[0]!;
     public SimpleToken? CommaToken => (SimpleToken?)ChildTokens[2]!;
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitParameter(this);
     }
@@ -643,7 +643,7 @@ public class ArgumentsListNode : SyntaxNode
     public IEnumerable<ArgumentNode> Arguments => ChildNodes.Cast<ArgumentNode>();
     public SimpleToken ClosedParenToken => (SimpleToken)ChildTokens[1]!;
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitArgumentsList(this);
     }
@@ -664,7 +664,7 @@ public class ArgumentNode : SyntaxNode
     public ExpressionNode Expression => (ExpressionNode)ChildNodes[0]!;
     public SimpleToken? CommaToken => (SimpleToken?)ChildTokens[0]!;
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitArgument(this);
     }
@@ -685,7 +685,7 @@ public class ColonTyNode : SyntaxNode
     public SimpleToken ColonToken => (SimpleToken)ChildTokens[0]!;
     public TyNode Ty => (TyNode)ChildNodes[0]!;
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitColonTy(this);
     }
@@ -706,7 +706,7 @@ public class TyNode : SyntaxNode
     public IdentifierToken Identifier => (IdentifierToken)ChildTokens[0]!;
     public SimpleToken? NullableToken => (SimpleToken?)ChildTokens[1]!;
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitTy(this);
     }
@@ -728,7 +728,7 @@ public class FunctionSignatureNode : SyntaxNode
     public ParametersListNode Parameters => (ParametersListNode)ChildNodes[0]!;
     public ColonTyNode? ReturnTy => (ColonTyNode?)ChildNodes[1]!;
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitFunctionSignature(this);
     }
@@ -749,7 +749,7 @@ public class EqualsValueClauseNode : SyntaxNode
     public SimpleToken EqualToken => (SimpleToken)ChildTokens[0]!;
     public ExpressionNode Expression => (ExpressionNode)ChildNodes[0]!;
 
-    public override void Accept(IVisitor visitor)
+    public override void Accept(Visitor visitor)
     {
         visitor.VisitEqualsValueClause(this);
     }

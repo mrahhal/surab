@@ -15,7 +15,7 @@ public class AstVisitorsGenerator : GeneratorBase
     protected override Task GenerateCoreAsync()
     {
         GenerateHeader();
-        new VisitorGenerator(_sb, Data, "IVisitor").Generate();
+        new VisitorGenerator(_sb, Data, "Visitor").Generate();
 
         return Task.CompletedTask;
     }
@@ -47,7 +47,7 @@ public class AstVisitorsGenerator : GeneratorBase
         public void Generate()
         {
             _sb.Append($$"""
-                public partial interface {{Name}}
+                public abstract partial class {{Name}}
                 {
                     {{T(Data.Nodes, n => $"{OVisit(n)}")}}
                 }
@@ -60,7 +60,7 @@ public class AstVisitorsGenerator : GeneratorBase
 
             var camelTypeName = node.TypeName.ToCamelCase();
             sb.Append($$"""
-                {{INDENT}}public void Visit{{node.Name}}({{node.TypeName}} {{camelTypeName}})
+                {{INDENT}}public virtual void Visit{{node.Name}}({{node.TypeName}} {{camelTypeName}})
                 {{INDENT}}{
                 {{INDENT}}{{INDENT}}Walk({{camelTypeName}});
                 {{INDENT}}}

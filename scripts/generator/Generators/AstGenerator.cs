@@ -100,7 +100,7 @@ public class AstGenerator : GeneratorBase
                     }
 
                 {{OMembers(node)}}
-                    public override void Accept(IVisitor visitor)
+                    public override void Accept(Visitor visitor)
                     {
                         visitor.Visit{{node.Name}}(this);
                     }
