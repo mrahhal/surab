@@ -7,6 +7,10 @@ public static class BuiltInTypeSystem
 {
     static BuiltInTypeSystem()
     {
+        None = new BuiltInNamedTypeSymbol(
+            new IdentifierToken(TextSpan.Empty, "None"),
+            new List<BuiltInNamedTypeSymbol> { });
+
         Number = new BuiltInNamedTypeSymbol(
             new IdentifierToken(TextSpan.Empty, "Number"),
             new List<BuiltInNamedTypeSymbol> { });
@@ -23,6 +27,8 @@ public static class BuiltInTypeSystem
             new IdentifierToken(TextSpan.Empty, "Bool"),
             new List<BuiltInNamedTypeSymbol> { });
     }
+
+    public static BuiltInNamedTypeSymbol None { get; }
 
     public static BuiltInNamedTypeSymbol Number { get; }
 
