@@ -67,6 +67,24 @@ public class SemanticModel
     }
 
     /// <summary>
+    /// Gets all diagnostics (syntax and semantic).
+    /// </summary>
+    public IEnumerable<Diagnostic> GetAllDiagnostics()
+    {
+        // Syntax
+        var errored = Tree.Diagnostics.Diagnostics.Any(x => x.Level >= DiagnosticLevel.Error);
+        if (errored)
+        {
+            // Short circuit
+            return Tree.Diagnostics.Diagnostics;
+        }
+
+        // Semantic
+        var semanticDiagnostics = SemanticAnalyzer.Analyze(this);
+        return Tree.Diagnostics.Diagnostics.Concat(semanticDiagnostics.Diagnostics);
+    }
+
+    /// <summary>
     /// Looks up the <see cref="Symbol"/>, if any, that is referred to in the given node.
     /// </summary>
     public Symbol? LookupSymbol(SyntaxNode node)
@@ -74,6 +92,8 @@ public class SemanticModel
         var result = node switch
         {
             IdentifierExpressionNode identifierExpression => LookupSymbol(identifierExpression),
+            TyNode tyNode => LookupSymbol(tyNode.Identifier, tyNode),
+
             _ => null,
         };
 
@@ -82,8 +102,13 @@ public class SemanticModel
 
     public Symbol? LookupSymbol(IdentifierExpressionNode node)
     {
+        return LookupSymbol(node.Identifier, node);
+    }
+
+    private Symbol? LookupSymbol(IdentifierToken identifier, SyntaxNode node)
+    {
         var binder = GetEnclosingBinder(node);
-        return binder?.LookupIdentifier(node.Identifier);
+        return binder?.LookupIdentifier(identifier);
     }
 
     /// <summary>
