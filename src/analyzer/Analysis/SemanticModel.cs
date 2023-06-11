@@ -116,6 +116,7 @@ public class SemanticModel
     {
         return identifier.Identifier switch
         {
+            "None" => BuiltInTypeSystem.None,
             "Number" => BuiltInTypeSystem.Number,
             "Char" => BuiltInTypeSystem.Char,
             "String" => BuiltInTypeSystem.String,
