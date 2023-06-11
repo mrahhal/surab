@@ -334,6 +334,8 @@ public class SemanticModel
 
                 LetStatementNode letStatement => new LocalSymbol(letStatement),
 
+                ParameterNode parameterNode => new ParameterSymbol(parameterNode),
+
                 _ => null,
             };
         }
