@@ -429,7 +429,9 @@
         },
         {
           "Name": "ty",
-          "Type": "ColonTyNode"
+          "Type": "ColonTyNode",
+          "Optional": true,
+          "Comment": "Well formed: Has value"
         },
         {
           "Name": "commaToken",

@@ -186,6 +186,16 @@ public class ParserTests
     }
 
     [Fact]
+    public void Parameters_NoType()
+    {
+        // Syntax error, but should still lead to a proper FunctionDeclarationNode.
+        var src = "function a(b /* : number */) {}";
+        var node = ParseDeclaration(src).Should().BeOfType<FunctionDeclarationNode>().Subject;
+        node.Signature.Parameters.Parameters.Should().HaveCount(1);
+        node.Signature.Parameters.Parameters.ElementAt(0).Ty.Should().BeNull();
+    }
+
+    [Fact]
     public void Parameters_0()
     {
         var src = "function a() {}";

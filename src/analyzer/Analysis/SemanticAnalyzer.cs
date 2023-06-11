@@ -284,6 +284,16 @@ internal class SemanticAnalyzer : Visitor
         base.VisitThisExpression(thisExpressionNode);
     }
 
+    public override void VisitParameter(ParameterNode parameterNode)
+    {
+        if (parameterNode.Ty == null)
+        {
+            _diagnostics.Add(parameterNode.Span, DiagnosticLevel.Error, $"specifying type is required");
+        }
+
+        base.VisitParameter(parameterNode);
+    }
+
     public override void VisitFunctionSignature(FunctionSignatureNode functionSignatureNode)
     {
         // Temp: Require return type.

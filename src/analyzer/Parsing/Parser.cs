@@ -802,8 +802,8 @@ internal class ParserImpl
         var fieldToken = TryEatSimpleToken(TokenKind.Field);
         var identifier = ParseIdentifier();
         if (identifier == null) return null;
-        var ty = ParseColonTy();
-        if (ty == null) return null;
+        var (ty, elided) = ParseOptionalColonTy();
+        if (!elided && ty == null) return null;
         var commaToken = _current?.Kind switch
         {
             TokenKind.RightParen => null,

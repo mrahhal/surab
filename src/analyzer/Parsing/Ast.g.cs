@@ -606,7 +606,7 @@ public class ParametersListNode : SyntaxNode
 
 public class ParameterNode : SyntaxNode
 {
-    public ParameterNode(SimpleToken? fieldToken, IdentifierToken identifier, ColonTyNode ty, SimpleToken? commaToken)
+    public ParameterNode(SimpleToken? fieldToken, IdentifierToken identifier, ColonTyNode? ty, SimpleToken? commaToken)
         : base(SyntaxNodeKind.Parameter)
     {
         ChildTokens = new() { fieldToken, identifier, commaToken, };
@@ -618,7 +618,7 @@ public class ParameterNode : SyntaxNode
 
     public SimpleToken? FieldToken => (SimpleToken?)ChildTokens[0]!;
     public IdentifierToken Identifier => (IdentifierToken)ChildTokens[1]!;
-    public ColonTyNode Ty => (ColonTyNode)ChildNodes[0]!;
+    public ColonTyNode? Ty => (ColonTyNode?)ChildNodes[0]!;
     public SimpleToken? CommaToken => (SimpleToken?)ChildTokens[2]!;
 
     public override void Accept(Visitor visitor)
