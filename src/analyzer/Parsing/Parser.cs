@@ -804,7 +804,7 @@ internal class ParserImpl
         if (identifier == null) return null;
         var ty = ParseColonTy();
         if (ty == null) return null;
-        var commaToken = P1()?.Kind switch
+        var commaToken = _current?.Kind switch
         {
             TokenKind.RightParen => null,
             _ => EatExpectedSimpleToken(TokenKind.Comma),
@@ -847,7 +847,7 @@ internal class ParserImpl
     {
         var expression = ParseExpressionForPrecedence(precedence);
         if (expression == null) return null;
-        var commaToken = P1()?.Kind switch
+        var commaToken = _current?.Kind switch
         {
             TokenKind.RightParen => null,
             _ => EatExpectedSimpleToken(TokenKind.Comma),

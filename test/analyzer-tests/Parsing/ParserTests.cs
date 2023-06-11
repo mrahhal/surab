@@ -186,6 +186,54 @@ public class ParserTests
     }
 
     [Fact]
+    public void Parameters_0()
+    {
+        var src = "function a() {}";
+        var node = ParseDeclaration(src).Should().BeOfType<FunctionDeclarationNode>().Subject;
+        node.Signature.Parameters.Parameters.Should().HaveCount(0);
+    }
+
+    [Fact]
+    public void Parameters()
+    {
+        var src = "function a(b: number) {}";
+        var node = ParseDeclaration(src).Should().BeOfType<FunctionDeclarationNode>().Subject;
+        node.Signature.Parameters.Parameters.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public void Parameters_2()
+    {
+        var src = "function a(b: number, c: number) {}";
+        var node = ParseDeclaration(src).Should().BeOfType<FunctionDeclarationNode>().Subject;
+        node.Signature.Parameters.Parameters.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void Arguments_0()
+    {
+        var src = "a()";
+        var node = ParseExpression(src).Should().BeOfType<CallExpressionNode>().Subject;
+        node.Arguments.Arguments.Should().HaveCount(0);
+    }
+
+    [Fact]
+    public void Arguments()
+    {
+        var src = "a(b)";
+        var node = ParseExpression(src).Should().BeOfType<CallExpressionNode>().Subject;
+        node.Arguments.Arguments.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public void Arguments_2()
+    {
+        var src = "a(b, c)";
+        var node = ParseExpression(src).Should().BeOfType<CallExpressionNode>().Subject;
+        node.Arguments.Arguments.Should().HaveCount(2);
+    }
+
+    [Fact]
     public void BlockAsExpression()
     {
         var src = "let a = { 2 };";
