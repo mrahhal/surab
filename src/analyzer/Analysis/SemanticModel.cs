@@ -8,14 +8,15 @@ public class SemanticModel
     private readonly Dictionary<SyntaxNode, Binder> _nodeToBinderMap = new();
     private readonly Dictionary<SyntaxNode, Symbol> _nodeToSymbolMap = new();
 
-    public SemanticModel(SyntaxTree tree)
+    private SemanticModel(SyntaxTree tree)
     {
         Tree = tree;
     }
 
     public SyntaxTree Tree { get; }
 
-    internal static SemanticModel Create(SyntaxTree tree)
+    // TODO: internal
+    public static SemanticModel Create(SyntaxTree tree)
     {
         return Builder.Build(tree);
     }
