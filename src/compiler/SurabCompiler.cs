@@ -9,6 +9,11 @@ public sealed class SurabCompiler : Visitor
     private readonly SemanticModel _model;
     private readonly IRModule _ir;
 
+    private static readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        WriteIndented = true,
+    };
+
     private SurabCompiler(SemanticModel model)
     {
         _model = model;
@@ -24,7 +29,7 @@ public sealed class SurabCompiler : Visitor
 
     private static string Serialize(IRModule ir)
     {
-        return JsonSerializer.Serialize(ir);
+        return JsonSerializer.Serialize(ir, _jsonOptions);
     }
 
     private void Compile()
