@@ -323,7 +323,7 @@ internal class SemanticAnalyzer : Visitor
         {
             _diagnostics.Add(tyNode.Span, DiagnosticLevel.Error, $"unknown type");
         }
-        if (symbol is not TypeSymbol)
+        else if (symbol is not TypeSymbol)
         {
             _diagnostics.Add(tyNode.Span, DiagnosticLevel.Error, $"not a type");
         }
