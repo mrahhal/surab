@@ -173,12 +173,12 @@ internal class ClassDeclarationBinder : Binder
     }
 }
 
-internal class FunctionSignatureBinder : Binder
+internal class FunctionBinder : Binder
 {
     private readonly FunctionSignatureNode _functionSignature;
     private readonly FunctionSymbol _functionSymbol;
 
-    public FunctionSignatureBinder(
+    public FunctionBinder(
         FunctionSignatureNode functionSignature,
         FunctionSymbol functionSymbol)
     {

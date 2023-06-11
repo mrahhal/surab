@@ -238,7 +238,18 @@ public class SemanticModel
     private TypeSymbol? LookupType(IdentifierExpressionNode node)
     {
         var binder = GetEnclosingBinder(node);
-        return binder?.LookupIdentifier(node.Identifier) as TypeSymbol;
+        var symbol = binder?.LookupIdentifier(node.Identifier);
+
+        return symbol switch
+        {
+            TypeSymbol typeSymbol => typeSymbol,
+            ConstSymbol constSymbol => constSymbol.Type,
+            FieldSymbol fieldSymbol => fieldSymbol.Type,
+            ParameterSymbol parameterSymbol => parameterSymbol.Type,
+            LocalSymbol localSymbol => localSymbol.Type,
+
+            _ => null,
+        };
     }
 
     private TypeSymbol? LookupType(ThisExpressionNode node)
@@ -345,7 +356,8 @@ public class SemanticModel
             {
                 ModuleNode module => new ModuleBinder(module),
                 ClassDeclarationNode classDeclaration => new ClassDeclarationBinder(classDeclaration, (NamedTypeSymbol)symbol!),
-                FunctionSignatureNode functionSignature => new FunctionSignatureBinder(functionSignature, (FunctionSymbol)symbol!),
+                FunctionDeclarationNode functionDeclaration => new FunctionBinder(functionDeclaration.Signature, (FunctionSymbol)symbol!),
+                MethodDeclarationNode methodDeclaration => new FunctionBinder(methodDeclaration.Signature, (FunctionSymbol)symbol!),
                 BlockExpressionNode block => new BlockExpressionBinder(block),
 
                 _ => null,
