@@ -88,7 +88,10 @@ internal abstract class Binder
     {
         if (ty == null) return null;
 
-        return LookupIdentifier(ty.Identifier) as TypeSymbol;
+        // TODO: Not nice calling SemanticModel.LookupBuiltIn() here.
+        // TODO: Feels like there is two apis doing similar things (SemanticModel's lookup type, and binder's lookup type)
+        //       leading to both places having to call SemanticModel.LookupBuiltIn() after trying to lookup the identifier.
+        return LookupIdentifier(ty.Identifier) as TypeSymbol ?? SemanticModel.LookupBuiltIn(ty.Identifier);
     }
 }
 

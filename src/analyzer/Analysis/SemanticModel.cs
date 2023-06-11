@@ -108,7 +108,20 @@ public class SemanticModel
     private Symbol? LookupSymbol(IdentifierToken identifier, SyntaxNode node)
     {
         var binder = GetEnclosingBinder(node);
-        return binder?.LookupIdentifier(identifier);
+        return binder?.LookupIdentifier(identifier) ?? LookupBuiltIn(identifier);
+    }
+
+    internal static TypeSymbol? LookupBuiltIn(IdentifierToken identifier)
+    {
+        return identifier.Identifier switch
+        {
+            "Number" => BuiltInTypeSystem.Number,
+            "Char" => BuiltInTypeSystem.Char,
+            "String" => BuiltInTypeSystem.String,
+            "Bool" => BuiltInTypeSystem.Bool,
+
+            _ => null,
+        };
     }
 
     /// <summary>
