@@ -92,9 +92,9 @@ public class SemanticModel
     {
         var result = node switch
         {
-            IdentifierExpressionNode identifierExpression => LookupSymbol(identifierExpression),
-            TyNode tyNode => LookupSymbol(tyNode.Identifier, tyNode),
-            ArgumentNode argumentNode => LookupSymbol(argumentNode.Expression),
+            IdentifierExpressionNode n => LookupSymbol(n),
+            TyNode n => LookupSymbol(n.Identifier, n),
+            ArgumentNode n => LookupSymbol(n.Expression),
 
             _ => null,
         };
@@ -134,12 +134,12 @@ public class SemanticModel
     {
         return node switch
         {
-            BareExpressionStatementNode bareExpressionStatement => LookupType(bareExpressionStatement),
-            ExpressionNode expressionNode => LookupType(expressionNode),
-            ArgumentNode argumentNode => LookupType(argumentNode.Expression),
+            BareExpressionStatementNode n => LookupType(n),
+            ExpressionNode n => LookupType(n),
+            ArgumentNode n => LookupType(n.Expression),
 
             // For convenience.
-            EqualsValueClauseNode equalsValueClause => LookupType(equalsValueClause.Expression),
+            EqualsValueClauseNode n => LookupType(n.Expression),
 
             _ => null,
         };
@@ -154,16 +154,16 @@ public class SemanticModel
     {
         return node switch
         {
-            BlockExpressionNode blockExpression => LookupType(blockExpression),
-            AssignmentExpressionNode assignmentExpression => LookupType(assignmentExpression.Lhs),
-            UnaryExpressionNode unaryExpression => LookupType(unaryExpression.Expression),
-            BinaryExpressionNode binaryExpression => LookupType(binaryExpression),
-            GroupingExpressionNode groupingExpression => LookupType(groupingExpression.Expression),
-            CallExpressionNode callExpression => LookupType(callExpression),
-            AccessExpressionNode accessExpression => LookupType(accessExpression),
-            LiteralExpressionNode literalExpression => LookupType(literalExpression),
-            IdentifierExpressionNode identifierExpression => LookupType(identifierExpression),
-            ThisExpressionNode thisExpression => LookupType(thisExpression),
+            BlockExpressionNode n => LookupType(n),
+            AssignmentExpressionNode n => LookupType(n.Lhs),
+            UnaryExpressionNode n => LookupType(n.Expression),
+            BinaryExpressionNode n => LookupType(n),
+            GroupingExpressionNode n => LookupType(n.Expression),
+            CallExpressionNode n => LookupType(n),
+            AccessExpressionNode n => LookupType(n),
+            LiteralExpressionNode n => LookupType(n),
+            IdentifierExpressionNode n => LookupType(n),
+            ThisExpressionNode n => LookupType(n),
 
             _ => null,
         };
@@ -204,7 +204,7 @@ public class SemanticModel
         var targetSymbol = LookupSymbol(node.Target);
         return targetSymbol switch
         {
-            NamedTypeSymbol namedTypeSymbol => GetMemberTypeSymbol(namedTypeSymbol),
+            NamedTypeSymbol s => GetMemberTypeSymbol(s),
 
             _ => null,
         };
@@ -217,8 +217,8 @@ public class SemanticModel
             return member switch
             {
                 // TODO: Make this Type optionally accessible from the Symbol type itself?
-                ConstSymbol constSymbol => constSymbol.Type,
-                FieldSymbol fieldSymbol => fieldSymbol.Type,
+                ConstSymbol s => s.Type,
+                FieldSymbol s => s.Type,
 
                 _ => null,
             };
@@ -245,11 +245,11 @@ public class SemanticModel
 
         return symbol switch
         {
-            TypeSymbol typeSymbol => typeSymbol,
-            ConstSymbol constSymbol => constSymbol.Type,
-            FieldSymbol fieldSymbol => fieldSymbol.Type,
-            ParameterSymbol parameterSymbol => parameterSymbol.Type,
-            LocalSymbol localSymbol => localSymbol.Type,
+            TypeSymbol s => s,
+            ConstSymbol s => s.Type,
+            FieldSymbol s => s.Type,
+            ParameterSymbol s => s.Type,
+            LocalSymbol s => s.Type,
 
             _ => null,
         };
@@ -329,15 +329,15 @@ public class SemanticModel
         {
             return node switch
             {
-                ConstDeclarationNode constDeclaration => new ConstSymbol(constDeclaration),
-                FunctionDeclarationNode functionDeclaration => new FunctionSymbol(functionDeclaration.Signature),
-                MethodDeclarationNode methodDeclaration => new FunctionSymbol(methodDeclaration.Signature),
-                FieldDeclarationNode fieldDeclaration => new FieldSymbol(fieldDeclaration),
-                ClassDeclarationNode classDeclaration => new NamedTypeSymbol(classDeclaration),
+                ConstDeclarationNode n => new ConstSymbol(n),
+                FunctionDeclarationNode n => new FunctionSymbol(n.Signature),
+                MethodDeclarationNode n => new FunctionSymbol(n.Signature),
+                FieldDeclarationNode n => new FieldSymbol(n),
+                ClassDeclarationNode n => new NamedTypeSymbol(n),
 
-                LetStatementNode letStatement => new LocalSymbol(letStatement),
+                LetStatementNode n => new LocalSymbol(n),
 
-                ParameterNode parameterNode => new ParameterSymbol(parameterNode),
+                ParameterNode n => new ParameterSymbol(n),
 
                 _ => null,
             };
@@ -359,11 +359,11 @@ public class SemanticModel
         {
             return node switch
             {
-                ModuleNode module => new ModuleBinder(module),
-                ClassDeclarationNode classDeclaration => new ClassDeclarationBinder(classDeclaration, (NamedTypeSymbol)symbol!),
-                FunctionDeclarationNode functionDeclaration => new FunctionBinder(functionDeclaration.Signature, (FunctionSymbol)symbol!),
-                MethodDeclarationNode methodDeclaration => new FunctionBinder(methodDeclaration.Signature, (FunctionSymbol)symbol!),
-                BlockExpressionNode block => new BlockExpressionBinder(block),
+                ModuleNode n => new ModuleBinder(n),
+                ClassDeclarationNode n => new ClassDeclarationBinder(n, (NamedTypeSymbol)symbol!),
+                FunctionDeclarationNode n => new FunctionBinder(n.Signature, (FunctionSymbol)symbol!),
+                MethodDeclarationNode n => new FunctionBinder(n.Signature, (FunctionSymbol)symbol!),
+                BlockExpressionNode n => new BlockExpressionBinder(n),
 
                 _ => null,
             };
