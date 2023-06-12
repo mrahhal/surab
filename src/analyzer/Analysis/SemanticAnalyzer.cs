@@ -117,7 +117,7 @@ internal class SemanticAnalyzer : Visitor
 
         if (lhsSymbol == null || rhsSymbol == null)
         {
-            // Shouldn't report.
+            // Shouldn't report. Will be reported elsewhere.
         }
         else if (lhsType == null || rhsType == null || lhsType != rhsType)
         {
@@ -159,9 +159,9 @@ internal class SemanticAnalyzer : Visitor
         var leftType = _model.LookupType(binaryExpressionNode.Left);
         var rightType = _model.LookupType(binaryExpressionNode.Right);
 
-        if (leftType != null || rightType != null)
+        if (leftType == null || rightType == null)
         {
-            // Shouldn't report.
+            // Shouldn't report. Will be reported elsewhere.
         }
         else if (leftType != rightType)
         {
