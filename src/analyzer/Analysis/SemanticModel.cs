@@ -94,6 +94,7 @@ public class SemanticModel
         {
             IdentifierExpressionNode identifierExpression => LookupSymbol(identifierExpression),
             TyNode tyNode => LookupSymbol(tyNode.Identifier, tyNode),
+            ArgumentNode argumentNode => LookupSymbol(argumentNode.Expression),
 
             _ => null,
         };
@@ -135,6 +136,7 @@ public class SemanticModel
         {
             BareExpressionStatementNode bareExpressionStatement => LookupType(bareExpressionStatement),
             ExpressionNode expressionNode => LookupType(expressionNode),
+            ArgumentNode argumentNode => LookupType(argumentNode.Expression),
 
             // For convenience.
             EqualsValueClauseNode equalsValueClause => LookupType(equalsValueClause.Expression),

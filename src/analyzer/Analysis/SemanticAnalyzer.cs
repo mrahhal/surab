@@ -236,7 +236,7 @@ internal class SemanticAnalyzer : Visitor
                 {
                     var arg = args[i];
                     var param = functionSymbol.Parameters[i];
-                    var argType = _model.LookupSymbol(arg);
+                    var argType = _model.LookupType(arg);
                     if (param.Type != argType)
                     {
                         _diagnostics.Add(arg.Span, DiagnosticLevel.Error, $"incompatible types");

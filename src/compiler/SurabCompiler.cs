@@ -131,7 +131,9 @@ internal sealed class FunctionCompiler : Visitor
             _emitter.Emit(OpCode.print);
         }
 
-        Walk(callExpressionNode);
+        // TODO: Proper support for resolving the function call.
+
+        //Walk(callExpressionNode);
     }
 
     public override void VisitBinaryExpression(BinaryExpressionNode binaryExpressionNode)

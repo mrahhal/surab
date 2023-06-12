@@ -1,24 +1,16 @@
 ﻿using Surab.Analyzer;
 using Surab.Compiler;
 
-//var src = """
-//    function main(): None {
-//      let a: Number = 2;
-//      let b: Number = 3;
-//      let c: Number = a + b;
-//    }
-//    """;
-
 var src = """
-    function print(v: Any): None {
+    function print(v: Number): None {
       // Compiler intrinsic
     }
 
     function main(): None {
       let a: Number = 2;
-      let b = 3;
+      let b: Number = 3;
       let c: Number = a + b;
-      print(c, 2);
+      print(c);
     }
     """;
 var tree = Parser.ParseModule(src);
