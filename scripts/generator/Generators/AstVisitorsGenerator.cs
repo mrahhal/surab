@@ -58,11 +58,11 @@ public class AstVisitorsGenerator : GeneratorBase
         {
             var sb = new StringBuilder();
 
-            var camelTypeName = node.TypeName.ToCamelCase();
+            //var camelTypeName = node.TypeName.ToCamelCase();
             sb.Append($$"""
-                {{INDENT}}public virtual void Visit{{node.Name}}({{node.TypeName}} {{camelTypeName}})
+                {{INDENT}}public virtual void Visit{{node.Name}}({{node.TypeName}} node)
                 {{INDENT}}{
-                {{INDENT}}{{INDENT}}Walk({{camelTypeName}});
+                {{INDENT}}{{INDENT}}Walk(node);
                 {{INDENT}}}
                 """.NL());
 

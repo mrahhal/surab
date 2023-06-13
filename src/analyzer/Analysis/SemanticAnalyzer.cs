@@ -27,93 +27,93 @@ internal class SemanticAnalyzer : Visitor
         Visit(_model.Tree.Root);
     }
 
-    public override void VisitConstDeclaration(ConstDeclarationNode constDeclarationNode)
+    public override void VisitConstDeclaration(ConstDeclarationNode node)
     {
         // Temp: Should be allowed only in top level.
-        if (constDeclarationNode.Parent is not ModuleNode)
+        if (node.Parent is not ModuleNode)
         {
-            _diagnostics.Add(constDeclarationNode.Span, DiagnosticLevel.Error, $"a const declaration is allowed only in top level");
+            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a const declaration is allowed only in top level");
         }
 
-        base.VisitConstDeclaration(constDeclarationNode);
+        base.VisitConstDeclaration(node);
     }
 
-    public override void VisitFunctionDeclaration(FunctionDeclarationNode functionDeclarationNode)
+    public override void VisitFunctionDeclaration(FunctionDeclarationNode node)
     {
         // Temp: Should be allowed only in top level.
-        if (functionDeclarationNode.Parent is not ModuleNode)
+        if (node.Parent is not ModuleNode)
         {
-            _diagnostics.Add(functionDeclarationNode.Span, DiagnosticLevel.Error, $"a function declaration is allowed only in top level");
+            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a function declaration is allowed only in top level");
         }
 
-        base.VisitFunctionDeclaration(functionDeclarationNode);
+        base.VisitFunctionDeclaration(node);
     }
 
-    public override void VisitClassDeclaration(ClassDeclarationNode classDeclarationNode)
+    public override void VisitClassDeclaration(ClassDeclarationNode node)
     {
         // Temp: Should be allowed only in top level.
-        if (classDeclarationNode.Parent is not ModuleNode)
+        if (node.Parent is not ModuleNode)
         {
-            _diagnostics.Add(classDeclarationNode.Span, DiagnosticLevel.Error, $"a class declaration is allowed only in top level");
+            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a class declaration is allowed only in top level");
         }
 
-        base.VisitClassDeclaration(classDeclarationNode);
+        base.VisitClassDeclaration(node);
     }
 
-    public override void VisitFieldDeclaration(FieldDeclarationNode fieldDeclarationNode)
+    public override void VisitFieldDeclaration(FieldDeclarationNode node)
     {
-        if (fieldDeclarationNode.Parent is not ClassDeclarationNode)
+        if (node.Parent is not ClassDeclarationNode)
         {
-            _diagnostics.Add(fieldDeclarationNode.Span, DiagnosticLevel.Error, $"a field declaration is not allowed in this context");
+            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a field declaration is not allowed in this context");
         }
 
-        base.VisitFieldDeclaration(fieldDeclarationNode);
+        base.VisitFieldDeclaration(node);
     }
 
-    public override void VisitMethodDeclaration(MethodDeclarationNode methodDeclarationNode)
+    public override void VisitMethodDeclaration(MethodDeclarationNode node)
     {
-        if (methodDeclarationNode.Parent is not ClassDeclarationNode)
+        if (node.Parent is not ClassDeclarationNode)
         {
-            _diagnostics.Add(methodDeclarationNode.Span, DiagnosticLevel.Error, $"a method declaration is not allowed in this context");
+            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a method declaration is not allowed in this context");
         }
 
-        base.VisitMethodDeclaration(methodDeclarationNode);
+        base.VisitMethodDeclaration(node);
     }
 
-    public override void VisitReturnStatement(ReturnStatementNode returnStatementNode)
+    public override void VisitReturnStatement(ReturnStatementNode node)
     {
         // If it's not the last statement, warn.
-        Debug.Assert(returnStatementNode.Parent is BlockExpressionNode);
-        var block = (BlockExpressionNode)returnStatementNode.Parent;
-        if (block.Statements.Last() != returnStatementNode)
+        Debug.Assert(node.Parent is BlockExpressionNode);
+        var block = (BlockExpressionNode)node.Parent;
+        if (block.Statements.Last() != node)
         {
-            _diagnostics.Add(returnStatementNode.Span, DiagnosticLevel.Warning, $"unreachable code after the return statement");
+            _diagnostics.Add(node.Span, DiagnosticLevel.Warning, $"unreachable code after the return statement");
         }
 
-        base.VisitReturnStatement(returnStatementNode);
+        base.VisitReturnStatement(node);
     }
 
-    public override void VisitBareExpressionStatement(BareExpressionStatementNode bareExpressionStatementNode)
+    public override void VisitBareExpressionStatement(BareExpressionStatementNode node)
     {
         // Should only be allowed as the last statement.
-        Debug.Assert(bareExpressionStatementNode.Parent is BlockExpressionNode);
-        var block = (BlockExpressionNode)bareExpressionStatementNode.Parent;
-        if (block.Statements.Last() != bareExpressionStatementNode)
+        Debug.Assert(node.Parent is BlockExpressionNode);
+        var block = (BlockExpressionNode)node.Parent;
+        if (block.Statements.Last() != node)
         {
-            _diagnostics.Add(bareExpressionStatementNode.Span, DiagnosticLevel.Error, $"a bare expression can only exist as the last statement of a block");
+            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a bare expression can only exist as the last statement of a block");
         }
 
-        base.VisitBareExpressionStatement(bareExpressionStatementNode);
+        base.VisitBareExpressionStatement(node);
     }
 
-    public override void VisitAssignmentExpression(AssignmentExpressionNode assignmentExpressionNode)
+    public override void VisitAssignmentExpression(AssignmentExpressionNode node)
     {
         // Compatibility
-        var lhsSymbol = _model.LookupSymbol(assignmentExpressionNode.Lhs);
-        var lhsType = _model.LookupType(assignmentExpressionNode.Lhs);
+        var lhsSymbol = _model.LookupSymbol(node.Lhs);
+        var lhsType = _model.LookupType(node.Lhs);
 
-        var rhsSymbol = _model.LookupSymbol(assignmentExpressionNode.Rhs);
-        var rhsType = _model.LookupType(assignmentExpressionNode.Rhs);
+        var rhsSymbol = _model.LookupSymbol(node.Rhs);
+        var rhsType = _model.LookupType(node.Rhs);
 
         if (lhsSymbol == null || rhsSymbol == null)
         {
@@ -122,42 +122,42 @@ internal class SemanticAnalyzer : Visitor
         else if (lhsType == null || rhsType == null || lhsType != rhsType)
         {
             // Incompatible types.
-            _diagnostics.Add(assignmentExpressionNode.Span, DiagnosticLevel.Error, $"invalid assignment because of incompatible types");
+            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"invalid assignment because of incompatible types");
         }
 
-        base.VisitAssignmentExpression(assignmentExpressionNode);
+        base.VisitAssignmentExpression(node);
     }
 
-    public override void VisitUnaryExpression(UnaryExpressionNode unaryExpressionNode)
+    public override void VisitUnaryExpression(UnaryExpressionNode node)
     {
         // TODO: Should work on traits or something.
 
-        var expressionType = _model.LookupType(unaryExpressionNode.Expression);
+        var expressionType = _model.LookupType(node.Expression);
 
-        switch (unaryExpressionNode.Op.UnaryOperatorTokenKind)
+        switch (node.Op.UnaryOperatorTokenKind)
         {
             case UnaryOperatorTokenKind.Pos:
             case UnaryOperatorTokenKind.Neg:
                 if (expressionType != BuiltInTypeSystem.Number)
                 {
-                    _diagnostics.Add(unaryExpressionNode.Op.Span, DiagnosticLevel.Error, $"only valid with a number type");
+                    _diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a number type");
                 }
                 break;
             case UnaryOperatorTokenKind.Not:
                 if (expressionType != BuiltInTypeSystem.Bool)
                 {
-                    _diagnostics.Add(unaryExpressionNode.Op.Span, DiagnosticLevel.Error, $"only valid with a bool type");
+                    _diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a bool type");
                 }
                 break;
         }
 
-        base.VisitUnaryExpression(unaryExpressionNode);
+        base.VisitUnaryExpression(node);
     }
 
-    public override void VisitBinaryExpression(BinaryExpressionNode binaryExpressionNode)
+    public override void VisitBinaryExpression(BinaryExpressionNode node)
     {
-        var leftType = _model.LookupType(binaryExpressionNode.Left);
-        var rightType = _model.LookupType(binaryExpressionNode.Right);
+        var leftType = _model.LookupType(node.Left);
+        var rightType = _model.LookupType(node.Right);
 
         if (leftType == null || rightType == null)
         {
@@ -165,12 +165,12 @@ internal class SemanticAnalyzer : Visitor
         }
         else if (leftType != rightType)
         {
-            _diagnostics.Add(binaryExpressionNode.Span, DiagnosticLevel.Error, $"incompatible types");
+            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"incompatible types");
         }
         else
         {
             var expressionType = leftType;
-            switch (binaryExpressionNode.Op.BinaryOperatorTokenKind)
+            switch (node.Op.BinaryOperatorTokenKind)
             {
                 case BinaryOperatorTokenKind.Add:
                 case BinaryOperatorTokenKind.Sub:
@@ -182,14 +182,14 @@ internal class SemanticAnalyzer : Visitor
                 case BinaryOperatorTokenKind.BitXor:
                     if (expressionType != BuiltInTypeSystem.Number)
                     {
-                        _diagnostics.Add(binaryExpressionNode.Op.Span, DiagnosticLevel.Error, $"only valid with a number type");
+                        _diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a number type");
                     }
                     break;
                 case BinaryOperatorTokenKind.And:
                 case BinaryOperatorTokenKind.Or:
                     if (expressionType != BuiltInTypeSystem.Bool)
                     {
-                        _diagnostics.Add(binaryExpressionNode.Op.Span, DiagnosticLevel.Error, $"only valid with a bool type");
+                        _diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a bool type");
                     }
                     break;
                 //case BinaryOperatorTokenKind.Eq:
@@ -202,7 +202,7 @@ internal class SemanticAnalyzer : Visitor
                 case BinaryOperatorTokenKind.Ge:
                     if (expressionType != BuiltInTypeSystem.Number)
                     {
-                        _diagnostics.Add(binaryExpressionNode.Op.Span, DiagnosticLevel.Error, $"only valid with a number type");
+                        _diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a number type");
                     }
                     break;
 
@@ -211,24 +211,24 @@ internal class SemanticAnalyzer : Visitor
             }
         }
 
-        base.VisitBinaryExpression(binaryExpressionNode);
+        base.VisitBinaryExpression(node);
     }
 
-    public override void VisitCallExpression(CallExpressionNode callExpressionNode)
+    public override void VisitCallExpression(CallExpressionNode node)
     {
-        var calleeSymbol = _model.LookupSymbol(callExpressionNode.Callee);
+        var calleeSymbol = _model.LookupSymbol(node.Callee);
 
         // Ensure calle is a function and validate args.
         if (calleeSymbol is not FunctionSymbol functionSymbol)
         {
-            _diagnostics.Add(callExpressionNode.Span, DiagnosticLevel.Error, $"invocation on a non function");
+            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"invocation on a non function");
         }
         else
         {
-            var args = callExpressionNode.Arguments.Arguments.ToList();
+            var args = node.Arguments.Arguments.ToList();
             if (functionSymbol.Parameters.Length != args.Count)
             {
-                _diagnostics.Add(callExpressionNode.Arguments.Span, DiagnosticLevel.Error, $"invalid invocation: wrong number of arguments");
+                _diagnostics.Add(node.Arguments.Span, DiagnosticLevel.Error, $"invalid invocation: wrong number of arguments");
             }
             else
             {
@@ -245,88 +245,88 @@ internal class SemanticAnalyzer : Visitor
             }
         }
 
-        base.VisitCallExpression(callExpressionNode);
+        base.VisitCallExpression(node);
     }
 
-    public override void VisitAccessExpression(AccessExpressionNode accessExpressionNode)
+    public override void VisitAccessExpression(AccessExpressionNode node)
     {
-        var targetSymbol = _model.LookupSymbol(accessExpressionNode.Target);
+        var targetSymbol = _model.LookupSymbol(node.Target);
         // TODO: ?
         //targetSymbol.Members
 
         // TODO: Shouldn't this be TypeSymbol?
         if (targetSymbol is not NamedTypeSymbol typeSymbol)
         {
-            _diagnostics.Add(accessExpressionNode.Span, DiagnosticLevel.Error, $"unallowed access");
+            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"unallowed access");
         }
         else
         {
             // TODO: Store and use a lookup table for this.
-            var matched = typeSymbol.Members.FirstOrDefault(x => x.Name?.Identifier == accessExpressionNode.Identifier.Identifier);
+            var matched = typeSymbol.Members.FirstOrDefault(x => x.Name?.Identifier == node.Identifier.Identifier);
             if (matched == null)
             {
-                _diagnostics.Add(accessExpressionNode.Identifier.Span, DiagnosticLevel.Error, $"unknown member access");
+                _diagnostics.Add(node.Identifier.Span, DiagnosticLevel.Error, $"unknown member access");
             }
         }
 
-        base.VisitAccessExpression(accessExpressionNode);
+        base.VisitAccessExpression(node);
     }
 
-    public override void VisitThisExpression(ThisExpressionNode thisExpressionNode)
+    public override void VisitThisExpression(ThisExpressionNode node)
     {
-        var thisType = _model.LookupType(thisExpressionNode);
+        var thisType = _model.LookupType(node);
         if (thisType == null)
         {
-            _diagnostics.Add(thisExpressionNode.Span, DiagnosticLevel.Error, $"unknown this context");
+            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"unknown this context");
         }
 
-        base.VisitThisExpression(thisExpressionNode);
+        base.VisitThisExpression(node);
     }
 
-    public override void VisitParameter(ParameterNode parameterNode)
+    public override void VisitParameter(ParameterNode node)
     {
-        if (parameterNode.Ty == null)
+        if (node.Ty == null)
         {
-            _diagnostics.Add(parameterNode.Span, DiagnosticLevel.Error, $"specifying type is required");
+            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"specifying type is required");
         }
 
-        base.VisitParameter(parameterNode);
+        base.VisitParameter(node);
     }
 
-    public override void VisitFunctionSignature(FunctionSignatureNode functionSignatureNode)
+    public override void VisitFunctionSignature(FunctionSignatureNode node)
     {
         // Temp: Require return type.
-        if (functionSignatureNode.ReturnTy == null)
+        if (node.ReturnTy == null)
         {
-            _diagnostics.Add(functionSignatureNode.Span, DiagnosticLevel.Error, $"return type of function or method should be specified");
+            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"return type of function or method should be specified");
         }
 
-        base.VisitFunctionSignature(functionSignatureNode);
+        base.VisitFunctionSignature(node);
     }
 
-    public override void VisitIdentifierExpression(IdentifierExpressionNode identifierExpressionNode)
+    public override void VisitIdentifierExpression(IdentifierExpressionNode node)
     {
-        var symbol = _model.LookupSymbol(identifierExpressionNode);
+        var symbol = _model.LookupSymbol(node);
         if (symbol == null)
         {
-            _diagnostics.Add(identifierExpressionNode.Span, DiagnosticLevel.Error, $"unknown name");
+            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"unknown name");
         }
 
-        base.VisitIdentifierExpression(identifierExpressionNode);
+        base.VisitIdentifierExpression(node);
     }
 
-    public override void VisitTy(TyNode tyNode)
+    public override void VisitTy(TyNode node)
     {
-        var symbol = _model.LookupSymbol(tyNode);
+        var symbol = _model.LookupSymbol(node);
         if (symbol == null)
         {
-            _diagnostics.Add(tyNode.Span, DiagnosticLevel.Error, $"unknown type");
+            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"unknown type");
         }
         else if (symbol is not TypeSymbol)
         {
-            _diagnostics.Add(tyNode.Span, DiagnosticLevel.Error, $"not a type");
+            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"not a type");
         }
 
-        base.VisitTy(tyNode);
+        base.VisitTy(node);
     }
 }

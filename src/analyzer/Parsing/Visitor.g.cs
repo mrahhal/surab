@@ -7,158 +7,158 @@ namespace Surab.Analyzer;
 
 public abstract partial class Visitor
 {
-    public virtual void VisitModule(ModuleNode moduleNode)
+    public virtual void VisitModule(ModuleNode node)
     {
-        Walk(moduleNode);
+        Walk(node);
     }
 
-    public virtual void VisitConstDeclaration(ConstDeclarationNode constDeclarationNode)
+    public virtual void VisitConstDeclaration(ConstDeclarationNode node)
     {
-        Walk(constDeclarationNode);
+        Walk(node);
     }
 
-    public virtual void VisitFunctionDeclaration(FunctionDeclarationNode functionDeclarationNode)
+    public virtual void VisitFunctionDeclaration(FunctionDeclarationNode node)
     {
-        Walk(functionDeclarationNode);
+        Walk(node);
     }
 
-    public virtual void VisitClassDeclaration(ClassDeclarationNode classDeclarationNode)
+    public virtual void VisitClassDeclaration(ClassDeclarationNode node)
     {
-        Walk(classDeclarationNode);
+        Walk(node);
     }
 
-    public virtual void VisitFieldDeclaration(FieldDeclarationNode fieldDeclarationNode)
+    public virtual void VisitFieldDeclaration(FieldDeclarationNode node)
     {
-        Walk(fieldDeclarationNode);
+        Walk(node);
     }
 
-    public virtual void VisitMethodDeclaration(MethodDeclarationNode methodDeclarationNode)
+    public virtual void VisitMethodDeclaration(MethodDeclarationNode node)
     {
-        Walk(methodDeclarationNode);
+        Walk(node);
     }
 
-    public virtual void VisitSkippedTokensDeclaration(SkippedTokensDeclarationNode skippedTokensDeclarationNode)
+    public virtual void VisitSkippedTokensDeclaration(SkippedTokensDeclarationNode node)
     {
-        Walk(skippedTokensDeclarationNode);
+        Walk(node);
     }
 
-    public virtual void VisitLetStatement(LetStatementNode letStatementNode)
+    public virtual void VisitLetStatement(LetStatementNode node)
     {
-        Walk(letStatementNode);
+        Walk(node);
     }
 
-    public virtual void VisitReturnStatement(ReturnStatementNode returnStatementNode)
+    public virtual void VisitReturnStatement(ReturnStatementNode node)
     {
-        Walk(returnStatementNode);
+        Walk(node);
     }
 
-    public virtual void VisitExpressionStatement(ExpressionStatementNode expressionStatementNode)
+    public virtual void VisitExpressionStatement(ExpressionStatementNode node)
     {
-        Walk(expressionStatementNode);
+        Walk(node);
     }
 
-    public virtual void VisitBareExpressionStatement(BareExpressionStatementNode bareExpressionStatementNode)
+    public virtual void VisitBareExpressionStatement(BareExpressionStatementNode node)
     {
-        Walk(bareExpressionStatementNode);
+        Walk(node);
     }
 
-    public virtual void VisitSkippedTokensStatement(SkippedTokensStatementNode skippedTokensStatementNode)
+    public virtual void VisitSkippedTokensStatement(SkippedTokensStatementNode node)
     {
-        Walk(skippedTokensStatementNode);
+        Walk(node);
     }
 
-    public virtual void VisitBlockExpression(BlockExpressionNode blockExpressionNode)
+    public virtual void VisitBlockExpression(BlockExpressionNode node)
     {
-        Walk(blockExpressionNode);
+        Walk(node);
     }
 
-    public virtual void VisitAssignmentExpression(AssignmentExpressionNode assignmentExpressionNode)
+    public virtual void VisitAssignmentExpression(AssignmentExpressionNode node)
     {
-        Walk(assignmentExpressionNode);
+        Walk(node);
     }
 
-    public virtual void VisitUnaryExpression(UnaryExpressionNode unaryExpressionNode)
+    public virtual void VisitUnaryExpression(UnaryExpressionNode node)
     {
-        Walk(unaryExpressionNode);
+        Walk(node);
     }
 
-    public virtual void VisitBinaryExpression(BinaryExpressionNode binaryExpressionNode)
+    public virtual void VisitBinaryExpression(BinaryExpressionNode node)
     {
-        Walk(binaryExpressionNode);
+        Walk(node);
     }
 
-    public virtual void VisitGroupingExpression(GroupingExpressionNode groupingExpressionNode)
+    public virtual void VisitGroupingExpression(GroupingExpressionNode node)
     {
-        Walk(groupingExpressionNode);
+        Walk(node);
     }
 
-    public virtual void VisitCallExpression(CallExpressionNode callExpressionNode)
+    public virtual void VisitCallExpression(CallExpressionNode node)
     {
-        Walk(callExpressionNode);
+        Walk(node);
     }
 
-    public virtual void VisitAccessExpression(AccessExpressionNode accessExpressionNode)
+    public virtual void VisitAccessExpression(AccessExpressionNode node)
     {
-        Walk(accessExpressionNode);
+        Walk(node);
     }
 
-    public virtual void VisitLiteralExpression(LiteralExpressionNode literalExpressionNode)
+    public virtual void VisitLiteralExpression(LiteralExpressionNode node)
     {
-        Walk(literalExpressionNode);
+        Walk(node);
     }
 
-    public virtual void VisitIdentifierExpression(IdentifierExpressionNode identifierExpressionNode)
+    public virtual void VisitIdentifierExpression(IdentifierExpressionNode node)
     {
-        Walk(identifierExpressionNode);
+        Walk(node);
     }
 
-    public virtual void VisitThisExpression(ThisExpressionNode thisExpressionNode)
+    public virtual void VisitThisExpression(ThisExpressionNode node)
     {
-        Walk(thisExpressionNode);
+        Walk(node);
     }
 
-    public virtual void VisitSkippedTokensExpression(SkippedTokensExpressionNode skippedTokensExpressionNode)
+    public virtual void VisitSkippedTokensExpression(SkippedTokensExpressionNode node)
     {
-        Walk(skippedTokensExpressionNode);
+        Walk(node);
     }
 
-    public virtual void VisitParametersList(ParametersListNode parametersListNode)
+    public virtual void VisitParametersList(ParametersListNode node)
     {
-        Walk(parametersListNode);
+        Walk(node);
     }
 
-    public virtual void VisitParameter(ParameterNode parameterNode)
+    public virtual void VisitParameter(ParameterNode node)
     {
-        Walk(parameterNode);
+        Walk(node);
     }
 
-    public virtual void VisitArgumentsList(ArgumentsListNode argumentsListNode)
+    public virtual void VisitArgumentsList(ArgumentsListNode node)
     {
-        Walk(argumentsListNode);
+        Walk(node);
     }
 
-    public virtual void VisitArgument(ArgumentNode argumentNode)
+    public virtual void VisitArgument(ArgumentNode node)
     {
-        Walk(argumentNode);
+        Walk(node);
     }
 
-    public virtual void VisitColonTy(ColonTyNode colonTyNode)
+    public virtual void VisitColonTy(ColonTyNode node)
     {
-        Walk(colonTyNode);
+        Walk(node);
     }
 
-    public virtual void VisitTy(TyNode tyNode)
+    public virtual void VisitTy(TyNode node)
     {
-        Walk(tyNode);
+        Walk(node);
     }
 
-    public virtual void VisitFunctionSignature(FunctionSignatureNode functionSignatureNode)
+    public virtual void VisitFunctionSignature(FunctionSignatureNode node)
     {
-        Walk(functionSignatureNode);
+        Walk(node);
     }
 
-    public virtual void VisitEqualsValueClause(EqualsValueClauseNode equalsValueClauseNode)
+    public virtual void VisitEqualsValueClause(EqualsValueClauseNode node)
     {
-        Walk(equalsValueClauseNode);
+        Walk(node);
     }
 }
