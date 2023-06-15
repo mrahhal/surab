@@ -1,5 +1,5 @@
-﻿using Surab.Analyzer;
-using Surab.Compiler;
+﻿using Surab.Analysis;
+using Surab.Compilation;
 
 var src = """
     function print(v: Number): None {
