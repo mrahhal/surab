@@ -4,7 +4,7 @@ using Surab.Analysis;
 
 namespace Surab.Compilation;
 
-public sealed class SurabCompiler : Visitor
+public sealed class Compiler : Visitor
 {
     private readonly SemanticModel _model;
     private readonly IRModule _ir;
@@ -14,7 +14,7 @@ public sealed class SurabCompiler : Visitor
         WriteIndented = true,
     };
 
-    private SurabCompiler(SemanticModel model)
+    private Compiler(SemanticModel model)
     {
         _model = model;
         _ir = new();
@@ -22,7 +22,7 @@ public sealed class SurabCompiler : Visitor
 
     public static string Compile(SemanticModel model)
     {
-        var compiler = new SurabCompiler(model);
+        var compiler = new Compiler(model);
         compiler.Compile();
         return Serialize(compiler._ir);
     }

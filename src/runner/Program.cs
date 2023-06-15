@@ -23,7 +23,7 @@ if (diags.Any(x => x.Level >= DiagnosticLevel.Error))
     return;
 }
 
-var bytecode = SurabCompiler.Compile(model);
+var bytecode = Compiler.Compile(model);
 
 // TODO: Tell vm to run the bytecode.
 
