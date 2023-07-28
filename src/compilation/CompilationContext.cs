@@ -54,8 +54,6 @@ public sealed class CompilationContext
         var created = symbol switch
         {
             //ConstSymbol constSymbol => Create(constSymbol),
-            //ParameterSymbol parameterSymbol => Create(parameterSymbol),
-            //LocalSymbol localSymbol => Create(localSymbol),
             FunctionSymbol functionSymbol => Create(functionSymbol),
 
             _ => throw new NotImplementedException(),

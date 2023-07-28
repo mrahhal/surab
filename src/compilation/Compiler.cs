@@ -78,7 +78,7 @@ internal sealed class FunctionCompiler : Visitor
     private readonly CompilationContext _context;
     private readonly FunctionSignatureNode _signature;
     private readonly BlockExpressionNode _body;
-    private readonly FunctionSymbol _function;
+    private readonly FunctionSymbol _functionSymbol;
     private readonly LLVMTypeRef _functionType;
     private readonly LLVMValueRef _functionValue;
 
@@ -95,7 +95,7 @@ internal sealed class FunctionCompiler : Visitor
         _context = context;
         _signature = signature;
         _body = body;
-        _function = function;
+        _functionSymbol = function;
         _functionType = functionType;
         _functionValue = functionValue;
     }
@@ -159,7 +159,7 @@ internal sealed class FunctionCompiler : Visitor
         }
     }
 
-    // Only print Number for now.
+    // Only prints a number for now.
     private void CompileSpecialPrint()
     {
         var printfType = LLVMTypeRef.CreateFunction(LLVMTypeRef.Int32, new[] { LLVMTypeRef.CreatePointer(LLVMTypeRef.Int8, 0) }, true);
@@ -170,17 +170,10 @@ internal sealed class FunctionCompiler : Visitor
         }
 
         var value = _functionValue.GetParam(0);
-        // TODO: alloca stuff
-        //var loadedValue = LLVM.Builder.BuildLoad2(LLVMTypeRef.Double, value);
 
         var strF = LLVM.Builder.BuildGlobalStringPtr("%f", "strF");
         LLVM.Builder.BuildCall2(printfType, printf, new[] { strF, value });
         LLVM.Builder.BuildRetVoid();
-    }
-
-    public override void VisitFunctionSignature(FunctionSignatureNode node)
-    {
-        base.VisitFunctionSignature(node);
     }
 
     public override void VisitParametersList(ParametersListNode node)
@@ -194,8 +187,6 @@ internal sealed class FunctionCompiler : Visitor
             {
                 var parameterSymbol = (ParameterSymbol)symbol;
                 _context.Create(parameterSymbol, paramValueRef);
-
-                //LLVM.Builder.BuildStore(_valueStack.Pop(), value);
             }
             else
             {
@@ -204,8 +195,6 @@ internal sealed class FunctionCompiler : Visitor
 
             i++;
         }
-
-        //base.VisitParametersList(node);
     }
 
     public override void VisitExpressionStatement(ExpressionStatementNode node)
@@ -240,13 +229,11 @@ internal sealed class FunctionCompiler : Visitor
     {
         Visit(node.Callee);
         var (functionType, functionValue) = _stack.Pop();
-        //var (functionType, functionValue) = _context.EnsureLoaded(_valueStack.Pop());
 
-        //// TODO: node.Callee is not always an IdentifierExpressionNode.
-        //// Just to get the function type. Because the value itself is the `callee` below.
+        // TODO: node.Callee is not always an IdentifierExpressionNode.
+        // After desugaring this will always be the identifier (or what's equivalent)?
         var functionSymbol = (FunctionSymbol?)Model.LookupSymbol((IdentifierExpressionNode)node.Callee);
         Debug.Assert(functionSymbol != null);
-        //var (functionType, _) = _context.GetOrCreate(functionSymbol);
 
         Visit(node.Arguments);
 
@@ -255,7 +242,6 @@ internal sealed class FunctionCompiler : Visitor
         for (var i = 0; i < functionSymbol.Parameters.Length; i++)
         {
             var (_, argValue) = _stack.Pop();
-            //var (_, argValue) = _context.EnsureLoaded(_valueStack.Pop());
             args.Add(argValue);
         }
 
@@ -267,11 +253,9 @@ internal sealed class FunctionCompiler : Visitor
     {
         Visit(node.Left);
         var (_, leftValue) = _stack.Pop();
-        //var (_, leftValue) = _context.EnsureLoaded(_valueStack.Pop());
 
         Visit(node.Right);
         var (_, rightValue) = _stack.Pop();
-        //var (_, rightValue) = _context.EnsureLoaded(_valueStack.Pop());
 
         var value = node.Op.BinaryOperatorTokenKind switch
         {
@@ -303,6 +287,9 @@ internal sealed class FunctionCompiler : Visitor
     public override void VisitIdentifierExpression(IdentifierExpressionNode node)
     {
         // TODO: We'll only be here if this is a definite load??
+
+        // Later, this will be also called in places such as `let a = Number.max;` for `Number` type identifier.
+        // Should a desugaring stage remove this possibility and change this to bind to the direct method/field/prop? Yes I think.
 
         var target = Model.LookupSymbol(node);
         Debug.Assert(target != null);
