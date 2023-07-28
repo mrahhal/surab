@@ -1,210 +1,336 @@
 ﻿using System.Diagnostics;
-using System.Text.Json;
+using LLVMSharp.Interop;
 using Surab.Analysis;
+using Surab.Compilation.LLVM;
 
 namespace Surab.Compilation;
 
-public sealed class Compiler : Visitor
+public sealed class Compiler
 {
-    private readonly SemanticModel _model;
-    private readonly IRModule _ir;
-
-    private static readonly JsonSerializerOptions _jsonOptions = new()
-    {
-        WriteIndented = true,
-    };
+    private readonly CompilationContext _context;
 
     private Compiler(SemanticModel model)
     {
-        _model = model;
-        _ir = new();
+        var llvm = LLVMCompilationContext.Create();
+
+        _context = new CompilationContext(model, llvm);
     }
 
     public static string Compile(SemanticModel model)
     {
         var compiler = new Compiler(model);
-        compiler.Compile();
-        return Serialize(compiler._ir);
+        return compiler.Compile();
     }
 
-    private static string Serialize(IRModule ir)
+    private string Compile()
     {
-        return JsonSerializer.Serialize(ir, _jsonOptions);
+        return RootCompiler.Compile(_context);
+    }
+}
+
+internal sealed class RootCompiler : Visitor
+{
+    private readonly CompilationContext _context;
+
+    public RootCompiler(CompilationContext context)
+    {
+        _context = context;
     }
 
-    private void Compile()
+    private SemanticModel Model => _context.Model;
+
+    private LLVMCompilationContext LLVM => _context.LLVM;
+
+    public static string Compile(CompilationContext context)
     {
-        Visit(_model.Tree.Root);
+        var rootCompiler = new RootCompiler(context);
+        rootCompiler.CompileModule();
+
+        rootCompiler.LLVM.Module.PrintToFile(context.LLVM.LLFile);
+
+        return ClangRunner.Run(new[] { context.LLVM.LLFile });
+    }
+
+    private void CompileModule()
+    {
+        Visit(Model.Tree.Root);
+
+        LLVM.Module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction);
     }
 
     public override void VisitFunctionDeclaration(FunctionDeclarationNode node)
     {
-        var (locals, code) = CompileFunction(node.Signature, node.Body);
-        _ir.Functions.Add(new IRFunction
-        {
-            Name = node.Signature.Identifier.Identifier,
-            Locals = locals,
-            Code = code,
-        });
+        CompileFunction(node.Signature, node.Body);
 
         base.VisitFunctionDeclaration(node);
     }
 
-    private (List<IRLocal> locals, byte[] code) CompileFunction(
+    private void CompileFunction(
         FunctionSignatureNode signature,
         BlockExpressionNode body)
     {
-        return FunctionCompiler.Compile(_model, signature, body);
+        FunctionCompiler.Compile(_context, signature, body);
     }
 }
 
 internal sealed class FunctionCompiler : Visitor
 {
-    private readonly SemanticModel _model;
+    private readonly CompilationContext _context;
     private readonly FunctionSignatureNode _signature;
     private readonly BlockExpressionNode _body;
+    private readonly FunctionSymbol _function;
+    private readonly LLVMTypeRef _functionType;
+    private readonly LLVMValueRef _functionValue;
 
-    private readonly List<IRLocal> _locals = new();
-    private readonly Dictionary<Symbol, int /* offset */> _localToOffsetMap = new();
-    private readonly Emitter _emitter = new();
+    private readonly Stack<LLVMUnit> _stack = new();
 
-    public FunctionCompiler(
-        SemanticModel model,
+    private FunctionCompiler(
+        CompilationContext context,
         FunctionSignatureNode signature,
-        BlockExpressionNode body)
+        BlockExpressionNode body,
+        FunctionSymbol function,
+        LLVMTypeRef functionType,
+        LLVMValueRef functionValue)
     {
-        _model = model;
+        _context = context;
         _signature = signature;
         _body = body;
+        _function = function;
+        _functionType = functionType;
+        _functionValue = functionValue;
     }
 
-    public static (List<IRLocal> locals, byte[] code) Compile(
-        SemanticModel model,
+    private SemanticModel Model => _context.Model;
+
+    private LLVMCompilationContext LLVM => _context.LLVM;
+
+    public static void Compile(
+        CompilationContext context,
         FunctionSignatureNode signature,
         BlockExpressionNode body)
     {
-        var c = new FunctionCompiler(model, signature, body);
+        context.Model.TryGetDeclaredSymbol(signature.Parent!, out var functionSymbol);
+        var function = (FunctionSymbol)functionSymbol!;
+        var (functionType, functionValue) = context.GetOrCreate(function);
+        Debug.Assert(functionValue.BasicBlocksCount == 0);
+
+        var c = new FunctionCompiler(context, signature, body, function, functionType, functionValue);
         c.Compile();
-        return (c._locals, c._emitter.Chunk);
     }
 
     private void Compile()
     {
-        Visit(_body);
+        // Entry has to exist before visiting the params in the signature.
+        var entry = _functionValue.AppendBasicBlock("entry");
+        LLVM.Builder.PositionAtEnd(entry);
+
+        Visit(_signature);
+
+        SetupLocals();
+
+        if (_signature.Identifier.Identifier == "print")
+        {
+            CompileSpecialPrint();
+        }
+        else
+        {
+            Visit(_body);
+
+            if (_functionType.ReturnType.Kind != LLVMTypeKind.LLVMVoidTypeKind)
+            {
+                var (_, value) = _stack.Pop();
+                LLVM.Builder.BuildRet(value);
+            }
+            else
+            {
+                LLVM.Builder.BuildRetVoid();
+            }
+        }
+
+        _functionValue.VerifyFunction(LLVMVerifierFailureAction.LLVMPrintMessageAction);
+        //LLVM.PassManager.RunFunctionPassManager(_functionValue);
+    }
+
+    private void SetupLocals()
+    {
+        foreach (var localSymbol in SemanticUtils.CollectLocals(Model, _body))
+        {
+            _context.Create(localSymbol);
+        }
+    }
+
+    // Only print Number for now.
+    private void CompileSpecialPrint()
+    {
+        var printfType = LLVMTypeRef.CreateFunction(LLVMTypeRef.Int32, new[] { LLVMTypeRef.CreatePointer(LLVMTypeRef.Int8, 0) }, true);
+        var printf = LLVM.Module.GetNamedFunction("printf");
+        if (printf == default)
+        {
+            printf = LLVM.Module.AddFunction("printf", printfType);
+        }
+
+        var value = _functionValue.GetParam(0);
+        // TODO: alloca stuff
+        //var loadedValue = LLVM.Builder.BuildLoad2(LLVMTypeRef.Double, value);
+
+        var strF = LLVM.Builder.BuildGlobalStringPtr("%f", "strF");
+        LLVM.Builder.BuildCall2(printfType, printf, new[] { strF, value });
+        LLVM.Builder.BuildRetVoid();
+    }
+
+    public override void VisitFunctionSignature(FunctionSignatureNode node)
+    {
+        base.VisitFunctionSignature(node);
+    }
+
+    public override void VisitParametersList(ParametersListNode node)
+    {
+        var i = (uint)0;
+        foreach (var p in node.Parameters)
+        {
+            var paramValueRef = _functionValue.GetParam(i);
+
+            if (Model.TryGetDeclaredSymbol(p, out var symbol))
+            {
+                var parameterSymbol = (ParameterSymbol)symbol;
+                _context.Create(parameterSymbol, paramValueRef);
+
+                //LLVM.Builder.BuildStore(_valueStack.Pop(), value);
+            }
+            else
+            {
+                throw new Exception();
+            }
+
+            i++;
+        }
+
+        //base.VisitParametersList(node);
     }
 
     public override void VisitExpressionStatement(ExpressionStatementNode node)
     {
         Walk(node);
 
-        // Discard the value.
-        _emitter.Emit(OpCode.pop);
+        // Discard the value? For non void functions..? Or always push a value in an expression to discard here?
+        //_valueStack.Pop();
     }
 
     public override void VisitLetStatement(LetStatementNode node)
     {
-        if (_model.TryGetDeclaredSymbol(node, out var symbol) && symbol is LocalSymbol localSymbol)
+        if (Model.TryGetDeclaredSymbol(node, out var symbol))
         {
-            var offset = _localToOffsetMap.Count;
-            var local = new IRLocal
-            {
-                // TODO: Avoid suppressions.
-                Name = localSymbol.Name!.Identifier,
-                Ty = localSymbol.Type!.Name!.Identifier,
-            };
-            _locals.Add(local);
-            _localToOffsetMap[localSymbol] = offset;
+            var localSymbol = (LocalSymbol)symbol;
+            var (_, value) = _context.GetOrCreate(localSymbol);
 
             Visit(node.Initializer);
+            var (_, initializerValue) = _stack.Pop();
+            LLVM.Builder.BuildStore(initializerValue, value);
 
-            _emitter.Emit(OpCode.stloc, offset);
+            // Wrong, will set the size of the allocated stack.
+            //value.Initializer = _valueStack.Pop();
+        }
+        else
+        {
+            throw new Exception();
         }
     }
 
     public override void VisitCallExpression(CallExpressionNode node)
     {
-        // Built in support for a function called "print".
-        if (node.Callee is IdentifierExpressionNode identifierExpressionNode &&
-            identifierExpressionNode.Identifier.Identifier == "print")
+        Visit(node.Callee);
+        var (functionType, functionValue) = _stack.Pop();
+        //var (functionType, functionValue) = _context.EnsureLoaded(_valueStack.Pop());
+
+        //// TODO: node.Callee is not always an IdentifierExpressionNode.
+        //// Just to get the function type. Because the value itself is the `callee` below.
+        var functionSymbol = (FunctionSymbol?)Model.LookupSymbol((IdentifierExpressionNode)node.Callee);
+        Debug.Assert(functionSymbol != null);
+        //var (functionType, _) = _context.GetOrCreate(functionSymbol);
+
+        Visit(node.Arguments);
+
+        var args = new List<LLVMValueRef>(capacity: functionSymbol.Parameters.Length);
+
+        for (var i = 0; i < functionSymbol.Parameters.Length; i++)
         {
-            Debug.Assert(node.Arguments.Arguments.Count() == 1);
-            _emitter.Emit(OpCode.print);
+            var (_, argValue) = _stack.Pop();
+            //var (_, argValue) = _context.EnsureLoaded(_valueStack.Pop());
+            args.Add(argValue);
         }
 
-        // TODO: Proper support for resolving the function call.
-
-        //Walk(callExpressionNode);
+        var returnValue = LLVM.Builder.BuildCall2(functionType, functionValue, args.ToArray());
+        _stack.Push((functionType.ReturnType, returnValue));
     }
 
     public override void VisitBinaryExpression(BinaryExpressionNode node)
     {
         Visit(node.Left);
+        var (_, leftValue) = _stack.Pop();
+        //var (_, leftValue) = _context.EnsureLoaded(_valueStack.Pop());
+
         Visit(node.Right);
+        var (_, rightValue) = _stack.Pop();
+        //var (_, rightValue) = _context.EnsureLoaded(_valueStack.Pop());
 
-        switch (node.Op.BinaryOperatorTokenKind)
+        var value = node.Op.BinaryOperatorTokenKind switch
         {
-            case BinaryOperatorTokenKind.Add:
-                _emitter.Emit(OpCode.add);
-                break;
-            case BinaryOperatorTokenKind.Sub:
-                _emitter.Emit(OpCode.sub);
-                break;
+            BinaryOperatorTokenKind.Add => LLVM.Builder.BuildFAdd(leftValue, rightValue),
+            BinaryOperatorTokenKind.Sub => LLVM.Builder.BuildFSub(leftValue, rightValue),
             // TODO: Missing
-            default:
-                throw new NotImplementedException();
-        }
+            _ => throw new NotImplementedException(),
+        };
+
+        _stack.Push((LLVMTypeRef.Double, value));
     }
 
-    public override void VisitAssignmentExpression(AssignmentExpressionNode node)
-    {
-        // Walk instead of Visit because we're dealing with the outermost expression represented by Lhs in this method.
-        Walk(node.Lhs);
-        Visit(node.Rhs);
+    //public override void VisitAssignmentExpression(AssignmentExpressionNode node)
+    //{
+    //    // TODO: Walk instead of Visit if you don't want VisitIdentifierExpression to be called for assignment?
 
-        switch (node.Lhs)
-        {
-            //case AccessExpressionNode accessExpressionNode:
-            //    break;
-            case IdentifierExpressionNode identifierExpressionNode:
-                var local = _model.LookupSymbol(identifierExpressionNode);
-                Debug.Assert(local != null);
-                var offset = _localToOffsetMap[local];
-                _emitter.Emit(OpCode.stloc, offset);
+    //    Visit(node.Lhs);
+    //    var toStore = _valueStack.Pop();
 
-                break;
-            default:
-                // TODO: Add to SemanticAnalyzer: Invalid target of assignment.
-                Debug.Assert(false, "Should not be here.");
-                throw new NotImplementedException();
-        }
-    }
+    //    Visit(node.Rhs);
+    //    var rhs = _valueStack.Pop();
+
+    //    //_functionValue.EntryBasicBlock.
+    //    //LLVM.Builder.InsertBlock.
+
+    //    LLVM.Builder.BuildStore(toStore, rhs);
+    //}
 
     public override void VisitIdentifierExpression(IdentifierExpressionNode node)
     {
-        // We'll only be here if this is a definite load.
+        // TODO: We'll only be here if this is a definite load??
 
-        var target = _model.LookupSymbol(node);
+        var target = Model.LookupSymbol(node);
         Debug.Assert(target != null);
-        // TODO: Local is not the only possibility here.
-        var offset = _localToOffsetMap[target];
+        var (type, value) = _context.GetOrCreate(target);
 
-        _emitter.Emit(OpCode.ldloc, offset);
+        if (value.TypeOf.Kind == LLVMTypeKind.LLVMPointerTypeKind && value.Kind != LLVMValueKind.LLVMFunctionValueKind)
+        {
+            // Load from an alloca if this isn't a function.
+            value = LLVM.Builder.BuildLoad2(type, value);
+        }
+
+        _stack.Push((type, value));
     }
 
     public override void VisitLiteralExpression(LiteralExpressionNode node)
     {
-        _emitter.Emit(OpCode.ldlit);
-
+        // Similar to CompilationContext.GetForType?
         switch (node.Literal.LiteralTokenKind)
         {
             case LiteralTokenKind.Number:
-                Debug.Assert(node.Literal.TryGetNumberValue(out var value));
-                // TODO: Deal with double?
-                _emitter.Emit((int)value);
+                Debug.Assert(node.Literal.TryGetNumberValue(out var v));
+                var llvmType = LLVMTypeRef.Double;
+                var llvmValue = LLVMValueRef.CreateConstReal(llvmType, v);
+                _stack.Push((llvmType, llvmValue));
                 break;
-            // TODO: Missing
+
             default:
-                // TODO: Add to SemanticAnalyzer:
+                // TODO: Add to SemanticAnalyzer.
                 Debug.Assert(false, "Should not be here.");
                 throw new NotImplementedException();
         }

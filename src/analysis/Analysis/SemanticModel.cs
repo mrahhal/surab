@@ -95,6 +95,7 @@ public class SemanticModel
             IdentifierExpressionNode n => LookupSymbol(n),
             TyNode n => LookupSymbol(n.Identifier, n),
             ArgumentNode n => LookupSymbol(n.Expression),
+            //CallExpressionNode n => LookupSymbol(n.Callee),
 
             _ => null,
         };

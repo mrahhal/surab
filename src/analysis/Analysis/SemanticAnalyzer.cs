@@ -125,6 +125,19 @@ internal class SemanticAnalyzer : Visitor
             _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"invalid assignment because of incompatible types");
         }
 
+        // TODO: Add to SemanticAnalyzer: Invalid target of assignment.
+        /*switch (node.Lhs)
+        {
+            //case AccessExpressionNode accessExpressionNode:
+            //    break;
+            case IdentifierExpressionNode identifierExpressionNode:
+                break;
+
+            default:
+                Debug.Assert(false, "Invalid target of assignment.");
+                throw new NotImplementedException();
+        }*/
+
         base.VisitAssignmentExpression(node);
     }
 

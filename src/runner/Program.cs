@@ -1,4 +1,5 @@
-﻿using Surab.Analysis;
+﻿using System.Diagnostics;
+using Surab.Analysis;
 using Surab.Compilation;
 
 var src = """
@@ -6,10 +7,19 @@ var src = """
       // Compiler intrinsic
     }
 
+    function noop(): None { }
+
+    function foo(x: Number, y: Number): Number {
+      let e: Number = x + y;
+      return e + 1;
+       //return x + y;
+    }
+
     function main(): None {
       let a: Number = 2;
-      let b: Number = 3;
-      let c: Number = a + b;
+      noop();
+      let b: Number = 4;
+      let c: Number = foo(a, b);
       print(c);
     }
     """;
@@ -25,8 +35,16 @@ if (diags.Any(x => x.Level >= DiagnosticLevel.Error))
     return;
 }
 
-var bytecode = Compiler.Compile(model);
+var exe = Compiler.Compile(model);
 
-// TODO: Tell vm to run the bytecode.
+var p = new Process
+{
+    StartInfo =
+    {
+        FileName = exe,
+        Arguments = "",
+    }
+};
 
-Console.WriteLine(bytecode);
+p.Start();
+p.WaitForExit();
