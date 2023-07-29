@@ -23,7 +23,7 @@ public sealed class CompilationContext
 
     internal LLVMUnit Create(ParameterSymbol parameterSymbol, LLVMValueRef value)
     {
-        var typeRef = GetForType(parameterSymbol.Type!);
+        var typeRef = GetForType(parameterSymbol.Type);
 
         var ptr = LLVM.Builder.BuildAlloca(typeRef, parameterSymbol.Name?.Identifier ?? string.Empty);
         var unit = new LLVMUnit(typeRef, ptr);
@@ -35,7 +35,7 @@ public sealed class CompilationContext
 
     internal LLVMUnit Create(LocalSymbol localSymbol)
     {
-        var typeRef = GetForType(localSymbol.Type!);
+        var typeRef = GetForType(localSymbol.Type);
 
         var ptr = LLVM.Builder.BuildAlloca(typeRef, localSymbol.Name?.Identifier ?? string.Empty);
         var unit = new LLVMUnit(typeRef, ptr);
@@ -80,8 +80,8 @@ public sealed class CompilationContext
 
     private LLVMUnit Create(FunctionSymbol functionSymbol)
     {
-        var returnType = GetForType(functionSymbol.ReturnType!);
-        var @params = functionSymbol.Parameters.Select(p => GetForType(p.Type!)).ToArray();
+        var returnType = GetForType(functionSymbol.ReturnType);
+        var @params = functionSymbol.Parameters.Select(p => GetForType(p.Type)).ToArray();
 
         var functionType = LLVMTypeRef.CreateFunction(returnType, @params, false);
         var functionValue = LLVM.Module.AddFunction(functionSymbol.Name!.Identifier, functionType);

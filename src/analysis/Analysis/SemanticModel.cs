@@ -199,7 +199,7 @@ public class SemanticModel
     private TypeSymbol? LookupType(CallExpressionNode node)
     {
         var calleeSymbol = LookupSymbol(node.Callee);
-        return calleeSymbol is FunctionSymbol functionSymbol ? functionSymbol.ReturnType : null;
+        return calleeSymbol is FunctionSymbol functionSymbol ? functionSymbol.ReturnType.Type : null;
     }
 
     private TypeSymbol? LookupType(AccessExpressionNode node)
@@ -220,7 +220,7 @@ public class SemanticModel
             return member switch
             {
                 // TODO: Make this Type optionally accessible from the Symbol type itself?
-                ConstSymbol s => s.Type,
+                ConstSymbol s => s.Type.Type,
                 FieldSymbol s => s.Type,
 
                 _ => null,

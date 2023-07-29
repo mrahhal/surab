@@ -44,7 +44,7 @@ public abstract class Symbol
 public class ConstSymbol : Symbol
 {
     private readonly ConstDeclarationNode _node;
-    private TypeSymbol? _type;
+    private ResolvedType? _type;
 
     internal ConstSymbol(ConstDeclarationNode node)
     {
@@ -60,7 +60,7 @@ public class ConstSymbol : Symbol
     /// <summary>
     /// The type of the const.
     /// </summary>
-    public TypeSymbol Type
+    public ResolvedType Type
     {
         get
         {
@@ -72,7 +72,7 @@ public class ConstSymbol : Symbol
 public class FunctionSymbol : Symbol
 {
     private readonly FunctionSignatureNode _node;
-    private TypeSymbol? _returnType;
+    private ResolvedType? _returnType;
     private ImmutableArray<ParameterSymbol> _parameters;
 
     internal FunctionSymbol(FunctionSignatureNode node)
@@ -90,7 +90,7 @@ public class FunctionSymbol : Symbol
     /// <summary>
     /// The return type of the function.
     /// </summary>
-    public TypeSymbol ReturnType
+    public ResolvedType ReturnType
     {
         get
         {
@@ -128,7 +128,7 @@ public class FunctionSymbol : Symbol
 public class FieldSymbol : Symbol
 {
     private readonly FieldDeclarationNode _node;
-    private TypeSymbol? _type;
+    private ResolvedType? _type;
 
     internal FieldSymbol(FieldDeclarationNode node)
     {
@@ -144,7 +144,7 @@ public class FieldSymbol : Symbol
     /// <summary>
     /// The type of the field.
     /// </summary>
-    public TypeSymbol Type
+    public ResolvedType Type
     {
         get
         {
@@ -156,7 +156,7 @@ public class FieldSymbol : Symbol
 public class ParameterSymbol : Symbol
 {
     private readonly ParameterNode _node;
-    private TypeSymbol? _type;
+    private ResolvedType? _type;
 
     internal ParameterSymbol(ParameterNode node)
     {
@@ -172,7 +172,7 @@ public class ParameterSymbol : Symbol
     /// <summary>
     /// The type of the parameter.
     /// </summary>
-    public TypeSymbol Type
+    public ResolvedType Type
     {
         get
         {
@@ -184,7 +184,7 @@ public class ParameterSymbol : Symbol
 public class LocalSymbol : Symbol
 {
     private readonly LetStatementNode _node;
-    private TypeSymbol? _type;
+    private ResolvedType? _type;
 
     internal LocalSymbol(LetStatementNode node)
     {
@@ -200,7 +200,7 @@ public class LocalSymbol : Symbol
     /// <summary>
     /// The type of the local.
     /// </summary>
-    public TypeSymbol Type
+    public ResolvedType Type
     {
         get
         {
@@ -306,17 +306,17 @@ public class BuiltInNamedTypeSymbol : NamedTypeSymbol
     public override ImmutableArray<Symbol> Members => _members;
 }
 
-public class ArrayTypeSymbol : TypeSymbol
-{
-    public ArrayTypeSymbol(TypeSymbol elementType)
-    {
-        ElementType = elementType;
-    }
+//public class ArrayTypeSymbol : TypeSymbol
+//{
+//    public ArrayTypeSymbol(TypeSymbol elementType)
+//    {
+//        ElementType = elementType;
+//    }
 
-    public override SymbolKind Kind => SymbolKind.ArrayType;
+//    public override SymbolKind Kind => SymbolKind.ArrayType;
 
-    /// <summary>
-    /// The type symbol representing the element of the array. (i.e the `T` in `[T]`)
-    /// </summary>
-    public TypeSymbol ElementType { get; }
-}
+//    /// <summary>
+//    /// The type symbol representing the element of the array. (i.e the `T` in `[T]`)
+//    /// </summary>
+//    public ResolvedType ElementType { get; }
+//}

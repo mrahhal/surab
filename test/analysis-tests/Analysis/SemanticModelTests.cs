@@ -100,7 +100,7 @@ public class SemanticModelTests
         var letStatement = tree.Root.DescendantNodes().OfType<LetStatementNode>().Single();
         model.TryGetDeclaredSymbol(letStatement, out var symbol).Should().BeTrue();
         var localSymbol = (LocalSymbol)symbol!;
-        localSymbol.Type.Should().BeOfType<ErrorTypeSymbol>().Subject.Name?.Identifier.Should().Be("Unknown");
+        localSymbol.Type.Type.Should().BeOfType<ErrorTypeSymbol>().Subject.Name?.Identifier.Should().Be("Unknown");
     }
 
     [Fact]
@@ -117,7 +117,7 @@ public class SemanticModelTests
         var letStatement = tree.Root.DescendantNodes().OfType<LetStatementNode>().Single();
         model.TryGetDeclaredSymbol(letStatement, out var symbol).Should().BeTrue();
         var localSymbol = (LocalSymbol)symbol!;
-        localSymbol.Type.Should().Be(BuiltInTypeSystem.Number);
+        localSymbol.Type.Type.Should().Be(BuiltInTypeSystem.Number);
     }
 
     [Fact]
@@ -134,6 +134,6 @@ public class SemanticModelTests
         var letStatement = tree.Root.DescendantNodes().OfType<LetStatementNode>().Single();
         model.TryGetDeclaredSymbol(letStatement, out var symbol).Should().BeTrue();
         var localSymbol = symbol.Should().BeOfType<LocalSymbol>().Subject;
-        localSymbol.Type.Should().Be(BuiltInTypeSystem.Number);
+        localSymbol.Type.Type.Should().Be(BuiltInTypeSystem.Number);
     }
 }
