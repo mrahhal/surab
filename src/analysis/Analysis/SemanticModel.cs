@@ -190,7 +190,7 @@ public class SemanticModel
 
         if (leftType != null && rightType != null && leftType != rightType)
         {
-            // ?
+            // TODO: ?
         }
 
         return leftType;
