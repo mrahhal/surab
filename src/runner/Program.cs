@@ -10,16 +10,16 @@ var src = """
     function noop(): None { }
 
     function foo(x: Number, y: Number): Number {
-      let e: Number = x + y;
+      let e = x + y;
       return e + 1;
        //return x + y;
     }
 
     function main(): None {
-      let a: Number = 2;
+      let a = 2;
       noop();
       let b: Number = 4;
-      let c: Number = foo(a, b);
+      let c = foo(a, b);
       print(c);
       print(41 + 1);
     }

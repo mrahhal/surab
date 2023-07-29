@@ -64,7 +64,7 @@ public class ConstSymbol : Symbol
     {
         get
         {
-            return _type ??= Context.BindType(_node.Ty);
+            return _type ??= Context.BindType(_node, _node.Ty);
         }
     }
 }
@@ -94,7 +94,7 @@ public class FunctionSymbol : Symbol
     {
         get
         {
-            return _returnType ??= Context.BindType(_node.ReturnTy);
+            return _returnType ??= Context.BindType(_node, _node.ReturnTy);
         }
     }
 
@@ -148,7 +148,7 @@ public class FieldSymbol : Symbol
     {
         get
         {
-            return _type ??= Context.BindType(_node.Ty);
+            return _type ??= Context.BindType(_node, _node.Ty);
         }
     }
 }
@@ -176,7 +176,7 @@ public class ParameterSymbol : Symbol
     {
         get
         {
-            return _type ??= Context.BindType(_node.Ty);
+            return _type ??= Context.BindType(_node, _node.Ty);
         }
     }
 }
@@ -204,7 +204,7 @@ public class LocalSymbol : Symbol
     {
         get
         {
-            return _type ??= Context.BindType(_node.Ty);
+            return _type ??= Context.BindType(_node, _node.Ty);
         }
     }
 }

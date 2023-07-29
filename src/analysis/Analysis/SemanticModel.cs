@@ -131,8 +131,10 @@ public class SemanticModel
     /// <summary>
     /// Looks up the <see cref="TypeSymbol"/>, if any, that represents the given node.
     /// </summary>
-    public TypeSymbol? LookupType(SyntaxNode node)
+    public TypeSymbol? LookupType(SyntaxNode? node)
     {
+        if (node == null) return null;
+
         return node switch
         {
             BareExpressionStatementNode n => LookupType(n),
@@ -260,6 +262,15 @@ public class SemanticModel
     {
         var binder = GetEnclosingBinder(node);
         return binder?.LookupThis();
+    }
+
+    public TypeSymbol? InferTypeOfDeclaringNode(SyntaxNode node)
+    {
+        return node switch
+        {
+            LetStatementNode letStatement => LookupType(letStatement.Initializer),
+            _ => null,
+        };
     }
 
     private class Builder : Visitor
