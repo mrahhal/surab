@@ -18,14 +18,14 @@ async Task Generate()
 
 async Task GenerateAst()
 {
-    var generatedFilePath = Path.Combine(srcFolderPath, "analyzer/Parsing/Ast.g.cs");
+    var generatedFilePath = Path.Combine(srcFolderPath, "analysis/Parsing/Ast.g.cs");
     var generator = provider.GetRequiredService<AstGenerator>();
     await generator.GenerateToAsync(generatedFilePath);
 }
 
 async Task GenerateAstVisitors()
 {
-    var generatedFilePath = Path.Combine(srcFolderPath, "analyzer/Parsing/Visitor.g.cs");
+    var generatedFilePath = Path.Combine(srcFolderPath, "analysis/Parsing/Visitor.g.cs");
     var generator = provider.GetRequiredService<AstVisitorsGenerator>();
     await generator.GenerateToAsync(generatedFilePath);
 }

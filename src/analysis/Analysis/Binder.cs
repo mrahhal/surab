@@ -3,7 +3,7 @@
 namespace Surab.Analysis;
 
 /// <summary>
-/// A binder binds identifiers to symbols and exposes these symbpls at certain scopes.
+/// A binder binds identifiers to symbols and exposes these symbols at certain scopes.
 /// </summary>
 internal abstract class Binder
 {
