@@ -71,23 +71,6 @@ public class SemanticModelTests
     }
 
     [Fact]
-    public void LocalSymbolType_Null()
-    {
-        var src = """
-            function f() {
-                let a = { 2 };
-            }
-            """;
-        var tree = Parser.ParseModule(src);
-        var model = SemanticModel.Create(tree);
-
-        var letStatement = tree.Root.DescendantNodes().OfType<LetStatementNode>().Single();
-        model.TryGetDeclaredSymbol(letStatement, out var symbol).Should().BeTrue();
-        var localSymbol = symbol.Should().BeOfType<LocalSymbol>().Subject;
-        localSymbol.Type.Should().BeNull();
-    }
-
-    [Fact]
     public void LookupType_Block()
     {
         var src = """
@@ -101,5 +84,56 @@ public class SemanticModelTests
         var letStatement = tree.Root.DescendantNodes().OfType<LetStatementNode>().Single();
         var initializerSymbol = model.LookupType(letStatement.Initializer);
         initializerSymbol.Should().Be(BuiltInTypeSystem.Number);
+    }
+
+    [Fact]
+    public void Symbol_ErrorType()
+    {
+        var src = """
+            function f() {
+                let a: Unknown = 2;
+            }
+            """;
+        var tree = Parser.ParseModule(src);
+        var model = SemanticModel.Create(tree);
+
+        var letStatement = tree.Root.DescendantNodes().OfType<LetStatementNode>().Single();
+        model.TryGetDeclaredSymbol(letStatement, out var symbol).Should().BeTrue();
+        var localSymbol = (LocalSymbol)symbol!;
+        localSymbol.Type.Should().BeOfType<ErrorTypeSymbol>().Subject.Name?.Identifier.Should().Be("Unknown");
+    }
+
+    [Fact]
+    public void Symbol_InferType()
+    {
+        var src = """
+            function f() {
+                let a = 2;
+            }
+            """;
+        var tree = Parser.ParseModule(src);
+        var model = SemanticModel.Create(tree);
+
+        var letStatement = tree.Root.DescendantNodes().OfType<LetStatementNode>().Single();
+        model.TryGetDeclaredSymbol(letStatement, out var symbol).Should().BeTrue();
+        var localSymbol = (LocalSymbol)symbol!;
+        localSymbol.Type.Should().Be(BuiltInTypeSystem.Number);
+    }
+
+    [Fact]
+    public void Symbol_InferType_2()
+    {
+        var src = """
+            function f() {
+                let a = { 2 };
+            }
+            """;
+        var tree = Parser.ParseModule(src);
+        var model = SemanticModel.Create(tree);
+
+        var letStatement = tree.Root.DescendantNodes().OfType<LetStatementNode>().Single();
+        model.TryGetDeclaredSymbol(letStatement, out var symbol).Should().BeTrue();
+        var localSymbol = symbol.Should().BeOfType<LocalSymbol>().Subject;
+        localSymbol.Type.Should().Be(BuiltInTypeSystem.Number);
     }
 }

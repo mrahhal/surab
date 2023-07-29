@@ -342,4 +342,7 @@ internal class SemanticAnalyzer : Visitor
 
         base.VisitTy(node);
     }
+
+    // TODO: Things to consider adding here.
+    // - TypeSymbol being the ErrorType
 }

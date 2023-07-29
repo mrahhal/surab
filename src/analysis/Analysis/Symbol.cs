@@ -58,9 +58,9 @@ public class ConstSymbol : Symbol
     public override IdentifierToken? Name => _node.Identifier;
 
     /// <summary>
-    /// The type of the const. `null` here means it's an inferred type.
+    /// The type of the const.
     /// </summary>
-    public TypeSymbol? Type
+    public TypeSymbol Type
     {
         get
         {
@@ -88,9 +88,9 @@ public class FunctionSymbol : Symbol
     public override IdentifierToken? Name => _node.Identifier;
 
     /// <summary>
-    /// The return type of the function. `null` here is a semantic error, but we have to allow it in the tree.
+    /// The return type of the function.
     /// </summary>
-    public TypeSymbol? ReturnType
+    public TypeSymbol ReturnType
     {
         get
         {
@@ -142,9 +142,9 @@ public class FieldSymbol : Symbol
     public override IdentifierToken? Name => _node.Identifier;
 
     /// <summary>
-    /// The type of the field. `null` here is a semantic error, but we have to allow it in the tree.
+    /// The type of the field.
     /// </summary>
-    public TypeSymbol? Type
+    public TypeSymbol Type
     {
         get
         {
@@ -170,9 +170,9 @@ public class ParameterSymbol : Symbol
     public override IdentifierToken? Name => _node.Identifier;
 
     /// <summary>
-    /// The type of the parameter. `null` here is a semantic error, but we have to allow it in the tree.
+    /// The type of the parameter.
     /// </summary>
-    public TypeSymbol? Type
+    public TypeSymbol Type
     {
         get
         {
@@ -198,9 +198,9 @@ public class LocalSymbol : Symbol
     public override IdentifierToken? Name => _node.Identifier;
 
     /// <summary>
-    /// The type of the local. `null` here means it's an inferred type.
+    /// The type of the local.
     /// </summary>
-    public TypeSymbol? Type
+    public TypeSymbol Type
     {
         get
         {
@@ -274,6 +274,18 @@ public class NamedTypeSymbol : TypeSymbol
                 break;
         }
     }
+}
+
+public class ErrorTypeSymbol : NamedTypeSymbol
+{
+    private readonly IdentifierToken? _identifier;
+
+    internal ErrorTypeSymbol(IdentifierToken? identifier) : base(null)
+    {
+        _identifier = identifier;
+    }
+
+    public override IdentifierToken? Name => _identifier;
 }
 
 public class BuiltInNamedTypeSymbol : NamedTypeSymbol

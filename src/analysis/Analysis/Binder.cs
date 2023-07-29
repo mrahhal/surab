@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Diagnostics;
 
 namespace Surab.Analysis;
 
@@ -82,16 +83,32 @@ internal abstract class Binder
         return null;
     }
 
-    public TypeSymbol? BindType(ColonTyNode? ty) => BindType(ty?.Ty);
+    /// <summary>
+    /// Binds a type node to its symbol. This method will never return null. If binding fails a special ErrorTypeSymbol will be returned.
+    /// </summary>
+    public TypeSymbol BindType(ColonTyNode? ty) => BindType(ty?.Ty);
 
-    public TypeSymbol? BindType(TyNode? ty)
+    /// <summary>
+    /// Binds a type node to its symbol. This method will never return null. If binding fails a special ErrorTypeSymbol will be returned.
+    /// </summary>
+    public TypeSymbol BindType(TyNode? ty)
     {
-        if (ty == null) return null;
+        TypeSymbol? bindingResult = null;
 
-        // TODO: Not nice calling SemanticModel.LookupBuiltIn() here.
-        // TODO: Feels like there is two apis doing similar things (SemanticModel's lookup type, and binder's lookup type)
-        //       leading to both places having to call SemanticModel.LookupBuiltIn() after trying to lookup the identifier.
-        return LookupIdentifier(ty.Identifier) as TypeSymbol ?? SemanticModel.LookupBuiltIn(ty.Identifier);
+        if (ty == null)
+        {
+            // Try infer type?
+        }
+
+        if (ty != null)
+        {
+            // TODO: Not nice calling SemanticModel.LookupBuiltIn() here.
+            // TODO: Feels like there are two apis doing similar things (SemanticModel's lookup type, and binder's lookup type)
+            // leading to both places having to call SemanticModel.LookupBuiltIn() after trying to lookup the identifier.
+            bindingResult = LookupIdentifier(ty.Identifier) as TypeSymbol ?? SemanticModel.LookupBuiltIn(ty.Identifier);
+        }
+
+        return bindingResult ?? new ErrorTypeSymbol(ty?.Identifier);
     }
 }
 
