@@ -196,7 +196,7 @@ public class ParserTests
     }
 
     [Fact]
-    public void Parameters_0()
+    public void Parameters_1()
     {
         var src = "function a() {}";
         var node = ParseDeclaration(src).Should().BeOfType<FunctionDeclarationNode>().Subject;
@@ -204,7 +204,7 @@ public class ParserTests
     }
 
     [Fact]
-    public void Parameters()
+    public void Parameters_2()
     {
         var src = "function a(b: number) {}";
         var node = ParseDeclaration(src).Should().BeOfType<FunctionDeclarationNode>().Subject;
@@ -212,7 +212,7 @@ public class ParserTests
     }
 
     [Fact]
-    public void Parameters_2()
+    public void Parameters_3()
     {
         var src = "function a(b: number, c: number) {}";
         var node = ParseDeclaration(src).Should().BeOfType<FunctionDeclarationNode>().Subject;
@@ -220,7 +220,7 @@ public class ParserTests
     }
 
     [Fact]
-    public void Arguments_0()
+    public void Arguments_1()
     {
         var src = "a()";
         var node = ParseExpression(src).Should().BeOfType<CallExpressionNode>().Subject;
@@ -228,7 +228,7 @@ public class ParserTests
     }
 
     [Fact]
-    public void Arguments()
+    public void Arguments_2()
     {
         var src = "a(b)";
         var node = ParseExpression(src).Should().BeOfType<CallExpressionNode>().Subject;
@@ -236,11 +236,38 @@ public class ParserTests
     }
 
     [Fact]
-    public void Arguments_2()
+    public void Arguments_3()
     {
         var src = "a(b, c)";
         var node = ParseExpression(src).Should().BeOfType<CallExpressionNode>().Subject;
         node.Arguments.Arguments.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void ExpressionInArgument_1()
+    {
+        var src = "a(41 + 1)";
+        var node = ParseExpression(src).Should().BeOfType<CallExpressionNode>().Subject;
+        node.Arguments.Arguments.Should().HaveCount(1);
+        node.Arguments.Arguments.ElementAt(0).Expression.Should().BeOfType<BinaryExpressionNode>();
+    }
+
+    [Fact]
+    public void ExpressionInArgument_2()
+    {
+        var src = "a(b = 2 + 1)";
+        var node = ParseExpression(src).Should().BeOfType<CallExpressionNode>().Subject;
+        node.Arguments.Arguments.Should().HaveCount(1);
+        node.Arguments.Arguments.ElementAt(0).Expression.Should().BeOfType<AssignmentExpressionNode>();
+    }
+
+    [Fact]
+    public void ExpressionInArgument_3()
+    {
+        var src = "a(b())";
+        var node = ParseExpression(src).Should().BeOfType<CallExpressionNode>().Subject;
+        node.Arguments.Arguments.Should().HaveCount(1);
+        node.Arguments.Arguments.ElementAt(0).Expression.Should().BeOfType<CallExpressionNode>();
     }
 
     [Fact]

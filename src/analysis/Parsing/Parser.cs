@@ -647,26 +647,27 @@ internal class ParserImpl
 
         return token.Kind switch
         {
-            TokenKind.LeftParen => ParseCallExpression(targetPrecedence, left),
-            TokenKind.Dot => ParseAccessExpression(targetPrecedence, left),
+            TokenKind.LeftParen => ParseCallExpression(left),
+            TokenKind.Dot => ParseAccessExpression(left),
             TokenKind.Equal => ParseAssignmentExpression(targetPrecedence, left),
             _ when token.Kind.IsBinary() => ParseBinaryExpression(targetPrecedence, left),
             _ => throw new Exception("unreachable"),
         };
     }
 
-    private ExpressionNode? ParseCallExpression(Precedence precedence, ExpressionNode left)
+    private ExpressionNode? ParseCallExpression(ExpressionNode left)
     {
-        var arguments = ParseArgumentsList(precedence);
+        // Inside the arguments list of a call expression, parsing will continue until we hit the closing paren,
+        // so we don't pass the precedence (otherwise parsing will prematurely stop since a call has the strongest precedence).
+        var arguments = ParseArgumentsList();
         if (arguments == null) return null;
 
         return new CallExpressionNode(left, arguments);
     }
 
-#pragma warning disable IDE0060 // Remove unused parameter
-    private ExpressionNode? ParseAccessExpression(Precedence precedence, ExpressionNode left)
-#pragma warning restore IDE0060 // Remove unused parameter
+    private ExpressionNode? ParseAccessExpression(ExpressionNode left)
     {
+        // In an access expression, we always parse one identifier, so we don't pass the precedence.
         var dotToken = EatAssertedSimpleToken(TokenKind.Dot);
         var identifier = ParseIdentifier();
         if (identifier == null) return null;
@@ -817,7 +818,7 @@ internal class ParserImpl
     /// Parses `(expression1, expression2)`
     /// Requirements: current is LeftParen.
     /// </summary>
-    private ArgumentsListNode? ParseArgumentsList(Precedence precedence)
+    private ArgumentsListNode? ParseArgumentsList()
     {
         var openParenToken = EatAssertedSimpleToken(TokenKind.LeftParen);
 
@@ -832,7 +833,7 @@ internal class ParserImpl
                 break;
             }
 
-            var argument = ParseArgument(precedence);
+            var argument = ParseArgument();
             if (argument == null) return null;
 
             arguments.Add(argument);
@@ -843,9 +844,9 @@ internal class ParserImpl
         return new ArgumentsListNode(openParenToken, arguments, closedParenToken);
     }
 
-    private ArgumentNode? ParseArgument(Precedence precedence)
+    private ArgumentNode? ParseArgument()
     {
-        var expression = ParseExpressionForPrecedence(precedence);
+        var expression = ParseExpression_();
         if (expression == null) return null;
         var commaToken = _current?.Kind switch
         {

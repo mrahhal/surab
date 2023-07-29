@@ -21,6 +21,7 @@ var src = """
       let b: Number = 4;
       let c: Number = foo(a, b);
       print(c);
+      print(41 + 1);
     }
     """;
 var tree = Parser.ParseModule(src);
