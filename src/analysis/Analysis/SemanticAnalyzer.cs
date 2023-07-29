@@ -344,5 +344,7 @@ internal class SemanticAnalyzer : Visitor
     }
 
     // TODO: Things to consider adding here.
+    // - LetStatementNode.Ty and Initializer:
+    //   - Initializer should always be given a value as a start
     // - TypeSymbol being the ErrorType
 }

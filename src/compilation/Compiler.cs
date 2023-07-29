@@ -212,7 +212,8 @@ internal sealed class FunctionCompiler : Visitor
             var localSymbol = (LocalSymbol)symbol;
             var (_, value) = _context.GetOrCreate(localSymbol);
 
-            Visit(node.Initializer);
+            // Well formed let statements always have an initializer?
+            Visit(node.Initializer!);
             var (_, initializerValue) = _stack.Pop();
             LLVM.Builder.BuildStore(initializerValue, value);
 

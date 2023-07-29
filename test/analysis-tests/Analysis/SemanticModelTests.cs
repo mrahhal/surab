@@ -82,7 +82,7 @@ public class SemanticModelTests
         var model = SemanticModel.Create(tree);
 
         var letStatement = tree.Root.DescendantNodes().OfType<LetStatementNode>().Single();
-        var initializerSymbol = model.LookupType(letStatement.Initializer);
+        var initializerSymbol = model.LookupType(letStatement.Initializer!);
         initializerSymbol.Should().Be(BuiltInTypeSystem.Number);
     }
 

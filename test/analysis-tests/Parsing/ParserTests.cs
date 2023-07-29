@@ -51,6 +51,24 @@ public class ParserTests
     }
 
     [Fact]
+    public void Statement_Let_MissingInitializer()
+    {
+        var src = "let a: Number;";
+        var node = ParseStatement(src).Should().BeOfType<LetStatementNode>().Subject;
+        node.Ty.Should().NotBeNull();
+        node.Initializer.Should().BeNull();
+    }
+
+    [Fact]
+    public void Statement_Let_MissingTyAndInitializer()
+    {
+        var src = "let a;";
+        var node = ParseStatement(src).Should().BeOfType<LetStatementNode>().Subject;
+        node.Ty.Should().BeNull();
+        node.Initializer.Should().BeNull();
+    }
+
+    [Fact]
     public void Statement_Return()
     {
         var src = "return 2;";
@@ -299,7 +317,7 @@ public class ParserTests
     {
         var src = "let a = { 2 };";
         var node = ParseStatement(src).Should().BeOfType<LetStatementNode>().Subject;
-        var block = node.Initializer.Expression.Should().BeOfType<BlockExpressionNode>().Subject;
+        var block = node.Initializer!.Expression.Should().BeOfType<BlockExpressionNode>().Subject;
         block.Statements.Should().HaveCount(1);
         var bareExpression = block.Statements.ElementAt(0).Should().BeOfType<BareExpressionStatementNode>().Subject;
         bareExpression.Expression.Should().BeOfType<LiteralExpressionNode>();

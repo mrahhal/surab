@@ -458,7 +458,6 @@ internal class ParserImpl
         var (ty, elided) = ParseOptionalColonTy();
         if (!elided && ty == null) return null;
         var initializer = ParseEqualsValueClause();
-        if (initializer == null) return null;
         var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
         return new LetStatementNode(letToken, identifier, ty, initializer, semicolonToken);
@@ -719,6 +718,11 @@ internal class ParserImpl
 
     private EqualsValueClauseNode? ParseEqualsValueClause()
     {
+        // Some common patterns where code doesn't add an initializer at all.
+        // In these cases, return null directly instead of adding a diag for expected equal token.
+        if (_current?.Kind is not TokenKind.Equal and
+            (TokenKind.Semicolon or TokenKind.RightParen)) return null;
+
         var equalToken = EatExpectedSimpleToken(TokenKind.Equal);
         var expression = ParseExpression_();
         if (expression == null) return null;

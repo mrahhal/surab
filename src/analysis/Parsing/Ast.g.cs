@@ -245,7 +245,7 @@ public class SkippedTokensDeclarationNode : DeclarationNode
 
 public class LetStatementNode : StatementNode
 {
-    public LetStatementNode(SimpleToken letToken, IdentifierToken identifier, ColonTyNode? ty, EqualsValueClauseNode initializer, SimpleToken semicolonToken)
+    public LetStatementNode(SimpleToken letToken, IdentifierToken identifier, ColonTyNode? ty, EqualsValueClauseNode? initializer, SimpleToken semicolonToken)
         : base(SyntaxNodeKind.LetStatement)
     {
         ChildTokens = new() { letToken, identifier, semicolonToken, };
@@ -258,7 +258,7 @@ public class LetStatementNode : StatementNode
     public SimpleToken LetToken => (SimpleToken)ChildTokens[0]!;
     public IdentifierToken Identifier => (IdentifierToken)ChildTokens[1]!;
     public ColonTyNode? Ty => (ColonTyNode?)ChildNodes[0]!;
-    public EqualsValueClauseNode Initializer => (EqualsValueClauseNode)ChildNodes[1]!;
+    public EqualsValueClauseNode? Initializer => (EqualsValueClauseNode?)ChildNodes[1]!;
     public SimpleToken SemicolonToken => (SimpleToken)ChildTokens[2]!;
 
     public override void Accept(Visitor visitor)
