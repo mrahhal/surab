@@ -470,7 +470,6 @@ internal class ParserImpl
     {
         var returnToken = EatAssertedSimpleToken(TokenKind.Return);
         var expression = ParseExpression_();
-        if (expression == null) return null;
         var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
         return new ReturnStatementNode(returnToken, expression, semicolonToken);

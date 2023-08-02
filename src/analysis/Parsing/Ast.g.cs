@@ -269,7 +269,7 @@ public class LetStatementNode : StatementNode
 
 public class ReturnStatementNode : StatementNode
 {
-    public ReturnStatementNode(SimpleToken returnToken, ExpressionNode expression, SimpleToken semicolonToken)
+    public ReturnStatementNode(SimpleToken returnToken, ExpressionNode? expression, SimpleToken semicolonToken)
         : base(SyntaxNodeKind.ReturnStatement)
     {
         ChildTokens = new() { returnToken, semicolonToken, };
@@ -280,7 +280,7 @@ public class ReturnStatementNode : StatementNode
     }
 
     public SimpleToken ReturnToken => (SimpleToken)ChildTokens[0]!;
-    public ExpressionNode Expression => (ExpressionNode)ChildNodes[0]!;
+    public ExpressionNode? Expression => (ExpressionNode?)ChildNodes[0]!;
     public SimpleToken SemicolonToken => (SimpleToken)ChildTokens[1]!;
 
     public override void Accept(Visitor visitor)

@@ -1,7 +1,7 @@
 ﻿namespace Surab.Analysis;
 
 /// <summary>
-/// Represents a type that can be visited by an <see cref="Visitor"/>.
+/// Represents a type that can be visited by a <see cref="Visitor"/>.
 /// </summary>
 public interface IVisitable
 {
