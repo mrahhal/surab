@@ -347,4 +347,5 @@ internal class SemanticAnalyzer : Visitor
     // - LetStatementNode.Ty and Initializer:
     //   - Initializer should always be given a value as a start
     // - TypeSymbol being the ErrorType
+    // - BlockExpression can't appear as an l-value
 }
