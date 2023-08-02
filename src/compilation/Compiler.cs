@@ -1,4 +1,6 @@
 ﻿using System.Diagnostics;
+using System.Xml.Linq;
+using LLVMSharp;
 using LLVMSharp.Interop;
 using Surab.Analysis;
 using Surab.Compilation.LLVM;
@@ -9,16 +11,19 @@ public sealed class Compiler
 {
     private readonly CompilationContext _context;
 
-    private Compiler(SemanticModel model)
+    private Compiler(
+        SemanticModel model,
+        LoweredTree loweredTree)
     {
         var llvm = LLVMCompilationContext.Create();
 
-        _context = new CompilationContext(model, llvm);
+        _context = new CompilationContext(loweredTree, model, llvm);
     }
 
     public static string Compile(SemanticModel model)
     {
-        var compiler = new Compiler(model);
+        var loweredTree = Lowerer.Lower(model);
+        var compiler = new Compiler(model, loweredTree);
         return compiler.Compile();
     }
 
@@ -28,7 +33,7 @@ public sealed class Compiler
     }
 }
 
-internal sealed class RootCompiler : Visitor
+internal sealed class RootCompiler : LoweredVisitor
 {
     private readonly CompilationContext _context;
 
@@ -36,8 +41,6 @@ internal sealed class RootCompiler : Visitor
     {
         _context = context;
     }
-
-    private SemanticModel Model => _context.Model;
 
     private LLVMCompilationContext LLVM => _context.LLVM;
 
@@ -53,68 +56,56 @@ internal sealed class RootCompiler : Visitor
 
     private void CompileModule()
     {
-        Visit(Model.Tree.Root);
+        Visit(_context.LoweredTree.Root);
 
         LLVM.Module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction);
     }
 
-    public override void VisitFunctionDeclaration(FunctionDeclarationNode node)
+    public override void VisitFunctionDeclaration(LoweredFunctionDeclaration node)
     {
-        CompileFunction(node.Signature, node.Body);
+        CompileFunction(node);
 
         base.VisitFunctionDeclaration(node);
     }
 
-    private void CompileFunction(
-        FunctionSignatureNode signature,
-        BlockExpressionNode body)
+    private void CompileFunction(LoweredFunctionDeclaration function)
     {
-        FunctionCompiler.Compile(_context, signature, body);
+        FunctionCompiler.Compile(_context, function);
     }
 }
 
-internal sealed class FunctionCompiler : Visitor
+internal sealed class FunctionCompiler : LoweredVisitor
 {
     private readonly CompilationContext _context;
-    private readonly FunctionSignatureNode _signature;
-    private readonly BlockExpressionNode _body;
-    private readonly FunctionSymbol _functionSymbol;
+    private readonly LoweredFunctionDeclaration _function;
     private readonly LLVMTypeRef _functionType;
     private readonly LLVMValueRef _functionValue;
 
     private readonly Stack<LLVMUnit> _stack = new();
+    private bool _returnSeen = false;
 
     private FunctionCompiler(
         CompilationContext context,
-        FunctionSignatureNode signature,
-        BlockExpressionNode body,
-        FunctionSymbol function,
+        LoweredFunctionDeclaration function,
         LLVMTypeRef functionType,
         LLVMValueRef functionValue)
     {
         _context = context;
-        _signature = signature;
-        _body = body;
-        _functionSymbol = function;
+        _function = function;
         _functionType = functionType;
         _functionValue = functionValue;
     }
-
-    private SemanticModel Model => _context.Model;
 
     private LLVMCompilationContext LLVM => _context.LLVM;
 
     public static void Compile(
         CompilationContext context,
-        FunctionSignatureNode signature,
-        BlockExpressionNode body)
+        LoweredFunctionDeclaration function)
     {
-        context.Model.TryGetDeclaredSymbol(signature.Parent!, out var functionSymbol);
-        var function = (FunctionSymbol)functionSymbol!;
-        var (functionType, functionValue) = context.GetOrCreate(function);
+        var (functionType, functionValue) = context.GetOrCreate(function.FunctionSymbol);
         Debug.Assert(functionValue.BasicBlocksCount == 0);
 
-        var c = new FunctionCompiler(context, signature, body, function, functionType, functionValue);
+        var c = new FunctionCompiler(context, function, functionType, functionValue);
         c.Compile();
     }
 
@@ -124,24 +115,27 @@ internal sealed class FunctionCompiler : Visitor
         var entry = _functionValue.AppendBasicBlock("entry");
         LLVM.Builder.PositionAtEnd(entry);
 
-        Visit(_signature);
-
+        SetupParameters(_function.FunctionSymbol.Parameters);
         SetupLocals();
 
-        if (_signature.Identifier.Identifier == "print")
+        if (_function.FunctionSymbol.Name?.Identifier == "print")
         {
             CompileSpecialPrint();
         }
         else
         {
-            Visit(_body);
+            Visit(_function.Body);
 
-            if (_functionType.ReturnType.Kind != LLVMTypeKind.LLVMVoidTypeKind)
-            {
-                var (_, value) = _stack.Pop();
-                LLVM.Builder.BuildRet(value);
-            }
-            else
+            //if (_functionType.ReturnType.Kind != LLVMTypeKind.LLVMVoidTypeKind)
+            //{
+            //    var (_, value) = _stack.Pop();
+            //    LLVM.Builder.BuildRet(value);
+            //}
+            //else
+            //{
+            //    LLVM.Builder.BuildRetVoid();
+            //}
+            if (!_returnSeen)
             {
                 LLVM.Builder.BuildRetVoid();
             }
@@ -153,9 +147,9 @@ internal sealed class FunctionCompiler : Visitor
 
     private void SetupLocals()
     {
-        foreach (var localSymbol in SemanticUtils.CollectLocals(Model, _body))
+        foreach (var variableStatement in LoweringUtils.CollectLocalVariableStatements(_function.Body))
         {
-            _context.Create(localSymbol);
+            _context.Create((LocalSymbol)variableStatement.Symbol);
         }
     }
 
@@ -176,67 +170,72 @@ internal sealed class FunctionCompiler : Visitor
         LLVM.Builder.BuildRetVoid();
     }
 
-    public override void VisitParametersList(ParametersListNode node)
+    private void SetupParameters(IEnumerable<ParameterSymbol> parameters)
     {
         var i = (uint)0;
-        foreach (var p in node.Parameters)
+        foreach (var p in parameters)
         {
             var paramValueRef = _functionValue.GetParam(i);
-
-            if (Model.TryGetDeclaredSymbol(p, out var symbol))
-            {
-                var parameterSymbol = (ParameterSymbol)symbol;
-                _context.Create(parameterSymbol, paramValueRef);
-            }
-            else
-            {
-                throw new Exception();
-            }
+            _context.Create(p, paramValueRef);
 
             i++;
         }
     }
 
-    public override void VisitExpressionStatement(ExpressionStatementNode node)
+    public override void VisitExpressionStatement(LoweredExpressionStatement node)
     {
-        Walk(node);
+        base.VisitExpressionStatement(node);
 
         // Discard the value? For non void functions..? Or always push a value in an expression to discard here?
-        //_valueStack.Pop();
+        _stack.Pop();
     }
 
-    public override void VisitLetStatement(LetStatementNode node)
+    public override void VisitVariableStatement(LoweredVariableStatement node)
     {
-        if (Model.TryGetDeclaredSymbol(node, out var symbol))
+        // Nothing todo? Remove?
+
+        // TODO: Always a LocalSymbol?
+        var localSymbol = (LocalSymbol)node.Symbol;
+        var (_, value) = _context.GetOrCreate(localSymbol);
+
+        //// Well formed let statements always have an initializer?
+        //Visit(node.Initializer!);
+        //if (node.Initializer != null)
+        //{
+        //    Visit(node.Initializer);
+        //    var (_, initializerValue) = _stack.Pop();
+        //    LLVM.Builder.BuildStore(initializerValue, value);
+        //}
+
+        // Wrong, will set the size of the allocated stack.
+        //value.Initializer = _valueStack.Pop();
+    }
+
+    public override void VisitReturnStatement(LoweredReturnStatement node)
+    {
+        _returnSeen = true;
+        if (node.Expression == null)
         {
-            var localSymbol = (LocalSymbol)symbol;
-            var (_, value) = _context.GetOrCreate(localSymbol);
-
-            // Well formed let statements always have an initializer?
-            Visit(node.Initializer!);
-            var (_, initializerValue) = _stack.Pop();
-            LLVM.Builder.BuildStore(initializerValue, value);
-
-            // Wrong, will set the size of the allocated stack.
-            //value.Initializer = _valueStack.Pop();
+            LLVM.Builder.BuildRetVoid();
         }
         else
         {
-            throw new Exception();
+            Visit(node.Expression);
+            var (_, value) = _stack.Pop();
+            LLVM.Builder.BuildRet(value);
         }
     }
 
-    public override void VisitCallExpression(CallExpressionNode node)
+    public override void VisitCallExpression(LoweredCallExpression node)
     {
-        Visit(node.Callee);
-        var (functionType, functionValue) = _stack.Pop();
+        var (functionType, functionValue) = _context.GetOrCreate(node.Callee);
 
         // TODO: node.Callee is not always an IdentifierExpressionNode.
         // After desugaring this will always be the identifier (or what's equivalent)?
-        var functionSymbol = (FunctionSymbol?)Model.LookupSymbol((IdentifierExpressionNode)node.Callee);
-        Debug.Assert(functionSymbol != null);
 
-        Visit(node.Arguments);
+        var functionSymbol = node.Callee;
+
+        VisitList(node.Arguments);
 
         var args = new List<LLVMValueRef>(capacity: functionSymbol.Parameters.Length);
 
@@ -250,7 +249,7 @@ internal sealed class FunctionCompiler : Visitor
         _stack.Push((functionType.ReturnType, returnValue));
     }
 
-    public override void VisitBinaryExpression(BinaryExpressionNode node)
+    public override void VisitBinaryExpression(LoweredBinaryExpression node)
     {
         Visit(node.Left);
         var (_, leftValue) = _stack.Pop();
@@ -258,7 +257,7 @@ internal sealed class FunctionCompiler : Visitor
         Visit(node.Right);
         var (_, rightValue) = _stack.Pop();
 
-        var value = node.Op.BinaryOperatorTokenKind switch
+        var value = node.Op switch
         {
             BinaryOperatorTokenKind.Add => LLVM.Builder.BuildFAdd(leftValue, rightValue),
             BinaryOperatorTokenKind.Sub => LLVM.Builder.BuildFSub(leftValue, rightValue),
@@ -285,27 +284,43 @@ internal sealed class FunctionCompiler : Visitor
     //    LLVM.Builder.BuildStore(toStore, rhs);
     //}
 
-    public override void VisitIdentifierExpression(IdentifierExpressionNode node)
+    public override void VisitVariableLoadExpression(LoweredVariableLoadExpression node)
     {
-        // TODO: We'll only be here if this is a definite load??
-
-        // Later, this will be also called in places such as `let a = Number.max;` for `Number` type identifier.
-        // Should a desugaring stage remove this possibility and change this to bind to the direct method/field/prop? Yes I think.
-
-        var target = Model.LookupSymbol(node);
-        Debug.Assert(target != null);
-        var (type, value) = _context.GetOrCreate(target);
-
-        if (value.TypeOf.Kind == LLVMTypeKind.LLVMPointerTypeKind && value.Kind != LLVMValueKind.LLVMFunctionValueKind)
-        {
-            // Load from an alloca if this isn't a function.
-            value = LLVM.Builder.BuildLoad2(type, value);
-        }
-
+        var (type, value) = _context.GetOrCreate(node.Variable);
+        value = LLVM.Builder.BuildLoad2(type, value);
         _stack.Push((type, value));
     }
 
-    public override void VisitLiteralExpression(LiteralExpressionNode node)
+    public override void VisitVariableStoreExpression(LoweredVariableStoreStatement node)
+    {
+        var (_, value) = _context.GetOrCreate(node.Variable);
+        Visit(node.Expression);
+        var (_, rhs) = _stack.Pop();
+
+        LLVM.Builder.BuildStore(rhs, value);
+    }
+
+    //public override void VisitIdentifierExpression(IdentifierExpressionNode node)
+    //{
+    //    // TODO: We'll only be here if this is a definite load??
+
+    //    // Later, this will be also called in places such as `let a = Number.max;` for `Number` type identifier.
+    //    // Should a desugaring stage remove this possibility and change this to bind to the direct method/field/prop? Yes I think.
+
+    //    var target = Model.LookupSymbol(node);
+    //    Debug.Assert(target != null);
+    //    var (type, value) = _context.GetOrCreate(target);
+
+    //    if (value.TypeOf.Kind == LLVMTypeKind.LLVMPointerTypeKind && value.Kind != LLVMValueKind.LLVMFunctionValueKind)
+    //    {
+    //        // Load from an alloca if this isn't a function.
+    //        value = LLVM.Builder.BuildLoad2(type, value);
+    //    }
+
+    //    _stack.Push((type, value));
+    //}
+
+    public override void VisitLiteralExpression(LoweredLiteralExpression node)
     {
         // Similar to CompilationContext.GetForType?
         switch (node.Literal.LiteralTokenKind)

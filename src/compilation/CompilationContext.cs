@@ -7,12 +7,16 @@ namespace Surab.Compilation;
 public sealed class CompilationContext
 {
     internal CompilationContext(
+        LoweredTree tree,
         SemanticModel model,
         LLVMCompilationContext llvmCompilationContext)
     {
+        LoweredTree = tree;
         Model = model;
         LLVM = llvmCompilationContext;
     }
+
+    internal LoweredTree LoweredTree { get; }
 
     public SemanticModel Model { get; }
 

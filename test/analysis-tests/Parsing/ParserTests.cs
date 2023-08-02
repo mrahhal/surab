@@ -332,6 +332,22 @@ public class ParserTests
     }
 
     [Fact]
+    public void BlockAsStatement_2()
+    {
+        var src = """
+            function foo(): Number {
+              { 1 }
+              { 2 }
+            }
+            """;
+        var node = ParseDeclaration(src).Should().BeOfType<FunctionDeclarationNode>().Subject;
+        var body = node.Body;
+        body.Statements.Should().HaveCount(2);
+        body.Statements.ElementAt(0).Should().BeOfType<BareExpressionStatementNode>();
+        body.Statements.ElementAt(1).Should().BeOfType<BareExpressionStatementNode>();
+    }
+
+    [Fact]
     public void SkippedTokens()
     {
         var src = "saunk ;";
