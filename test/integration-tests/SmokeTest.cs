@@ -6,7 +6,7 @@ public class SmokeTest
     public void Succeed()
     {
         var output = IntegrationRunner.Run("""
-            function main(): None {
+            function main() {
               let a = 42;
               print(a);
             }
@@ -21,7 +21,7 @@ public class SmokeTest
     public void Fail()
     {
         IntegrationRunner.Run("""
-            function main(): None {
+            function main() {
               fffffffffffff
             }
             """, fails: true);
