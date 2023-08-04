@@ -1,6 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Xml.Linq;
-using LLVMSharp;
 using LLVMSharp.Interop;
 using Surab.Analysis;
 using Surab.Compilation.LLVM;
@@ -13,17 +11,20 @@ public sealed class Compiler
 
     private Compiler(
         SemanticModel model,
-        LoweredTree loweredTree)
+        LoweredTree loweredTree,
+        CompilationOptions options)
     {
         var llvm = LLVMCompilationContext.Create();
 
-        _context = new CompilationContext(loweredTree, model, llvm);
+        _context = new CompilationContext(loweredTree, model, llvm, options);
     }
 
-    public static string Compile(SemanticModel model)
+    public static string Compile(
+        SemanticModel model,
+        CompilationOptions? options = null)
     {
         var loweredTree = Lowerer.Lower(model);
-        var compiler = new Compiler(model, loweredTree);
+        var compiler = new Compiler(model, loweredTree, options ?? CompilationOptions.CreateDefault());
         return compiler.Compile();
     }
 
@@ -49,9 +50,9 @@ internal sealed class RootCompiler : LoweredVisitor
         var rootCompiler = new RootCompiler(context);
         rootCompiler.CompileModule();
 
-        rootCompiler.LLVM.Module.PrintToFile(context.LLVM.LLFile);
+        rootCompiler.LLVM.Module.PrintToFile(context.Options.LLFileName);
 
-        return ClangRunner.Run(new[] { context.LLVM.LLFile });
+        return ClangRunner.Run(new[] { context.Options.LLFileName });
     }
 
     private void CompileModule()

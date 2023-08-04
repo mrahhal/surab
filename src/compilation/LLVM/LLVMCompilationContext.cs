@@ -22,8 +22,6 @@ internal sealed class LLVMCompilationContext
 
     public LLVMPassManagerRef PassManager { get; }
 
-    public string LLFile => "main.ll";
-
     public static LLVMCompilationContext Create()
     {
         var module = LLVMModuleRef.CreateWithName("surabmodule");

@@ -9,11 +9,13 @@ public sealed class CompilationContext
     internal CompilationContext(
         LoweredTree tree,
         SemanticModel model,
-        LLVMCompilationContext llvmCompilationContext)
+        LLVMCompilationContext llvmCompilationContext,
+        CompilationOptions options)
     {
         LoweredTree = tree;
         Model = model;
         LLVM = llvmCompilationContext;
+        Options = options;
     }
 
     internal LoweredTree LoweredTree { get; }
@@ -24,6 +26,8 @@ public sealed class CompilationContext
     private Dictionary<Symbol, LLVMUnit> SymbolToValue { get; } = new();
 
     internal LLVMCompilationContext LLVM { get; }
+
+    public CompilationOptions Options { get; }
 
     internal LLVMUnit Create(ParameterSymbol parameterSymbol, LLVMValueRef value)
     {
