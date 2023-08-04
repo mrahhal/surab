@@ -122,7 +122,7 @@ internal sealed class LoweredVariableStatement : LoweredStatement
 
     public override IEnumerable<LoweredNode> EnumerateChildren() => Enumerable.Empty<LoweredNode>();
 
-    public override string ToString() => $"let {Symbol.Name}: {Symbol.Type.Type.Name};";
+    public override string ToString() => $"let {Symbol.Name}: {Symbol.Type.Name};";
 }
 
 internal sealed class LoweredReturnStatement : LoweredStatement

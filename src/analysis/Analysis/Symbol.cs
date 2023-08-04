@@ -66,12 +66,13 @@ public sealed class ConstSymbol : Symbol
     /// <summary>
     /// The type of the const.
     /// </summary>
-    public ResolvedType Type
+    public TypeSymbol Type => EnsureResolveType().Type;
+
+    public bool IsTypeInferred => EnsureResolveType().IsInferred;
+
+    private ResolvedType EnsureResolveType()
     {
-        get
-        {
-            return _type ??= Context.BindType(_node, _node.Ty);
-        }
+        return _type ??= Context.BindType(_node, _node.Ty);
     }
 }
 
@@ -152,19 +153,20 @@ public sealed class FieldSymbol : Symbol
     /// <summary>
     /// The type of the field.
     /// </summary>
-    public ResolvedType Type
+    public TypeSymbol Type => EnsureResolveType().Type;
+
+    public bool IsTypeInferred => EnsureResolveType().IsInferred;
+
+    private ResolvedType EnsureResolveType()
     {
-        get
-        {
-            return _type ??= Context.BindType(_node, _node.Ty);
-        }
+        return _type ??= Context.BindType(_node, _node.Ty);
     }
 }
 
 public sealed class ParameterSymbol : Symbol
 {
     private readonly ParameterNode _node;
-    private ResolvedType? _type;
+    private TypeSymbol? _type;
 
     internal ParameterSymbol(ParameterNode node)
     {
@@ -180,11 +182,11 @@ public sealed class ParameterSymbol : Symbol
     /// <summary>
     /// The type of the parameter.
     /// </summary>
-    public ResolvedType Type
+    public TypeSymbol Type
     {
         get
         {
-            return _type ??= Context.BindType(_node, _node.Ty);
+            return _type ??= Context.BindType(_node, _node.Ty).Type; // Will never be inferred.
         }
     }
 }
@@ -208,12 +210,13 @@ public sealed class LocalSymbol : Symbol
     /// <summary>
     /// The type of the local.
     /// </summary>
-    public ResolvedType Type
+    public TypeSymbol Type => EnsureResolveType().Type;
+
+    public bool IsTypeInferred => EnsureResolveType().IsInferred;
+
+    private ResolvedType EnsureResolveType()
     {
-        get
-        {
-            return _type ??= Context.BindType(_node, _node.Ty);
-        }
+        return _type ??= Context.BindType(_node, _node.Ty);
     }
 }
 

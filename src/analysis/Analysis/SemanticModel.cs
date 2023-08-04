@@ -230,7 +230,7 @@ public class SemanticModel
             return member switch
             {
                 // TODO: Make this Type optionally accessible from the Symbol type itself?
-                ConstSymbol s => s.Type.Type,
+                ConstSymbol s => s.Type,
                 FieldSymbol s => s.Type,
 
                 _ => null,
