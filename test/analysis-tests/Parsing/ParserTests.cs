@@ -39,7 +39,7 @@ public class ParserTests
     {
         var src = "let a = 2;";
         var node = ParseStatement(src).Should().BeOfType<LetStatementNode>().Subject;
-        node.Ty.Should().BeNull();
+        node.Type.Should().BeNull();
     }
 
     [Fact]
@@ -47,7 +47,7 @@ public class ParserTests
     {
         var src = "let a: Number = 2;";
         var node = ParseStatement(src).Should().BeOfType<LetStatementNode>().Subject;
-        node.Ty.Should().NotBeNull();
+        node.Type.Should().NotBeNull();
     }
 
     [Fact]
@@ -55,7 +55,7 @@ public class ParserTests
     {
         var src = "let a: Number;";
         var node = ParseStatement(src).Should().BeOfType<LetStatementNode>().Subject;
-        node.Ty.Should().NotBeNull();
+        node.Type.Should().NotBeNull();
         node.Initializer.Should().BeNull();
     }
 
@@ -64,7 +64,7 @@ public class ParserTests
     {
         var src = "let a;";
         var node = ParseStatement(src).Should().BeOfType<LetStatementNode>().Subject;
-        node.Ty.Should().BeNull();
+        node.Type.Should().BeNull();
         node.Initializer.Should().BeNull();
     }
 
@@ -210,7 +210,7 @@ public class ParserTests
         var src = "function a(b /* : number */) {}";
         var node = ParseDeclaration(src).Should().BeOfType<FunctionDeclarationNode>().Subject;
         node.Signature.Parameters.Parameters.Should().HaveCount(1);
-        node.Signature.Parameters.Parameters.ElementAt(0).Ty.Should().BeNull();
+        node.Signature.Parameters.Parameters.ElementAt(0).Type.Should().BeNull();
     }
 
     [Fact]

@@ -28,8 +28,8 @@
           "Type": "IdentifierToken"
         },
         {
-          "Name": "ty",
-          "Type": "ColonTyNode",
+          "Name": "type",
+          "Type": "ColonTypeNode",
           "Optional": true
         },
         {
@@ -112,8 +112,8 @@
           "Type": "IdentifierToken"
         },
         {
-          "Name": "ty",
-          "Type": "ColonTyNode",
+          "Name": "type",
+          "Type": "ColonTypeNode",
           "Optional": true
         },
         {
@@ -168,8 +168,8 @@
           "Type": "IdentifierToken"
         },
         {
-          "Name": "ty",
-          "Type": "ColonTyNode",
+          "Name": "type",
+          "Type": "ColonTypeNode",
           "Optional": true
         },
         {
@@ -430,8 +430,8 @@
           "Type": "IdentifierToken"
         },
         {
-          "Name": "ty",
-          "Type": "ColonTyNode",
+          "Name": "type",
+          "Type": "ColonTypeNode",
           "Optional": true,
           "Comment": "Well formed: Has value"
         },
@@ -475,20 +475,20 @@
       ]
     },
     {
-      "Name": "ColonTy",
+      "Name": "ColonType",
       "Members": [
         {
           "Name": "colonToken",
           "Type": "SimpleToken"
         },
         {
-          "Name": "ty",
-          "Type": "TyNode"
+          "Name": "type",
+          "Type": "TypeNode"
         }
       ]
     },
     {
-      "Name": "Ty",
+      "Name": "Type",
       "Members": [
         {
           "Name": "identifier",
@@ -514,7 +514,7 @@
         },
         {
           "Name": "returnTy",
-          "Type": "ColonTyNode",
+          "Type": "ColonTypeNode",
           "Optional": true
         }
       ]

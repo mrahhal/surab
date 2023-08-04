@@ -87,17 +87,17 @@ internal abstract class Binder
     /// Binds a type node to its symbol.
     /// This method will never return null. If binding fails a special <see cref="ErrorTypeSymbol"/> will be returned.
     /// </summary>
-    public ResolvedType BindType(SyntaxNode parentNode, ColonTyNode? colonTy)
+    public ResolvedType BindType(SyntaxNode parentNode, ColonTypeNode? colonType)
     {
-        var ty = colonTy?.Ty;
+        var type = colonType?.Type;
 
         ResolvedType? resolvedType = null;
-        if (ty != null)
+        if (type != null)
         {
             // TODO: Not nice calling SemanticModel.LookupBuiltIn() here.
             // TODO: Feels like there are two apis doing similar things (SemanticModel's lookup type, and binder's lookup type)
             // leading to both places having to call SemanticModel.LookupBuiltIn() after trying to lookup the identifier.
-            var boundType = LookupIdentifier(ty.Identifier) as TypeSymbol ?? SemanticModel.LookupBuiltIn(ty.Identifier);
+            var boundType = LookupIdentifier(type.Identifier) as TypeSymbol ?? SemanticModel.LookupBuiltIn(type.Identifier);
             if (boundType != null)
                 resolvedType = ResolvedType.Typed(boundType);
         }
@@ -108,7 +108,7 @@ internal abstract class Binder
                 resolvedType = ResolvedType.Inferred(boundType);
         }
 
-        return resolvedType ?? ResolvedType.Typed(new ErrorTypeSymbol(ty?.Identifier));
+        return resolvedType ?? ResolvedType.Typed(new ErrorTypeSymbol(type?.Identifier));
     }
 }
 

@@ -337,7 +337,7 @@ internal class ParserImpl
         var visibility = TryParseVisibility();
         return _current?.Kind switch
         {
-            // `identifier: Ty = 2;` or `identifier = 2;`
+            // `identifier: Type = 2;` or `identifier = 2;`
             TokenKind.Identifier when P1()?.Kind is TokenKind.Colon or TokenKind.Equal => ParseFieldDeclaration(visibility),
 
             // `identifier()`
@@ -355,17 +355,17 @@ internal class ParserImpl
         var constToken = EatAssertedSimpleToken(TokenKind.Const);
         var identifier = ParseIdentifier();
         if (identifier == null) return null;
-        var (ty, elided) = ParseOptionalColonTy();
-        if (!elided && ty == null) return null;
+        var (type, elided) = ParseOptionalColonTy();
+        if (!elided && type == null) return null;
         var equalToken = EatExpectedSimpleToken(TokenKind.Equal);
         var value = ParseExpression_();
         if (value == null) return null;
 
-        return new ConstDeclarationNode(visibility, constToken, identifier, ty, equalToken, value);
+        return new ConstDeclarationNode(visibility, constToken, identifier, type, equalToken, value);
     }
 
     /// <summary>
-    /// Parses `function identifier(param1, param2) : Ty { ... }`
+    /// Parses `function identifier(param1, param2) : Type { ... }`
     /// </summary>
     private DeclarationNode? ParseFunctionDeclaration(SimpleToken? visibility)
     {
@@ -401,19 +401,19 @@ internal class ParserImpl
     }
 
     /// <summary>
-    /// Parses `identifier: Ty = expression;`
+    /// Parses `identifier: Type = expression;`
     /// </summary>
     private DeclarationNode? ParseFieldDeclaration(SimpleToken? visibility)
     {
         var identifier = ParseIdentifier();
         if (identifier == null) return null;
-        var (ty, elided) = ParseOptionalColonTy();
-        if (!elided && ty == null) return null;
+        var (type, elided) = ParseOptionalColonTy();
+        if (!elided && type == null) return null;
         var initializer = ParseEqualsValueClause();
         if (initializer == null) return null;
         var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
-        return new FieldDeclarationNode(visibility, identifier, ty, initializer, semicolonToken);
+        return new FieldDeclarationNode(visibility, identifier, type, initializer, semicolonToken);
     }
 
     /// <summary>
@@ -455,12 +455,12 @@ internal class ParserImpl
         var letToken = EatAssertedSimpleToken(TokenKind.Let);
         var identifier = ParseIdentifier();
         if (identifier == null) return null;
-        var (ty, elided) = ParseOptionalColonTy();
-        if (!elided && ty == null) return null;
+        var (type, elided) = ParseOptionalColonTy();
+        if (!elided && type == null) return null;
         var initializer = ParseEqualsValueClause();
         var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
-        return new LetStatementNode(letToken, identifier, ty, initializer, semicolonToken);
+        return new LetStatementNode(letToken, identifier, type, initializer, semicolonToken);
     }
 
     /// <summary>
@@ -732,7 +732,7 @@ internal class ParserImpl
     /// <summary>
     /// Parses `: Type?`
     /// </summary>
-    private (ColonTyNode? Node, bool Elided) ParseColonTy_(bool optional)
+    private (ColonTypeNode? Node, bool Elided) ParseColonTy_(bool optional)
     {
         if (optional && !CheckToken(TokenKind.Colon))
         {
@@ -740,18 +740,18 @@ internal class ParserImpl
         }
 
         var colonToken = EatExpectedSimpleToken(TokenKind.Colon);
-        var ty = ParseTy();
-        if (ty == null) return (null, false);
+        var type = ParseTy();
+        if (type == null) return (null, false);
 
-        return (new ColonTyNode(colonToken, ty), false);
+        return (new ColonTypeNode(colonToken, type), false);
     }
 
-    private (ColonTyNode? Node, bool Elided) ParseOptionalColonTy() => ParseColonTy_(optional: true);
+    private (ColonTypeNode? Node, bool Elided) ParseOptionalColonTy() => ParseColonTy_(optional: true);
 
     /// <summary>
     /// Parses `: Type?`
     /// </summary>
-    private ColonTyNode? ParseColonTy()
+    private ColonTypeNode? ParseColonTy()
     {
         return ParseColonTy_(false).Node;
     }
@@ -759,17 +759,17 @@ internal class ParserImpl
     /// <summary>
     /// Parses `Type?`
     /// </summary>
-    private TyNode? ParseTy()
+    private TypeNode? ParseTy()
     {
         var identifier = ParseIdentifier();
         if (identifier == null) return null;
         var nullableToken = TryEatSimpleToken(TokenKind.Question);
 
-        return new TyNode(identifier, nullableToken);
+        return new TypeNode(identifier, nullableToken);
     }
 
     /// <summary>
-    /// Parses `(ident1: Ty, ident2: Ty)`
+    /// Parses `(ident1: Type, ident2: Type)`
     /// Requirements: current is LeftParen.
     /// </summary>
     private ParametersListNode? ParseParametersList()
@@ -799,22 +799,22 @@ internal class ParserImpl
     }
 
     /// <summary>
-    /// Parses `field identifier: Ty,`
+    /// Parses `field identifier: Type,`
     /// </summary>
     private ParameterNode? ParseParameter()
     {
         var fieldToken = TryEatSimpleToken(TokenKind.Field);
         var identifier = ParseIdentifier();
         if (identifier == null) return null;
-        var (ty, elided) = ParseOptionalColonTy();
-        if (!elided && ty == null) return null;
+        var (type, elided) = ParseOptionalColonTy();
+        if (!elided && type == null) return null;
         var commaToken = _current?.Kind switch
         {
             TokenKind.RightParen => null,
             _ => EatExpectedSimpleToken(TokenKind.Comma),
         };
 
-        return new ParameterNode(fieldToken, identifier, ty, commaToken);
+        return new ParameterNode(fieldToken, identifier, type, commaToken);
     }
 
     /// <summary>

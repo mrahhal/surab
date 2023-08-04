@@ -322,7 +322,7 @@ internal class SemanticAnalyzer : Visitor
 
     public override void VisitParameter(ParameterNode node)
     {
-        if (node.Ty == null)
+        if (node.Type == null)
         {
             _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"specifying type is required");
         }
@@ -332,7 +332,7 @@ internal class SemanticAnalyzer : Visitor
 
     public override void VisitFunctionSignature(FunctionSignatureNode node)
     {
-        // TODO: Should ReturnTy.Ty be optional, so we could parse it but raise diag here?
+        // TODO: Should ReturnTy.Type be optional, so we could parse it but raise diag here?
 
         base.VisitFunctionSignature(node);
     }
@@ -348,7 +348,7 @@ internal class SemanticAnalyzer : Visitor
         base.VisitIdentifierExpression(node);
     }
 
-    public override void VisitTy(TyNode node)
+    public override void VisitType(TypeNode node)
     {
         var symbol = _model.LookupSymbol(node);
         if (symbol == null)
@@ -360,11 +360,11 @@ internal class SemanticAnalyzer : Visitor
             _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"not a type");
         }
 
-        base.VisitTy(node);
+        base.VisitType(node);
     }
 
     // TODO: Things to consider adding here.
-    // - LetStatementNode.Ty and Initializer:
+    // - LetStatementNode.Type and Initializer:
     //   - Initializer should always be given a value as a start
     // - TypeSymbol being the ErrorType
     // - BlockExpression can't appear as an l-value

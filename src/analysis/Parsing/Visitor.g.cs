@@ -142,12 +142,12 @@ public abstract partial class Visitor
         Walk(node);
     }
 
-    public virtual void VisitColonTy(ColonTyNode node)
+    public virtual void VisitColonType(ColonTypeNode node)
     {
         Walk(node);
     }
 
-    public virtual void VisitTy(TyNode node)
+    public virtual void VisitType(TypeNode node)
     {
         Walk(node);
     }

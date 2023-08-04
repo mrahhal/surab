@@ -78,8 +78,8 @@ public enum SyntaxNodeKind
     Parameter,
     ArgumentsList,
     Argument,
-    ColonTy,
-    Ty,
+    ColonType,
+    Type,
     FunctionSignature,
     EqualsValueClause,
 }
@@ -106,11 +106,11 @@ public partial class ModuleNode : SyntaxNode
 
 public partial class ConstDeclarationNode : DeclarationNode
 {
-    public ConstDeclarationNode(SimpleToken? publicToken, SimpleToken constToken, IdentifierToken identifier, ColonTyNode? ty, SimpleToken equalToken, ExpressionNode value)
+    public ConstDeclarationNode(SimpleToken? publicToken, SimpleToken constToken, IdentifierToken identifier, ColonTypeNode? type, SimpleToken equalToken, ExpressionNode value)
         : base(SyntaxNodeKind.ConstDeclaration)
     {
         ChildTokens = new() { publicToken, constToken, identifier, equalToken, };
-        ChildNodes = new() { ty, value, };
+        ChildNodes = new() { type, value, };
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -119,7 +119,7 @@ public partial class ConstDeclarationNode : DeclarationNode
     public SimpleToken? PublicToken => (SimpleToken?)ChildTokens[0]!;
     public SimpleToken ConstToken => (SimpleToken)ChildTokens[1]!;
     public IdentifierToken Identifier => (IdentifierToken)ChildTokens[2]!;
-    public ColonTyNode? Ty => (ColonTyNode?)ChildNodes[0]!;
+    public ColonTypeNode? Type => (ColonTypeNode?)ChildNodes[0]!;
     public SimpleToken EqualToken => (SimpleToken)ChildTokens[3]!;
     public ExpressionNode Value => (ExpressionNode)ChildNodes[1]!;
 
@@ -179,11 +179,11 @@ public partial class ClassDeclarationNode : DeclarationNode
 
 public partial class FieldDeclarationNode : DeclarationNode
 {
-    public FieldDeclarationNode(SimpleToken? publicToken, IdentifierToken identifier, ColonTyNode? ty, EqualsValueClauseNode initializer, SimpleToken semicolonToken)
+    public FieldDeclarationNode(SimpleToken? publicToken, IdentifierToken identifier, ColonTypeNode? type, EqualsValueClauseNode initializer, SimpleToken semicolonToken)
         : base(SyntaxNodeKind.FieldDeclaration)
     {
         ChildTokens = new() { publicToken, identifier, semicolonToken, };
-        ChildNodes = new() { ty, initializer, };
+        ChildNodes = new() { type, initializer, };
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -191,7 +191,7 @@ public partial class FieldDeclarationNode : DeclarationNode
 
     public SimpleToken? PublicToken => (SimpleToken?)ChildTokens[0]!;
     public IdentifierToken Identifier => (IdentifierToken)ChildTokens[1]!;
-    public ColonTyNode? Ty => (ColonTyNode?)ChildNodes[0]!;
+    public ColonTypeNode? Type => (ColonTypeNode?)ChildNodes[0]!;
     public EqualsValueClauseNode Initializer => (EqualsValueClauseNode)ChildNodes[1]!;
     public SimpleToken SemicolonToken => (SimpleToken)ChildTokens[2]!;
 
@@ -245,11 +245,11 @@ public partial class SkippedTokensDeclarationNode : DeclarationNode
 
 public partial class LetStatementNode : StatementNode
 {
-    public LetStatementNode(SimpleToken letToken, IdentifierToken identifier, ColonTyNode? ty, EqualsValueClauseNode? initializer, SimpleToken semicolonToken)
+    public LetStatementNode(SimpleToken letToken, IdentifierToken identifier, ColonTypeNode? type, EqualsValueClauseNode? initializer, SimpleToken semicolonToken)
         : base(SyntaxNodeKind.LetStatement)
     {
         ChildTokens = new() { letToken, identifier, semicolonToken, };
-        ChildNodes = new() { ty, initializer, };
+        ChildNodes = new() { type, initializer, };
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -257,7 +257,7 @@ public partial class LetStatementNode : StatementNode
 
     public SimpleToken LetToken => (SimpleToken)ChildTokens[0]!;
     public IdentifierToken Identifier => (IdentifierToken)ChildTokens[1]!;
-    public ColonTyNode? Ty => (ColonTyNode?)ChildNodes[0]!;
+    public ColonTypeNode? Type => (ColonTypeNode?)ChildNodes[0]!;
     public EqualsValueClauseNode? Initializer => (EqualsValueClauseNode?)ChildNodes[1]!;
     public SimpleToken SemicolonToken => (SimpleToken)ChildTokens[2]!;
 
@@ -606,11 +606,11 @@ public partial class ParametersListNode : SyntaxNode
 
 public partial class ParameterNode : SyntaxNode
 {
-    public ParameterNode(SimpleToken? fieldToken, IdentifierToken identifier, ColonTyNode? ty, SimpleToken? commaToken)
+    public ParameterNode(SimpleToken? fieldToken, IdentifierToken identifier, ColonTypeNode? type, SimpleToken? commaToken)
         : base(SyntaxNodeKind.Parameter)
     {
         ChildTokens = new() { fieldToken, identifier, commaToken, };
-        ChildNodes = new() { ty, };
+        ChildNodes = new() { type, };
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -618,7 +618,7 @@ public partial class ParameterNode : SyntaxNode
 
     public SimpleToken? FieldToken => (SimpleToken?)ChildTokens[0]!;
     public IdentifierToken Identifier => (IdentifierToken)ChildTokens[1]!;
-    public ColonTyNode? Ty => (ColonTyNode?)ChildNodes[0]!;
+    public ColonTypeNode? Type => (ColonTypeNode?)ChildNodes[0]!;
     public SimpleToken? CommaToken => (SimpleToken?)ChildTokens[2]!;
 
     public override void Accept(Visitor visitor)
@@ -670,31 +670,31 @@ public partial class ArgumentNode : SyntaxNode
     }
 }
 
-public partial class ColonTyNode : SyntaxNode
+public partial class ColonTypeNode : SyntaxNode
 {
-    public ColonTyNode(SimpleToken colonToken, TyNode ty)
-        : base(SyntaxNodeKind.ColonTy)
+    public ColonTypeNode(SimpleToken colonToken, TypeNode type)
+        : base(SyntaxNodeKind.ColonType)
     {
         ChildTokens = new() { colonToken, };
-        ChildNodes = new() { ty, };
+        ChildNodes = new() { type, };
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
     }
 
     public SimpleToken ColonToken => (SimpleToken)ChildTokens[0]!;
-    public TyNode Ty => (TyNode)ChildNodes[0]!;
+    public TypeNode Type => (TypeNode)ChildNodes[0]!;
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitColonTy(this);
+        visitor.VisitColonType(this);
     }
 }
 
-public partial class TyNode : SyntaxNode
+public partial class TypeNode : SyntaxNode
 {
-    public TyNode(IdentifierToken identifier, SimpleToken? nullableToken)
-        : base(SyntaxNodeKind.Ty)
+    public TypeNode(IdentifierToken identifier, SimpleToken? nullableToken)
+        : base(SyntaxNodeKind.Type)
     {
         ChildTokens = new() { identifier, nullableToken, };
         ChildNodes = new();
@@ -708,13 +708,13 @@ public partial class TyNode : SyntaxNode
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitTy(this);
+        visitor.VisitType(this);
     }
 }
 
 public partial class FunctionSignatureNode : SyntaxNode
 {
-    public FunctionSignatureNode(IdentifierToken identifier, ParametersListNode parameters, ColonTyNode? returnTy)
+    public FunctionSignatureNode(IdentifierToken identifier, ParametersListNode parameters, ColonTypeNode? returnTy)
         : base(SyntaxNodeKind.FunctionSignature)
     {
         ChildTokens = new() { identifier, };
@@ -726,7 +726,7 @@ public partial class FunctionSignatureNode : SyntaxNode
 
     public IdentifierToken Identifier => (IdentifierToken)ChildTokens[0]!;
     public ParametersListNode Parameters => (ParametersListNode)ChildNodes[0]!;
-    public ColonTyNode? ReturnTy => (ColonTyNode?)ChildNodes[1]!;
+    public ColonTypeNode? ReturnTy => (ColonTypeNode?)ChildNodes[1]!;
 
     public override void Accept(Visitor visitor)
     {

@@ -103,7 +103,7 @@ public class SemanticModel
         var result = node switch
         {
             IdentifierExpressionNode n => LookupSymbol(n),
-            TyNode n => LookupSymbol(n.Identifier, n),
+            TypeNode n => LookupSymbol(n.Identifier, n),
             ArgumentNode n => LookupSymbol(n.Expression),
             //CallExpressionNode n => LookupSymbol(n.Callee),
 

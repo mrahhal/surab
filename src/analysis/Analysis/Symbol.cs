@@ -72,7 +72,7 @@ public sealed class ConstSymbol : Symbol
 
     private ResolvedType EnsureResolveType()
     {
-        return _type ??= Context.BindType(_node, _node.Ty);
+        return _type ??= Context.BindType(_node, _node.Type);
     }
 }
 
@@ -101,7 +101,7 @@ public sealed class FunctionSymbol : Symbol
     {
         get
         {
-            return _returnType ??= _node.ReturnTy?.Ty == null ?
+            return _returnType ??= _node.ReturnTy?.Type == null ?
                 BuiltInTypeSystem.None :
                 Context.BindType(_node, _node.ReturnTy).Type; // Will never be inferred.
         }
@@ -159,7 +159,7 @@ public sealed class FieldSymbol : Symbol
 
     private ResolvedType EnsureResolveType()
     {
-        return _type ??= Context.BindType(_node, _node.Ty);
+        return _type ??= Context.BindType(_node, _node.Type);
     }
 }
 
@@ -186,7 +186,7 @@ public sealed class ParameterSymbol : Symbol
     {
         get
         {
-            return _type ??= Context.BindType(_node, _node.Ty).Type; // Will never be inferred.
+            return _type ??= Context.BindType(_node, _node.Type).Type; // Will never be inferred.
         }
     }
 }
@@ -216,7 +216,7 @@ public sealed class LocalSymbol : Symbol
 
     private ResolvedType EnsureResolveType()
     {
-        return _type ??= Context.BindType(_node, _node.Ty);
+        return _type ??= Context.BindType(_node, _node.Type);
     }
 }
 
