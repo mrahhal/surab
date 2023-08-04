@@ -84,7 +84,7 @@ public enum SyntaxNodeKind
     EqualsValueClause,
 }
 
-public class ModuleNode : SyntaxNode
+public partial class ModuleNode : SyntaxNode
 {
     public ModuleNode(IEnumerable<DeclarationNode> declarations)
         : base(SyntaxNodeKind.Module)
@@ -104,7 +104,7 @@ public class ModuleNode : SyntaxNode
     }
 }
 
-public class ConstDeclarationNode : DeclarationNode
+public partial class ConstDeclarationNode : DeclarationNode
 {
     public ConstDeclarationNode(SimpleToken? publicToken, SimpleToken constToken, IdentifierToken identifier, ColonTyNode? ty, SimpleToken equalToken, ExpressionNode value)
         : base(SyntaxNodeKind.ConstDeclaration)
@@ -129,7 +129,7 @@ public class ConstDeclarationNode : DeclarationNode
     }
 }
 
-public class FunctionDeclarationNode : DeclarationNode
+public partial class FunctionDeclarationNode : DeclarationNode
 {
     public FunctionDeclarationNode(SimpleToken? publicToken, SimpleToken functionToken, FunctionSignatureNode signature, BlockExpressionNode body)
         : base(SyntaxNodeKind.FunctionDeclaration)
@@ -152,7 +152,7 @@ public class FunctionDeclarationNode : DeclarationNode
     }
 }
 
-public class ClassDeclarationNode : DeclarationNode
+public partial class ClassDeclarationNode : DeclarationNode
 {
     public ClassDeclarationNode(SimpleToken? publicToken, SimpleToken classToken, IdentifierToken identifier, SimpleToken openBraceToken, IEnumerable<DeclarationNode> members, SimpleToken closedBraceToken)
         : base(SyntaxNodeKind.ClassDeclaration)
@@ -177,7 +177,7 @@ public class ClassDeclarationNode : DeclarationNode
     }
 }
 
-public class FieldDeclarationNode : DeclarationNode
+public partial class FieldDeclarationNode : DeclarationNode
 {
     public FieldDeclarationNode(SimpleToken? publicToken, IdentifierToken identifier, ColonTyNode? ty, EqualsValueClauseNode initializer, SimpleToken semicolonToken)
         : base(SyntaxNodeKind.FieldDeclaration)
@@ -201,7 +201,7 @@ public class FieldDeclarationNode : DeclarationNode
     }
 }
 
-public class MethodDeclarationNode : DeclarationNode
+public partial class MethodDeclarationNode : DeclarationNode
 {
     public MethodDeclarationNode(SimpleToken? publicToken, FunctionSignatureNode signature, BlockExpressionNode body)
         : base(SyntaxNodeKind.MethodDeclaration)
@@ -223,7 +223,7 @@ public class MethodDeclarationNode : DeclarationNode
     }
 }
 
-public class SkippedTokensDeclarationNode : DeclarationNode
+public partial class SkippedTokensDeclarationNode : DeclarationNode
 {
     public SkippedTokensDeclarationNode(SkippedToken skipped)
         : base(SyntaxNodeKind.SkippedTokensDeclaration)
@@ -243,7 +243,7 @@ public class SkippedTokensDeclarationNode : DeclarationNode
     }
 }
 
-public class LetStatementNode : StatementNode
+public partial class LetStatementNode : StatementNode
 {
     public LetStatementNode(SimpleToken letToken, IdentifierToken identifier, ColonTyNode? ty, EqualsValueClauseNode? initializer, SimpleToken semicolonToken)
         : base(SyntaxNodeKind.LetStatement)
@@ -267,7 +267,7 @@ public class LetStatementNode : StatementNode
     }
 }
 
-public class ReturnStatementNode : StatementNode
+public partial class ReturnStatementNode : StatementNode
 {
     public ReturnStatementNode(SimpleToken returnToken, ExpressionNode? expression, SimpleToken semicolonToken)
         : base(SyntaxNodeKind.ReturnStatement)
@@ -289,7 +289,7 @@ public class ReturnStatementNode : StatementNode
     }
 }
 
-public class ExpressionStatementNode : StatementNode
+public partial class ExpressionStatementNode : StatementNode
 {
     public ExpressionStatementNode(ExpressionNode expression, SimpleToken semicolonToken)
         : base(SyntaxNodeKind.ExpressionStatement)
@@ -310,7 +310,7 @@ public class ExpressionStatementNode : StatementNode
     }
 }
 
-public class BareExpressionStatementNode : StatementNode
+public partial class BareExpressionStatementNode : StatementNode
 {
     public BareExpressionStatementNode(ExpressionNode expression)
         : base(SyntaxNodeKind.BareExpressionStatement)
@@ -330,7 +330,7 @@ public class BareExpressionStatementNode : StatementNode
     }
 }
 
-public class SkippedTokensStatementNode : StatementNode
+public partial class SkippedTokensStatementNode : StatementNode
 {
     public SkippedTokensStatementNode(SkippedToken skipped)
         : base(SyntaxNodeKind.SkippedTokensStatement)
@@ -350,7 +350,7 @@ public class SkippedTokensStatementNode : StatementNode
     }
 }
 
-public class BlockExpressionNode : ExpressionNode
+public partial class BlockExpressionNode : ExpressionNode
 {
     public BlockExpressionNode(SimpleToken openBraceToken, IEnumerable<StatementNode> statements, SimpleToken closedBraceToken)
         : base(SyntaxNodeKind.BlockExpression)
@@ -372,7 +372,7 @@ public class BlockExpressionNode : ExpressionNode
     }
 }
 
-public class AssignmentExpressionNode : ExpressionNode
+public partial class AssignmentExpressionNode : ExpressionNode
 {
     public AssignmentExpressionNode(ExpressionNode lhs, SimpleToken equalToken, ExpressionNode rhs)
         : base(SyntaxNodeKind.AssignmentExpression)
@@ -394,7 +394,7 @@ public class AssignmentExpressionNode : ExpressionNode
     }
 }
 
-public class UnaryExpressionNode : ExpressionNode
+public partial class UnaryExpressionNode : ExpressionNode
 {
     public UnaryExpressionNode(UnaryOperatorToken op, ExpressionNode expression)
         : base(SyntaxNodeKind.UnaryExpression)
@@ -415,7 +415,7 @@ public class UnaryExpressionNode : ExpressionNode
     }
 }
 
-public class BinaryExpressionNode : ExpressionNode
+public partial class BinaryExpressionNode : ExpressionNode
 {
     public BinaryExpressionNode(ExpressionNode left, BinaryOperatorToken op, ExpressionNode right)
         : base(SyntaxNodeKind.BinaryExpression)
@@ -437,7 +437,7 @@ public class BinaryExpressionNode : ExpressionNode
     }
 }
 
-public class GroupingExpressionNode : ExpressionNode
+public partial class GroupingExpressionNode : ExpressionNode
 {
     public GroupingExpressionNode(SimpleToken openParenToken, ExpressionNode expression, SimpleToken closedParenToken)
         : base(SyntaxNodeKind.GroupingExpression)
@@ -459,7 +459,7 @@ public class GroupingExpressionNode : ExpressionNode
     }
 }
 
-public class CallExpressionNode : ExpressionNode
+public partial class CallExpressionNode : ExpressionNode
 {
     public CallExpressionNode(ExpressionNode callee, ArgumentsListNode arguments)
         : base(SyntaxNodeKind.CallExpression)
@@ -480,7 +480,7 @@ public class CallExpressionNode : ExpressionNode
     }
 }
 
-public class AccessExpressionNode : ExpressionNode
+public partial class AccessExpressionNode : ExpressionNode
 {
     public AccessExpressionNode(ExpressionNode target, SimpleToken dotToken, IdentifierToken identifier)
         : base(SyntaxNodeKind.AccessExpression)
@@ -502,7 +502,7 @@ public class AccessExpressionNode : ExpressionNode
     }
 }
 
-public class LiteralExpressionNode : ExpressionNode
+public partial class LiteralExpressionNode : ExpressionNode
 {
     public LiteralExpressionNode(LiteralToken literal)
         : base(SyntaxNodeKind.LiteralExpression)
@@ -522,7 +522,7 @@ public class LiteralExpressionNode : ExpressionNode
     }
 }
 
-public class IdentifierExpressionNode : ExpressionNode
+public partial class IdentifierExpressionNode : ExpressionNode
 {
     public IdentifierExpressionNode(IdentifierToken identifier)
         : base(SyntaxNodeKind.IdentifierExpression)
@@ -542,7 +542,7 @@ public class IdentifierExpressionNode : ExpressionNode
     }
 }
 
-public class ThisExpressionNode : ExpressionNode
+public partial class ThisExpressionNode : ExpressionNode
 {
     public ThisExpressionNode(SimpleToken keywordToken)
         : base(SyntaxNodeKind.ThisExpression)
@@ -562,7 +562,7 @@ public class ThisExpressionNode : ExpressionNode
     }
 }
 
-public class SkippedTokensExpressionNode : ExpressionNode
+public partial class SkippedTokensExpressionNode : ExpressionNode
 {
     public SkippedTokensExpressionNode(SkippedToken skipped)
         : base(SyntaxNodeKind.SkippedTokensExpression)
@@ -582,7 +582,7 @@ public class SkippedTokensExpressionNode : ExpressionNode
     }
 }
 
-public class ParametersListNode : SyntaxNode
+public partial class ParametersListNode : SyntaxNode
 {
     public ParametersListNode(SimpleToken openParenToken, IEnumerable<ParameterNode> parameters, SimpleToken closedParenToken)
         : base(SyntaxNodeKind.ParametersList)
@@ -604,7 +604,7 @@ public class ParametersListNode : SyntaxNode
     }
 }
 
-public class ParameterNode : SyntaxNode
+public partial class ParameterNode : SyntaxNode
 {
     public ParameterNode(SimpleToken? fieldToken, IdentifierToken identifier, ColonTyNode? ty, SimpleToken? commaToken)
         : base(SyntaxNodeKind.Parameter)
@@ -627,7 +627,7 @@ public class ParameterNode : SyntaxNode
     }
 }
 
-public class ArgumentsListNode : SyntaxNode
+public partial class ArgumentsListNode : SyntaxNode
 {
     public ArgumentsListNode(SimpleToken openParenToken, IEnumerable<ArgumentNode> arguments, SimpleToken closedParenToken)
         : base(SyntaxNodeKind.ArgumentsList)
@@ -649,7 +649,7 @@ public class ArgumentsListNode : SyntaxNode
     }
 }
 
-public class ArgumentNode : SyntaxNode
+public partial class ArgumentNode : SyntaxNode
 {
     public ArgumentNode(ExpressionNode expression, SimpleToken? commaToken)
         : base(SyntaxNodeKind.Argument)
@@ -670,7 +670,7 @@ public class ArgumentNode : SyntaxNode
     }
 }
 
-public class ColonTyNode : SyntaxNode
+public partial class ColonTyNode : SyntaxNode
 {
     public ColonTyNode(SimpleToken colonToken, TyNode ty)
         : base(SyntaxNodeKind.ColonTy)
@@ -691,7 +691,7 @@ public class ColonTyNode : SyntaxNode
     }
 }
 
-public class TyNode : SyntaxNode
+public partial class TyNode : SyntaxNode
 {
     public TyNode(IdentifierToken identifier, SimpleToken? nullableToken)
         : base(SyntaxNodeKind.Ty)
@@ -712,7 +712,7 @@ public class TyNode : SyntaxNode
     }
 }
 
-public class FunctionSignatureNode : SyntaxNode
+public partial class FunctionSignatureNode : SyntaxNode
 {
     public FunctionSignatureNode(IdentifierToken identifier, ParametersListNode parameters, ColonTyNode? returnTy)
         : base(SyntaxNodeKind.FunctionSignature)
@@ -734,7 +734,7 @@ public class FunctionSignatureNode : SyntaxNode
     }
 }
 
-public class EqualsValueClauseNode : SyntaxNode
+public partial class EqualsValueClauseNode : SyntaxNode
 {
     public EqualsValueClauseNode(SimpleToken equalToken, ExpressionNode expression)
         : base(SyntaxNodeKind.EqualsValueClause)

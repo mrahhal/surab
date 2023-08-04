@@ -88,7 +88,7 @@ public class AstGenerator : GeneratorBase
             var isLast = i == Data.Nodes.Count - 1;
 
             _sb.Append($$"""
-                public class {{node.TypeName}} : {{node.Base}}
+                public partial class {{node.TypeName}} : {{node.Base}}
                 {
                     public {{node.TypeName}}({{OCtorParams(node)}})
                         : base(SyntaxNodeKind.{{node.Name}})
