@@ -20,6 +20,7 @@ var src = """
       noop();
       let b: Number = 4;
       let c = foo(a, b);
+      c = 999;
       print(c);
       print(41 + 1);
     }

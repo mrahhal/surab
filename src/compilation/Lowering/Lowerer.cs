@@ -62,14 +62,14 @@ internal class Lowerer
         return result;
     }
 
-    private LoweredModule Lower(ModuleNode node)
+    private LoweredNode Lower(ModuleNode node)
     {
         return new LoweredModule(
             node,
             LowerWithCast(node.Declarations));
     }
 
-    private LoweredFunctionDeclaration Lower(FunctionDeclarationNode node)
+    private LoweredNode Lower(FunctionDeclarationNode node)
     {
         Debug.Assert(_model.TryGetDeclaredSymbol(node, out var symbol));
         var functionSymbol = (FunctionSymbol)symbol;
@@ -142,7 +142,7 @@ internal class Lowerer
             });
     }
 
-    private LoweredReturnStatement Lower(ReturnStatementNode node)
+    private LoweredNode Lower(ReturnStatementNode node)
     {
         var expression = node.Expression == null ? null : LowerWithCast(node.Expression);
         return new LoweredReturnStatement(
@@ -150,14 +150,24 @@ internal class Lowerer
             expression);
     }
 
-    private LoweredExpressionStatement Lower(ExpressionStatementNode node)
+    private LoweredNode Lower(ExpressionStatementNode node)
     {
-        return new LoweredExpressionStatement(
-            node,
-            LowerWithCast(node.Expression));
+        // Result might not be an expression (e.g. `a = 2;` it'll be var store statement), in which case return as is
+        // as we won't need to wrap in an LoweredExpressionStatement in this case.
+        var result = Lower(node.Expression);
+        if (result is LoweredExpression expression)
+        {
+            return new LoweredExpressionStatement(
+                node,
+                expression);
+        }
+        else
+        {
+            return result;
+        }
     }
 
-    private LoweredExpressionStatement Lower(BareExpressionStatementNode node)
+    private LoweredNode Lower(BareExpressionStatementNode node)
     {
         return new LoweredExpressionStatement(
             node,
@@ -278,14 +288,14 @@ internal class Lowerer
         }
     }
 
-    private LoweredExpression Lower(UnaryExpressionNode node)
+    private LoweredNode Lower(UnaryExpressionNode node)
     {
         return new LoweredUnaryExpression(
             node,
             LowerWithCast(node.Expression));
     }
 
-    private LoweredExpression Lower(BinaryExpressionNode node)
+    private LoweredNode Lower(BinaryExpressionNode node)
     {
         return new LoweredBinaryExpression(
             node,
@@ -293,7 +303,7 @@ internal class Lowerer
             LowerWithCast(node.Right));
     }
 
-    private LoweredExpression Lower(CallExpressionNode node)
+    private LoweredNode Lower(CallExpressionNode node)
     {
         // TODO: Not always an identifier?
         var functionSymbol = (FunctionSymbol)_model.LookupSymbol(node.Callee)!;
@@ -304,14 +314,18 @@ internal class Lowerer
             LowerWithCast(node.Arguments.Arguments.Select(arg => arg.Expression)));
     }
 
-    private static LoweredExpression Lower(LiteralExpressionNode node)
+    //private LoweredExpression Lower(AccessExpressionNode node)
+    //{
+    //}
+
+    private static LoweredNode Lower(LiteralExpressionNode node)
     {
         return new LoweredLiteralExpression(
             node,
             node.Literal);
     }
 
-    private LoweredExpression Lower(IdentifierExpressionNode node)
+    private LoweredNode Lower(IdentifierExpressionNode node)
     {
         // Should only be here if we're accessing a variable?
         var symbol = _model.LookupSymbol(node)!;
@@ -319,21 +333,6 @@ internal class Lowerer
             node,
             symbol);
     }
-
-    // If: Lower to LoweredStatementsWithLastExpression:
-    // Generated variable of type `BindType(ifNode)`
-    // Lower if itself and the conditions with Goto and use last expression to store to gen'd var
-    // Finally load the gen'd var (and this will be the last expression)
-
-    //// Assignment/If/etc
-    //private LoweredStatement HoistIfNecessary(LoweredNode target, LoweredExpression exp)
-    //{
-    //}
-
-    // TODO:
-    //private LoweredExpression Lower(AccessExpressionNode node)
-    //{
-    //}
 
     private LoweredDeclaration LowerWithCast(DeclarationNode node) => (LoweredDeclaration)Lower((SyntaxNode)node);
 

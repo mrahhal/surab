@@ -108,6 +108,24 @@ public class LowererTests
         store2.Expression.Should().BeOfType<LoweredVariableLoadExpression>().Subject.Variable.Name!.Identifier.Should().Be("b");
     }
 
+    [Fact]
+    public void ExpressionRewriting_5()
+    {
+        var src = """
+            function foo() {
+              let a: Number;
+              a = 2;
+            }
+            """;
+        var f = LowerFunction(src);
+        var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body).ToList();
+        body.Should().HaveCount(2);
+        body[0].Should().BeOfType<LoweredVariableStatement>().Subject.Symbol.Name!.Identifier.Should().Be("a");
+        var store1 = body[1].Should().BeOfType<LoweredVariableStoreStatement>().Subject;
+        store1.Variable.Name!.Identifier.Should().Be("a");
+        store1.Expression.Should().BeOfType<LoweredLiteralExpression>();
+    }
+
     private static LoweredFunctionDeclaration LowerFunction(string src)
     {
         var module = LowerModule(src);
