@@ -246,6 +246,7 @@ internal sealed class FunctionCompiler : LoweredVisitor
         }
 
         var returnValue = LLVM.Builder.BuildCall2(functionType, functionValue, args.ToArray());
+        // Always push a value, even if void, since this gets popped in VisitExpressionStatement.
         _stack.Push((functionType.ReturnType, returnValue));
     }
 
