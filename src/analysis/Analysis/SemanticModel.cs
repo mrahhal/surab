@@ -24,9 +24,19 @@ public class SemanticModel
     /// <summary>
     /// Tries getting a <see cref="Symbol"/> that is declared directly on the given node.
     /// </summary>
-    public bool TryGetDeclaredSymbol(SyntaxNode node, [MaybeNullWhen(false)] out Symbol symbol)
+    public bool TryGetDeclaredSymbol(SyntaxNode node, [NotNullWhen(true)] out Symbol? symbol)
     {
         return _nodeToSymbolMap.TryGetValue(node, out symbol);
+    }
+
+    /// <summary>
+    /// Gets a <see cref="Symbol"/> that is declared directly on the given node.
+    /// Returns null if there's no declared symbol.
+    /// </summary>
+    public Symbol? GetDeclaredSymbol(SyntaxNode node)
+    {
+        TryGetDeclaredSymbol(node, out var symbol);
+        return symbol;
     }
 
     /// <summary>
@@ -47,7 +57,7 @@ public class SemanticModel
     /// <summary>
     /// Tries getting a <see cref="Binder"/> that is defined directly on the given node.
     /// </summary>
-    internal bool TryGetBinder(SyntaxNode node, [MaybeNullWhen(false)] out Binder binder)
+    internal bool TryGetBinder(SyntaxNode node, [NotNullWhen(true)] out Binder? binder)
     {
         return _nodeToBinderMap.TryGetValue(node, out binder);
     }

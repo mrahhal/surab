@@ -74,8 +74,8 @@ internal class Lowerer
 
     private LoweredNode Lower(FunctionDeclarationNode node)
     {
-        Debug.Assert(_model.TryGetDeclaredSymbol(node, out var symbol));
-        var functionSymbol = (FunctionSymbol)symbol;
+        var functionSymbol = _model.GetDeclaredSymbol(node) as FunctionSymbol;
+        Debug.Assert(functionSymbol != null);
 
         return new LoweredFunctionDeclaration(
             node,
@@ -85,7 +85,8 @@ internal class Lowerer
 
     private LoweredNode Lower(LetStatementNode node)
     {
-        Debug.Assert(_model.TryGetDeclaredSymbol(node, out var symbol));
+        var symbol = _model.GetDeclaredSymbol(node);
+        Debug.Assert(symbol != null);
 
         var variableStatement = (LoweredStatement)new LoweredVariableStatement(
             node,
