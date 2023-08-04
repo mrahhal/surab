@@ -165,7 +165,7 @@ internal sealed class FunctionCompiler : LoweredVisitor
 
         var value = _functionValue.GetParam(0);
 
-        var strF = LLVM.Builder.BuildGlobalStringPtr("%f\n", "strF");
+        var strF = LLVM.Builder.BuildGlobalStringPtr("%g\n", "strF");
         LLVM.Builder.BuildCall2(printfType, printf, new[] { strF, value });
         LLVM.Builder.BuildRetVoid();
     }
