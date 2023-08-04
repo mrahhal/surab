@@ -6,10 +6,6 @@ public class SmokeTest
     public void Succeed()
     {
         var output = IntegrationRunner.Run("""
-            function print(v: Number): None {
-              // Compiler intrinsic
-            }
-
             function main(): None {
               let a = 42;
               print(a);
