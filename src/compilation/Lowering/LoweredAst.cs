@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Diagnostics;
 using Surab.Analysis;
 
 namespace Surab.Compilation;
@@ -13,6 +14,7 @@ internal class LoweredTree
     public LoweredNode Root { get; }
 }
 
+[DebuggerDisplay("\\{{GetType().Name,nq}\\}")]
 internal abstract class LoweredNode
 {
     public LoweredNode(SyntaxNode parsedNode)
@@ -105,19 +107,22 @@ internal abstract class LoweredStatement : LoweredNode
 
 // Lowered from local variables, ?
 // Only declares the variable. (i.e `let a: Type;`)
+[DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
 internal sealed class LoweredVariableStatement : LoweredStatement
 {
     public LoweredVariableStatement(
         SyntaxNode parsedNode,
-        Symbol symbol)
+        LocalSymbol symbol)
         : base(parsedNode)
     {
         Symbol = symbol;
     }
 
-    public Symbol Symbol { get; }
+    public LocalSymbol Symbol { get; }
 
     public override IEnumerable<LoweredNode> EnumerateChildren() => Enumerable.Empty<LoweredNode>();
+
+    public override string ToString() => $"let {Symbol.Name}: {Symbol.Type.Type.Name};";
 }
 
 internal sealed class LoweredReturnStatement : LoweredStatement
@@ -194,6 +199,7 @@ internal abstract class LoweredExpression : LoweredNode
     }
 }
 
+[DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
 internal sealed class LoweredVariableLoadExpression : LoweredExpression
 {
     public LoweredVariableLoadExpression(
@@ -207,6 +213,8 @@ internal sealed class LoweredVariableLoadExpression : LoweredExpression
     public Symbol Variable { get; }
 
     public override IEnumerable<LoweredNode> EnumerateChildren() => Enumerable.Empty<LoweredNode>();
+
+    public override string ToString() => $"{Variable.Name}";
 }
 
 //internal sealed class LoweredFieldLoadExpression : LoweredExpression
@@ -228,6 +236,7 @@ internal sealed class LoweredVariableLoadExpression : LoweredExpression
 //    public override IEnumerable<LoweredNode> EnumerateChildren() => Enumerable.Empty<LoweredNode>();
 //}
 
+[DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
 internal sealed class LoweredVariableStoreStatement : LoweredStatement
 {
     public LoweredVariableStoreStatement(
@@ -248,6 +257,8 @@ internal sealed class LoweredVariableStoreStatement : LoweredStatement
     {
         yield return Expression;
     }
+
+    public override string ToString() => $"{Variable.Name} = ...;";
 }
 
 //internal sealed class LoweredFieldStoreStatement : LoweredStatement
@@ -276,6 +287,7 @@ internal sealed class LoweredVariableStoreStatement : LoweredStatement
 //    }
 //}
 
+[DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
 internal sealed class LoweredUnaryExpression : LoweredExpression
 {
     public LoweredUnaryExpression(
@@ -296,8 +308,11 @@ internal sealed class LoweredUnaryExpression : LoweredExpression
     {
         yield return Expression;
     }
+
+    public override string ToString() => Op.ToString();
 }
 
+[DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
 internal sealed class LoweredBinaryExpression : LoweredExpression
 {
     public LoweredBinaryExpression(
@@ -323,8 +338,11 @@ internal sealed class LoweredBinaryExpression : LoweredExpression
         yield return Left;
         yield return Right;
     }
+
+    public override string ToString() => Op.ToString();
 }
 
+[DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
 internal sealed class LoweredCallExpression : LoweredExpression
 {
     public LoweredCallExpression(
@@ -348,8 +366,11 @@ internal sealed class LoweredCallExpression : LoweredExpression
             yield return child;
         }
     }
+
+    public override string ToString() => $"{Callee.Name}(...)";
 }
 
+[DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
 internal sealed class LoweredLiteralExpression : LoweredExpression
 {
     public LoweredLiteralExpression(
@@ -363,4 +384,6 @@ internal sealed class LoweredLiteralExpression : LoweredExpression
     public LiteralToken Literal { get; }
 
     public override IEnumerable<LoweredNode> EnumerateChildren() => Enumerable.Empty<LoweredNode>();
+
+    public override string ToString() => $"{Literal}";
 }

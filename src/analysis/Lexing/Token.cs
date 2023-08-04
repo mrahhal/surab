@@ -1,4 +1,5 @@
-﻿using static Surab.Analysis.TokenKind;
+﻿using System.Diagnostics;
+using static Surab.Analysis.TokenKind;
 
 namespace Surab.Analysis;
 
@@ -62,6 +63,7 @@ public enum TokenKind
 /// <summary>
 /// A lexical token.
 /// </summary>
+[DebuggerDisplay("Token: [{Kind}] {ToString()}")]
 public class Token
 {
     public Token(TokenKind kind, TextSpan span, object? data)

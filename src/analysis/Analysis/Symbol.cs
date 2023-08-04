@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Diagnostics;
 
 namespace Surab.Analysis;
 
@@ -14,6 +15,7 @@ public enum SymbolKind
     ArrayType, // [Type]
 }
 
+[DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
 public abstract class Symbol
 {
     public abstract SymbolKind Kind { get; }
@@ -41,9 +43,11 @@ public abstract class Symbol
     {
         Context = context;
     }
+
+    public override string ToString() => Name ?? string.Empty;
 }
 
-public class ConstSymbol : Symbol
+public sealed class ConstSymbol : Symbol
 {
     private readonly ConstDeclarationNode _node;
     private ResolvedType? _type;
@@ -71,7 +75,7 @@ public class ConstSymbol : Symbol
     }
 }
 
-public class FunctionSymbol : Symbol
+public sealed class FunctionSymbol : Symbol
 {
     private readonly FunctionSignatureNode _node;
     private ResolvedType? _returnType;
@@ -127,7 +131,7 @@ public class FunctionSymbol : Symbol
     }
 }
 
-public class FieldSymbol : Symbol
+public sealed class FieldSymbol : Symbol
 {
     private readonly FieldDeclarationNode _node;
     private ResolvedType? _type;
@@ -155,7 +159,7 @@ public class FieldSymbol : Symbol
     }
 }
 
-public class ParameterSymbol : Symbol
+public sealed class ParameterSymbol : Symbol
 {
     private readonly ParameterNode _node;
     private ResolvedType? _type;
@@ -183,7 +187,7 @@ public class ParameterSymbol : Symbol
     }
 }
 
-public class LocalSymbol : Symbol
+public sealed class LocalSymbol : Symbol
 {
     private readonly LetStatementNode _node;
     private ResolvedType? _type;
@@ -278,7 +282,7 @@ public class NamedTypeSymbol : TypeSymbol
     }
 }
 
-public class ErrorTypeSymbol : NamedTypeSymbol
+public sealed class ErrorTypeSymbol : NamedTypeSymbol
 {
     private readonly IdentifierToken? _identifier;
 
@@ -290,7 +294,7 @@ public class ErrorTypeSymbol : NamedTypeSymbol
     public override IdentifierToken? Identifier => _identifier;
 }
 
-public class BuiltInNamedTypeSymbol : NamedTypeSymbol
+public sealed class BuiltInNamedTypeSymbol : NamedTypeSymbol
 {
     private readonly IdentifierToken _name;
     private readonly ImmutableArray<Symbol> _members;
@@ -308,7 +312,7 @@ public class BuiltInNamedTypeSymbol : NamedTypeSymbol
     public override ImmutableArray<Symbol> Members => _members;
 }
 
-//public class ArrayTypeSymbol : TypeSymbol
+//public sealed class ArrayTypeSymbol : TypeSymbol
 //{
 //    public ArrayTypeSymbol(TypeSymbol elementType)
 //    {

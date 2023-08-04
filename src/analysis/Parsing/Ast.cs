@@ -1,4 +1,4 @@
-﻿using System.Xml.Linq;
+﻿using System.Diagnostics;
 
 namespace Surab.Analysis;
 
@@ -74,7 +74,8 @@ public enum SimpleTokenKind
     Return,
 }
 
-public class SimpleToken : SyntaxToken
+[DebuggerDisplay("\\{{GetType().Name,nq}\\} [{SimpleTokenKind}] {ToString()}")]
+public sealed class SimpleToken : SyntaxToken
 {
     public SimpleToken() : base(SyntaxTokenKind.Simple)
     {
@@ -139,7 +140,8 @@ public enum UnaryOperatorTokenKind
     Not,
 }
 
-public class UnaryOperatorToken : SyntaxToken
+[DebuggerDisplay("\\{{GetType().Name,nq}\\} [{UnaryOperatorTokenKind}] {ToString()}")]
+public sealed class UnaryOperatorToken : SyntaxToken
 {
     public UnaryOperatorToken() : base(SyntaxTokenKind.UnaryOperator)
     {
@@ -194,7 +196,8 @@ public enum BinaryOperatorTokenKind
     Ge,
 }
 
-public class BinaryOperatorToken : SyntaxToken
+[DebuggerDisplay("\\{{GetType().Name,nq}\\} [{BinaryOperatorTokenKind}] {ToString()}")]
+public sealed class BinaryOperatorToken : SyntaxToken
 {
     public BinaryOperatorToken() : base(SyntaxTokenKind.BinaryOperator)
     {
@@ -255,7 +258,8 @@ public class BinaryOperatorToken : SyntaxToken
     }
 }
 
-public class IdentifierToken : SyntaxToken
+[DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
+public sealed class IdentifierToken : SyntaxToken
 {
     public IdentifierToken(TextSpan span, string value)
         : base(SyntaxTokenKind.Identifier)
@@ -270,6 +274,8 @@ public class IdentifierToken : SyntaxToken
     {
         visitor.VisitIdentifierToken(this);
     }
+
+    public override string ToString() => Value;
 }
 
 public enum LiteralTokenKind
@@ -280,7 +286,8 @@ public enum LiteralTokenKind
     Bool,
 }
 
-public class LiteralToken : SyntaxToken
+[DebuggerDisplay("\\{{GetType().Name,nq}\\} [{LiteralTokenKind}] {Data}")]
+public sealed class LiteralToken : SyntaxToken
 {
     public LiteralToken(TextSpan span, LiteralTokenKind literalTokenKind, object? data) : base(SyntaxTokenKind.Literal)
     {
@@ -355,7 +362,8 @@ public class LiteralToken : SyntaxToken
     }
 }
 
-public class SkippedToken : SyntaxToken
+[DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
+public sealed class SkippedToken : SyntaxToken
 {
     public SkippedToken(TextSpan span, List<Token> tokens)
         : base(SyntaxTokenKind.Skipped)
@@ -369,6 +377,11 @@ public class SkippedToken : SyntaxToken
     public override void Accept(Visitor visitor)
     {
         visitor.VisitSkippedToken(this);
+    }
+
+    public override string ToString()
+    {
+        return string.Join(' ', Tokens.Select(x => x.ToString()));
     }
 }
 

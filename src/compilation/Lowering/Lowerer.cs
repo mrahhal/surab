@@ -85,7 +85,7 @@ internal class Lowerer
 
     private LoweredNode Lower(LetStatementNode node)
     {
-        var symbol = _model.GetDeclaredSymbol(node);
+        var symbol = _model.GetDeclaredSymbol(node) as LocalSymbol;
         Debug.Assert(symbol != null);
 
         var variableStatement = (LoweredStatement)new LoweredVariableStatement(
