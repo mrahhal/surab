@@ -1,7 +1,7 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <RootNamespace>Surab.Compilation</RootNamespace>
+    <RootNamespace>Surab</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

@@ -126,6 +126,19 @@ public class LowererTests
         store1.Expression.Should().BeOfType<LoweredLiteralExpression>();
     }
 
+    [Fact]
+    public void LastStandaloneBlocks()
+    {
+        var src = """
+            function foo() {
+              { }
+            }
+            """;
+        var f = LowerFunction(src);
+        var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body).ToList();
+        body.Should().HaveCount(0);
+    }
+
     private static LoweredFunctionDeclaration LowerFunction(string src)
     {
         var module = LowerModule(src);

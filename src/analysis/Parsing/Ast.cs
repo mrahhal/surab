@@ -1,4 +1,6 @@
-﻿namespace Surab.Analysis;
+﻿using System.Xml.Linq;
+
+namespace Surab.Analysis;
 
 public class SyntaxTree
 {
@@ -477,5 +479,39 @@ public abstract class ExpressionNode : SyntaxNode
     public ExpressionNode(SyntaxNodeKind kind)
         : base(kind)
     {
+    }
+}
+
+public partial class BareExpressionStatementNode
+{
+    private bool? _isTreatedAsStatement;
+
+    public bool IsTreatedAsStatement
+    {
+        get
+        {
+            if (_isTreatedAsStatement.HasValue)
+                return _isTreatedAsStatement.Value;
+
+            _isTreatedAsStatement = Expression is BlockExpressionNode childBlock && !childBlock.ReturnsExpression;
+            return _isTreatedAsStatement.Value;
+        }
+    }
+}
+
+public partial class BlockExpressionNode
+{
+    private bool? _returnsExpression;
+
+    public bool ReturnsExpression
+    {
+        get
+        {
+            if (_returnsExpression.HasValue)
+                return _returnsExpression.Value;
+
+            _returnsExpression = Statements.Any() && Statements.Last() is BareExpressionStatementNode;
+            return _returnsExpression.Value;
+        }
     }
 }

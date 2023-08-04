@@ -37,6 +37,7 @@ internal class Lowerer
             LetStatementNode n => Lower(n),
             ReturnStatementNode n => Lower(n),
             ExpressionStatementNode n => Lower(n),
+            BareExpressionStatementNode n => Lower(n),
             BlockExpressionNode n => Lower(n, rewrite),
             AssignmentExpressionNode n => Lower(n, rewrite),
             UnaryExpressionNode n => Lower(n),
@@ -47,7 +48,7 @@ internal class Lowerer
             IdentifierExpressionNode n => Lower(n),
 
             // These are nodes that are taken care of in other places, there shouldn't be a case where they're called here.
-            BareExpressionStatementNode => throw new Exception("Unexpected"),
+            // => throw new Exception("Unexpected node: " + node.GetType().Name),
 
             _ => throw new NotImplementedException(),
         };
@@ -140,6 +141,12 @@ internal class Lowerer
         }
     }
 
+    private LoweredNode Lower(BareExpressionStatementNode node)
+    {
+        // This is called in cases such as standalone blocks.
+        return Lower(node.Expression);
+    }
+
     private LoweredStatementList LowerFunctionBlock(BlockExpressionNode node)
     {
         var (statements, bareReturnExpression) = LowerBlock(node);
@@ -156,14 +163,15 @@ internal class Lowerer
             statements);
     }
 
-    // BareExpression will only be set if there's a bare block return expression.
-    private (List<LoweredStatement> Statements, LoweredExpression? BareExpression) LowerBlock(BlockExpressionNode node)
+    // BareReturnExpression will only be set if there's a bare block return expression (that's not treated as a statement).
+    private (List<LoweredStatement> Statements, LoweredExpression? BareReturnExpression) LowerBlock(BlockExpressionNode node)
     {
         var parsedStatements = node.Statements.ToList();
         var lastParsedStatement = parsedStatements.LastOrDefault();
 
         var bareReturnExpression = default(LoweredExpression?);
-        if (lastParsedStatement is BareExpressionStatementNode bareExpressionStatementNode)
+        if (lastParsedStatement is BareExpressionStatementNode bareExpressionStatementNode &&
+            !bareExpressionStatementNode.IsTreatedAsStatement)
         {
             parsedStatements.Remove(lastParsedStatement);
             bareReturnExpression = LowerWithCast(bareExpressionStatementNode.Expression);

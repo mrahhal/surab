@@ -93,12 +93,30 @@ internal class SemanticAnalyzer : Visitor
         base.VisitReturnStatement(node);
     }
 
+    public override void VisitBlockExpression(BlockExpressionNode node)
+    {
+        // If this block returns an expression, it can't stand on its own.
+        // i.e. It shouldn't be parented by ExpressionStatementNode or BareExpressionStatementNode.
+        if (node.ReturnsExpression &&
+            node.Parent is ExpressionStatementNode or BareExpressionStatementNode)
+        {
+            _diagnostics.Add(
+                node.Span, DiagnosticLevel.Error,
+                $"a block returning an expression can not stand on its own");
+        }
+
+        base.VisitBlockExpression(node);
+    }
+
     public override void VisitBareExpressionStatement(BareExpressionStatementNode node)
     {
-        // Should only be allowed as the last statement.
+        // Should only be allowed as the last statement unless this bare is treated as a statement (i.e. a block without
+        // a bare expression (because the block gets lowered to a list of statements in that case).
+
         Debug.Assert(node.Parent is BlockExpressionNode);
-        var block = (BlockExpressionNode)node.Parent;
-        if (block.Statements.Last() != node)
+        var parentBlock = (BlockExpressionNode)node.Parent;
+
+        if (!node.IsTreatedAsStatement && parentBlock.Statements.Last() != node)
         {
             _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a bare expression can only exist as the last statement of a block");
         }
@@ -234,6 +252,7 @@ internal class SemanticAnalyzer : Visitor
         // Ensure calle is a function and validate args.
         if (calleeSymbol is not FunctionSymbol functionSymbol)
         {
+            // TODO: Shouldn't raise this when invoking a function that doesn't exist. Should say "unknown symbol" or something.
             _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"invocation on a non function");
         }
         else
