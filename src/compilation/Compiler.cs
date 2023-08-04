@@ -193,23 +193,8 @@ internal sealed class FunctionCompiler : LoweredVisitor
 
     public override void VisitVariableStatement(LoweredVariableStatement node)
     {
-        // Nothing todo? Remove?
-
-        // TODO: Always a LocalSymbol?
-        var localSymbol = (LocalSymbol)node.Symbol;
-        var (_, value) = _context.GetOrCreate(localSymbol);
-
-        //// Well formed let statements always have an initializer?
-        //Visit(node.Initializer!);
-        //if (node.Initializer != null)
-        //{
-        //    Visit(node.Initializer);
-        //    var (_, initializerValue) = _stack.Pop();
-        //    LLVM.Builder.BuildStore(initializerValue, value);
-        //}
-
-        // Wrong, will set the size of the allocated stack.
-        //value.Initializer = _valueStack.Pop();
+        // Nothing todo here since these variable statements are collected and processed at the start of a function
+        // to setup alloca instructions in the entry block.
     }
 
     public override void VisitReturnStatement(LoweredReturnStatement node)

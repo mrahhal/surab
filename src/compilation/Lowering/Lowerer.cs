@@ -156,7 +156,7 @@ internal class Lowerer
             statements);
     }
 
-    // BareReturnExpression will only be set if there's a bare block return expression.
+    // BareExpression will only be set if there's a bare block return expression.
     private (List<LoweredStatement> Statements, LoweredExpression? BareExpression) LowerBlock(BlockExpressionNode node)
     {
         var parsedStatements = node.Statements.ToList();
@@ -174,16 +174,14 @@ internal class Lowerer
         return (statements, bareReturnExpression);
     }
 
-    //// StatementList or StatementListWithLastExpression
     private LoweredNode Lower(BlockExpressionNode node, RewriteExpression? rewrite)
     {
-        // TODO: If we're here, it's definitely a stand alone block? So we should add a statement to pop or something?
         var (statements, bareExpression) = LowerBlock(node);
 
         if (bareExpression != null)
         {
+            // There should always be a rewriter registered if we have a bare expression here.
             Debug.Assert(rewrite != null);
-            // There should always be a rewriter registered if we have a bare expr here.
             statements.Add(rewrite(bareExpression));
         }
 
