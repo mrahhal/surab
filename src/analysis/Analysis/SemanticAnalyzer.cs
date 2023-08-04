@@ -82,13 +82,18 @@ internal class SemanticAnalyzer : Visitor
 
     public override void VisitReturnStatement(ReturnStatementNode node)
     {
-        // If it's not the last statement, warn.
         Debug.Assert(node.Parent is BlockExpressionNode);
         var block = (BlockExpressionNode)node.Parent;
-        if (block.Statements.Last() != node)
-        {
-            _diagnostics.Add(node.Span, DiagnosticLevel.Warning, $"unreachable code after the return statement");
-        }
+
+        // If it's not the last statement, warn.
+        // TODO: Removed fror now, as this needs control flow analysis.
+        // Example: `if () { return 1; } else { return 2; }`?
+        //if (block.Statements.Last() != node)
+        //{
+        //    _diagnostics.Add(node.Span, DiagnosticLevel.Warning, $"unreachable code after the return statement");
+        //}
+
+        // TODO: Error if return has incompatible type with function return type.
 
         base.VisitReturnStatement(node);
     }
@@ -327,11 +332,7 @@ internal class SemanticAnalyzer : Visitor
 
     public override void VisitFunctionSignature(FunctionSignatureNode node)
     {
-        // Temp: Require return type.
-        if (node.ReturnTy == null)
-        {
-            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"return type of function or method should be specified");
-        }
+        // TODO: Should ReturnTy.Ty be optional, so we could parse it but raise diag here?
 
         base.VisitFunctionSignature(node);
     }

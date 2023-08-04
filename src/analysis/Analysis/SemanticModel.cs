@@ -209,7 +209,7 @@ public class SemanticModel
     private TypeSymbol? LookupType(CallExpressionNode node)
     {
         var calleeSymbol = LookupSymbol(node.Callee);
-        return calleeSymbol is FunctionSymbol functionSymbol ? functionSymbol.ReturnType.Type : null;
+        return calleeSymbol is FunctionSymbol functionSymbol ? functionSymbol.ReturnType : null;
     }
 
     private TypeSymbol? LookupType(AccessExpressionNode node)

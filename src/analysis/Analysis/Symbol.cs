@@ -78,7 +78,7 @@ public sealed class ConstSymbol : Symbol
 public sealed class FunctionSymbol : Symbol
 {
     private readonly FunctionSignatureNode _node;
-    private ResolvedType? _returnType;
+    private TypeSymbol? _returnType;
     private ImmutableArray<ParameterSymbol> _parameters;
 
     internal FunctionSymbol(FunctionSignatureNode node)
@@ -96,11 +96,13 @@ public sealed class FunctionSymbol : Symbol
     /// <summary>
     /// The return type of the function.
     /// </summary>
-    public ResolvedType ReturnType
+    public TypeSymbol ReturnType
     {
         get
         {
-            return _returnType ??= Context.BindType(_node, _node.ReturnTy);
+            return _returnType ??= _node.ReturnTy?.Ty == null ?
+                BuiltInTypeSystem.None :
+                Context.BindType(_node, _node.ReturnTy).Type; // Will never be inferred.
         }
     }
 

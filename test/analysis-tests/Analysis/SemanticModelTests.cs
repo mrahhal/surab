@@ -136,4 +136,20 @@ public class SemanticModelTests
         var localSymbol = symbol.Should().BeOfType<LocalSymbol>().Subject;
         localSymbol.Type.Type.Should().Be(BuiltInTypeSystem.Number);
     }
+
+    [Fact]
+    public void FunctionReturnTypeAsNoneIfNotSet()
+    {
+        var src = """
+            function f() {
+            }
+            """;
+        var tree = Parser.ParseModule(src);
+        var model = SemanticModel.Create(tree);
+
+        var functionDeclaration = tree.Root.DescendantNodes().OfType<FunctionDeclarationNode>().Single();
+        model.TryGetDeclaredSymbol(functionDeclaration, out var symbol).Should().BeTrue();
+        var functionSymbol = symbol.Should().BeOfType<FunctionSymbol>().Subject;
+        functionSymbol.ReturnType.Should().Be(BuiltInTypeSystem.None);
+    }
 }
