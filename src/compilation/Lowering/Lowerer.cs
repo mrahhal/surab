@@ -24,7 +24,7 @@ internal class Lowerer
         return new LoweredTree(root);
     }
 
-    private LoweredNode Lower(SyntaxNode node, ExpressionRewriteDef? rewriteDef = null)
+    private LoweredNode Lower(SyntaxNode node, RewriteExpression? rewrite = null)
     {
         var result = node switch
         {
@@ -37,8 +37,8 @@ internal class Lowerer
             LetStatementNode n => Lower(n),
             ReturnStatementNode n => Lower(n),
             ExpressionStatementNode n => Lower(n),
-            BlockExpressionNode n => Lower(n, rewriteDef),
-            AssignmentExpressionNode n => Lower(n, rewriteDef),
+            BlockExpressionNode n => Lower(n, rewrite),
+            AssignmentExpressionNode n => Lower(n, rewrite),
             UnaryExpressionNode n => Lower(n),
             BinaryExpressionNode n => Lower(n),
             CallExpressionNode n => Lower(n),
@@ -54,10 +54,10 @@ internal class Lowerer
 
         // Catch the remaining simple expressions that didn't apply the rewrite.
         // This includes: Unary, Binary, Call, Literal, Identifier.
-        if (rewriteDef != null &&
+        if (rewrite != null &&
             result is LoweredExpression loweredExpression)
         {
-            var rewrittenStatement = rewriteDef.Apply(loweredExpression);
+            var rewrittenStatement = rewrite(loweredExpression);
             return rewrittenStatement;
         }
 
@@ -95,45 +95,16 @@ internal class Lowerer
             return variableStatement;
         }
 
-        var rewriteDef = new ExpressionRewriteDef(exp =>
+        var result = Lower(node.Initializer.Expression, rewrite: expression =>
         {
-            // Which of these two:
-            //// exp is always the final expression to apply (whether it's literal/call/etc, or bare).
-            //// exp is always a bare? (If there's no bare, this won't be called?)
-
-            // This rewrite will apply for this expr (whether it's literal/call/etc, or bare).
             return new LoweredVariableStoreStatement(
                 node,
                 symbol,
-                exp);
+                expression);
         });
 
-        var result = Lower(node.Initializer.Expression, rewriteDef);
-
-        //var result = RegisterExpressionRewrite(() =>
-        //{
-        //    return Lower(node.Initializer.Expression, rewriteDef);
-        //}, exp =>
-        //{
-        //    // Which of these two:
-        //    //// exp is always the final expression to apply (whether it's literal/call/etc, or bare).
-        //    //// exp is always a bare? (If there's no bare, this won't be called?)
-
-        //    // This rewrite will apply for this expr (whether it's literal/call/etc, or bare).
-        //    return new LoweredVariableStoreStatement(
-        //        node,
-        //        symbol,
-        //        exp);
-        //});
-
         Debug.Assert(result is LoweredStatement);
-        var statementResult = (LoweredStatement)result; // Either the statement above, or a list (in case of block for example).
-
-        //// result will be the rewritten Expression above (e.g. literal) or
-        //// statement list containing that at the end (when there's a bare).
-        //// result will be the Expression above (e.g. literal) or
-        //// statement list containing that at the end (when there's a bare)?
-        // result will always be a LoweredStatement, whether that's a list (block and bare) or a statement directly (literal, etc)
+        var statementResult = (LoweredStatement)result;
 
         return new LoweredStatementList(
             node,
@@ -204,16 +175,16 @@ internal class Lowerer
     }
 
     //// StatementList or StatementListWithLastExpression
-    private LoweredNode Lower(BlockExpressionNode node, ExpressionRewriteDef? rewriteDef)
+    private LoweredNode Lower(BlockExpressionNode node, RewriteExpression? rewrite)
     {
         // TODO: If we're here, it's definitely a stand alone block? So we should add a statement to pop or something?
         var (statements, bareExpression) = LowerBlock(node);
 
         if (bareExpression != null)
         {
-            Debug.Assert(rewriteDef != null);
+            Debug.Assert(rewrite != null);
             // There should always be a rewriter registered if we have a bare expr here.
-            statements.Add(rewriteDef.Apply(bareExpression));
+            statements.Add(rewrite(bareExpression));
         }
 
         return new LoweredStatementList(
@@ -221,44 +192,30 @@ internal class Lowerer
             statements);
     }
 
-    private LoweredNode Lower(AssignmentExpressionNode node, ExpressionRewriteDef? rewriteDef)
+    private LoweredNode Lower(AssignmentExpressionNode node, RewriteExpression? rewrite)
     {
-        //// assignment: test if rhs is block, and then call LowerBlock and deal with it
-        //// test lhs, rhs, depending on that, this will translate to Store?
-
-        //// But what about `if ({ true }) { }`,
-        //// Decision: In the lowering of the if, hoist the expression up.
-
-        var leftSymbol = _model.LookupSymbol(node.Lhs);
-        if (leftSymbol is LocalSymbol or ParameterSymbol)
+        var symbol = _model.LookupSymbol(node.Lhs);
+        if (symbol is LocalSymbol or ParameterSymbol)
         {
-            var rewriteDefInner = new ExpressionRewriteDef(exp =>
+            var result = Lower(node.Rhs, rewrite: expression =>
             {
-                // Which of these two:
-                //// exp is always the final expression to apply (whether it's literal/call/etc, or bare).
-                //// exp is always a bare? (If there's no bare, this won't be called?)
-
-                // This rewrite will apply for this expr (whether it's literal/call/etc, or bare).
                 return new LoweredVariableStoreStatement(
                     node,
-                    leftSymbol,
-                    exp);
+                    symbol,
+                    expression);
             });
-
-            var result = Lower(node.Rhs, rewriteDefInner);
 
             Debug.Assert(result is LoweredStatement);
             var statementResult = (LoweredStatement)result;
 
-            if (rewriteDef == null)
+            if (rewrite == null)
             {
                 return statementResult;
             }
 
-            // We have a direct parent giving us a rewrite def (e.g. let), so we're responsible about applying it.
-            var finalApply = rewriteDef.Apply(new LoweredVariableLoadExpression(
+            var finalApply = rewrite(new LoweredVariableLoadExpression(
                 node,
-                leftSymbol));
+                symbol));
 
             return new LoweredStatementList(
                 node,
@@ -268,7 +225,7 @@ internal class Lowerer
                     finalApply,
                 });
         }
-        else if (leftSymbol is FieldSymbol)
+        else if (symbol is FieldSymbol)
         {
             // TODO: Lookup the lowered class in some map. Use that here.
             throw new NotImplementedException();
@@ -347,18 +304,7 @@ internal class Lowerer
         return nodes.Select(LowerWithCast);
     }
 
-    private class ExpressionRewriteDef
-    {
-        private readonly Func<LoweredExpression, LoweredStatement> _rewrite;
-
-        public ExpressionRewriteDef(Func<LoweredExpression, LoweredStatement> rewrite)
-        {
-            _rewrite = rewrite;
-        }
-
-        public LoweredStatement Apply(LoweredExpression expression)
-        {
-            return _rewrite(expression);
-        }
-    }
+    // Used by a parent to tell a parsed expression child to rewrite last lowered expressions (whether it's literal/call/etc, or bare).
+    // When a parent specifies a rewrite, it has to be used at some point at least once (block with bare uses it once, if+else uses it twice, etc).
+    private delegate LoweredStatement RewriteExpression(LoweredExpression expression);
 }
