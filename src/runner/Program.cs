@@ -3,11 +3,11 @@ using Surab.Analysis;
 using Surab.Compilation;
 
 var src = """
-    function print(v: Number): None {
+    function print(v: Number) {
       // Compiler intrinsic
     }
 
-    function noop(): None { }
+    function noop() { }
 
     function foo(x: Number, y: Number): Number {
       let e = x + y;
@@ -15,7 +15,7 @@ var src = """
        //return x + y;
     }
 
-    function main(): None {
+    function main() {
       let a = 2;
       noop();
       let b: Number = 4;

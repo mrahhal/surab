@@ -9,7 +9,7 @@ public static class IntegrationRunner
     public static string Run(string src, bool fails = false)
     {
         src = """
-            function print(v: Number): None {
+            function print(v: Number) {
               // Compiler intrinsic
             }
             """ + src;
