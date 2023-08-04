@@ -75,7 +75,7 @@ internal abstract class Binder
         for (var i = array.Length - 1; i >= 0; i--)
         {
             var item = array[i];
-            if (item.Name != null && item.Name.Identifier == identifier.Identifier)
+            if (item.Identifier != null && item.Identifier.Value == identifier.Value)
             {
                 return item;
             }
@@ -238,7 +238,7 @@ internal class BlockExpressionBinder : Binder, IBinderHasLocals
         for (var i = Locals.Length - 1; i >= 0; i--)
         {
             var local = Locals[i];
-            if (local.Name != null && local.Name.Identifier == identifier.Identifier)
+            if (local.Identifier != null && local.Identifier.Value == identifier.Value)
             {
                 return local;
             }

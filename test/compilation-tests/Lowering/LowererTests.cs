@@ -42,9 +42,9 @@ public class LowererTests
         var f = LowerFunction(src);
         var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body).ToList();
         body.Should().HaveCount(2);
-        body[0].Should().BeOfType<LoweredVariableStatement>().Subject.Symbol.Name!.Identifier.Should().Be("a");
+        body[0].Should().BeOfType<LoweredVariableStatement>().Subject.Symbol.Name.Should().Be("a");
         var store1 = body[1].Should().BeOfType<LoweredVariableStoreStatement>().Subject;
-        store1.Variable.Name!.Identifier.Should().Be("a");
+        store1.Variable.Name.Should().Be("a");
         store1.Expression.Should().BeOfType<LoweredLiteralExpression>();
     }
 
@@ -60,13 +60,13 @@ public class LowererTests
         var f = LowerFunction(src);
         var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body).ToList();
         body.Should().HaveCount(4);
-        body[0].Should().BeOfType<LoweredVariableStatement>().Subject.Symbol.Name!.Identifier.Should().Be("b");
-        body[1].Should().BeOfType<LoweredVariableStatement>().Subject.Symbol.Name!.Identifier.Should().Be("a");
+        body[0].Should().BeOfType<LoweredVariableStatement>().Subject.Symbol.Name.Should().Be("b");
+        body[1].Should().BeOfType<LoweredVariableStatement>().Subject.Symbol.Name.Should().Be("a");
         var store1 = body[2].Should().BeOfType<LoweredVariableStoreStatement>().Subject;
-        store1.Variable.Name!.Identifier.Should().Be("b");
+        store1.Variable.Name.Should().Be("b");
         store1.Expression.Should().BeOfType<LoweredLiteralExpression>();
         var store2 = body[3].Should().BeOfType<LoweredVariableStoreStatement>().Subject;
-        store2.Variable.Name!.Identifier.Should().Be("a");
+        store2.Variable.Name.Should().Be("a");
         store2.Expression.Should().BeOfType<LoweredVariableLoadExpression>();
     }
 
@@ -81,9 +81,9 @@ public class LowererTests
         var f = LowerFunction(src);
         var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body).ToList();
         body.Should().HaveCount(2);
-        body[0].Should().BeOfType<LoweredVariableStatement>().Subject.Symbol.Name!.Identifier.Should().Be("a");
+        body[0].Should().BeOfType<LoweredVariableStatement>().Subject.Symbol.Name.Should().Be("a");
         var store1 = body[1].Should().BeOfType<LoweredVariableStoreStatement>().Subject;
-        store1.Variable.Name!.Identifier.Should().Be("a");
+        store1.Variable.Name.Should().Be("a");
         store1.Expression.Should().BeOfType<LoweredLiteralExpression>();
     }
 
@@ -98,14 +98,14 @@ public class LowererTests
         var f = LowerFunction(src);
         var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body).ToList();
         body.Should().HaveCount(4);
-        body[0].Should().BeOfType<LoweredVariableStatement>().Subject.Symbol.Name!.Identifier.Should().Be("a");
-        body[1].Should().BeOfType<LoweredVariableStatement>().Subject.Symbol.Name!.Identifier.Should().Be("b");
+        body[0].Should().BeOfType<LoweredVariableStatement>().Subject.Symbol.Name.Should().Be("a");
+        body[1].Should().BeOfType<LoweredVariableStatement>().Subject.Symbol.Name.Should().Be("b");
         var store1 = body[2].Should().BeOfType<LoweredVariableStoreStatement>().Subject;
-        store1.Variable.Name!.Identifier.Should().Be("b");
+        store1.Variable.Name.Should().Be("b");
         store1.Expression.Should().BeOfType<LoweredBinaryExpression>();
         var store2 = body[3].Should().BeOfType<LoweredVariableStoreStatement>().Subject;
-        store2.Variable.Name!.Identifier.Should().Be("a");
-        store2.Expression.Should().BeOfType<LoweredVariableLoadExpression>().Subject.Variable.Name!.Identifier.Should().Be("b");
+        store2.Variable.Name.Should().Be("a");
+        store2.Expression.Should().BeOfType<LoweredVariableLoadExpression>().Subject.Variable.Name.Should().Be("b");
     }
 
     [Fact]
@@ -120,9 +120,9 @@ public class LowererTests
         var f = LowerFunction(src);
         var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body).ToList();
         body.Should().HaveCount(2);
-        body[0].Should().BeOfType<LoweredVariableStatement>().Subject.Symbol.Name!.Identifier.Should().Be("a");
+        body[0].Should().BeOfType<LoweredVariableStatement>().Subject.Symbol.Name.Should().Be("a");
         var store1 = body[1].Should().BeOfType<LoweredVariableStoreStatement>().Subject;
-        store1.Variable.Name!.Identifier.Should().Be("a");
+        store1.Variable.Name.Should().Be("a");
         store1.Expression.Should().BeOfType<LoweredLiteralExpression>();
     }
 

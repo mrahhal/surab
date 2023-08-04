@@ -257,14 +257,14 @@ public class BinaryOperatorToken : SyntaxToken
 
 public class IdentifierToken : SyntaxToken
 {
-    public IdentifierToken(TextSpan span, string identifier)
+    public IdentifierToken(TextSpan span, string value)
         : base(SyntaxTokenKind.Identifier)
     {
         Span = span;
-        Identifier = identifier;
+        Value = value;
     }
 
-    public string Identifier { get; init; }
+    public string Value { get; init; }
 
     public override void Accept(Visitor visitor)
     {

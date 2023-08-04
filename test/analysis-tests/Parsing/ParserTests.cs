@@ -286,10 +286,10 @@ public class ParserTests
         var node = ParseExpression(src).Should().BeOfType<CallExpressionNode>().Subject;
         node.Arguments.Arguments.Should().HaveCount(1);
         var assignment1 = node.Arguments.Arguments.ElementAt(0).Expression.Should().BeOfType<AssignmentExpressionNode>().Subject;
-        assignment1.Lhs.Should().BeOfType<IdentifierExpressionNode>().Subject.Identifier.Identifier.Should().Be("b");
+        assignment1.Lhs.Should().BeOfType<IdentifierExpressionNode>().Subject.Identifier.Value.Should().Be("b");
         var assignment2 = assignment1.Rhs.Should().BeOfType<AssignmentExpressionNode>().Subject;
-        assignment2.Lhs.Should().BeOfType<IdentifierExpressionNode>().Subject.Identifier.Identifier.Should().Be("c");
-        assignment2.Rhs.Should().BeOfType<IdentifierExpressionNode>().Subject.Identifier.Identifier.Should().Be("d");
+        assignment2.Lhs.Should().BeOfType<IdentifierExpressionNode>().Subject.Identifier.Value.Should().Be("c");
+        assignment2.Rhs.Should().BeOfType<IdentifierExpressionNode>().Subject.Identifier.Value.Should().Be("d");
     }
 
     [Fact]
@@ -306,10 +306,10 @@ public class ParserTests
     {
         var src = "b = c = d";
         var assignment1 = ParseExpression(src).Should().BeOfType<AssignmentExpressionNode>().Subject;
-        assignment1.Lhs.Should().BeOfType<IdentifierExpressionNode>().Subject.Identifier.Identifier.Should().Be("b");
+        assignment1.Lhs.Should().BeOfType<IdentifierExpressionNode>().Subject.Identifier.Value.Should().Be("b");
         var assignment2 = assignment1.Rhs.Should().BeOfType<AssignmentExpressionNode>().Subject;
-        assignment2.Lhs.Should().BeOfType<IdentifierExpressionNode>().Subject.Identifier.Identifier.Should().Be("c");
-        assignment2.Rhs.Should().BeOfType<IdentifierExpressionNode>().Subject.Identifier.Identifier.Should().Be("d");
+        assignment2.Lhs.Should().BeOfType<IdentifierExpressionNode>().Subject.Identifier.Value.Should().Be("c");
+        assignment2.Rhs.Should().BeOfType<IdentifierExpressionNode>().Subject.Identifier.Value.Should().Be("d");
     }
 
     [Fact]

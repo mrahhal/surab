@@ -119,7 +119,7 @@ internal sealed class FunctionCompiler : LoweredVisitor
         SetupParameters(_function.FunctionSymbol.Parameters);
         SetupLocals();
 
-        if (_function.FunctionSymbol.Name?.Identifier == "print")
+        if (_function.FunctionSymbol.Identifier?.Value == "print")
         {
             CompileSpecialPrint();
         }

@@ -126,7 +126,7 @@ public class SemanticModel
 
     internal static TypeSymbol? LookupBuiltIn(IdentifierToken identifier)
     {
-        return identifier.Identifier switch
+        return identifier.Value switch
         {
             "None" => BuiltInTypeSystem.None,
             "Number" => BuiltInTypeSystem.Number,
@@ -225,7 +225,7 @@ public class SemanticModel
         TypeSymbol? GetMemberTypeSymbol(NamedTypeSymbol namedTypeSymbol)
         {
             // TODO: Make comparing identifiers better.
-            var member = namedTypeSymbol.Members.FirstOrDefault(m => m.Name?.Identifier == node.Identifier.Identifier);
+            var member = namedTypeSymbol.Members.FirstOrDefault(m => m.Name == node.Identifier.Value);
             if (member == null) return null;
             return member switch
             {

@@ -294,7 +294,7 @@ internal class SemanticAnalyzer : Visitor
         else
         {
             // TODO: Store and use a lookup table for this.
-            var matched = typeSymbol.Members.FirstOrDefault(x => x.Name?.Identifier == node.Identifier.Identifier);
+            var matched = typeSymbol.Members.FirstOrDefault(x => x.Name == node.Identifier.Value);
             if (matched == null)
             {
                 _diagnostics.Add(node.Identifier.Span, DiagnosticLevel.Error, $"unknown member access");

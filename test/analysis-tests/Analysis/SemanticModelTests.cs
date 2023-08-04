@@ -100,7 +100,7 @@ public class SemanticModelTests
         var letStatement = tree.Root.DescendantNodes().OfType<LetStatementNode>().Single();
         model.TryGetDeclaredSymbol(letStatement, out var symbol).Should().BeTrue();
         var localSymbol = (LocalSymbol)symbol!;
-        localSymbol.Type.Type.Should().BeOfType<ErrorTypeSymbol>().Subject.Name?.Identifier.Should().Be("Unknown");
+        localSymbol.Type.Type.Should().BeOfType<ErrorTypeSymbol>().Subject.Name.Should().Be("Unknown");
     }
 
     [Fact]

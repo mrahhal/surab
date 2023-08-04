@@ -28,7 +28,9 @@ public abstract class Symbol
     /// </summary>
     public virtual SyntaxNode? DeclaringNode => null;
 
-    public virtual IdentifierToken? Name => null;
+    public virtual IdentifierToken? Identifier => null;
+
+    public string? Name => Identifier?.Value;
 
     internal void SetParent(Symbol? parent)
     {
@@ -55,7 +57,7 @@ public class ConstSymbol : Symbol
 
     public override SyntaxNode? DeclaringNode => _node;
 
-    public override IdentifierToken? Name => _node.Identifier;
+    public override IdentifierToken? Identifier => _node.Identifier;
 
     /// <summary>
     /// The type of the const.
@@ -85,7 +87,7 @@ public class FunctionSymbol : Symbol
     // Parent will be either a FunctionDeclarationNode or a MethodDeclarationNode.
     public override SyntaxNode? DeclaringNode => _node.Parent;
 
-    public override IdentifierToken? Name => _node.Identifier;
+    public override IdentifierToken? Identifier => _node.Identifier;
 
     /// <summary>
     /// The return type of the function.
@@ -139,7 +141,7 @@ public class FieldSymbol : Symbol
 
     public override SyntaxNode? DeclaringNode => _node;
 
-    public override IdentifierToken? Name => _node.Identifier;
+    public override IdentifierToken? Identifier => _node.Identifier;
 
     /// <summary>
     /// The type of the field.
@@ -167,7 +169,7 @@ public class ParameterSymbol : Symbol
 
     public override SyntaxNode? DeclaringNode => _node;
 
-    public override IdentifierToken? Name => _node.Identifier;
+    public override IdentifierToken? Identifier => _node.Identifier;
 
     /// <summary>
     /// The type of the parameter.
@@ -195,7 +197,7 @@ public class LocalSymbol : Symbol
 
     public override SyntaxNode? DeclaringNode => _node;
 
-    public override IdentifierToken? Name => _node.Identifier;
+    public override IdentifierToken? Identifier => _node.Identifier;
 
     /// <summary>
     /// The type of the local.
@@ -227,7 +229,7 @@ public class NamedTypeSymbol : TypeSymbol
 
     public override DeclarationNode? DeclaringNode => _node;
 
-    public override IdentifierToken? Name => _node switch
+    public override IdentifierToken? Identifier => _node switch
     {
         ClassDeclarationNode classDeclaration => classDeclaration.Identifier,
         _ => null,
@@ -285,7 +287,7 @@ public class ErrorTypeSymbol : NamedTypeSymbol
         _identifier = identifier;
     }
 
-    public override IdentifierToken? Name => _identifier;
+    public override IdentifierToken? Identifier => _identifier;
 }
 
 public class BuiltInNamedTypeSymbol : NamedTypeSymbol
@@ -301,7 +303,7 @@ public class BuiltInNamedTypeSymbol : NamedTypeSymbol
         _members = members.ToImmutableArray();
     }
 
-    public override IdentifierToken? Name => _name;
+    public override IdentifierToken? Identifier => _name;
 
     public override ImmutableArray<Symbol> Members => _members;
 }
