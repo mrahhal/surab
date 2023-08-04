@@ -26,7 +26,6 @@ internal abstract partial class LoweredVisitor
             case LoweredReturnStatement n: VisitReturnStatement(n); break;
             case LoweredExpressionStatement n: VisitExpressionStatement(n); break;
             case LoweredStatementList n: VisitStatementList(n); break;
-            case LoweredStatementsWithLastExpression n: VisitStatementsWithLastExpression(n); break;
             case LoweredVariableLoadExpression n: VisitVariableLoadExpression(n); break;
             //case LoweredFieldLoadExpression n: VisitFieldLoadExpression(n); break;
             case LoweredVariableStoreStatement n: VisitVariableStoreExpression(n); break;
@@ -74,13 +73,6 @@ internal abstract partial class LoweredVisitor
     public virtual void VisitStatementList(LoweredStatementList node)
     {
         Walk(node);
-    }
-
-    public virtual void VisitStatementsWithLastExpression(LoweredStatementsWithLastExpression node)
-    {
-        // Should't be here?
-        throw new Exception();
-        //Walk(node);
     }
 
     public virtual void VisitVariableLoadExpression(LoweredVariableLoadExpression node)

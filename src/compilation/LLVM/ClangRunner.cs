@@ -1,10 +1,10 @@
-﻿using LLVMSharp;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 
 namespace Surab.Compilation.LLVM;
 
 internal static class ClangRunner
 {
+    // TODO: How to get this properly?
     private static readonly string LibcPath = @"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.36.32532\lib\x64";
 
     public static string Run(IEnumerable<string> llFiles, string? outputFileNameWithoutExtension = null)
@@ -12,7 +12,7 @@ internal static class ClangRunner
         outputFileNameWithoutExtension ??= "main";
         var outputFileName = $"{outputFileNameWithoutExtension}.exe";
 
-        // TODO: Add -O3 for release.
+        // TODO: Add -O3 for release?
 
         var arguments = $$"""
             -fuse-ld=lld-link

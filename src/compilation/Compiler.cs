@@ -269,22 +269,6 @@ internal sealed class FunctionCompiler : LoweredVisitor
         _stack.Push((LLVMTypeRef.Double, value));
     }
 
-    //public override void VisitAssignmentExpression(AssignmentExpressionNode node)
-    //{
-    //    // TODO: Walk instead of Visit if you don't want VisitIdentifierExpression to be called for assignment?
-
-    //    Visit(node.Lhs);
-    //    var toStore = _valueStack.Pop();
-
-    //    Visit(node.Rhs);
-    //    var rhs = _valueStack.Pop();
-
-    //    //_functionValue.EntryBasicBlock.
-    //    //LLVM.Builder.InsertBlock.
-
-    //    LLVM.Builder.BuildStore(toStore, rhs);
-    //}
-
     public override void VisitVariableLoadExpression(LoweredVariableLoadExpression node)
     {
         var (type, value) = _context.GetOrCreate(node.Variable);
@@ -300,26 +284,6 @@ internal sealed class FunctionCompiler : LoweredVisitor
 
         LLVM.Builder.BuildStore(rhs, value);
     }
-
-    //public override void VisitIdentifierExpression(IdentifierExpressionNode node)
-    //{
-    //    // TODO: We'll only be here if this is a definite load??
-
-    //    // Later, this will be also called in places such as `let a = Number.max;` for `Number` type identifier.
-    //    // Should a desugaring stage remove this possibility and change this to bind to the direct method/field/prop? Yes I think.
-
-    //    var target = Model.LookupSymbol(node);
-    //    Debug.Assert(target != null);
-    //    var (type, value) = _context.GetOrCreate(target);
-
-    //    if (value.TypeOf.Kind == LLVMTypeKind.LLVMPointerTypeKind && value.Kind != LLVMValueKind.LLVMFunctionValueKind)
-    //    {
-    //        // Load from an alloca if this isn't a function.
-    //        value = LLVM.Builder.BuildLoad2(type, value);
-    //    }
-
-    //    _stack.Push((type, value));
-    //}
 
     public override void VisitLiteralExpression(LoweredLiteralExpression node)
     {

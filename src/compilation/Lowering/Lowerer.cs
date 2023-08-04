@@ -37,7 +37,6 @@ internal class Lowerer
             LetStatementNode n => Lower(n),
             ReturnStatementNode n => Lower(n),
             ExpressionStatementNode n => Lower(n),
-            BareExpressionStatementNode n => Lower(n),
             BlockExpressionNode n => Lower(n, rewriteDef),
             AssignmentExpressionNode n => Lower(n, rewriteDef),
             UnaryExpressionNode n => Lower(n),
@@ -46,6 +45,9 @@ internal class Lowerer
             //AccessExpressionNode n => Lower(n),
             LiteralExpressionNode n => Lower(n),
             IdentifierExpressionNode n => Lower(n),
+
+            // These are nodes that are taken care of in other places, there shouldn't be a case where they're called here.
+            BareExpressionStatementNode => throw new Exception("Unexpected"),
 
             _ => throw new NotImplementedException(),
         };
@@ -166,16 +168,6 @@ internal class Lowerer
             return result;
         }
     }
-
-    private LoweredNode Lower(BareExpressionStatementNode node)
-    {
-        return new LoweredExpressionStatement(
-            node,
-            LowerWithCast(node.Expression));
-    }
-
-    // The only place BareExpressionStatementNode will show up is in the block processing in LowerBlock.
-    //private LoweredExpressionStatement Lower(BareExpressionStatementNode node)
 
     private LoweredStatementList LowerFunctionBlock(BlockExpressionNode node)
     {

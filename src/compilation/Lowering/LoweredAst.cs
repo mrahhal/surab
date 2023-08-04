@@ -139,8 +139,6 @@ internal sealed class LoweredReturnStatement : LoweredStatement
     }
 }
 
-// TODO: ExpressionStatementNode/BareExpressionStatementNode?
-
 internal sealed class LoweredExpressionStatement : LoweredStatement
 {
     public LoweredExpressionStatement(
@@ -193,32 +191,6 @@ internal abstract class LoweredExpression : LoweredNode
 {
     public LoweredExpression(SyntaxNode parsedNode) : base(parsedNode)
     {
-    }
-}
-
-// Statement list with an optional last expression.
-// Useful in the case of blocks that return expressions, in order to hoist these statements when compiling.
-internal sealed class LoweredStatementsWithLastExpression : LoweredExpression
-{
-    public LoweredStatementsWithLastExpression(
-        SyntaxNode parsedNode,
-        LoweredStatementList statementList,
-        LoweredExpression? expression)
-        : base(parsedNode)
-    {
-        StatementList = statementList;
-        Expression = expression;
-    }
-
-    public LoweredStatementList StatementList { get; }
-
-    public LoweredExpression? Expression { get; }
-
-    public override IEnumerable<LoweredNode> EnumerateChildren()
-    {
-        yield return StatementList;
-        if (Expression != null)
-            yield return Expression;
     }
 }
 
