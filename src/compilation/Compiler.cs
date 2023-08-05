@@ -277,16 +277,17 @@ internal sealed class FunctionCompiler : LoweredVisitor
         switch (node.Literal.LiteralTokenKind)
         {
             case LiteralTokenKind.Number:
-                Debug.Assert(node.Literal.TryGetNumberValue(out var v));
-                var llvmType = LLVMTypeRef.Double;
-                var llvmValue = LLVMValueRef.CreateConstReal(llvmType, v);
-                _stack.Push((llvmType, llvmValue));
+                {
+                    Debug.Assert(node.Literal.TryGetNumberValue(out var v));
+                    var llvmType = LLVMTypeRef.Double;
+                    var llvmValue = LLVMValueRef.CreateConstReal(llvmType, v);
+                    _stack.Push((llvmType, llvmValue));
+                }
                 break;
 
             default:
                 // TODO: Add to SemanticAnalyzer.
-                Debug.Assert(false, "Should not be here.");
-                throw new NotImplementedException();
+                throw new NotImplementedException("Should not be here.");
         }
     }
 }
