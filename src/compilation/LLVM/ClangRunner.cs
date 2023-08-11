@@ -5,7 +5,7 @@ namespace Surab.Compilation.LLVM;
 internal static class ClangRunner
 {
     // TODO: How to get this properly?
-    private static readonly string LibcPath = @"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.36.32532\lib\x64";
+    private static readonly string LibcPath = @"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.37.32822\lib\x64";
 
     public static string Run(IEnumerable<string> llFiles, string? outputFileNameWithoutExtension = null)
     {
