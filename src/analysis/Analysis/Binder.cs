@@ -192,20 +192,20 @@ internal class ClassDeclarationBinder : Binder
 
 internal class FunctionBinder : Binder
 {
-    private readonly FunctionSignatureNode _functionSignature;
-    private readonly FunctionSymbol _functionSymbol;
+    private readonly FnSignatureNode _fnSignature;
+    private readonly FnSymbol _fnSymbol;
 
     public FunctionBinder(
-        FunctionSignatureNode functionSignature,
-        FunctionSymbol functionSymbol)
+        FnSignatureNode fnSignature,
+        FnSymbol fnSymbol)
     {
-        _functionSignature = functionSignature;
-        _functionSymbol = functionSymbol;
+        _fnSignature = fnSignature;
+        _fnSymbol = fnSymbol;
     }
 
     public override Symbol? LookupIdentifierHere(IdentifierToken identifier)
     {
-        return LookupIdentifierIn(_functionSymbol.Parameters, identifier);
+        return LookupIdentifierIn(_fnSymbol.Parameters, identifier);
     }
 }
 

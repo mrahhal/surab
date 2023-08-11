@@ -3,19 +3,19 @@ using Surab.Analysis;
 using Surab.Compilation;
 
 var src = """
-    function print(v: Number) {
+    fn print(v: Number) {
         // Compiler intrinsic
     }
 
-    function noop() { }
+    fn noop() { }
 
-    function foo(x: Number, y: Number): Number {
+    fn foo(x: Number, y: Number): Number {
         let e = x + y;
         return e + 1;
         //return x + y;
     }
 
-    function main() {
+    fn main() {
         let a = 2;
         noop();
         let b: Number = 4;

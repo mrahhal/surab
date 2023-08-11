@@ -38,7 +38,7 @@ internal class SemanticAnalyzer : Visitor
         base.VisitConstDeclaration(node);
     }
 
-    public override void VisitFunctionDeclaration(FunctionDeclarationNode node)
+    public override void VisitFnDeclaration(FnDeclarationNode node)
     {
         // Temp: Should be allowed only in top level.
         if (node.Parent is not ModuleNode)
@@ -46,7 +46,7 @@ internal class SemanticAnalyzer : Visitor
             _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a function declaration is allowed only in top level");
         }
 
-        base.VisitFunctionDeclaration(node);
+        base.VisitFnDeclaration(node);
     }
 
     public override void VisitClassDeclaration(ClassDeclarationNode node)
@@ -254,8 +254,8 @@ internal class SemanticAnalyzer : Visitor
     {
         var calleeSymbol = _model.LookupSymbol(node.Callee);
 
-        // Ensure calle is a function and validate args.
-        if (calleeSymbol is not FunctionSymbol functionSymbol)
+        // Ensure callee is a function and validate args.
+        if (calleeSymbol is not FnSymbol fnSymbol)
         {
             // TODO: Shouldn't raise this when invoking a function that doesn't exist. Should say "unknown symbol" or something.
             _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"invocation on a non function");
@@ -263,7 +263,7 @@ internal class SemanticAnalyzer : Visitor
         else
         {
             var args = node.Arguments.Arguments.ToList();
-            if (functionSymbol.Parameters.Length != args.Count)
+            if (fnSymbol.Parameters.Length != args.Count)
             {
                 _diagnostics.Add(node.Arguments.Span, DiagnosticLevel.Error, $"invalid invocation: wrong number of arguments");
             }
@@ -272,7 +272,7 @@ internal class SemanticAnalyzer : Visitor
                 for (var i = 0; i < args.Count; i++)
                 {
                     var arg = args[i];
-                    var param = functionSymbol.Parameters[i];
+                    var param = fnSymbol.Parameters[i];
                     var argType = _model.LookupType(arg);
                     if (param.Type != argType)
                     {
@@ -330,11 +330,11 @@ internal class SemanticAnalyzer : Visitor
         base.VisitParameter(node);
     }
 
-    public override void VisitFunctionSignature(FunctionSignatureNode node)
+    public override void VisitFnSignature(FnSignatureNode node)
     {
         // TODO: Should ReturnTy.Type be optional, so we could parse it but raise diag here?
 
-        base.VisitFunctionSignature(node);
+        base.VisitFnSignature(node);
     }
 
     public override void VisitIdentifierExpression(IdentifierExpressionNode node)

@@ -74,7 +74,7 @@ public class SemanticModelTests
     public void LookupType_Block()
     {
         var src = """
-            function f() {
+            fn f() {
                 let a = { 2 };
             }
             """;
@@ -90,7 +90,7 @@ public class SemanticModelTests
     public void Symbol_ErrorType()
     {
         var src = """
-            function f() {
+            fn f() {
                 let a: Unknown = 2;
             }
             """;
@@ -108,7 +108,7 @@ public class SemanticModelTests
     public void Symbol_InferType()
     {
         var src = """
-            function f() {
+            fn f() {
                 let a = 2;
             }
             """;
@@ -126,7 +126,7 @@ public class SemanticModelTests
     public void Symbol_InferType_2()
     {
         var src = """
-            function f() {
+            fn f() {
                 let a = { 2 };
             }
             """;
@@ -143,14 +143,14 @@ public class SemanticModelTests
     public void FunctionReturnTypeAsNoneIfNotSet()
     {
         var src = """
-            function f() { }
+            fn f() { }
             """;
         var tree = Parser.ParseModule(src);
         var model = SemanticModel.Create(tree);
 
-        var functionDeclaration = tree.Root.DescendantNodes().OfType<FunctionDeclarationNode>().Single();
-        model.TryGetDeclaredSymbol(functionDeclaration, out var symbol).Should().BeTrue();
-        var functionSymbol = symbol.Should().BeOfType<FunctionSymbol>().Subject;
-        functionSymbol.ReturnType.Should().Be(BuiltInTypeSystem.None);
+        var fnDeclaration = tree.Root.DescendantNodes().OfType<FnDeclarationNode>().Single();
+        model.TryGetDeclaredSymbol(fnDeclaration, out var symbol).Should().BeTrue();
+        var fnSymbol = symbol.Should().BeOfType<FnSymbol>().Subject;
+        fnSymbol.ReturnType.Should().Be(BuiltInTypeSystem.None);
     }
 }

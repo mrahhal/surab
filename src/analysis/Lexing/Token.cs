@@ -36,7 +36,7 @@ public enum TokenKind
     ExclusiveOr,
     CaretCaret,
 
-    Function,
+    Fn,
     Class,
     New,
     This,
@@ -119,7 +119,7 @@ public class Token
             InclusiveOr => "|",
             ExclusiveOr => "^",
             CaretCaret => "^^",
-            Function => "function",
+            Fn => "fn",
             Class => "class",
             New => "new",
             This => "this",
@@ -198,7 +198,7 @@ public static class TokenKindExtensions
 
     public static bool CanStartDeclaration(this TokenKind kind) => kind is
         Const or
-        Function or
+        Fn or
         Class or
         Identifier or
         Public;

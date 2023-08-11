@@ -17,7 +17,7 @@ public abstract partial class Visitor
         Walk(node);
     }
 
-    public virtual void VisitFunctionDeclaration(FunctionDeclarationNode node)
+    public virtual void VisitFnDeclaration(FnDeclarationNode node)
     {
         Walk(node);
     }
@@ -152,7 +152,7 @@ public abstract partial class Visitor
         Walk(node);
     }
 
-    public virtual void VisitFunctionSignature(FunctionSignatureNode node)
+    public virtual void VisitFnSignature(FnSignatureNode node)
     {
         Walk(node);
     }

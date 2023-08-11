@@ -44,7 +44,7 @@
       ]
     },
     {
-      "Name": "FunctionDeclaration",
+      "Name": "FnDeclaration",
       "Base": "DeclarationNode",
       "Members": [
         {
@@ -53,12 +53,12 @@
           "Optional": true
         },
         {
-          "Name": "functionToken",
+          "Name": "fnToken",
           "Type": "SimpleToken"
         },
         {
           "Name": "signature",
-          "Type": "FunctionSignatureNode"
+          "Type": "FnSignatureNode"
         },
         {
           "Name": "body",
@@ -137,7 +137,7 @@
         },
         {
           "Name": "signature",
-          "Type": "FunctionSignatureNode"
+          "Type": "FnSignatureNode"
         },
         {
           "Name": "body",
@@ -502,7 +502,7 @@
       ]
     },
     {
-      "Name": "FunctionSignature",
+      "Name": "FnSignature",
       "Members": [
         {
           "Name": "identifier",

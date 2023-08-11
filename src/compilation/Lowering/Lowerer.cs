@@ -30,7 +30,7 @@ internal class Lowerer
         {
             ModuleNode n => Lower(n),
             //ConstDeclarationNode n => Lower(n),
-            FunctionDeclarationNode n => Lower(n),
+            FnDeclarationNode n => Lower(n),
             //ClassDeclarationNode n => Lower(n),
             //FieldDeclarationNode n => Lower(n),
             //MethodDeclarationNode n => Lower(n),
@@ -72,14 +72,14 @@ internal class Lowerer
             LowerWithCast(node.Declarations));
     }
 
-    private LoweredNode Lower(FunctionDeclarationNode node)
+    private LoweredNode Lower(FnDeclarationNode node)
     {
-        var functionSymbol = _model.GetDeclaredSymbol(node) as FunctionSymbol;
-        Debug.Assert(functionSymbol != null);
+        var fnSymbol = _model.GetDeclaredSymbol(node) as FnSymbol;
+        Debug.Assert(fnSymbol != null);
 
-        return new LoweredFunctionDeclaration(
+        return new LoweredFnDeclaration(
             node,
-            functionSymbol,
+            fnSymbol,
             LowerFunctionBlock(node.Body));
     }
 
@@ -262,11 +262,11 @@ internal class Lowerer
     private LoweredNode Lower(CallExpressionNode node)
     {
         // TODO: Not always an identifier?
-        var functionSymbol = (FunctionSymbol)_model.LookupSymbol(node.Callee)!;
+        var fnSymbol = (FnSymbol)_model.LookupSymbol(node.Callee)!;
 
         return new LoweredCallExpression(
             node,
-            functionSymbol,
+            fnSymbol,
             LowerWithCast(node.Arguments.Arguments.Select(arg => arg.Expression)));
     }
 

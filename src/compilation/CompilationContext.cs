@@ -62,7 +62,7 @@ public sealed class CompilationContext
         var created = symbol switch
         {
             //ConstSymbol constSymbol => Create(constSymbol),
-            FunctionSymbol functionSymbol => Create(functionSymbol),
+            FnSymbol fnSymbol => Create(fnSymbol),
 
             _ => throw new NotImplementedException(),
         };
@@ -86,15 +86,15 @@ public sealed class CompilationContext
     //    }
     //}
 
-    private LLVMUnit Create(FunctionSymbol functionSymbol)
+    private LLVMUnit Create(FnSymbol fnSymbol)
     {
-        var returnType = GetForType(functionSymbol.ReturnType);
-        var @params = functionSymbol.Parameters.Select(p => GetForType(p.Type)).ToArray();
+        var returnType = GetForType(fnSymbol.ReturnType);
+        var @params = fnSymbol.Parameters.Select(p => GetForType(p.Type)).ToArray();
 
-        var functionType = LLVMTypeRef.CreateFunction(returnType, @params, false);
-        var functionValue = LLVM.Module.AddFunction(functionSymbol.Identifier!.Value, functionType);
+        var fnType = LLVMTypeRef.CreateFunction(returnType, @params, false);
+        var fnValue = LLVM.Module.AddFunction(fnSymbol.Identifier!.Value, fnType);
 
-        return new LLVMUnit(functionType, functionValue);
+        return new LLVMUnit(fnType, fnValue);
     }
 
     private static LLVMTypeRef GetForType(TypeSymbol type)

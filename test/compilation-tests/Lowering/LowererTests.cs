@@ -8,11 +8,11 @@ public class LowererTests
     public void BareExpressionStatementToReturnStatement()
     {
         var src = """
-            function foo(): Number {
+            fn foo(): Number {
                 2
             }
             """;
-        var f = LowerFunction(src);
+        var f = LowerFn(src);
         var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body).ToList();
         body.Should().HaveCount(1);
         body[0].Should().BeOfType<LoweredReturnStatement>().Subject
@@ -20,13 +20,12 @@ public class LowererTests
     }
 
     [Fact]
-    public void EmptyFunction()
+    public void EmptyFn()
     {
         var src = """
-            function foo() {
-            }
+            fn foo() { }
             """;
-        var f = LowerFunction(src);
+        var f = LowerFn(src);
         var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body).ToList();
         body.Should().HaveCount(0);
     }
@@ -35,11 +34,11 @@ public class LowererTests
     public void ExpressionRewriting_1()
     {
         var src = """
-            function foo() {
+            fn foo() {
                 let a = 2;
             }
             """;
-        var f = LowerFunction(src);
+        var f = LowerFn(src);
         var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body).ToList();
         body.Should().HaveCount(2);
         body[0].Should().BeOfType<LoweredVariableStatement>().Subject.Symbol.Name.Should().Be("a");
@@ -52,12 +51,12 @@ public class LowererTests
     public void ExpressionRewriting_2()
     {
         var src = """
-            function foo() {
+            fn foo() {
                 let b: Number;
                 let a = b = 2;
             }
             """;
-        var f = LowerFunction(src);
+        var f = LowerFn(src);
         var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body).ToList();
         body.Should().HaveCount(4);
         body[0].Should().BeOfType<LoweredVariableStatement>().Subject.Symbol.Name.Should().Be("b");
@@ -74,11 +73,11 @@ public class LowererTests
     public void ExpressionRewriting_3()
     {
         var src = """
-            function foo() {
+            fn foo() {
                 let a = { 2 };
             }
             """;
-        var f = LowerFunction(src);
+        var f = LowerFn(src);
         var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body).ToList();
         body.Should().HaveCount(2);
         body[0].Should().BeOfType<LoweredVariableStatement>().Subject.Symbol.Name.Should().Be("a");
@@ -91,11 +90,11 @@ public class LowererTests
     public void ExpressionRewriting_4()
     {
         var src = """
-            function foo() {
+            fn foo() {
                 let a = { let b = 2 + 1; b };
             }
             """;
-        var f = LowerFunction(src);
+        var f = LowerFn(src);
         var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body).ToList();
         body.Should().HaveCount(4);
         body[0].Should().BeOfType<LoweredVariableStatement>().Subject.Symbol.Name.Should().Be("a");
@@ -112,12 +111,12 @@ public class LowererTests
     public void ExpressionRewriting_5()
     {
         var src = """
-            function foo() {
+            fn foo() {
                 let a: Number;
                 a = 2;
             }
             """;
-        var f = LowerFunction(src);
+        var f = LowerFn(src);
         var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body).ToList();
         body.Should().HaveCount(2);
         body[0].Should().BeOfType<LoweredVariableStatement>().Subject.Symbol.Name.Should().Be("a");
@@ -130,19 +129,19 @@ public class LowererTests
     public void LastStandaloneBlocks()
     {
         var src = """
-            function foo() {
+            fn foo() {
                 { }
             }
             """;
-        var f = LowerFunction(src);
+        var f = LowerFn(src);
         var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body).ToList();
         body.Should().HaveCount(0);
     }
 
-    private static LoweredFunctionDeclaration LowerFunction(string src)
+    private static LoweredFnDeclaration LowerFn(string src)
     {
         var module = LowerModule(src);
-        return module.Declarations.ElementAt(0).Should().BeOfType<LoweredFunctionDeclaration>().Subject;
+        return module.Declarations.ElementAt(0).Should().BeOfType<LoweredFnDeclaration>().Subject;
     }
 
     private static LoweredModule LowerModule(string src)

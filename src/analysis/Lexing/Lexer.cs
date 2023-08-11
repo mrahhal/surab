@@ -26,16 +26,16 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 
     private static readonly Dictionary<string, TokenKind> KeywordsMap = new()
     {
-        { "function" , TokenKind.Function},
-        { "class" , TokenKind.Class},
-        { "new" , TokenKind.New},
-        { "this" , TokenKind.This},
-        { "true" , TokenKind.True},
-        { "false" , TokenKind.False},
-        { "let" , TokenKind.Let},
-        { "const" , TokenKind.Const},
-        { "field" , TokenKind.Field},
-        { "public" , TokenKind.Public},
+        { "fn" , TokenKind.Fn },
+        { "class" , TokenKind.Class },
+        { "new" , TokenKind.New },
+        { "this" , TokenKind.This },
+        { "true" , TokenKind.True },
+        { "false" , TokenKind.False },
+        { "let" , TokenKind.Let },
+        { "const" , TokenKind.Const },
+        { "field" , TokenKind.Field },
+        { "public" , TokenKind.Public },
         { "return" , TokenKind.Return },
     };
 

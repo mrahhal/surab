@@ -209,7 +209,7 @@ public class SemanticModel
     private TypeSymbol? LookupType(CallExpressionNode node)
     {
         var calleeSymbol = LookupSymbol(node.Callee);
-        return calleeSymbol is FunctionSymbol functionSymbol ? functionSymbol.ReturnType : null;
+        return calleeSymbol is FnSymbol fnSymbol ? fnSymbol.ReturnType : null;
     }
 
     private TypeSymbol? LookupType(AccessExpressionNode node)
@@ -352,8 +352,8 @@ public class SemanticModel
             return node switch
             {
                 ConstDeclarationNode n => new ConstSymbol(n),
-                FunctionDeclarationNode n => new FunctionSymbol(n.Signature),
-                MethodDeclarationNode n => new FunctionSymbol(n.Signature),
+                FnDeclarationNode n => new FnSymbol(n.Signature),
+                MethodDeclarationNode n => new FnSymbol(n.Signature),
                 FieldDeclarationNode n => new FieldSymbol(n),
                 ClassDeclarationNode n => new NamedTypeSymbol(n),
 
@@ -383,8 +383,8 @@ public class SemanticModel
             {
                 ModuleNode n => new ModuleBinder(n),
                 ClassDeclarationNode n => new ClassDeclarationBinder(n, (NamedTypeSymbol)symbol!),
-                FunctionDeclarationNode n => new FunctionBinder(n.Signature, (FunctionSymbol)symbol!),
-                MethodDeclarationNode n => new FunctionBinder(n.Signature, (FunctionSymbol)symbol!),
+                FnDeclarationNode n => new FunctionBinder(n.Signature, (FnSymbol)symbol!),
+                MethodDeclarationNode n => new FunctionBinder(n.Signature, (FnSymbol)symbol!),
                 BlockExpressionNode n => new BlockExpressionBinder(n),
 
                 _ => null,

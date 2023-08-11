@@ -53,7 +53,7 @@ public enum SyntaxNodeKind
 {
     Module,
     ConstDeclaration,
-    FunctionDeclaration,
+    FnDeclaration,
     ClassDeclaration,
     FieldDeclaration,
     MethodDeclaration,
@@ -80,7 +80,7 @@ public enum SyntaxNodeKind
     Argument,
     ColonType,
     Type,
-    FunctionSignature,
+    FnSignature,
     EqualsValueClause,
 }
 
@@ -129,12 +129,12 @@ public partial class ConstDeclarationNode : DeclarationNode
     }
 }
 
-public partial class FunctionDeclarationNode : DeclarationNode
+public partial class FnDeclarationNode : DeclarationNode
 {
-    public FunctionDeclarationNode(SimpleToken? publicToken, SimpleToken functionToken, FunctionSignatureNode signature, BlockExpressionNode body)
-        : base(SyntaxNodeKind.FunctionDeclaration)
+    public FnDeclarationNode(SimpleToken? publicToken, SimpleToken fnToken, FnSignatureNode signature, BlockExpressionNode body)
+        : base(SyntaxNodeKind.FnDeclaration)
     {
-        ChildTokens = new() { publicToken, functionToken, };
+        ChildTokens = new() { publicToken, fnToken, };
         ChildNodes = new() { signature, body, };
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
@@ -142,13 +142,13 @@ public partial class FunctionDeclarationNode : DeclarationNode
     }
 
     public SimpleToken? PublicToken => (SimpleToken?)ChildTokens[0]!;
-    public SimpleToken FunctionToken => (SimpleToken)ChildTokens[1]!;
-    public FunctionSignatureNode Signature => (FunctionSignatureNode)ChildNodes[0]!;
+    public SimpleToken FnToken => (SimpleToken)ChildTokens[1]!;
+    public FnSignatureNode Signature => (FnSignatureNode)ChildNodes[0]!;
     public BlockExpressionNode Body => (BlockExpressionNode)ChildNodes[1]!;
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitFunctionDeclaration(this);
+        visitor.VisitFnDeclaration(this);
     }
 }
 
@@ -203,7 +203,7 @@ public partial class FieldDeclarationNode : DeclarationNode
 
 public partial class MethodDeclarationNode : DeclarationNode
 {
-    public MethodDeclarationNode(SimpleToken? publicToken, FunctionSignatureNode signature, BlockExpressionNode body)
+    public MethodDeclarationNode(SimpleToken? publicToken, FnSignatureNode signature, BlockExpressionNode body)
         : base(SyntaxNodeKind.MethodDeclaration)
     {
         ChildTokens = new() { publicToken, };
@@ -214,7 +214,7 @@ public partial class MethodDeclarationNode : DeclarationNode
     }
 
     public SimpleToken? PublicToken => (SimpleToken?)ChildTokens[0]!;
-    public FunctionSignatureNode Signature => (FunctionSignatureNode)ChildNodes[0]!;
+    public FnSignatureNode Signature => (FnSignatureNode)ChildNodes[0]!;
     public BlockExpressionNode Body => (BlockExpressionNode)ChildNodes[1]!;
 
     public override void Accept(Visitor visitor)
@@ -712,10 +712,10 @@ public partial class TypeNode : SyntaxNode
     }
 }
 
-public partial class FunctionSignatureNode : SyntaxNode
+public partial class FnSignatureNode : SyntaxNode
 {
-    public FunctionSignatureNode(IdentifierToken identifier, ParametersListNode parameters, ColonTypeNode? returnTy)
-        : base(SyntaxNodeKind.FunctionSignature)
+    public FnSignatureNode(IdentifierToken identifier, ParametersListNode parameters, ColonTypeNode? returnTy)
+        : base(SyntaxNodeKind.FnSignature)
     {
         ChildTokens = new() { identifier, };
         ChildNodes = new() { parameters, returnTy, };
@@ -730,7 +730,7 @@ public partial class FunctionSignatureNode : SyntaxNode
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitFunctionSignature(this);
+        visitor.VisitFnSignature(this);
     }
 }
 

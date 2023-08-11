@@ -325,7 +325,7 @@ internal class ParserImpl
         return _current?.Kind switch
         {
             TokenKind.Const => ParseConstDeclaration(visibility),
-            TokenKind.Function => ParseFunctionDeclaration(visibility),
+            TokenKind.Fn => ParseFnDeclaration(visibility),
             TokenKind.Class => ParseClassDeclaration(visibility),
 
             _ => null,
@@ -365,17 +365,17 @@ internal class ParserImpl
     }
 
     /// <summary>
-    /// Parses `function identifier(param1, param2) : Type { ... }`
+    /// Parses `fn identifier(param1, param2) : Type { ... }`
     /// </summary>
-    private DeclarationNode? ParseFunctionDeclaration(SimpleToken? visibility)
+    private DeclarationNode? ParseFnDeclaration(SimpleToken? visibility)
     {
-        var functionToken = EatAssertedSimpleToken(TokenKind.Function);
-        var signature = ParseFunctionSignature();
+        var fnToken = EatAssertedSimpleToken(TokenKind.Fn);
+        var signature = ParseFnSignature();
         if (signature == null) return null;
         var body = ParseBlockExpression();
         if (body == null) return null;
 
-        return new FunctionDeclarationNode(visibility, functionToken, signature, body);
+        return new FnDeclarationNode(visibility, fnToken, signature, body);
     }
 
     /// <summary>
@@ -421,7 +421,7 @@ internal class ParserImpl
     /// </summary>
     private DeclarationNode? ParseMethodDeclaration(SimpleToken? visibility)
     {
-        var signature = ParseFunctionSignature();
+        var signature = ParseFnSignature();
         if (signature == null) return null;
         var body = ParseBlockExpression();
         if (body == null) return null;
@@ -860,7 +860,7 @@ internal class ParserImpl
         return new ArgumentNode(expression, commaToken);
     }
 
-    private FunctionSignatureNode? ParseFunctionSignature()
+    private FnSignatureNode? ParseFnSignature()
     {
         var identifier = ParseIdentifier();
         if (identifier == null) return null;
@@ -869,7 +869,7 @@ internal class ParserImpl
         var (returnTy, elided) = ParseOptionalColonTy();
         if (!elided && returnTy == null) return null;
 
-        return new FunctionSignatureNode(identifier, parameters, returnTy);
+        return new FnSignatureNode(identifier, parameters, returnTy);
     }
 
     private IdentifierToken? ParseIdentifier()

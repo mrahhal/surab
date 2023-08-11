@@ -62,70 +62,70 @@ internal sealed class RootCompiler : LoweredVisitor
         LLVM.Module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction);
     }
 
-    public override void VisitFunctionDeclaration(LoweredFunctionDeclaration node)
+    public override void VisitFunctionDeclaration(LoweredFnDeclaration node)
     {
         CompileFunction(node);
 
         base.VisitFunctionDeclaration(node);
     }
 
-    private void CompileFunction(LoweredFunctionDeclaration function)
+    private void CompileFunction(LoweredFnDeclaration fn)
     {
-        FunctionCompiler.Compile(_context, function);
+        FunctionCompiler.Compile(_context, fn);
     }
 }
 
 internal sealed class FunctionCompiler : LoweredVisitor
 {
     private readonly CompilationContext _context;
-    private readonly LoweredFunctionDeclaration _function;
-    private readonly LLVMTypeRef _functionType;
-    private readonly LLVMValueRef _functionValue;
+    private readonly LoweredFnDeclaration _fnDecl;
+    private readonly LLVMTypeRef _fnType;
+    private readonly LLVMValueRef _fnValue;
 
     private readonly Stack<LLVMUnit> _stack = new();
     private bool _returnSeen = false;
 
     private FunctionCompiler(
         CompilationContext context,
-        LoweredFunctionDeclaration function,
-        LLVMTypeRef functionType,
-        LLVMValueRef functionValue)
+        LoweredFnDeclaration fnDecl,
+        LLVMTypeRef fnType,
+        LLVMValueRef fnValue)
     {
         _context = context;
-        _function = function;
-        _functionType = functionType;
-        _functionValue = functionValue;
+        _fnDecl = fnDecl;
+        _fnType = fnType;
+        _fnValue = fnValue;
     }
 
     private LLVMCompilationContext LLVM => _context.LLVM;
 
     public static void Compile(
         CompilationContext context,
-        LoweredFunctionDeclaration function)
+        LoweredFnDeclaration fnDecl)
     {
-        var (functionType, functionValue) = context.GetOrCreate(function.FunctionSymbol);
-        Debug.Assert(functionValue.BasicBlocksCount == 0);
+        var (fnType, fnValue) = context.GetOrCreate(fnDecl.FnSymbol);
+        Debug.Assert(fnValue.BasicBlocksCount == 0);
 
-        var c = new FunctionCompiler(context, function, functionType, functionValue);
+        var c = new FunctionCompiler(context, fnDecl, fnType, fnValue);
         c.Compile();
     }
 
     private void Compile()
     {
         // Entry has to exist before visiting the params in the signature.
-        var entry = _functionValue.AppendBasicBlock("entry");
+        var entry = _fnValue.AppendBasicBlock("entry");
         LLVM.Builder.PositionAtEnd(entry);
 
-        SetupParameters(_function.FunctionSymbol.Parameters);
+        SetupParameters(_fnDecl.FnSymbol.Parameters);
         SetupLocals();
 
-        if (_function.FunctionSymbol.Identifier?.Value == "print")
+        if (_fnDecl.FnSymbol.Identifier?.Value == "print")
         {
             CompileSpecialPrint();
         }
         else
         {
-            Visit(_function.Body);
+            Visit(_fnDecl.Body);
 
             //if (_functionType.ReturnType.Kind != LLVMTypeKind.LLVMVoidTypeKind)
             //{
@@ -142,13 +142,13 @@ internal sealed class FunctionCompiler : LoweredVisitor
             }
         }
 
-        _functionValue.VerifyFunction(LLVMVerifierFailureAction.LLVMPrintMessageAction);
+        _fnValue.VerifyFunction(LLVMVerifierFailureAction.LLVMPrintMessageAction);
         //LLVM.PassManager.RunFunctionPassManager(_functionValue);
     }
 
     private void SetupLocals()
     {
-        foreach (var variableStatement in LoweringUtils.CollectLocalVariableStatements(_function.Body))
+        foreach (var variableStatement in LoweringUtils.CollectLocalVariableStatements(_fnDecl.Body))
         {
             _context.Create((LocalSymbol)variableStatement.Symbol);
         }
@@ -164,7 +164,7 @@ internal sealed class FunctionCompiler : LoweredVisitor
             printf = LLVM.Module.AddFunction("printf", printfType);
         }
 
-        var value = _functionValue.GetParam(0);
+        var value = _fnValue.GetParam(0);
 
         var strF = LLVM.Builder.BuildGlobalStringPtr("%g\n", "strF");
         LLVM.Builder.BuildCall2(printfType, printf, new[] { strF, value });
@@ -176,7 +176,7 @@ internal sealed class FunctionCompiler : LoweredVisitor
         var i = (uint)0;
         foreach (var p in parameters)
         {
-            var paramValueRef = _functionValue.GetParam(i);
+            var paramValueRef = _fnValue.GetParam(i);
             _context.Create(p, paramValueRef);
 
             i++;
@@ -214,26 +214,26 @@ internal sealed class FunctionCompiler : LoweredVisitor
 
     public override void VisitCallExpression(LoweredCallExpression node)
     {
-        var (functionType, functionValue) = _context.GetOrCreate(node.Callee);
+        var (fnType, fnValue) = _context.GetOrCreate(node.Callee);
 
         // TODO: node.Callee is not always an IdentifierExpressionNode.
         // After desugaring this will always be the identifier (or what's equivalent)?
 
-        var functionSymbol = node.Callee;
+        var fnSymbol = node.Callee;
 
         VisitList(node.Arguments);
 
-        var args = new List<LLVMValueRef>(capacity: functionSymbol.Parameters.Length);
+        var args = new List<LLVMValueRef>(capacity: fnSymbol.Parameters.Length);
 
-        for (var i = 0; i < functionSymbol.Parameters.Length; i++)
+        for (var i = 0; i < fnSymbol.Parameters.Length; i++)
         {
             var (_, argValue) = _stack.Pop();
             args.Add(argValue);
         }
 
-        var returnValue = LLVM.Builder.BuildCall2(functionType, functionValue, args.ToArray());
+        var returnValue = LLVM.Builder.BuildCall2(fnType, fnValue, args.ToArray());
         // Always push a value, even if void, since this gets popped in VisitExpressionStatement.
-        _stack.Push((functionType.ReturnType, returnValue));
+        _stack.Push((fnType.ReturnType, returnValue));
     }
 
     public override void VisitBinaryExpression(LoweredBinaryExpression node)

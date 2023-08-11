@@ -56,19 +56,19 @@ internal abstract class LoweredDeclaration : LoweredNode
 }
 
 // Lowered from both functions and methods.
-internal sealed class LoweredFunctionDeclaration : LoweredDeclaration
+internal sealed class LoweredFnDeclaration : LoweredDeclaration
 {
-    public LoweredFunctionDeclaration(
+    public LoweredFnDeclaration(
         SyntaxNode parsedNode,
-        FunctionSymbol functionSymbol,
+        FnSymbol fnSymbol,
         LoweredStatementList body)
         : base(parsedNode)
     {
-        FunctionSymbol = functionSymbol;
+        FnSymbol = fnSymbol;
         Body = body;
     }
 
-    public FunctionSymbol FunctionSymbol { get; }
+    public FnSymbol FnSymbol { get; }
 
     public LoweredStatementList Body { get; }
 
@@ -347,7 +347,7 @@ internal sealed class LoweredCallExpression : LoweredExpression
 {
     public LoweredCallExpression(
         SyntaxNode parsedNode,
-        FunctionSymbol callee,
+        FnSymbol callee,
         IEnumerable<LoweredExpression> arguments)
         : base(parsedNode)
     {
@@ -355,7 +355,7 @@ internal sealed class LoweredCallExpression : LoweredExpression
         Arguments = arguments.ToImmutableArray();
     }
 
-    public FunctionSymbol Callee { get; set; }
+    public FnSymbol Callee { get; set; }
 
     public ImmutableArray<LoweredExpression> Arguments { get; }
 

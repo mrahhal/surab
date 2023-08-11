@@ -12,16 +12,16 @@ public class ParserTests
     [Fact]
     public void Declaration_Function()
     {
-        var src = "function foo() {}";
-        var node = ParseDeclaration(src).Should().BeOfType<FunctionDeclarationNode>().Subject;
+        var src = "fn foo() {}";
+        var node = ParseDeclaration(src).Should().BeOfType<FnDeclarationNode>().Subject;
         node.PublicToken.Should().BeNull();
     }
 
     [Fact]
     public void Declaration_Function2()
     {
-        var src = "public function foo(number: Number): Number { 2 }";
-        var node = ParseDeclaration(src).Should().BeOfType<FunctionDeclarationNode>().Subject;
+        var src = "public fn foo(number: Number): Number { 2 }";
+        var node = ParseDeclaration(src).Should().BeOfType<FnDeclarationNode>().Subject;
         node.PublicToken.Should().NotBeNull();
     }
 
@@ -206,9 +206,9 @@ public class ParserTests
     [Fact]
     public void Parameters_NoType()
     {
-        // Syntax error, but should still lead to a proper FunctionDeclarationNode.
-        var src = "function a(b /* : number */) {}";
-        var node = ParseDeclaration(src).Should().BeOfType<FunctionDeclarationNode>().Subject;
+        // Syntax error, but should still lead to a proper FnDeclarationNode.
+        var src = "fn a(b /* : number */) {}";
+        var node = ParseDeclaration(src).Should().BeOfType<FnDeclarationNode>().Subject;
         node.Signature.Parameters.Parameters.Should().HaveCount(1);
         node.Signature.Parameters.Parameters.ElementAt(0).Type.Should().BeNull();
     }
@@ -216,24 +216,24 @@ public class ParserTests
     [Fact]
     public void Parameters_1()
     {
-        var src = "function a() {}";
-        var node = ParseDeclaration(src).Should().BeOfType<FunctionDeclarationNode>().Subject;
+        var src = "fn a() {}";
+        var node = ParseDeclaration(src).Should().BeOfType<FnDeclarationNode>().Subject;
         node.Signature.Parameters.Parameters.Should().HaveCount(0);
     }
 
     [Fact]
     public void Parameters_2()
     {
-        var src = "function a(b: number) {}";
-        var node = ParseDeclaration(src).Should().BeOfType<FunctionDeclarationNode>().Subject;
+        var src = "fn a(b: number) {}";
+        var node = ParseDeclaration(src).Should().BeOfType<FnDeclarationNode>().Subject;
         node.Signature.Parameters.Parameters.Should().HaveCount(1);
     }
 
     [Fact]
     public void Parameters_3()
     {
-        var src = "function a(b: number, c: number) {}";
-        var node = ParseDeclaration(src).Should().BeOfType<FunctionDeclarationNode>().Subject;
+        var src = "fn a(b: number, c: number) {}";
+        var node = ParseDeclaration(src).Should().BeOfType<FnDeclarationNode>().Subject;
         node.Signature.Parameters.Parameters.Should().HaveCount(2);
     }
 
@@ -335,12 +335,12 @@ public class ParserTests
     public void BlockAsStatement_2()
     {
         var src = """
-            function foo(): Number {
+            fn foo(): Number {
                 { 1 }
                 { 2; }
             }
             """;
-        var node = ParseDeclaration(src).Should().BeOfType<FunctionDeclarationNode>().Subject;
+        var node = ParseDeclaration(src).Should().BeOfType<FnDeclarationNode>().Subject;
         var body = node.Body;
         body.Statements.Should().HaveCount(2);
         body.Statements.ElementAt(0).Should().BeOfType<BareExpressionStatementNode>();

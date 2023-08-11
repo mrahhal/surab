@@ -76,13 +76,13 @@ public sealed class ConstSymbol : Symbol
     }
 }
 
-public sealed class FunctionSymbol : Symbol
+public sealed class FnSymbol : Symbol
 {
-    private readonly FunctionSignatureNode _node;
+    private readonly FnSignatureNode _node;
     private TypeSymbol? _returnType;
     private ImmutableArray<ParameterSymbol> _parameters;
 
-    internal FunctionSymbol(FunctionSignatureNode node)
+    internal FnSymbol(FnSignatureNode node)
     {
         _node = node;
     }

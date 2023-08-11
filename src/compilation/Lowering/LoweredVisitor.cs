@@ -20,7 +20,7 @@ internal abstract partial class LoweredVisitor
         switch (node)
         {
             case LoweredModule n: VisitModule(n); break;
-            case LoweredFunctionDeclaration n: VisitFunctionDeclaration(n); break;
+            case LoweredFnDeclaration n: VisitFunctionDeclaration(n); break;
             case LoweredTypeDeclaration n: VisitTypeDeclaration(n); break;
             case LoweredVariableStatement n: VisitVariableStatement(n); break;
             case LoweredReturnStatement n: VisitReturnStatement(n); break;
@@ -45,7 +45,7 @@ internal abstract partial class LoweredVisitor
         Walk(node);
     }
 
-    public virtual void VisitFunctionDeclaration(LoweredFunctionDeclaration node)
+    public virtual void VisitFunctionDeclaration(LoweredFnDeclaration node)
     {
         Walk(node);
     }
