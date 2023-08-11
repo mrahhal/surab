@@ -12,8 +12,8 @@ public class BlockExpressionTests
     {
         var output = IntegrationRunner.Run($$"""
             function main() {
-              let a = {{snippet}};
-              print(a);
+                let a = {{snippet}};
+                print(a);
             }
             """);
 
@@ -29,8 +29,8 @@ public class BlockExpressionTests
     {
         IntegrationRunner.Run($$"""
             function main() {
-              let a = {{snippet}};
-              print(a);
+                let a = {{snippet}};
+                print(a);
             }
             """, fails: true);
     }
@@ -40,8 +40,8 @@ public class BlockExpressionTests
     {
         var output = IntegrationRunner.Run("""
             function main() {
-              let a = 2;
-              print(a);
+                let a = 2;
+                print(a);
             }
             """);
 
@@ -55,13 +55,13 @@ public class BlockExpressionTests
     {
         var output = IntegrationRunner.Run("""
             function main() {
-              { }
-              {
-                let a = 4;
-              }
-              let a = 2;
-              print(a);
-              { }
+                { }
+                {
+                    let a = 4;
+                }
+                let a = 2;
+                print(a);
+                { }
             }
             """);
 

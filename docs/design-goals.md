@@ -1,6 +1,7 @@
 # Design Goals
 
 Targets:
+
 - High level, statically typed, expressive, feature-full
 - Dynamic support
 - Bytecode compiler and VM
@@ -9,10 +10,12 @@ Targets:
 ## Phases
 
 1st phase:
+
 - Minimal language features enough to write a simple program
 - Compile to bytecode file or run through in one pass
 
 2nd phase:
+
 - vscode language service extension (colorize, intellisense, references, etc)
 - Standard lib (especially for built in types like Number/String/etc -> think about value vs reference types)
 - Convention docs
@@ -32,6 +35,7 @@ Targets:
   - Extensions
 
 Stretch phase:
+
 - Incremental re-analysis, instead of full file re-analysis on code changes
 - tooling: format, linter, etc
 

@@ -143,8 +143,7 @@ public class SemanticModelTests
     public void FunctionReturnTypeAsNoneIfNotSet()
     {
         var src = """
-            function f() {
-            }
+            function f() { }
             """;
         var tree = Parser.ParseModule(src);
         var model = SemanticModel.Create(tree);

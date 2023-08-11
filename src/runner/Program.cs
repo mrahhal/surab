@@ -4,25 +4,25 @@ using Surab.Compilation;
 
 var src = """
     function print(v: Number) {
-      // Compiler intrinsic
+        // Compiler intrinsic
     }
 
     function noop() { }
 
     function foo(x: Number, y: Number): Number {
-      let e = x + y;
-      return e + 1;
-       //return x + y;
+        let e = x + y;
+        return e + 1;
+        //return x + y;
     }
 
     function main() {
-      let a = 2;
-      noop();
-      let b: Number = 4;
-      let c = foo(a, b);
-      c = 999.2;
-      print(c);
-      print(41 + 1);
+        let a = 2;
+        noop();
+        let b: Number = 4;
+        let c = foo(a, b);
+        c = 999.2;
+        print(c);
+        print(41 + 1);
     }
     """;
 var tree = Parser.ParseModule(src);

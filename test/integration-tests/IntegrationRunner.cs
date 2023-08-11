@@ -10,7 +10,7 @@ public static class IntegrationRunner
     {
         src = """
             function print(v: Number) {
-              // Compiler intrinsic
+                // Compiler intrinsic
             }
             """ + src;
 

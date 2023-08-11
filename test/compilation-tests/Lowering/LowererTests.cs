@@ -9,7 +9,7 @@ public class LowererTests
     {
         var src = """
             function foo(): Number {
-              2
+                2
             }
             """;
         var f = LowerFunction(src);
@@ -36,7 +36,7 @@ public class LowererTests
     {
         var src = """
             function foo() {
-              let a = 2;
+                let a = 2;
             }
             """;
         var f = LowerFunction(src);
@@ -53,8 +53,8 @@ public class LowererTests
     {
         var src = """
             function foo() {
-              let b: Number;
-              let a = b = 2;
+                let b: Number;
+                let a = b = 2;
             }
             """;
         var f = LowerFunction(src);
@@ -75,7 +75,7 @@ public class LowererTests
     {
         var src = """
             function foo() {
-              let a = { 2 };
+                let a = { 2 };
             }
             """;
         var f = LowerFunction(src);
@@ -92,7 +92,7 @@ public class LowererTests
     {
         var src = """
             function foo() {
-              let a = { let b = 2 + 1; b };
+                let a = { let b = 2 + 1; b };
             }
             """;
         var f = LowerFunction(src);
@@ -113,8 +113,8 @@ public class LowererTests
     {
         var src = """
             function foo() {
-              let a: Number;
-              a = 2;
+                let a: Number;
+                a = 2;
             }
             """;
         var f = LowerFunction(src);
@@ -131,7 +131,7 @@ public class LowererTests
     {
         var src = """
             function foo() {
-              { }
+                { }
             }
             """;
         var f = LowerFunction(src);

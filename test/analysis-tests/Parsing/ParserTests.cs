@@ -336,8 +336,8 @@ public class ParserTests
     {
         var src = """
             function foo(): Number {
-              { 1 }
-              { 2; }
+                { 1 }
+                { 2; }
             }
             """;
         var node = ParseDeclaration(src).Should().BeOfType<FunctionDeclarationNode>().Subject;
