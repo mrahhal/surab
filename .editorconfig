@@ -11,3 +11,7 @@ indent_size = 4
 [*.{md,json,csproj,props}]
 indent_style = space
 indent_size = 2
+
+[*.cs]
+# CA1822: Mark members as static
+dotnet_diagnostic.CA1822.severity = none
