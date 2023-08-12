@@ -12,132 +12,132 @@ public abstract partial class Visitor
         Walk(node);
     }
 
-    public virtual void VisitConstDeclaration(ConstDeclarationNode node)
+    public virtual void VisitConstDecl(ConstDeclNode node)
     {
         Walk(node);
     }
 
-    public virtual void VisitFnDeclaration(FnDeclarationNode node)
+    public virtual void VisitFnDecl(FnDeclNode node)
     {
         Walk(node);
     }
 
-    public virtual void VisitClassDeclaration(ClassDeclarationNode node)
+    public virtual void VisitClassDecl(ClassDeclNode node)
     {
         Walk(node);
     }
 
-    public virtual void VisitFieldDeclaration(FieldDeclarationNode node)
+    public virtual void VisitFieldDecl(FieldDeclNode node)
     {
         Walk(node);
     }
 
-    public virtual void VisitMethodDeclaration(MethodDeclarationNode node)
+    public virtual void VisitMethodDecl(MethodDeclNode node)
     {
         Walk(node);
     }
 
-    public virtual void VisitSkippedTokensDeclaration(SkippedTokensDeclarationNode node)
+    public virtual void VisitSkippedTokensDecl(SkippedTokensDeclNode node)
     {
         Walk(node);
     }
 
-    public virtual void VisitLetStatement(LetStatementNode node)
+    public virtual void VisitLetStmt(LetStmtNode node)
     {
         Walk(node);
     }
 
-    public virtual void VisitReturnStatement(ReturnStatementNode node)
+    public virtual void VisitReturnStmt(ReturnStmtNode node)
     {
         Walk(node);
     }
 
-    public virtual void VisitExpressionStatement(ExpressionStatementNode node)
+    public virtual void VisitExprStmt(ExprStmtNode node)
     {
         Walk(node);
     }
 
-    public virtual void VisitBareExpressionStatement(BareExpressionStatementNode node)
+    public virtual void VisitBareExprStmt(BareExprStmtNode node)
     {
         Walk(node);
     }
 
-    public virtual void VisitSkippedTokensStatement(SkippedTokensStatementNode node)
+    public virtual void VisitSkippedTokensStmt(SkippedTokensStmtNode node)
     {
         Walk(node);
     }
 
-    public virtual void VisitBlockExpression(BlockExpressionNode node)
+    public virtual void VisitBlockExpr(BlockExprNode node)
     {
         Walk(node);
     }
 
-    public virtual void VisitAssignmentExpression(AssignmentExpressionNode node)
+    public virtual void VisitAssignmentExpr(AssignmentExprNode node)
     {
         Walk(node);
     }
 
-    public virtual void VisitUnaryExpression(UnaryExpressionNode node)
+    public virtual void VisitUnaryExpr(UnaryExprNode node)
     {
         Walk(node);
     }
 
-    public virtual void VisitBinaryExpression(BinaryExpressionNode node)
+    public virtual void VisitBinaryExpr(BinaryExprNode node)
     {
         Walk(node);
     }
 
-    public virtual void VisitGroupingExpression(GroupingExpressionNode node)
+    public virtual void VisitGroupingExpr(GroupingExprNode node)
     {
         Walk(node);
     }
 
-    public virtual void VisitCallExpression(CallExpressionNode node)
+    public virtual void VisitCallExpr(CallExprNode node)
     {
         Walk(node);
     }
 
-    public virtual void VisitAccessExpression(AccessExpressionNode node)
+    public virtual void VisitAccessExpr(AccessExprNode node)
     {
         Walk(node);
     }
 
-    public virtual void VisitLiteralExpression(LiteralExpressionNode node)
+    public virtual void VisitLiteralExpr(LiteralExprNode node)
     {
         Walk(node);
     }
 
-    public virtual void VisitIdentifierExpression(IdentifierExpressionNode node)
+    public virtual void VisitIdentifierExpr(IdentifierExprNode node)
     {
         Walk(node);
     }
 
-    public virtual void VisitThisExpression(ThisExpressionNode node)
+    public virtual void VisitThisExpr(ThisExprNode node)
     {
         Walk(node);
     }
 
-    public virtual void VisitSkippedTokensExpression(SkippedTokensExpressionNode node)
+    public virtual void VisitSkippedTokensExpr(SkippedTokensExprNode node)
     {
         Walk(node);
     }
 
-    public virtual void VisitParametersList(ParametersListNode node)
+    public virtual void VisitParamsList(ParamsListNode node)
     {
         Walk(node);
     }
 
-    public virtual void VisitParameter(ParameterNode node)
+    public virtual void VisitParam(ParamNode node)
     {
         Walk(node);
     }
 
-    public virtual void VisitArgumentsList(ArgumentsListNode node)
+    public virtual void VisitArgsList(ArgsListNode node)
     {
         Walk(node);
     }
 
-    public virtual void VisitArgument(ArgumentNode node)
+    public virtual void VisitArg(ArgNode node)
     {
         Walk(node);
     }
@@ -152,7 +152,7 @@ public abstract partial class Visitor
         Walk(node);
     }
 
-    public virtual void VisitFnSignature(FnSignatureNode node)
+    public virtual void VisitFnSig(FnSigNode node)
     {
         Walk(node);
     }

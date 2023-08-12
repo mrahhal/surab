@@ -62,32 +62,32 @@ internal sealed class RootCompiler : LoweredVisitor
         LLVM.Module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction);
     }
 
-    public override void VisitFunctionDeclaration(LoweredFnDeclaration node)
+    public override void VisitFnDecl(LoweredFnDecl node)
     {
-        CompileFunction(node);
+        CompileFn(node);
 
-        base.VisitFunctionDeclaration(node);
+        base.VisitFnDecl(node);
     }
 
-    private void CompileFunction(LoweredFnDeclaration fn)
+    private void CompileFn(LoweredFnDecl fn)
     {
-        FunctionCompiler.Compile(_context, fn);
+        FnCompiler.Compile(_context, fn);
     }
 }
 
-internal sealed class FunctionCompiler : LoweredVisitor
+internal sealed class FnCompiler : LoweredVisitor
 {
     private readonly CompilationContext _context;
-    private readonly LoweredFnDeclaration _fnDecl;
+    private readonly LoweredFnDecl _fnDecl;
     private readonly LLVMTypeRef _fnType;
     private readonly LLVMValueRef _fnValue;
 
     private readonly Stack<LLVMUnit> _stack = new();
     private bool _returnSeen = false;
 
-    private FunctionCompiler(
+    private FnCompiler(
         CompilationContext context,
-        LoweredFnDeclaration fnDecl,
+        LoweredFnDecl fnDecl,
         LLVMTypeRef fnType,
         LLVMValueRef fnValue)
     {
@@ -101,12 +101,12 @@ internal sealed class FunctionCompiler : LoweredVisitor
 
     public static void Compile(
         CompilationContext context,
-        LoweredFnDeclaration fnDecl)
+        LoweredFnDecl fnDecl)
     {
         var (fnType, fnValue) = context.GetOrCreate(fnDecl.FnSymbol);
         Debug.Assert(fnValue.BasicBlocksCount == 0);
 
-        var c = new FunctionCompiler(context, fnDecl, fnType, fnValue);
+        var c = new FnCompiler(context, fnDecl, fnType, fnValue);
         c.Compile();
     }
 
@@ -116,7 +116,7 @@ internal sealed class FunctionCompiler : LoweredVisitor
         var entry = _fnValue.AppendBasicBlock("entry");
         LLVM.Builder.PositionAtEnd(entry);
 
-        SetupParameters(_fnDecl.FnSymbol.Parameters);
+        SetupParams(_fnDecl.FnSymbol.Params);
         SetupLocals();
 
         if (_fnDecl.FnSymbol.Identifier?.Value == "print")
@@ -127,7 +127,7 @@ internal sealed class FunctionCompiler : LoweredVisitor
         {
             Visit(_fnDecl.Body);
 
-            //if (_functionType.ReturnType.Kind != LLVMTypeKind.LLVMVoidTypeKind)
+            //if (_fnType.ReturnType.Kind != LLVMTypeKind.LLVMVoidTypeKind)
             //{
             //    var (_, value) = _stack.Pop();
             //    LLVM.Builder.BuildRet(value);
@@ -143,14 +143,14 @@ internal sealed class FunctionCompiler : LoweredVisitor
         }
 
         _fnValue.VerifyFunction(LLVMVerifierFailureAction.LLVMPrintMessageAction);
-        //LLVM.PassManager.RunFunctionPassManager(_functionValue);
+        //LLVM.PassManager.RunFunctionPassManager(_fnValue);
     }
 
     private void SetupLocals()
     {
-        foreach (var variableStatement in LoweringUtils.CollectLocalVariableStatements(_fnDecl.Body))
+        foreach (var variableStmt in LoweringUtils.CollectLocalVariableStmts(_fnDecl.Body))
         {
-            _context.Create((LocalSymbol)variableStatement.Symbol);
+            _context.Create((LocalSymbol)variableStmt.Symbol);
         }
     }
 
@@ -171,10 +171,10 @@ internal sealed class FunctionCompiler : LoweredVisitor
         LLVM.Builder.BuildRetVoid();
     }
 
-    private void SetupParameters(IEnumerable<ParameterSymbol> parameters)
+    private void SetupParams(IEnumerable<ParamSymbol> @params)
     {
         var i = (uint)0;
-        foreach (var p in parameters)
+        foreach (var p in @params)
         {
             var paramValueRef = _fnValue.GetParam(i);
             _context.Create(p, paramValueRef);
@@ -183,60 +183,60 @@ internal sealed class FunctionCompiler : LoweredVisitor
         }
     }
 
-    public override void VisitExpressionStatement(LoweredExpressionStatement node)
+    public override void VisitExprStmt(LoweredExprStmt node)
     {
-        base.VisitExpressionStatement(node);
+        base.VisitExprStmt(node);
 
-        // Discard the value? For non void functions..? Or always push a value in an expression to discard here?
+        // Discard the value? For non void functions..? Or always push a value in an expr to discard here?
         _stack.Pop();
     }
 
-    public override void VisitVariableStatement(LoweredVariableStatement node)
+    public override void VisitVariableStmt(LoweredVariableStmt node)
     {
-        // Nothing todo here since these variable statements are collected and processed at the start of a function
+        // Nothing todo here since these variable stmts are collected and processed at the start of a function
         // to setup alloca instructions in the entry block.
     }
 
-    public override void VisitReturnStatement(LoweredReturnStatement node)
+    public override void VisitReturnStmt(LoweredReturnStmt node)
     {
         _returnSeen = true;
-        if (node.Expression == null)
+        if (node.Expr == null)
         {
             LLVM.Builder.BuildRetVoid();
         }
         else
         {
-            Visit(node.Expression);
+            Visit(node.Expr);
             var (_, value) = _stack.Pop();
             LLVM.Builder.BuildRet(value);
         }
     }
 
-    public override void VisitCallExpression(LoweredCallExpression node)
+    public override void VisitCallExpr(LoweredCallExpr node)
     {
         var (fnType, fnValue) = _context.GetOrCreate(node.Callee);
 
-        // TODO: node.Callee is not always an IdentifierExpressionNode.
+        // TODO: node.Callee is not always an IdentifierExprNode.
         // After desugaring this will always be the identifier (or what's equivalent)?
 
         var fnSymbol = node.Callee;
 
-        VisitList(node.Arguments);
+        VisitList(node.Args);
 
-        var args = new List<LLVMValueRef>(capacity: fnSymbol.Parameters.Length);
+        var args = new List<LLVMValueRef>(capacity: fnSymbol.Params.Length);
 
-        for (var i = 0; i < fnSymbol.Parameters.Length; i++)
+        for (var i = 0; i < fnSymbol.Params.Length; i++)
         {
             var (_, argValue) = _stack.Pop();
             args.Add(argValue);
         }
 
         var returnValue = LLVM.Builder.BuildCall2(fnType, fnValue, args.ToArray());
-        // Always push a value, even if void, since this gets popped in VisitExpressionStatement.
+        // Always push a value, even if void, since this gets popped in VisitExprStmt.
         _stack.Push((fnType.ReturnType, returnValue));
     }
 
-    public override void VisitBinaryExpression(LoweredBinaryExpression node)
+    public override void VisitBinaryExpr(LoweredBinaryExpr node)
     {
         Visit(node.Left);
         var (_, leftValue) = _stack.Pop();
@@ -255,23 +255,23 @@ internal sealed class FunctionCompiler : LoweredVisitor
         _stack.Push((LLVMTypeRef.Double, value));
     }
 
-    public override void VisitVariableLoadExpression(LoweredVariableLoadExpression node)
+    public override void VisitVariableLoadExpr(LoweredVariableLoadExpr node)
     {
         var (type, value) = _context.GetOrCreate(node.Variable);
         value = LLVM.Builder.BuildLoad2(type, value);
         _stack.Push((type, value));
     }
 
-    public override void VisitVariableStoreExpression(LoweredVariableStoreStatement node)
+    public override void VisitVariableStoreExpr(LoweredVariableStoreStmt node)
     {
         var (_, value) = _context.GetOrCreate(node.Variable);
-        Visit(node.Expression);
+        Visit(node.Expr);
         var (_, rhs) = _stack.Pop();
 
         LLVM.Builder.BuildStore(rhs, value);
     }
 
-    public override void VisitLiteralExpression(LoweredLiteralExpression node)
+    public override void VisitLiteralExpr(LoweredLiteralExpr node)
     {
         // Similar to CompilationContext.GetForType?
         switch (node.Literal.LiteralTokenKind)

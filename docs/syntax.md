@@ -17,7 +17,7 @@ static SOME_RESULT = {
 };
 
 // Functions can exist out of classes, in which case they simply live in the namespace.
-function main() {
+fn main() {
     let greeter = Greeter.new("mrahhal");
     greeter.greet();
 
@@ -59,7 +59,7 @@ Records (by value is optional):
 // struct will be by value, class will be by reference
 record [struct|class] Response(name: String, number: Number);
 
-function main() {
+fn main() {
     let r = Response {
         name: "mrahhal",
         number: 3,
@@ -93,7 +93,7 @@ let b = 2;
 
 Print(add(a, b));
 
-function add(a: Number, b: Number) {
+fn add(a: Number, b: Number) {
     return a + b;
 }
 ```

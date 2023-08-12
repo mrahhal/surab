@@ -24,7 +24,7 @@ Targets:
 - Additional language features:
   - Auto fields in class ctor
   - Mutable
-  - Default function parameter value
+  - Default function param value
   - Extension everything (useful for records)
   - Block expressions (with a non semi coloned last expressed to denote block return result)
   - Traits

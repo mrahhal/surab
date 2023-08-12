@@ -102,10 +102,10 @@ public class SemanticModel
     {
         var result = node switch
         {
-            IdentifierExpressionNode n => LookupSymbol(n),
+            IdentifierExprNode n => LookupSymbol(n),
             TypeNode n => LookupSymbol(n.Identifier, n),
-            ArgumentNode n => LookupSymbol(n.Expression),
-            //CallExpressionNode n => LookupSymbol(n.Callee),
+            ArgNode n => LookupSymbol(n.Expr),
+            //CallExprNode n => LookupSymbol(n.Callee),
 
             _ => null,
         };
@@ -113,7 +113,7 @@ public class SemanticModel
         return result ?? LookupType(node);
     }
 
-    public Symbol? LookupSymbol(IdentifierExpressionNode node)
+    public Symbol? LookupSymbol(IdentifierExprNode node)
     {
         return LookupSymbol(node.Identifier, node);
     }
@@ -147,53 +147,53 @@ public class SemanticModel
 
         return node switch
         {
-            BareExpressionStatementNode n => LookupType(n),
-            ExpressionNode n => LookupType(n),
-            ArgumentNode n => LookupType(n.Expression),
+            BareExprStmtNode n => LookupType(n),
+            ExprNode n => LookupType(n),
+            ArgNode n => LookupType(n.Expr),
 
             // For convenience.
-            EqualsValueClauseNode n => LookupType(n.Expression),
+            EqualsValueClauseNode n => LookupType(n.Expr),
 
             _ => null,
         };
     }
 
-    private TypeSymbol? LookupType(BareExpressionStatementNode node)
+    private TypeSymbol? LookupType(BareExprStmtNode node)
     {
-        return LookupType(node.Expression);
+        return LookupType(node.Expr);
     }
 
-    private TypeSymbol? LookupType(ExpressionNode node)
+    private TypeSymbol? LookupType(ExprNode node)
     {
         return node switch
         {
-            BlockExpressionNode n => LookupType(n),
-            AssignmentExpressionNode n => LookupType(n.Lhs),
-            UnaryExpressionNode n => LookupType(n.Expression),
-            BinaryExpressionNode n => LookupType(n),
-            GroupingExpressionNode n => LookupType(n.Expression),
-            CallExpressionNode n => LookupType(n),
-            AccessExpressionNode n => LookupType(n),
-            LiteralExpressionNode n => LookupType(n),
-            IdentifierExpressionNode n => LookupType(n),
-            ThisExpressionNode n => LookupType(n),
+            BlockExprNode n => LookupType(n),
+            AssignmentExprNode n => LookupType(n.Lhs),
+            UnaryExprNode n => LookupType(n.Expr),
+            BinaryExprNode n => LookupType(n),
+            GroupingExprNode n => LookupType(n.Expr),
+            CallExprNode n => LookupType(n),
+            AccessExprNode n => LookupType(n),
+            LiteralExprNode n => LookupType(n),
+            IdentifierExprNode n => LookupType(n),
+            ThisExprNode n => LookupType(n),
 
             _ => null,
         };
     }
 
-    private TypeSymbol? LookupType(BlockExpressionNode node)
+    private TypeSymbol? LookupType(BlockExprNode node)
     {
-        var lastStatement = node.Statements.LastOrDefault();
-        if (lastStatement == null)
+        var lastStmt = node.Stmts.LastOrDefault();
+        if (lastStmt == null)
         {
             return null;
         }
 
-        return LookupType(lastStatement);
+        return LookupType(lastStmt);
     }
 
-    private TypeSymbol? LookupType(BinaryExpressionNode node)
+    private TypeSymbol? LookupType(BinaryExprNode node)
     {
         var leftType = LookupType(node.Left);
         var rightType = LookupType(node.Right);
@@ -206,13 +206,13 @@ public class SemanticModel
         return leftType;
     }
 
-    private TypeSymbol? LookupType(CallExpressionNode node)
+    private TypeSymbol? LookupType(CallExprNode node)
     {
         var calleeSymbol = LookupSymbol(node.Callee);
         return calleeSymbol is FnSymbol fnSymbol ? fnSymbol.ReturnType : null;
     }
 
-    private TypeSymbol? LookupType(AccessExpressionNode node)
+    private TypeSymbol? LookupType(AccessExprNode node)
     {
         var targetSymbol = LookupSymbol(node.Target);
         return targetSymbol switch
@@ -238,7 +238,7 @@ public class SemanticModel
         }
     }
 
-    private static TypeSymbol? LookupType(LiteralExpressionNode node)
+    private static TypeSymbol? LookupType(LiteralExprNode node)
     {
         return node.Literal.LiteralTokenKind switch
         {
@@ -251,7 +251,7 @@ public class SemanticModel
         };
     }
 
-    private TypeSymbol? LookupType(IdentifierExpressionNode node)
+    private TypeSymbol? LookupType(IdentifierExprNode node)
     {
         var binder = GetEnclosingBinder(node);
         var symbol = binder?.LookupIdentifier(node.Identifier);
@@ -261,14 +261,14 @@ public class SemanticModel
             TypeSymbol s => s,
             ConstSymbol s => s.Type,
             FieldSymbol s => s.Type,
-            ParameterSymbol s => s.Type,
+            ParamSymbol s => s.Type,
             LocalSymbol s => s.Type,
 
             _ => null,
         };
     }
 
-    private TypeSymbol? LookupType(ThisExpressionNode node)
+    private TypeSymbol? LookupType(ThisExprNode node)
     {
         var binder = GetEnclosingBinder(node);
         return binder?.LookupThis();
@@ -278,7 +278,7 @@ public class SemanticModel
     {
         return node switch
         {
-            LetStatementNode letStatement => LookupType(letStatement.Initializer),
+            LetStmtNode letStmt => LookupType(letStmt.Initializer),
             _ => null,
         };
     }
@@ -351,15 +351,15 @@ public class SemanticModel
         {
             return node switch
             {
-                ConstDeclarationNode n => new ConstSymbol(n),
-                FnDeclarationNode n => new FnSymbol(n.Signature),
-                MethodDeclarationNode n => new FnSymbol(n.Signature),
-                FieldDeclarationNode n => new FieldSymbol(n),
-                ClassDeclarationNode n => new NamedTypeSymbol(n),
+                ConstDeclNode n => new ConstSymbol(n),
+                FnDeclNode n => new FnSymbol(n.Sig),
+                MethodDeclNode n => new FnSymbol(n.Sig),
+                FieldDeclNode n => new FieldSymbol(n),
+                ClassDeclNode n => new NamedTypeSymbol(n),
 
-                LetStatementNode n => new LocalSymbol(n),
+                LetStmtNode n => new LocalSymbol(n),
 
-                ParameterNode n => new ParameterSymbol(n),
+                ParamNode n => new ParamSymbol(n),
 
                 _ => null,
             };
@@ -382,10 +382,10 @@ public class SemanticModel
             return node switch
             {
                 ModuleNode n => new ModuleBinder(n),
-                ClassDeclarationNode n => new ClassDeclarationBinder(n, (NamedTypeSymbol)symbol!),
-                FnDeclarationNode n => new FunctionBinder(n.Signature, (FnSymbol)symbol!),
-                MethodDeclarationNode n => new FunctionBinder(n.Signature, (FnSymbol)symbol!),
-                BlockExpressionNode n => new BlockExpressionBinder(n),
+                ClassDeclNode n => new ClassDeclBinder(n, (NamedTypeSymbol)symbol!),
+                FnDeclNode n => new FnBinder(n.Sig, (FnSymbol)symbol!),
+                MethodDeclNode n => new FnBinder(n.Sig, (FnSymbol)symbol!),
+                BlockExprNode n => new BlockExprBinder(n),
 
                 _ => null,
             };

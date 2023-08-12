@@ -52,51 +52,51 @@ file static class Helper
 public enum SyntaxNodeKind
 {
     Module,
-    ConstDeclaration,
-    FnDeclaration,
-    ClassDeclaration,
-    FieldDeclaration,
-    MethodDeclaration,
-    SkippedTokensDeclaration,
-    LetStatement,
-    ReturnStatement,
-    ExpressionStatement,
-    BareExpressionStatement,
-    SkippedTokensStatement,
-    BlockExpression,
-    AssignmentExpression,
-    UnaryExpression,
-    BinaryExpression,
-    GroupingExpression,
-    CallExpression,
-    AccessExpression,
-    LiteralExpression,
-    IdentifierExpression,
-    ThisExpression,
-    SkippedTokensExpression,
-    ParametersList,
-    Parameter,
-    ArgumentsList,
-    Argument,
+    ConstDecl,
+    FnDecl,
+    ClassDecl,
+    FieldDecl,
+    MethodDecl,
+    SkippedTokensDecl,
+    LetStmt,
+    ReturnStmt,
+    ExprStmt,
+    BareExprStmt,
+    SkippedTokensStmt,
+    BlockExpr,
+    AssignmentExpr,
+    UnaryExpr,
+    BinaryExpr,
+    GroupingExpr,
+    CallExpr,
+    AccessExpr,
+    LiteralExpr,
+    IdentifierExpr,
+    ThisExpr,
+    SkippedTokensExpr,
+    ParamsList,
+    Param,
+    ArgsList,
+    Arg,
     ColonType,
     Type,
-    FnSignature,
+    FnSig,
     EqualsValueClause,
 }
 
 public partial class ModuleNode : SyntaxNode
 {
-    public ModuleNode(IEnumerable<DeclarationNode> declarations)
+    public ModuleNode(IEnumerable<DeclNode> decls)
         : base(SyntaxNodeKind.Module)
     {
         ChildTokens = new();
-        ChildNodes = declarations.Cast<SyntaxNode?>().ToList();
+        ChildNodes = decls.Cast<SyntaxNode?>().ToList();
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
     }
 
-    public IEnumerable<DeclarationNode> Declarations => ChildNodes.Cast<DeclarationNode>();
+    public IEnumerable<DeclNode> Decls => ChildNodes.Cast<DeclNode>();
 
     public override void Accept(Visitor visitor)
     {
@@ -104,10 +104,10 @@ public partial class ModuleNode : SyntaxNode
     }
 }
 
-public partial class ConstDeclarationNode : DeclarationNode
+public partial class ConstDeclNode : DeclNode
 {
-    public ConstDeclarationNode(SimpleToken? publicToken, SimpleToken constToken, IdentifierToken identifier, ColonTypeNode? type, SimpleToken equalToken, ExpressionNode value)
-        : base(SyntaxNodeKind.ConstDeclaration)
+    public ConstDeclNode(SimpleToken? publicToken, SimpleToken constToken, IdentifierToken identifier, ColonTypeNode? type, SimpleToken equalToken, ExprNode value)
+        : base(SyntaxNodeKind.ConstDecl)
     {
         ChildTokens = new() { publicToken, constToken, identifier, equalToken, };
         ChildNodes = new() { type, value, };
@@ -121,21 +121,21 @@ public partial class ConstDeclarationNode : DeclarationNode
     public IdentifierToken Identifier => (IdentifierToken)ChildTokens[2]!;
     public ColonTypeNode? Type => (ColonTypeNode?)ChildNodes[0]!;
     public SimpleToken EqualToken => (SimpleToken)ChildTokens[3]!;
-    public ExpressionNode Value => (ExpressionNode)ChildNodes[1]!;
+    public ExprNode Value => (ExprNode)ChildNodes[1]!;
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitConstDeclaration(this);
+        visitor.VisitConstDecl(this);
     }
 }
 
-public partial class FnDeclarationNode : DeclarationNode
+public partial class FnDeclNode : DeclNode
 {
-    public FnDeclarationNode(SimpleToken? publicToken, SimpleToken fnToken, FnSignatureNode signature, BlockExpressionNode body)
-        : base(SyntaxNodeKind.FnDeclaration)
+    public FnDeclNode(SimpleToken? publicToken, SimpleToken fnToken, FnSigNode sig, BlockExprNode body)
+        : base(SyntaxNodeKind.FnDecl)
     {
         ChildTokens = new() { publicToken, fnToken, };
-        ChildNodes = new() { signature, body, };
+        ChildNodes = new() { sig, body, };
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -143,19 +143,19 @@ public partial class FnDeclarationNode : DeclarationNode
 
     public SimpleToken? PublicToken => (SimpleToken?)ChildTokens[0]!;
     public SimpleToken FnToken => (SimpleToken)ChildTokens[1]!;
-    public FnSignatureNode Signature => (FnSignatureNode)ChildNodes[0]!;
-    public BlockExpressionNode Body => (BlockExpressionNode)ChildNodes[1]!;
+    public FnSigNode Sig => (FnSigNode)ChildNodes[0]!;
+    public BlockExprNode Body => (BlockExprNode)ChildNodes[1]!;
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitFnDeclaration(this);
+        visitor.VisitFnDecl(this);
     }
 }
 
-public partial class ClassDeclarationNode : DeclarationNode
+public partial class ClassDeclNode : DeclNode
 {
-    public ClassDeclarationNode(SimpleToken? publicToken, SimpleToken classToken, IdentifierToken identifier, SimpleToken openBraceToken, IEnumerable<DeclarationNode> members, SimpleToken closedBraceToken)
-        : base(SyntaxNodeKind.ClassDeclaration)
+    public ClassDeclNode(SimpleToken? publicToken, SimpleToken classToken, IdentifierToken identifier, SimpleToken openBraceToken, IEnumerable<DeclNode> members, SimpleToken closedBraceToken)
+        : base(SyntaxNodeKind.ClassDecl)
     {
         ChildTokens = new() { publicToken, classToken, identifier, openBraceToken, closedBraceToken, };
         ChildNodes = members.Cast<SyntaxNode?>().ToList();
@@ -168,19 +168,19 @@ public partial class ClassDeclarationNode : DeclarationNode
     public SimpleToken ClassToken => (SimpleToken)ChildTokens[1]!;
     public IdentifierToken Identifier => (IdentifierToken)ChildTokens[2]!;
     public SimpleToken OpenBraceToken => (SimpleToken)ChildTokens[3]!;
-    public IEnumerable<DeclarationNode> Members => ChildNodes.Cast<DeclarationNode>();
+    public IEnumerable<DeclNode> Members => ChildNodes.Cast<DeclNode>();
     public SimpleToken ClosedBraceToken => (SimpleToken)ChildTokens[4]!;
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitClassDeclaration(this);
+        visitor.VisitClassDecl(this);
     }
 }
 
-public partial class FieldDeclarationNode : DeclarationNode
+public partial class FieldDeclNode : DeclNode
 {
-    public FieldDeclarationNode(SimpleToken? publicToken, IdentifierToken identifier, ColonTypeNode? type, EqualsValueClauseNode initializer, SimpleToken semicolonToken)
-        : base(SyntaxNodeKind.FieldDeclaration)
+    public FieldDeclNode(SimpleToken? publicToken, IdentifierToken identifier, ColonTypeNode? type, EqualsValueClauseNode initializer, SimpleToken semicolonToken)
+        : base(SyntaxNodeKind.FieldDecl)
     {
         ChildTokens = new() { publicToken, identifier, semicolonToken, };
         ChildNodes = new() { type, initializer, };
@@ -197,36 +197,36 @@ public partial class FieldDeclarationNode : DeclarationNode
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitFieldDeclaration(this);
+        visitor.VisitFieldDecl(this);
     }
 }
 
-public partial class MethodDeclarationNode : DeclarationNode
+public partial class MethodDeclNode : DeclNode
 {
-    public MethodDeclarationNode(SimpleToken? publicToken, FnSignatureNode signature, BlockExpressionNode body)
-        : base(SyntaxNodeKind.MethodDeclaration)
+    public MethodDeclNode(SimpleToken? publicToken, FnSigNode sig, BlockExprNode body)
+        : base(SyntaxNodeKind.MethodDecl)
     {
         ChildTokens = new() { publicToken, };
-        ChildNodes = new() { signature, body, };
+        ChildNodes = new() { sig, body, };
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
     }
 
     public SimpleToken? PublicToken => (SimpleToken?)ChildTokens[0]!;
-    public FnSignatureNode Signature => (FnSignatureNode)ChildNodes[0]!;
-    public BlockExpressionNode Body => (BlockExpressionNode)ChildNodes[1]!;
+    public FnSigNode Sig => (FnSigNode)ChildNodes[0]!;
+    public BlockExprNode Body => (BlockExprNode)ChildNodes[1]!;
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitMethodDeclaration(this);
+        visitor.VisitMethodDecl(this);
     }
 }
 
-public partial class SkippedTokensDeclarationNode : DeclarationNode
+public partial class SkippedTokensDeclNode : DeclNode
 {
-    public SkippedTokensDeclarationNode(SkippedToken skipped)
-        : base(SyntaxNodeKind.SkippedTokensDeclaration)
+    public SkippedTokensDeclNode(SkippedToken skipped)
+        : base(SyntaxNodeKind.SkippedTokensDecl)
     {
         ChildTokens = new() { skipped, };
         ChildNodes = new();
@@ -239,14 +239,14 @@ public partial class SkippedTokensDeclarationNode : DeclarationNode
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitSkippedTokensDeclaration(this);
+        visitor.VisitSkippedTokensDecl(this);
     }
 }
 
-public partial class LetStatementNode : StatementNode
+public partial class LetStmtNode : StmtNode
 {
-    public LetStatementNode(SimpleToken letToken, IdentifierToken identifier, ColonTypeNode? type, EqualsValueClauseNode? initializer, SimpleToken semicolonToken)
-        : base(SyntaxNodeKind.LetStatement)
+    public LetStmtNode(SimpleToken letToken, IdentifierToken identifier, ColonTypeNode? type, EqualsValueClauseNode? initializer, SimpleToken semicolonToken)
+        : base(SyntaxNodeKind.LetStmt)
     {
         ChildTokens = new() { letToken, identifier, semicolonToken, };
         ChildNodes = new() { type, initializer, };
@@ -263,77 +263,77 @@ public partial class LetStatementNode : StatementNode
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitLetStatement(this);
+        visitor.VisitLetStmt(this);
     }
 }
 
-public partial class ReturnStatementNode : StatementNode
+public partial class ReturnStmtNode : StmtNode
 {
-    public ReturnStatementNode(SimpleToken returnToken, ExpressionNode? expression, SimpleToken semicolonToken)
-        : base(SyntaxNodeKind.ReturnStatement)
+    public ReturnStmtNode(SimpleToken returnToken, ExprNode? expr, SimpleToken semicolonToken)
+        : base(SyntaxNodeKind.ReturnStmt)
     {
         ChildTokens = new() { returnToken, semicolonToken, };
-        ChildNodes = new() { expression, };
+        ChildNodes = new() { expr, };
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
     }
 
     public SimpleToken ReturnToken => (SimpleToken)ChildTokens[0]!;
-    public ExpressionNode? Expression => (ExpressionNode?)ChildNodes[0]!;
+    public ExprNode? Expr => (ExprNode?)ChildNodes[0]!;
     public SimpleToken SemicolonToken => (SimpleToken)ChildTokens[1]!;
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitReturnStatement(this);
+        visitor.VisitReturnStmt(this);
     }
 }
 
-public partial class ExpressionStatementNode : StatementNode
+public partial class ExprStmtNode : StmtNode
 {
-    public ExpressionStatementNode(ExpressionNode expression, SimpleToken semicolonToken)
-        : base(SyntaxNodeKind.ExpressionStatement)
+    public ExprStmtNode(ExprNode expr, SimpleToken semicolonToken)
+        : base(SyntaxNodeKind.ExprStmt)
     {
         ChildTokens = new() { semicolonToken, };
-        ChildNodes = new() { expression, };
+        ChildNodes = new() { expr, };
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
     }
 
-    public ExpressionNode Expression => (ExpressionNode)ChildNodes[0]!;
+    public ExprNode Expr => (ExprNode)ChildNodes[0]!;
     public SimpleToken SemicolonToken => (SimpleToken)ChildTokens[0]!;
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitExpressionStatement(this);
+        visitor.VisitExprStmt(this);
     }
 }
 
-public partial class BareExpressionStatementNode : StatementNode
+public partial class BareExprStmtNode : StmtNode
 {
-    public BareExpressionStatementNode(ExpressionNode expression)
-        : base(SyntaxNodeKind.BareExpressionStatement)
+    public BareExprStmtNode(ExprNode expr)
+        : base(SyntaxNodeKind.BareExprStmt)
     {
         ChildTokens = new();
-        ChildNodes = new() { expression, };
+        ChildNodes = new() { expr, };
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
     }
 
-    public ExpressionNode Expression => (ExpressionNode)ChildNodes[0]!;
+    public ExprNode Expr => (ExprNode)ChildNodes[0]!;
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitBareExpressionStatement(this);
+        visitor.VisitBareExprStmt(this);
     }
 }
 
-public partial class SkippedTokensStatementNode : StatementNode
+public partial class SkippedTokensStmtNode : StmtNode
 {
-    public SkippedTokensStatementNode(SkippedToken skipped)
-        : base(SyntaxNodeKind.SkippedTokensStatement)
+    public SkippedTokensStmtNode(SkippedToken skipped)
+        : base(SyntaxNodeKind.SkippedTokensStmt)
     {
         ChildTokens = new() { skipped, };
         ChildNodes = new();
@@ -346,36 +346,36 @@ public partial class SkippedTokensStatementNode : StatementNode
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitSkippedTokensStatement(this);
+        visitor.VisitSkippedTokensStmt(this);
     }
 }
 
-public partial class BlockExpressionNode : ExpressionNode
+public partial class BlockExprNode : ExprNode
 {
-    public BlockExpressionNode(SimpleToken openBraceToken, IEnumerable<StatementNode> statements, SimpleToken closedBraceToken)
-        : base(SyntaxNodeKind.BlockExpression)
+    public BlockExprNode(SimpleToken openBraceToken, IEnumerable<StmtNode> stmts, SimpleToken closedBraceToken)
+        : base(SyntaxNodeKind.BlockExpr)
     {
         ChildTokens = new() { openBraceToken, closedBraceToken, };
-        ChildNodes = statements.Cast<SyntaxNode?>().ToList();
+        ChildNodes = stmts.Cast<SyntaxNode?>().ToList();
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
     }
 
     public SimpleToken OpenBraceToken => (SimpleToken)ChildTokens[0]!;
-    public IEnumerable<StatementNode> Statements => ChildNodes.Cast<StatementNode>();
+    public IEnumerable<StmtNode> Stmts => ChildNodes.Cast<StmtNode>();
     public SimpleToken ClosedBraceToken => (SimpleToken)ChildTokens[1]!;
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitBlockExpression(this);
+        visitor.VisitBlockExpr(this);
     }
 }
 
-public partial class AssignmentExpressionNode : ExpressionNode
+public partial class AssignmentExprNode : ExprNode
 {
-    public AssignmentExpressionNode(ExpressionNode lhs, SimpleToken equalToken, ExpressionNode rhs)
-        : base(SyntaxNodeKind.AssignmentExpression)
+    public AssignmentExprNode(ExprNode lhs, SimpleToken equalToken, ExprNode rhs)
+        : base(SyntaxNodeKind.AssignmentExpr)
     {
         ChildTokens = new() { equalToken, };
         ChildNodes = new() { lhs, rhs, };
@@ -384,41 +384,41 @@ public partial class AssignmentExpressionNode : ExpressionNode
         SetChildrenParent();
     }
 
-    public ExpressionNode Lhs => (ExpressionNode)ChildNodes[0]!;
+    public ExprNode Lhs => (ExprNode)ChildNodes[0]!;
     public SimpleToken EqualToken => (SimpleToken)ChildTokens[0]!;
-    public ExpressionNode Rhs => (ExpressionNode)ChildNodes[1]!;
+    public ExprNode Rhs => (ExprNode)ChildNodes[1]!;
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitAssignmentExpression(this);
+        visitor.VisitAssignmentExpr(this);
     }
 }
 
-public partial class UnaryExpressionNode : ExpressionNode
+public partial class UnaryExprNode : ExprNode
 {
-    public UnaryExpressionNode(UnaryOperatorToken op, ExpressionNode expression)
-        : base(SyntaxNodeKind.UnaryExpression)
+    public UnaryExprNode(UnaryOperatorToken op, ExprNode expr)
+        : base(SyntaxNodeKind.UnaryExpr)
     {
         ChildTokens = new() { op, };
-        ChildNodes = new() { expression, };
+        ChildNodes = new() { expr, };
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
     }
 
     public UnaryOperatorToken Op => (UnaryOperatorToken)ChildTokens[0]!;
-    public ExpressionNode Expression => (ExpressionNode)ChildNodes[0]!;
+    public ExprNode Expr => (ExprNode)ChildNodes[0]!;
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitUnaryExpression(this);
+        visitor.VisitUnaryExpr(this);
     }
 }
 
-public partial class BinaryExpressionNode : ExpressionNode
+public partial class BinaryExprNode : ExprNode
 {
-    public BinaryExpressionNode(ExpressionNode left, BinaryOperatorToken op, ExpressionNode right)
-        : base(SyntaxNodeKind.BinaryExpression)
+    public BinaryExprNode(ExprNode left, BinaryOperatorToken op, ExprNode right)
+        : base(SyntaxNodeKind.BinaryExpr)
     {
         ChildTokens = new() { op, };
         ChildNodes = new() { left, right, };
@@ -427,63 +427,63 @@ public partial class BinaryExpressionNode : ExpressionNode
         SetChildrenParent();
     }
 
-    public ExpressionNode Left => (ExpressionNode)ChildNodes[0]!;
+    public ExprNode Left => (ExprNode)ChildNodes[0]!;
     public BinaryOperatorToken Op => (BinaryOperatorToken)ChildTokens[0]!;
-    public ExpressionNode Right => (ExpressionNode)ChildNodes[1]!;
+    public ExprNode Right => (ExprNode)ChildNodes[1]!;
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitBinaryExpression(this);
+        visitor.VisitBinaryExpr(this);
     }
 }
 
-public partial class GroupingExpressionNode : ExpressionNode
+public partial class GroupingExprNode : ExprNode
 {
-    public GroupingExpressionNode(SimpleToken openParenToken, ExpressionNode expression, SimpleToken closedParenToken)
-        : base(SyntaxNodeKind.GroupingExpression)
+    public GroupingExprNode(SimpleToken openParenToken, ExprNode expr, SimpleToken closedParenToken)
+        : base(SyntaxNodeKind.GroupingExpr)
     {
         ChildTokens = new() { openParenToken, closedParenToken, };
-        ChildNodes = new() { expression, };
+        ChildNodes = new() { expr, };
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
     }
 
     public SimpleToken OpenParenToken => (SimpleToken)ChildTokens[0]!;
-    public ExpressionNode Expression => (ExpressionNode)ChildNodes[0]!;
+    public ExprNode Expr => (ExprNode)ChildNodes[0]!;
     public SimpleToken ClosedParenToken => (SimpleToken)ChildTokens[1]!;
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitGroupingExpression(this);
+        visitor.VisitGroupingExpr(this);
     }
 }
 
-public partial class CallExpressionNode : ExpressionNode
+public partial class CallExprNode : ExprNode
 {
-    public CallExpressionNode(ExpressionNode callee, ArgumentsListNode arguments)
-        : base(SyntaxNodeKind.CallExpression)
+    public CallExprNode(ExprNode callee, ArgsListNode args)
+        : base(SyntaxNodeKind.CallExpr)
     {
         ChildTokens = new();
-        ChildNodes = new() { callee, arguments, };
+        ChildNodes = new() { callee, args, };
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
     }
 
-    public ExpressionNode Callee => (ExpressionNode)ChildNodes[0]!;
-    public ArgumentsListNode Arguments => (ArgumentsListNode)ChildNodes[1]!;
+    public ExprNode Callee => (ExprNode)ChildNodes[0]!;
+    public ArgsListNode Args => (ArgsListNode)ChildNodes[1]!;
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitCallExpression(this);
+        visitor.VisitCallExpr(this);
     }
 }
 
-public partial class AccessExpressionNode : ExpressionNode
+public partial class AccessExprNode : ExprNode
 {
-    public AccessExpressionNode(ExpressionNode target, SimpleToken dotToken, IdentifierToken identifier)
-        : base(SyntaxNodeKind.AccessExpression)
+    public AccessExprNode(ExprNode target, SimpleToken dotToken, IdentifierToken identifier)
+        : base(SyntaxNodeKind.AccessExpr)
     {
         ChildTokens = new() { dotToken, identifier, };
         ChildNodes = new() { target, };
@@ -492,20 +492,20 @@ public partial class AccessExpressionNode : ExpressionNode
         SetChildrenParent();
     }
 
-    public ExpressionNode Target => (ExpressionNode)ChildNodes[0]!;
+    public ExprNode Target => (ExprNode)ChildNodes[0]!;
     public SimpleToken DotToken => (SimpleToken)ChildTokens[0]!;
     public IdentifierToken Identifier => (IdentifierToken)ChildTokens[1]!;
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitAccessExpression(this);
+        visitor.VisitAccessExpr(this);
     }
 }
 
-public partial class LiteralExpressionNode : ExpressionNode
+public partial class LiteralExprNode : ExprNode
 {
-    public LiteralExpressionNode(LiteralToken literal)
-        : base(SyntaxNodeKind.LiteralExpression)
+    public LiteralExprNode(LiteralToken literal)
+        : base(SyntaxNodeKind.LiteralExpr)
     {
         ChildTokens = new() { literal, };
         ChildNodes = new();
@@ -518,14 +518,14 @@ public partial class LiteralExpressionNode : ExpressionNode
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitLiteralExpression(this);
+        visitor.VisitLiteralExpr(this);
     }
 }
 
-public partial class IdentifierExpressionNode : ExpressionNode
+public partial class IdentifierExprNode : ExprNode
 {
-    public IdentifierExpressionNode(IdentifierToken identifier)
-        : base(SyntaxNodeKind.IdentifierExpression)
+    public IdentifierExprNode(IdentifierToken identifier)
+        : base(SyntaxNodeKind.IdentifierExpr)
     {
         ChildTokens = new() { identifier, };
         ChildNodes = new();
@@ -538,14 +538,14 @@ public partial class IdentifierExpressionNode : ExpressionNode
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitIdentifierExpression(this);
+        visitor.VisitIdentifierExpr(this);
     }
 }
 
-public partial class ThisExpressionNode : ExpressionNode
+public partial class ThisExprNode : ExprNode
 {
-    public ThisExpressionNode(SimpleToken keywordToken)
-        : base(SyntaxNodeKind.ThisExpression)
+    public ThisExprNode(SimpleToken keywordToken)
+        : base(SyntaxNodeKind.ThisExpr)
     {
         ChildTokens = new() { keywordToken, };
         ChildNodes = new();
@@ -558,14 +558,14 @@ public partial class ThisExpressionNode : ExpressionNode
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitThisExpression(this);
+        visitor.VisitThisExpr(this);
     }
 }
 
-public partial class SkippedTokensExpressionNode : ExpressionNode
+public partial class SkippedTokensExprNode : ExprNode
 {
-    public SkippedTokensExpressionNode(SkippedToken skipped)
-        : base(SyntaxNodeKind.SkippedTokensExpression)
+    public SkippedTokensExprNode(SkippedToken skipped)
+        : base(SyntaxNodeKind.SkippedTokensExpr)
     {
         ChildTokens = new() { skipped, };
         ChildNodes = new();
@@ -578,36 +578,36 @@ public partial class SkippedTokensExpressionNode : ExpressionNode
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitSkippedTokensExpression(this);
+        visitor.VisitSkippedTokensExpr(this);
     }
 }
 
-public partial class ParametersListNode : SyntaxNode
+public partial class ParamsListNode : SyntaxNode
 {
-    public ParametersListNode(SimpleToken openParenToken, IEnumerable<ParameterNode> parameters, SimpleToken closedParenToken)
-        : base(SyntaxNodeKind.ParametersList)
+    public ParamsListNode(SimpleToken openParenToken, IEnumerable<ParamNode> @params, SimpleToken closedParenToken)
+        : base(SyntaxNodeKind.ParamsList)
     {
         ChildTokens = new() { openParenToken, closedParenToken, };
-        ChildNodes = parameters.Cast<SyntaxNode?>().ToList();
+        ChildNodes = @params.Cast<SyntaxNode?>().ToList();
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
     }
 
     public SimpleToken OpenParenToken => (SimpleToken)ChildTokens[0]!;
-    public IEnumerable<ParameterNode> Parameters => ChildNodes.Cast<ParameterNode>();
+    public IEnumerable<ParamNode> @Params => ChildNodes.Cast<ParamNode>();
     public SimpleToken ClosedParenToken => (SimpleToken)ChildTokens[1]!;
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitParametersList(this);
+        visitor.VisitParamsList(this);
     }
 }
 
-public partial class ParameterNode : SyntaxNode
+public partial class ParamNode : SyntaxNode
 {
-    public ParameterNode(SimpleToken? fieldToken, IdentifierToken identifier, ColonTypeNode? type, SimpleToken? commaToken)
-        : base(SyntaxNodeKind.Parameter)
+    public ParamNode(SimpleToken? fieldToken, IdentifierToken identifier, ColonTypeNode? type, SimpleToken? commaToken)
+        : base(SyntaxNodeKind.Param)
     {
         ChildTokens = new() { fieldToken, identifier, commaToken, };
         ChildNodes = new() { type, };
@@ -623,50 +623,50 @@ public partial class ParameterNode : SyntaxNode
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitParameter(this);
+        visitor.VisitParam(this);
     }
 }
 
-public partial class ArgumentsListNode : SyntaxNode
+public partial class ArgsListNode : SyntaxNode
 {
-    public ArgumentsListNode(SimpleToken openParenToken, IEnumerable<ArgumentNode> arguments, SimpleToken closedParenToken)
-        : base(SyntaxNodeKind.ArgumentsList)
+    public ArgsListNode(SimpleToken openParenToken, IEnumerable<ArgNode> args, SimpleToken closedParenToken)
+        : base(SyntaxNodeKind.ArgsList)
     {
         ChildTokens = new() { openParenToken, closedParenToken, };
-        ChildNodes = arguments.Cast<SyntaxNode?>().ToList();
+        ChildNodes = args.Cast<SyntaxNode?>().ToList();
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
     }
 
     public SimpleToken OpenParenToken => (SimpleToken)ChildTokens[0]!;
-    public IEnumerable<ArgumentNode> Arguments => ChildNodes.Cast<ArgumentNode>();
+    public IEnumerable<ArgNode> Args => ChildNodes.Cast<ArgNode>();
     public SimpleToken ClosedParenToken => (SimpleToken)ChildTokens[1]!;
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitArgumentsList(this);
+        visitor.VisitArgsList(this);
     }
 }
 
-public partial class ArgumentNode : SyntaxNode
+public partial class ArgNode : SyntaxNode
 {
-    public ArgumentNode(ExpressionNode expression, SimpleToken? commaToken)
-        : base(SyntaxNodeKind.Argument)
+    public ArgNode(ExprNode expr, SimpleToken? commaToken)
+        : base(SyntaxNodeKind.Arg)
     {
         ChildTokens = new() { commaToken, };
-        ChildNodes = new() { expression, };
+        ChildNodes = new() { expr, };
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
     }
 
-    public ExpressionNode Expression => (ExpressionNode)ChildNodes[0]!;
+    public ExprNode Expr => (ExprNode)ChildNodes[0]!;
     public SimpleToken? CommaToken => (SimpleToken?)ChildTokens[0]!;
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitArgument(this);
+        visitor.VisitArg(this);
     }
 }
 
@@ -712,42 +712,42 @@ public partial class TypeNode : SyntaxNode
     }
 }
 
-public partial class FnSignatureNode : SyntaxNode
+public partial class FnSigNode : SyntaxNode
 {
-    public FnSignatureNode(IdentifierToken identifier, ParametersListNode parameters, ColonTypeNode? returnTy)
-        : base(SyntaxNodeKind.FnSignature)
+    public FnSigNode(IdentifierToken identifier, ParamsListNode @params, ColonTypeNode? returnTy)
+        : base(SyntaxNodeKind.FnSig)
     {
         ChildTokens = new() { identifier, };
-        ChildNodes = new() { parameters, returnTy, };
+        ChildNodes = new() { @params, returnTy, };
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
     }
 
     public IdentifierToken Identifier => (IdentifierToken)ChildTokens[0]!;
-    public ParametersListNode Parameters => (ParametersListNode)ChildNodes[0]!;
+    public ParamsListNode @Params => (ParamsListNode)ChildNodes[0]!;
     public ColonTypeNode? ReturnTy => (ColonTypeNode?)ChildNodes[1]!;
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitFnSignature(this);
+        visitor.VisitFnSig(this);
     }
 }
 
 public partial class EqualsValueClauseNode : SyntaxNode
 {
-    public EqualsValueClauseNode(SimpleToken equalToken, ExpressionNode expression)
+    public EqualsValueClauseNode(SimpleToken equalToken, ExprNode expr)
         : base(SyntaxNodeKind.EqualsValueClause)
     {
         ChildTokens = new() { equalToken, };
-        ChildNodes = new() { expression, };
+        ChildNodes = new() { expr, };
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
     }
 
     public SimpleToken EqualToken => (SimpleToken)ChildTokens[0]!;
-    public ExpressionNode Expression => (ExpressionNode)ChildNodes[0]!;
+    public ExprNode Expr => (ExprNode)ChildNodes[0]!;
 
     public override void Accept(Visitor visitor)
     {

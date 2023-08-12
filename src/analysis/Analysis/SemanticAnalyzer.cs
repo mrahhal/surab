@@ -27,109 +27,109 @@ internal class SemanticAnalyzer : Visitor
         Visit(_model.Tree.Root);
     }
 
-    public override void VisitConstDeclaration(ConstDeclarationNode node)
+    public override void VisitConstDecl(ConstDeclNode node)
     {
         // Temp: Should be allowed only in top level.
         if (node.Parent is not ModuleNode)
         {
-            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a const declaration is allowed only in top level");
+            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a const decl is allowed only in top level");
         }
 
-        base.VisitConstDeclaration(node);
+        base.VisitConstDecl(node);
     }
 
-    public override void VisitFnDeclaration(FnDeclarationNode node)
+    public override void VisitFnDecl(FnDeclNode node)
     {
         // Temp: Should be allowed only in top level.
         if (node.Parent is not ModuleNode)
         {
-            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a function declaration is allowed only in top level");
+            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a function decl is allowed only in top level");
         }
 
-        base.VisitFnDeclaration(node);
+        base.VisitFnDecl(node);
     }
 
-    public override void VisitClassDeclaration(ClassDeclarationNode node)
+    public override void VisitClassDecl(ClassDeclNode node)
     {
         // Temp: Should be allowed only in top level.
         if (node.Parent is not ModuleNode)
         {
-            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a class declaration is allowed only in top level");
+            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a class decl is allowed only in top level");
         }
 
-        base.VisitClassDeclaration(node);
+        base.VisitClassDecl(node);
     }
 
-    public override void VisitFieldDeclaration(FieldDeclarationNode node)
+    public override void VisitFieldDecl(FieldDeclNode node)
     {
-        if (node.Parent is not ClassDeclarationNode)
+        if (node.Parent is not ClassDeclNode)
         {
-            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a field declaration is not allowed in this context");
+            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a field decl is not allowed in this context");
         }
 
-        base.VisitFieldDeclaration(node);
+        base.VisitFieldDecl(node);
     }
 
-    public override void VisitMethodDeclaration(MethodDeclarationNode node)
+    public override void VisitMethodDecl(MethodDeclNode node)
     {
-        if (node.Parent is not ClassDeclarationNode)
+        if (node.Parent is not ClassDeclNode)
         {
-            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a method declaration is not allowed in this context");
+            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a method decl is not allowed in this context");
         }
 
-        base.VisitMethodDeclaration(node);
+        base.VisitMethodDecl(node);
     }
 
-    public override void VisitReturnStatement(ReturnStatementNode node)
+    public override void VisitReturnStmt(ReturnStmtNode node)
     {
-        Debug.Assert(node.Parent is BlockExpressionNode);
-        var block = (BlockExpressionNode)node.Parent;
+        Debug.Assert(node.Parent is BlockExprNode);
+        var block = (BlockExprNode)node.Parent;
 
-        // If it's not the last statement, warn.
+        // If it's not the last stmt, warn.
         // TODO: Removed fror now, as this needs control flow analysis.
         // Example: `if () { return 1; } else { return 2; }`?
-        //if (block.Statements.Last() != node)
+        //if (block.Stmts.Last() != node)
         //{
-        //    _diagnostics.Add(node.Span, DiagnosticLevel.Warning, $"unreachable code after the return statement");
+        //    _diagnostics.Add(node.Span, DiagnosticLevel.Warning, $"unreachable code after the return stmt");
         //}
 
         // TODO: Error if return has incompatible type with function return type.
 
-        base.VisitReturnStatement(node);
+        base.VisitReturnStmt(node);
     }
 
-    public override void VisitBlockExpression(BlockExpressionNode node)
+    public override void VisitBlockExpr(BlockExprNode node)
     {
-        // If this block returns an expression, it can't stand on its own.
-        // i.e. It shouldn't be parented by ExpressionStatementNode or BareExpressionStatementNode.
-        if (node.ReturnsExpression &&
-            node.Parent is ExpressionStatementNode or BareExpressionStatementNode)
+        // If this block returns an expr, it can't stand on its own.
+        // i.e. It shouldn't be parented by ExprStmtNode or BareExprStmtNode.
+        if (node.ReturnsExpr &&
+            node.Parent is ExprStmtNode or BareExprStmtNode)
         {
             _diagnostics.Add(
                 node.Span, DiagnosticLevel.Error,
-                $"a block returning an expression can not stand on its own");
+                $"a block returning an expr can not stand on its own");
         }
 
-        base.VisitBlockExpression(node);
+        base.VisitBlockExpr(node);
     }
 
-    public override void VisitBareExpressionStatement(BareExpressionStatementNode node)
+    public override void VisitBareExprStmt(BareExprStmtNode node)
     {
-        // Should only be allowed as the last statement unless this bare is treated as a statement (i.e. a block without
-        // a bare expression (because the block gets lowered to a list of statements in that case).
+        // Should only be allowed as the last stmt unless this bare is treated as a stmt (i.e. a block without
+        // a bare expr (because the block gets lowered to a list of stmts in that case).
 
-        Debug.Assert(node.Parent is BlockExpressionNode);
-        var parentBlock = (BlockExpressionNode)node.Parent;
+        Debug.Assert(node.Parent is BlockExprNode);
+        var parentBlock = (BlockExprNode)node.Parent;
 
-        if (!node.IsTreatedAsStatement && parentBlock.Statements.Last() != node)
+        if (!node.IsTreatedAsStmt && parentBlock.Stmts.Last() != node)
         {
-            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a bare expression can only exist as the last statement of a block");
+            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a bare expr can only exist as the last stmt of a block");
         }
 
-        base.VisitBareExpressionStatement(node);
+        base.VisitBareExprStmt(node);
     }
 
-    public override void VisitAssignmentExpression(AssignmentExpressionNode node)
+    public override void VisitAssignmentExpr(AssignmentExprNode node)
     {
         // Compatibility
         var lhsSymbol = _model.LookupSymbol(node.Lhs);
@@ -151,9 +151,9 @@ internal class SemanticAnalyzer : Visitor
         // TODO: Add to SemanticAnalyzer: Invalid target of assignment.
         /*switch (node.Lhs)
         {
-            //case AccessExpressionNode accessExpressionNode:
+            //case AccessExprNode accessExprNode:
             //    break;
-            case IdentifierExpressionNode identifierExpressionNode:
+            case IdentifierExprNode identifierExprNode:
                 break;
 
             default:
@@ -161,36 +161,36 @@ internal class SemanticAnalyzer : Visitor
                 throw new NotImplementedException();
         }*/
 
-        base.VisitAssignmentExpression(node);
+        base.VisitAssignmentExpr(node);
     }
 
-    public override void VisitUnaryExpression(UnaryExpressionNode node)
+    public override void VisitUnaryExpr(UnaryExprNode node)
     {
         // TODO: Should work on traits or something.
 
-        var expressionType = _model.LookupType(node.Expression);
+        var exprType = _model.LookupType(node.Expr);
 
         switch (node.Op.UnaryOperatorTokenKind)
         {
             case UnaryOperatorTokenKind.Pos:
             case UnaryOperatorTokenKind.Neg:
-                if (expressionType != BuiltInTypeSystem.Number)
+                if (exprType != BuiltInTypeSystem.Number)
                 {
                     _diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a number type");
                 }
                 break;
             case UnaryOperatorTokenKind.Not:
-                if (expressionType != BuiltInTypeSystem.Bool)
+                if (exprType != BuiltInTypeSystem.Bool)
                 {
                     _diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a bool type");
                 }
                 break;
         }
 
-        base.VisitUnaryExpression(node);
+        base.VisitUnaryExpr(node);
     }
 
-    public override void VisitBinaryExpression(BinaryExpressionNode node)
+    public override void VisitBinaryExpr(BinaryExprNode node)
     {
         var leftType = _model.LookupType(node.Left);
         var rightType = _model.LookupType(node.Right);
@@ -205,7 +205,7 @@ internal class SemanticAnalyzer : Visitor
         }
         else
         {
-            var expressionType = leftType;
+            var exprType = leftType;
             switch (node.Op.BinaryOperatorTokenKind)
             {
                 case BinaryOperatorTokenKind.Add:
@@ -216,14 +216,14 @@ internal class SemanticAnalyzer : Visitor
                 case BinaryOperatorTokenKind.BitAnd:
                 case BinaryOperatorTokenKind.BitOr:
                 case BinaryOperatorTokenKind.BitXor:
-                    if (expressionType != BuiltInTypeSystem.Number)
+                    if (exprType != BuiltInTypeSystem.Number)
                     {
                         _diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a number type");
                     }
                     break;
                 case BinaryOperatorTokenKind.And:
                 case BinaryOperatorTokenKind.Or:
-                    if (expressionType != BuiltInTypeSystem.Bool)
+                    if (exprType != BuiltInTypeSystem.Bool)
                     {
                         _diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a bool type");
                     }
@@ -236,7 +236,7 @@ internal class SemanticAnalyzer : Visitor
                 case BinaryOperatorTokenKind.Le:
                 case BinaryOperatorTokenKind.Gt:
                 case BinaryOperatorTokenKind.Ge:
-                    if (expressionType != BuiltInTypeSystem.Number)
+                    if (exprType != BuiltInTypeSystem.Number)
                     {
                         _diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a number type");
                     }
@@ -247,10 +247,10 @@ internal class SemanticAnalyzer : Visitor
             }
         }
 
-        base.VisitBinaryExpression(node);
+        base.VisitBinaryExpr(node);
     }
 
-    public override void VisitCallExpression(CallExpressionNode node)
+    public override void VisitCallExpr(CallExprNode node)
     {
         var calleeSymbol = _model.LookupSymbol(node.Callee);
 
@@ -262,17 +262,17 @@ internal class SemanticAnalyzer : Visitor
         }
         else
         {
-            var args = node.Arguments.Arguments.ToList();
-            if (fnSymbol.Parameters.Length != args.Count)
+            var args = node.Args.Args.ToList();
+            if (fnSymbol.Params.Length != args.Count)
             {
-                _diagnostics.Add(node.Arguments.Span, DiagnosticLevel.Error, $"invalid invocation: wrong number of arguments");
+                _diagnostics.Add(node.Args.Span, DiagnosticLevel.Error, $"invalid invocation: wrong number of arguments");
             }
             else
             {
                 for (var i = 0; i < args.Count; i++)
                 {
                     var arg = args[i];
-                    var param = fnSymbol.Parameters[i];
+                    var param = fnSymbol.Params[i];
                     var argType = _model.LookupType(arg);
                     if (param.Type != argType)
                     {
@@ -282,10 +282,10 @@ internal class SemanticAnalyzer : Visitor
             }
         }
 
-        base.VisitCallExpression(node);
+        base.VisitCallExpr(node);
     }
 
-    public override void VisitAccessExpression(AccessExpressionNode node)
+    public override void VisitAccessExpr(AccessExprNode node)
     {
         var targetSymbol = _model.LookupSymbol(node.Target);
         // TODO: ?
@@ -306,10 +306,10 @@ internal class SemanticAnalyzer : Visitor
             }
         }
 
-        base.VisitAccessExpression(node);
+        base.VisitAccessExpr(node);
     }
 
-    public override void VisitThisExpression(ThisExpressionNode node)
+    public override void VisitThisExpr(ThisExprNode node)
     {
         var thisType = _model.LookupType(node);
         if (thisType == null)
@@ -317,27 +317,27 @@ internal class SemanticAnalyzer : Visitor
             _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"unknown this context");
         }
 
-        base.VisitThisExpression(node);
+        base.VisitThisExpr(node);
     }
 
-    public override void VisitParameter(ParameterNode node)
+    public override void VisitParam(ParamNode node)
     {
         if (node.Type == null)
         {
             _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"specifying type is required");
         }
 
-        base.VisitParameter(node);
+        base.VisitParam(node);
     }
 
-    public override void VisitFnSignature(FnSignatureNode node)
+    public override void VisitFnSig(FnSigNode node)
     {
         // TODO: Should ReturnTy.Type be optional, so we could parse it but raise diag here?
 
-        base.VisitFnSignature(node);
+        base.VisitFnSig(node);
     }
 
-    public override void VisitIdentifierExpression(IdentifierExpressionNode node)
+    public override void VisitIdentifierExpr(IdentifierExprNode node)
     {
         var symbol = _model.LookupSymbol(node);
         if (symbol == null)
@@ -345,7 +345,7 @@ internal class SemanticAnalyzer : Visitor
             _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"unknown name");
         }
 
-        base.VisitIdentifierExpression(node);
+        base.VisitIdentifierExpr(node);
     }
 
     public override void VisitType(TypeNode node)
@@ -364,8 +364,8 @@ internal class SemanticAnalyzer : Visitor
     }
 
     // TODO: Things to consider adding here.
-    // - LetStatementNode.Type and Initializer:
+    // - LetStmtNode.Type and Initializer:
     //   - Initializer should always be given a value as a start
     // - TypeSymbol being the ErrorType
-    // - BlockExpression can't appear as an l-value
+    // - BlockExpr can't appear as an l-value
 }

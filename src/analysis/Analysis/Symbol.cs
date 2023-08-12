@@ -6,9 +6,9 @@ namespace Surab.Analysis;
 public enum SymbolKind
 {
     Const,
-    Function,
+    Fn,
     Field,
-    Parameter,
+    Param,
     Local,
 
     NamedType, // Class, Struct
@@ -49,10 +49,10 @@ public abstract class Symbol
 
 public sealed class ConstSymbol : Symbol
 {
-    private readonly ConstDeclarationNode _node;
+    private readonly ConstDeclNode _node;
     private ResolvedType? _type;
 
-    internal ConstSymbol(ConstDeclarationNode node)
+    internal ConstSymbol(ConstDeclNode node)
     {
         _node = node;
     }
@@ -78,18 +78,18 @@ public sealed class ConstSymbol : Symbol
 
 public sealed class FnSymbol : Symbol
 {
-    private readonly FnSignatureNode _node;
+    private readonly FnSigNode _node;
     private TypeSymbol? _returnType;
-    private ImmutableArray<ParameterSymbol> _parameters;
+    private ImmutableArray<ParamSymbol> _params;
 
-    internal FnSymbol(FnSignatureNode node)
+    internal FnSymbol(FnSigNode node)
     {
         _node = node;
     }
 
-    public override SymbolKind Kind => SymbolKind.Function;
+    public override SymbolKind Kind => SymbolKind.Fn;
 
-    // Parent will be either a FunctionDeclarationNode or a MethodDeclarationNode.
+    // Parent will be either a FunctionDeclNode or a MethodDeclNode.
     public override SyntaxNode? DeclaringNode => _node.Parent;
 
     public override IdentifierToken? Identifier => _node.Identifier;
@@ -107,27 +107,27 @@ public sealed class FnSymbol : Symbol
         }
     }
 
-    public ImmutableArray<ParameterSymbol> Parameters
+    public ImmutableArray<ParamSymbol> Params
     {
         get
         {
-            if (_parameters.IsDefault)
+            if (_params.IsDefault)
             {
-                ImmutableInterlocked.InterlockedCompareExchange(ref _parameters, BuildParameters(), default);
+                ImmutableInterlocked.InterlockedCompareExchange(ref _params, BuildParams(), default);
             }
 
-            return _parameters;
+            return _params;
         }
     }
 
-    private ImmutableArray<ParameterSymbol> BuildParameters()
+    private ImmutableArray<ParamSymbol> BuildParams()
     {
-        var builder = ImmutableArray.CreateBuilder<ParameterSymbol>();
-        foreach (var parameterNode in _node.Parameters.Parameters)
+        var builder = ImmutableArray.CreateBuilder<ParamSymbol>();
+        foreach (var paramNode in _node.Params.Params)
         {
-            if (Context.SemanticModel.TryGetDeclaredSymbol(parameterNode, out var symbol))
+            if (Context.SemanticModel.TryGetDeclaredSymbol(paramNode, out var symbol))
             {
-                builder.Add((ParameterSymbol)symbol);
+                builder.Add((ParamSymbol)symbol);
             }
         }
         return builder.ToImmutable();
@@ -136,10 +136,10 @@ public sealed class FnSymbol : Symbol
 
 public sealed class FieldSymbol : Symbol
 {
-    private readonly FieldDeclarationNode _node;
+    private readonly FieldDeclNode _node;
     private ResolvedType? _type;
 
-    internal FieldSymbol(FieldDeclarationNode node)
+    internal FieldSymbol(FieldDeclNode node)
     {
         _node = node;
     }
@@ -163,24 +163,24 @@ public sealed class FieldSymbol : Symbol
     }
 }
 
-public sealed class ParameterSymbol : Symbol
+public sealed class ParamSymbol : Symbol
 {
-    private readonly ParameterNode _node;
+    private readonly ParamNode _node;
     private TypeSymbol? _type;
 
-    internal ParameterSymbol(ParameterNode node)
+    internal ParamSymbol(ParamNode node)
     {
         _node = node;
     }
 
-    public override SymbolKind Kind => SymbolKind.Parameter;
+    public override SymbolKind Kind => SymbolKind.Param;
 
     public override SyntaxNode? DeclaringNode => _node;
 
     public override IdentifierToken? Identifier => _node.Identifier;
 
     /// <summary>
-    /// The type of the parameter.
+    /// The type of the param.
     /// </summary>
     public TypeSymbol Type
     {
@@ -193,10 +193,10 @@ public sealed class ParameterSymbol : Symbol
 
 public sealed class LocalSymbol : Symbol
 {
-    private readonly LetStatementNode _node;
+    private readonly LetStmtNode _node;
     private ResolvedType? _type;
 
-    internal LocalSymbol(LetStatementNode node)
+    internal LocalSymbol(LetStmtNode node)
     {
         _node = node;
     }
@@ -226,21 +226,21 @@ public abstract class TypeSymbol : Symbol
 
 public class NamedTypeSymbol : TypeSymbol
 {
-    private readonly DeclarationNode? _node;
+    private readonly DeclNode? _node;
     private ImmutableArray<Symbol> _members;
 
-    internal NamedTypeSymbol(DeclarationNode? node)
+    internal NamedTypeSymbol(DeclNode? node)
     {
         _node = node;
     }
 
     public override SymbolKind Kind => SymbolKind.NamedType;
 
-    public override DeclarationNode? DeclaringNode => _node;
+    public override DeclNode? DeclaringNode => _node;
 
     public override IdentifierToken? Identifier => _node switch
     {
-        ClassDeclarationNode classDeclaration => classDeclaration.Identifier,
+        ClassDeclNode classDecl => classDecl.Identifier,
         _ => null,
     };
 
@@ -274,8 +274,8 @@ public class NamedTypeSymbol : TypeSymbol
     {
         switch (_node)
         {
-            case ClassDeclarationNode classDeclaration:
-                foreach (var member in classDeclaration.Members)
+            case ClassDeclNode classDecl:
+                foreach (var member in classDecl.Members)
                 {
                     yield return member;
                 }

@@ -20,20 +20,20 @@ internal abstract partial class LoweredVisitor
         switch (node)
         {
             case LoweredModule n: VisitModule(n); break;
-            case LoweredFnDeclaration n: VisitFunctionDeclaration(n); break;
-            case LoweredTypeDeclaration n: VisitTypeDeclaration(n); break;
-            case LoweredVariableStatement n: VisitVariableStatement(n); break;
-            case LoweredReturnStatement n: VisitReturnStatement(n); break;
-            case LoweredExpressionStatement n: VisitExpressionStatement(n); break;
-            case LoweredStatementList n: VisitStatementList(n); break;
-            case LoweredVariableLoadExpression n: VisitVariableLoadExpression(n); break;
-            //case LoweredFieldLoadExpression n: VisitFieldLoadExpression(n); break;
-            case LoweredVariableStoreStatement n: VisitVariableStoreExpression(n); break;
-            //case LoweredFieldStoreStatement n: VisitFieldStoreExpression(n); break;
-            case LoweredUnaryExpression n: VisitUnaryExpression(n); break;
-            case LoweredBinaryExpression n: VisitBinaryExpression(n); break;
-            case LoweredCallExpression n: VisitCallExpression(n); break;
-            case LoweredLiteralExpression n: VisitLiteralExpression(n); break;
+            case LoweredFnDecl n: VisitFnDecl(n); break;
+            case LoweredTypeDecl n: VisitTypeDecl(n); break;
+            case LoweredVariableStmt n: VisitVariableStmt(n); break;
+            case LoweredReturnStmt n: VisitReturnStmt(n); break;
+            case LoweredExprStmt n: VisitExprStmt(n); break;
+            case LoweredStmtList n: VisitStmtList(n); break;
+            case LoweredVariableLoadExpr n: VisitVariableLoadExpr(n); break;
+            //case LoweredFieldLoadExpr n: VisitFieldLoadExpr(n); break;
+            case LoweredVariableStoreStmt n: VisitVariableStoreExpr(n); break;
+            //case LoweredFieldStoreStmt n: VisitFieldStoreExpr(n); break;
+            case LoweredUnaryExpr n: VisitUnaryExpr(n); break;
+            case LoweredBinaryExpr n: VisitBinaryExpr(n); break;
+            case LoweredCallExpr n: VisitCallExpr(n); break;
+            case LoweredLiteralExpr n: VisitLiteralExpr(n); break;
 
             default:
                 break;
@@ -45,72 +45,72 @@ internal abstract partial class LoweredVisitor
         Walk(node);
     }
 
-    public virtual void VisitFunctionDeclaration(LoweredFnDeclaration node)
+    public virtual void VisitFnDecl(LoweredFnDecl node)
     {
         Walk(node);
     }
 
-    public virtual void VisitTypeDeclaration(LoweredTypeDeclaration node)
+    public virtual void VisitTypeDecl(LoweredTypeDecl node)
     {
         Walk(node);
     }
 
-    public virtual void VisitVariableStatement(LoweredVariableStatement node)
+    public virtual void VisitVariableStmt(LoweredVariableStmt node)
     {
         Walk(node);
     }
 
-    public virtual void VisitReturnStatement(LoweredReturnStatement node)
+    public virtual void VisitReturnStmt(LoweredReturnStmt node)
     {
         Walk(node);
     }
 
-    public virtual void VisitExpressionStatement(LoweredExpressionStatement node)
+    public virtual void VisitExprStmt(LoweredExprStmt node)
     {
         Walk(node);
     }
 
-    public virtual void VisitStatementList(LoweredStatementList node)
+    public virtual void VisitStmtList(LoweredStmtList node)
     {
         Walk(node);
     }
 
-    public virtual void VisitVariableLoadExpression(LoweredVariableLoadExpression node)
+    public virtual void VisitVariableLoadExpr(LoweredVariableLoadExpr node)
     {
         Walk(node);
     }
 
-    //public virtual void VisitFieldLoadExpression(LoweredFieldLoadExpression node)
+    //public virtual void VisitFieldLoadExpr(LoweredFieldLoadExpr node)
     //{
     //    Walk(node);
     //}
 
-    public virtual void VisitVariableStoreExpression(LoweredVariableStoreStatement node)
+    public virtual void VisitVariableStoreExpr(LoweredVariableStoreStmt node)
     {
         Walk(node);
     }
 
-    //public virtual void VisitFieldStoreExpression(LoweredFieldStoreStatement node)
+    //public virtual void VisitFieldStoreExpr(LoweredFieldStoreStmt node)
     //{
     //    Walk(node);
     //}
 
-    public virtual void VisitUnaryExpression(LoweredUnaryExpression node)
+    public virtual void VisitUnaryExpr(LoweredUnaryExpr node)
     {
         Walk(node);
     }
 
-    public virtual void VisitBinaryExpression(LoweredBinaryExpression node)
+    public virtual void VisitBinaryExpr(LoweredBinaryExpr node)
     {
         Walk(node);
     }
 
-    public virtual void VisitCallExpression(LoweredCallExpression node)
+    public virtual void VisitCallExpr(LoweredCallExpr node)
     {
         Walk(node);
     }
 
-    public virtual void VisitLiteralExpression(LoweredLiteralExpression node)
+    public virtual void VisitLiteralExpr(LoweredLiteralExpr node)
     {
         Walk(node);
     }

@@ -196,18 +196,18 @@ public static class TokenKindExtensions
         LineComment or
         BlockComment;
 
-    public static bool CanStartDeclaration(this TokenKind kind) => kind is
+    public static bool CanStartDecl(this TokenKind kind) => kind is
         Const or
         Fn or
         Class or
         Identifier or
         Public;
 
-    public static bool CanStartStatement(this TokenKind kind) =>
-        kind.CanStartExpression() ||
+    public static bool CanStartStmt(this TokenKind kind) =>
+        kind.CanStartExpr() ||
         kind is Identifier or This or Let or Return;
 
-    public static bool CanStartExpression(this TokenKind kind) =>
+    public static bool CanStartExpr(this TokenKind kind) =>
         kind.IsUnary() ||
         kind.IsLiteral() ||
         kind is LeftParen or LeftBrace or This or Identifier;

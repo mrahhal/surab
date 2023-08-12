@@ -4,15 +4,15 @@
       "Name": "Module",
       "Members": [
         {
-          "Name": "declarations",
-          "Type": "DeclarationNode",
+          "Name": "decls",
+          "Type": "DeclNode",
           "List": true
         }
       ]
     },
     {
-      "Name": "ConstDeclaration",
-      "Base": "DeclarationNode",
+      "Name": "ConstDecl",
+      "Base": "DeclNode",
       "Members": [
         {
           "Name": "publicToken",
@@ -38,14 +38,14 @@
         },
         {
           "Name": "value",
-          "Type": "ExpressionNode",
+          "Type": "ExprNode",
           "Comment": "Well formed: Literal"
         }
       ]
     },
     {
-      "Name": "FnDeclaration",
-      "Base": "DeclarationNode",
+      "Name": "FnDecl",
+      "Base": "DeclNode",
       "Members": [
         {
           "Name": "publicToken",
@@ -57,18 +57,18 @@
           "Type": "SimpleToken"
         },
         {
-          "Name": "signature",
-          "Type": "FnSignatureNode"
+          "Name": "sig",
+          "Type": "FnSigNode"
         },
         {
           "Name": "body",
-          "Type": "BlockExpressionNode"
+          "Type": "BlockExprNode"
         }
       ]
     },
     {
-      "Name": "ClassDeclaration",
-      "Base": "DeclarationNode",
+      "Name": "ClassDecl",
+      "Base": "DeclNode",
       "Members": [
         {
           "Name": "publicToken",
@@ -89,7 +89,7 @@
         },
         {
           "Name": "members",
-          "Type": "DeclarationNode",
+          "Type": "DeclNode",
           "List": true
         },
         {
@@ -99,8 +99,8 @@
       ]
     },
     {
-      "Name": "FieldDeclaration",
-      "Base": "DeclarationNode",
+      "Name": "FieldDecl",
+      "Base": "DeclNode",
       "Members": [
         {
           "Name": "publicToken",
@@ -127,8 +127,8 @@
       ]
     },
     {
-      "Name": "MethodDeclaration",
-      "Base": "DeclarationNode",
+      "Name": "MethodDecl",
+      "Base": "DeclNode",
       "Members": [
         {
           "Name": "publicToken",
@@ -136,18 +136,18 @@
           "Optional": true
         },
         {
-          "Name": "signature",
-          "Type": "FnSignatureNode"
+          "Name": "sig",
+          "Type": "FnSigNode"
         },
         {
           "Name": "body",
-          "Type": "BlockExpressionNode"
+          "Type": "BlockExprNode"
         }
       ]
     },
     {
-      "Name": "SkippedTokensDeclaration",
-      "Base": "DeclarationNode",
+      "Name": "SkippedTokensDecl",
+      "Base": "DeclNode",
       "Members": [
         {
           "Name": "skipped",
@@ -156,8 +156,8 @@
       ]
     },
     {
-      "Name": "LetStatement",
-      "Base": "StatementNode",
+      "Name": "LetStmt",
+      "Base": "StmtNode",
       "Members": [
         {
           "Name": "letToken",
@@ -184,16 +184,16 @@
       ]
     },
     {
-      "Name": "ReturnStatement",
-      "Base": "StatementNode",
+      "Name": "ReturnStmt",
+      "Base": "StmtNode",
       "Members": [
         {
           "Name": "returnToken",
           "Type": "SimpleToken"
         },
         {
-          "Name": "expression",
-          "Type": "ExpressionNode",
+          "Name": "expr",
+          "Type": "ExprNode",
           "optional": true
         },
         {
@@ -203,13 +203,13 @@
       ]
     },
     {
-      "Name": "ExpressionStatement",
-      "Base": "StatementNode",
+      "Name": "ExprStmt",
+      "Base": "StmtNode",
       "Comment": "An expression statement (`expr();`).",
       "Members": [
         {
-          "Name": "expression",
-          "Type": "ExpressionNode"
+          "Name": "expr",
+          "Type": "ExprNode"
         },
         {
           "Name": "semicolonToken",
@@ -218,19 +218,19 @@
       ]
     },
     {
-      "Name": "BareExpressionStatement",
-      "Base": "StatementNode",
+      "Name": "BareExprStmt",
+      "Base": "StmtNode",
       "Comment": "An expression statement without the trailing semicolon (`expr()`).",
       "Members": [
         {
-          "Name": "expression",
-          "Type": "ExpressionNode"
+          "Name": "expr",
+          "Type": "ExprNode"
         }
       ]
     },
     {
-      "Name": "SkippedTokensStatement",
-      "Base": "StatementNode",
+      "Name": "SkippedTokensStmt",
+      "Base": "StmtNode",
       "Members": [
         {
           "Name": "skipped",
@@ -239,16 +239,16 @@
       ]
     },
     {
-      "Name": "BlockExpression",
-      "Base": "ExpressionNode",
+      "Name": "BlockExpr",
+      "Base": "ExprNode",
       "Members": [
         {
           "Name": "openBraceToken",
           "Type": "SimpleToken"
         },
         {
-          "Name": "statements",
-          "Type": "StatementNode",
+          "Name": "stmts",
+          "Type": "StmtNode",
           "List": true
         },
         {
@@ -258,12 +258,12 @@
       ]
     },
     {
-      "Name": "AssignmentExpression",
-      "Base": "ExpressionNode",
+      "Name": "AssignmentExpr",
+      "Base": "ExprNode",
       "Members": [
         {
           "Name": "lhs",
-          "Type": "ExpressionNode"
+          "Type": "ExprNode"
         },
         {
           "Name": "equalToken",
@@ -271,31 +271,31 @@
         },
         {
           "Name": "rhs",
-          "Type": "ExpressionNode"
+          "Type": "ExprNode"
         }
       ]
     },
     {
-      "Name": "UnaryExpression",
-      "Base": "ExpressionNode",
+      "Name": "UnaryExpr",
+      "Base": "ExprNode",
       "Members": [
         {
           "Name": "op",
           "Type": "UnaryOperatorToken"
         },
         {
-          "Name": "expression",
-          "Type": "ExpressionNode"
+          "Name": "expr",
+          "Type": "ExprNode"
         }
       ]
     },
     {
-      "Name": "BinaryExpression",
-      "Base": "ExpressionNode",
+      "Name": "BinaryExpr",
+      "Base": "ExprNode",
       "Members": [
         {
           "Name": "left",
-          "Type": "ExpressionNode"
+          "Type": "ExprNode"
         },
         {
           "Name": "op",
@@ -303,21 +303,21 @@
         },
         {
           "Name": "right",
-          "Type": "ExpressionNode"
+          "Type": "ExprNode"
         }
       ]
     },
     {
-      "Name": "GroupingExpression",
-      "Base": "ExpressionNode",
+      "Name": "GroupingExpr",
+      "Base": "ExprNode",
       "Members": [
         {
           "Name": "openParenToken",
           "Type": "SimpleToken"
         },
         {
-          "Name": "expression",
-          "Type": "ExpressionNode"
+          "Name": "expr",
+          "Type": "ExprNode"
         },
         {
           "Name": "closedParenToken",
@@ -326,28 +326,28 @@
       ]
     },
     {
-      "Name": "CallExpression",
-      "Base": "ExpressionNode",
+      "Name": "CallExpr",
+      "Base": "ExprNode",
       "Comment": "A function/method call (`callee(args)`).",
       "Members": [
         {
           "Name": "callee",
-          "Type": "ExpressionNode"
+          "Type": "ExprNode"
         },
         {
-          "Name": "arguments",
-          "Type": "ArgumentsListNode"
+          "Name": "args",
+          "Type": "ArgsListNode"
         }
       ]
     },
     {
-      "Name": "AccessExpression",
-      "Base": "ExpressionNode",
+      "Name": "AccessExpr",
+      "Base": "ExprNode",
       "Comment": "A member access (`target.identifier`).",
       "Members": [
         {
           "Name": "target",
-          "Type": "ExpressionNode"
+          "Type": "ExprNode"
         },
         {
           "Name": "dotToken",
@@ -360,8 +360,8 @@
       ]
     },
     {
-      "Name": "LiteralExpression",
-      "Base": "ExpressionNode",
+      "Name": "LiteralExpr",
+      "Base": "ExprNode",
       "Members": [
         {
           "Name": "literal",
@@ -370,8 +370,8 @@
       ]
     },
     {
-      "Name": "IdentifierExpression",
-      "Base": "ExpressionNode",
+      "Name": "IdentifierExpr",
+      "Base": "ExprNode",
       "Members": [
         {
           "Name": "identifier",
@@ -380,8 +380,8 @@
       ]
     },
     {
-      "Name": "ThisExpression",
-      "Base": "ExpressionNode",
+      "Name": "ThisExpr",
+      "Base": "ExprNode",
       "Members": [
         {
           "Name": "keywordToken",
@@ -390,8 +390,8 @@
       ]
     },
     {
-      "Name": "SkippedTokensExpression",
-      "Base": "ExpressionNode",
+      "Name": "SkippedTokensExpr",
+      "Base": "ExprNode",
       "Members": [
         {
           "Name": "skipped",
@@ -400,15 +400,15 @@
       ]
     },
     {
-      "Name": "ParametersList",
+      "Name": "ParamsList",
       "Members": [
         {
           "Name": "openParenToken",
           "Type": "SimpleToken"
         },
         {
-          "Name": "parameters",
-          "Type": "ParameterNode",
+          "Name": "@params",
+          "Type": "ParamNode",
           "List": true
         },
         {
@@ -418,7 +418,7 @@
       ]
     },
     {
-      "Name": "Parameter",
+      "Name": "Param",
       "Members": [
         {
           "Name": "fieldToken",
@@ -443,15 +443,15 @@
       ]
     },
     {
-      "Name": "ArgumentsList",
+      "Name": "ArgsList",
       "Members": [
         {
           "Name": "openParenToken",
           "Type": "SimpleToken"
         },
         {
-          "Name": "arguments",
-          "Type": "ArgumentNode",
+          "Name": "args",
+          "Type": "ArgNode",
           "List": true
         },
         {
@@ -461,11 +461,11 @@
       ]
     },
     {
-      "Name": "Argument",
+      "Name": "Arg",
       "Members": [
         {
-          "Name": "expression",
-          "Type": "ExpressionNode"
+          "Name": "expr",
+          "Type": "ExprNode"
         },
         {
           "Name": "commaToken",
@@ -502,15 +502,15 @@
       ]
     },
     {
-      "Name": "FnSignature",
+      "Name": "FnSig",
       "Members": [
         {
           "Name": "identifier",
           "Type": "IdentifierToken"
         },
         {
-          "Name": "parameters",
-          "Type": "ParametersListNode"
+          "Name": "@params",
+          "Type": "ParamsListNode"
         },
         {
           "Name": "returnTy",
@@ -527,8 +527,8 @@
           "Type": "SimpleToken"
         },
         {
-          "Name": "expression",
-          "Type": "ExpressionNode"
+          "Name": "expr",
+          "Type": "ExprNode"
         }
       ]
     }

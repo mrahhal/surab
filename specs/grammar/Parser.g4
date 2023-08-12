@@ -5,155 +5,155 @@ options {
 }
 
 unit
-	: outer_declaration*
+	: outer_decl*
 	;
 
-outer_declaration
-	: const_declaration
-	| function_declaration
-	| class_declaration
+outer_decl
+	: const_decl
+	| fn_decl
+	| class_decl
 	;
 
-const_declaration
-	: 'const' Identifier colon_ty? '=' expression ';'
+const_decl
+	: 'const' Identifier colon_ty? '=' expr ';'
 	;
 
-function_declaration
-	: function_header function_body
+fn_decl
+	: fn_header fn_body
 	;
 
-function_header
-	: 'function' Identifier parameters colon_ty
+fn_header
+	: 'fn' Identifier params colon_ty
 	;
 
-function_body
+fn_body
 	: block
 	;
 
-class_declaration
+class_decl
 	: 'class' Identifier class_body
 	;
 
 class_body
-	: '{' class_member_declaration* '}'
+	: '{' class_member_decl* '}'
 	;
 
-class_member_declaration
-	: field_declaration
-	| method_declaration
+class_member_decl
+	: field_decl
+	| method_decl
 	;
 
-field_declaration
+field_decl
 	: Identifier colon_ty? ';'
 	;
 
-// field_declarator : '=' expression ;
+// field_declarator : '=' expr ;
 
-method_declaration
-	: method_header function_body
+method_decl
+	: method_header fn_body
 	;
 
 method_header
-	: Identifier parameters colon_ty
+	: Identifier params colon_ty
 	;
 
-parameters
-	: '(' parameter_list? ')'
+params
+	: '(' param_list? ')'
 	;
 
-parameter_list
-	: parameter (',' parameter)*
+param_list
+	: param (',' param)*
 	;
 
-parameter
+param
 	: 'field'? Identifier colon_ty
 	;
 
-argument_list
-	: argument (',' argument)*
+arg_list
+	: arg (',' arg)*
 	;
 
-argument
-	: expression
+arg
+	: expr
 	;
 
 block
-	: '{' statement_list? '}'
+	: '{' stmt_list? '}'
 	;
 
-statement_list
-	: statement+
+stmt_list
+	: stmt+
 	;
 
-statement
-	: let_statement
-	| expression_statement
-	| if_statement
+stmt
+	: let_stmt
+	| expr_stmt
+	| if_stmt
 	;
 
-if_statement
-	: 'if' '(' expression ')' block
+if_stmt
+	: 'if' '(' expr ')' block
 	;
 
-// Expression parsing is handled using a Pratt operator precedence parser.
-expression
-	: literal_expression
-	| this_expression
-	| member_access_expression
-	| call_expression
-	| unary_expression
-	| binary_expression
-	| relational_expression
-	| equality_expression
+// Expr parsing is handled using a Pratt operator precedence parser.
+expr
+	: literal_expr
+	| this_expr
+	| member_access_expr
+	| call_expr
+	| unary_expr
+	| binary_expr
+	| relational_expr
+	| equality_expr
 	;
 
-expression_statement
-	: (assignment_expression | call_expression) ';'
+expr_stmt
+	: (assignment_expr | call_expr) ';'
 	;
 
-assignment_expression
-	: expression '=' expression
+assignment_expr
+	: expr '=' expr
 	;
 
-unary_expression
-	: '+' expression
-	| '-' expression
-	| '!' expression
+unary_expr
+	: '+' expr
+	| '-' expr
+	| '!' expr
 	;
 
-binary_expression
-	: expression '+' expression
-	| expression '-' expression
-	| expression '*' expression
-	| expression '/' expression
+binary_expr
+	: expr '+' expr
+	| expr '-' expr
+	| expr '*' expr
+	| expr '/' expr
 	;
 
-relational_expression
-	: expression '<' expression
-	| expression '>' expression
-	| expression '<=' expression
-	| expression '>=' expression
+relational_expr
+	: expr '<' expr
+	| expr '>' expr
+	| expr '<=' expr
+	| expr '>=' expr
 	;
 
-equality_expression
-	: expression '==' expression
-	| expression '!=' expression
+equality_expr
+	: expr '==' expr
+	| expr '!=' expr
 	;
 
-member_access_expression
-	: expression '.' Identifier
+member_access_expr
+	: expr '.' Identifier
 	;
 
-parenthesized_expression
-	: '(' expression ')'
+parenthesized_expr
+	: '(' expr ')'
 	;
 
-call_expression
-	: expression '(' argument_list? ')'
+call_expr
+	: expr '(' arg_list? ')'
 	;
 
-let_statement
-	: 'let' Identifier colon_ty? '=' expression ';'
+let_stmt
+	: 'let' Identifier colon_ty? '=' expr ';'
 	;
 
 colon_ty
@@ -164,11 +164,11 @@ ty
 	: Identifier '?'?
 	;
 
-this_expression
+this_expr
 	: 'this'
 	;
 
-literal_expression
+literal_expr
 	: Number
 	| Char
 	| String

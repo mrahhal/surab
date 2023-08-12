@@ -5,7 +5,7 @@ namespace Surab.Compilation;
 public class LowererTests
 {
     [Fact]
-    public void BareExpressionStatementToReturnStatement()
+    public void BareExprStmtToReturnStmt()
     {
         var src = """
             fn foo(): Number {
@@ -15,8 +15,8 @@ public class LowererTests
         var f = LowerFn(src);
         var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body).ToList();
         body.Should().HaveCount(1);
-        body[0].Should().BeOfType<LoweredReturnStatement>().Subject
-            .Expression.Should().BeOfType<LoweredLiteralExpression>();
+        body[0].Should().BeOfType<LoweredReturnStmt>().Subject
+            .Expr.Should().BeOfType<LoweredLiteralExpr>();
     }
 
     [Fact]
@@ -31,7 +31,7 @@ public class LowererTests
     }
 
     [Fact]
-    public void ExpressionRewriting_1()
+    public void ExprRewriting_1()
     {
         var src = """
             fn foo() {
@@ -41,14 +41,14 @@ public class LowererTests
         var f = LowerFn(src);
         var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body).ToList();
         body.Should().HaveCount(2);
-        body[0].Should().BeOfType<LoweredVariableStatement>().Subject.Symbol.Name.Should().Be("a");
-        var store1 = body[1].Should().BeOfType<LoweredVariableStoreStatement>().Subject;
+        body[0].Should().BeOfType<LoweredVariableStmt>().Subject.Symbol.Name.Should().Be("a");
+        var store1 = body[1].Should().BeOfType<LoweredVariableStoreStmt>().Subject;
         store1.Variable.Name.Should().Be("a");
-        store1.Expression.Should().BeOfType<LoweredLiteralExpression>();
+        store1.Expr.Should().BeOfType<LoweredLiteralExpr>();
     }
 
     [Fact]
-    public void ExpressionRewriting_2()
+    public void ExprRewriting_2()
     {
         var src = """
             fn foo() {
@@ -59,18 +59,18 @@ public class LowererTests
         var f = LowerFn(src);
         var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body).ToList();
         body.Should().HaveCount(4);
-        body[0].Should().BeOfType<LoweredVariableStatement>().Subject.Symbol.Name.Should().Be("b");
-        body[1].Should().BeOfType<LoweredVariableStatement>().Subject.Symbol.Name.Should().Be("a");
-        var store1 = body[2].Should().BeOfType<LoweredVariableStoreStatement>().Subject;
+        body[0].Should().BeOfType<LoweredVariableStmt>().Subject.Symbol.Name.Should().Be("b");
+        body[1].Should().BeOfType<LoweredVariableStmt>().Subject.Symbol.Name.Should().Be("a");
+        var store1 = body[2].Should().BeOfType<LoweredVariableStoreStmt>().Subject;
         store1.Variable.Name.Should().Be("b");
-        store1.Expression.Should().BeOfType<LoweredLiteralExpression>();
-        var store2 = body[3].Should().BeOfType<LoweredVariableStoreStatement>().Subject;
+        store1.Expr.Should().BeOfType<LoweredLiteralExpr>();
+        var store2 = body[3].Should().BeOfType<LoweredVariableStoreStmt>().Subject;
         store2.Variable.Name.Should().Be("a");
-        store2.Expression.Should().BeOfType<LoweredVariableLoadExpression>();
+        store2.Expr.Should().BeOfType<LoweredVariableLoadExpr>();
     }
 
     [Fact]
-    public void ExpressionRewriting_3()
+    public void ExprRewriting_3()
     {
         var src = """
             fn foo() {
@@ -80,14 +80,14 @@ public class LowererTests
         var f = LowerFn(src);
         var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body).ToList();
         body.Should().HaveCount(2);
-        body[0].Should().BeOfType<LoweredVariableStatement>().Subject.Symbol.Name.Should().Be("a");
-        var store1 = body[1].Should().BeOfType<LoweredVariableStoreStatement>().Subject;
+        body[0].Should().BeOfType<LoweredVariableStmt>().Subject.Symbol.Name.Should().Be("a");
+        var store1 = body[1].Should().BeOfType<LoweredVariableStoreStmt>().Subject;
         store1.Variable.Name.Should().Be("a");
-        store1.Expression.Should().BeOfType<LoweredLiteralExpression>();
+        store1.Expr.Should().BeOfType<LoweredLiteralExpr>();
     }
 
     [Fact]
-    public void ExpressionRewriting_4()
+    public void ExprRewriting_4()
     {
         var src = """
             fn foo() {
@@ -97,18 +97,18 @@ public class LowererTests
         var f = LowerFn(src);
         var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body).ToList();
         body.Should().HaveCount(4);
-        body[0].Should().BeOfType<LoweredVariableStatement>().Subject.Symbol.Name.Should().Be("a");
-        body[1].Should().BeOfType<LoweredVariableStatement>().Subject.Symbol.Name.Should().Be("b");
-        var store1 = body[2].Should().BeOfType<LoweredVariableStoreStatement>().Subject;
+        body[0].Should().BeOfType<LoweredVariableStmt>().Subject.Symbol.Name.Should().Be("a");
+        body[1].Should().BeOfType<LoweredVariableStmt>().Subject.Symbol.Name.Should().Be("b");
+        var store1 = body[2].Should().BeOfType<LoweredVariableStoreStmt>().Subject;
         store1.Variable.Name.Should().Be("b");
-        store1.Expression.Should().BeOfType<LoweredBinaryExpression>();
-        var store2 = body[3].Should().BeOfType<LoweredVariableStoreStatement>().Subject;
+        store1.Expr.Should().BeOfType<LoweredBinaryExpr>();
+        var store2 = body[3].Should().BeOfType<LoweredVariableStoreStmt>().Subject;
         store2.Variable.Name.Should().Be("a");
-        store2.Expression.Should().BeOfType<LoweredVariableLoadExpression>().Subject.Variable.Name.Should().Be("b");
+        store2.Expr.Should().BeOfType<LoweredVariableLoadExpr>().Subject.Variable.Name.Should().Be("b");
     }
 
     [Fact]
-    public void ExpressionRewriting_5()
+    public void ExprRewriting_5()
     {
         var src = """
             fn foo() {
@@ -119,10 +119,10 @@ public class LowererTests
         var f = LowerFn(src);
         var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body).ToList();
         body.Should().HaveCount(2);
-        body[0].Should().BeOfType<LoweredVariableStatement>().Subject.Symbol.Name.Should().Be("a");
-        var store1 = body[1].Should().BeOfType<LoweredVariableStoreStatement>().Subject;
+        body[0].Should().BeOfType<LoweredVariableStmt>().Subject.Symbol.Name.Should().Be("a");
+        var store1 = body[1].Should().BeOfType<LoweredVariableStoreStmt>().Subject;
         store1.Variable.Name.Should().Be("a");
-        store1.Expression.Should().BeOfType<LoweredLiteralExpression>();
+        store1.Expr.Should().BeOfType<LoweredLiteralExpr>();
     }
 
     [Fact]
@@ -138,10 +138,10 @@ public class LowererTests
         body.Should().HaveCount(0);
     }
 
-    private static LoweredFnDeclaration LowerFn(string src)
+    private static LoweredFnDecl LowerFn(string src)
     {
         var module = LowerModule(src);
-        return module.Declarations.ElementAt(0).Should().BeOfType<LoweredFnDeclaration>().Subject;
+        return module.Decls.ElementAt(0).Should().BeOfType<LoweredFnDecl>().Subject;
     }
 
     private static LoweredModule LowerModule(string src)

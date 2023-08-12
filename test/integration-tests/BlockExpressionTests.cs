@@ -1,6 +1,6 @@
 ﻿namespace Surab;
 
-public class BlockExpressionTests
+public class BlockExprTests
 {
     [Theory]
     [InlineData("2")]

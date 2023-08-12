@@ -15,31 +15,31 @@ public static class Parser
     /// <summary>
     /// Parses the src into a declaration.
     /// </summary>
-    public static SyntaxTree ParseDeclaration(string src)
+    public static SyntaxTree ParseDecl(string src)
     {
         var tokens = Lexer.LexSkipTrivia(src);
         var parser = new ParserImpl(src, tokens);
-        return parser.ParseAsDeclaration();
+        return parser.ParseAsDecl();
     }
 
     /// <summary>
     /// Parses the src into a statement.
     /// </summary>
-    public static SyntaxTree ParseStatement(string src)
+    public static SyntaxTree ParseStmt(string src)
     {
         var tokens = Lexer.LexSkipTrivia(src);
         var parser = new ParserImpl(src, tokens);
-        return parser.ParseAsStatement();
+        return parser.ParseAsStmt();
     }
 
     /// <summary>
     /// Parses the src into an expression.
     /// </summary>
-    public static SyntaxTree ParseExpression(string src)
+    public static SyntaxTree ParseExpr(string src)
     {
         var tokens = Lexer.LexSkipTrivia(src);
         var parser = new ParserImpl(src, tokens);
-        return parser.ParseAsExpression();
+        return parser.ParseAsExpr();
     }
 }
 
@@ -112,85 +112,85 @@ internal class ParserImpl
 
     public SyntaxTree ParseAsModule()
     {
-        var declarations = new List<DeclarationNode>();
+        var decls = new List<DeclNode>();
 
         while (!IsAtEnd())
         {
-            var delcaration = ParseDeclaration();
-            declarations.Add(delcaration);
+            var delcaration = ParseDecl();
+            decls.Add(delcaration);
         }
 
-        var module = new ModuleNode(declarations);
+        var module = new ModuleNode(decls);
         return MakeSyntaxTree(module);
     }
 
-    public SyntaxTree ParseAsDeclaration()
+    public SyntaxTree ParseAsDecl()
     {
-        var declaration = ParseDeclaration();
-        return MakeSyntaxTree(declaration);
+        var decl = ParseDecl();
+        return MakeSyntaxTree(decl);
     }
 
-    private DeclarationNode ParseDeclaration()
+    private DeclNode ParseDecl()
     {
-        var declaration = ParseDeclaration_();
-        if (declaration != null)
+        var decl = ParseDecl_();
+        if (decl != null)
         {
             ResetTokensConsumed();
-            return declaration;
+            return decl;
         }
-        return RecoverDeclaration();
+        return RecoverDecl();
     }
 
-    public SyntaxTree ParseAsStatement()
+    public SyntaxTree ParseAsStmt()
     {
-        var statement = ParseStatement();
-        return MakeSyntaxTree(statement);
+        var stmt = ParseStmt();
+        return MakeSyntaxTree(stmt);
     }
 
-    private StatementNode ParseStatement()
+    private StmtNode ParseStmt()
     {
-        var statement = ParseStatement_();
-        if (statement != null)
+        var stmt = ParseStmt_();
+        if (stmt != null)
         {
             ResetTokensConsumed();
-            return statement;
+            return stmt;
         }
-        return RecoverStatement();
+        return RecoverStmt();
     }
 
-    public SyntaxTree ParseAsExpression()
+    public SyntaxTree ParseAsExpr()
     {
-        var expression = ParseExpression();
-        return MakeSyntaxTree(expression);
+        var expr = ParseExpr();
+        return MakeSyntaxTree(expr);
     }
 
-    private ExpressionNode ParseExpression()
+    private ExprNode ParseExpr()
     {
-        var expression = ParseExpression_();
-        if (expression != null)
+        var expr = ParseExpr_();
+        if (expr != null)
         {
             ResetTokensConsumed();
-            return expression;
+            return expr;
         }
-        return RecoverExpression();
+        return RecoverExpr();
     }
 
-    private DeclarationNode RecoverDeclaration()
+    private DeclNode RecoverDecl()
     {
         var skipped = RecoverMain();
-        return new SkippedTokensDeclarationNode(skipped);
+        return new SkippedTokensDeclNode(skipped);
     }
 
-    private StatementNode RecoverStatement()
+    private StmtNode RecoverStmt()
     {
         var skipped = RecoverMain();
-        return new SkippedTokensStatementNode(skipped);
+        return new SkippedTokensStmtNode(skipped);
     }
 
-    private ExpressionNode RecoverExpression()
+    private ExprNode RecoverExpr()
     {
         var skipped = RecoverMain();
-        return new SkippedTokensExpressionNode(skipped);
+        return new SkippedTokensExprNode(skipped);
     }
 
     private SkippedToken RecoverMain()
@@ -208,7 +208,7 @@ internal class ParserImpl
             }
 
             var current = AssertedCurrent();
-            if (current.Kind.CanStartDeclaration() || current.Kind.CanStartStatement())
+            if (current.Kind.CanStartDecl() || current.Kind.CanStartStmt())
             {
                 break;
             }
@@ -225,7 +225,7 @@ internal class ParserImpl
         _tokensConsumed.Clear();
     }
 
-    // This happens in one of the recovery of the three main items: declarations, statements, expressions.
+    // This happens in one of the recovery of the three main items: decls, stmts, exprs.
     private List<Token> TakeTokensConsumed()
     {
         var tokens = _tokensConsumed;
@@ -313,35 +313,35 @@ internal class ParserImpl
         return _src.AsSpan()[start..end];
     }
 
-    // Declarations
+    // Decls
     // ------------
 
     /// <summary>
-    /// Parses outer level declaration.
+    /// Parses outer level decl.
     /// </summary>
-    private DeclarationNode? ParseDeclaration_()
+    private DeclNode? ParseDecl_()
     {
         var visibility = TryParseVisibility();
         return _current?.Kind switch
         {
-            TokenKind.Const => ParseConstDeclaration(visibility),
-            TokenKind.Fn => ParseFnDeclaration(visibility),
-            TokenKind.Class => ParseClassDeclaration(visibility),
+            TokenKind.Const => ParseConstDecl(visibility),
+            TokenKind.Fn => ParseFnDecl(visibility),
+            TokenKind.Class => ParseClassDecl(visibility),
 
             _ => null,
         };
     }
 
-    private DeclarationNode? ParseInnerDeclaration()
+    private DeclNode? ParseInnerDecl()
     {
         var visibility = TryParseVisibility();
         return _current?.Kind switch
         {
             // `identifier: Type = 2;` or `identifier = 2;`
-            TokenKind.Identifier when P1()?.Kind is TokenKind.Colon or TokenKind.Equal => ParseFieldDeclaration(visibility),
+            TokenKind.Identifier when P1()?.Kind is TokenKind.Colon or TokenKind.Equal => ParseFieldDecl(visibility),
 
             // `identifier()`
-            TokenKind.Identifier when P1()?.Kind is TokenKind.LeftParen => ParseMethodDeclaration(visibility),
+            TokenKind.Identifier when P1()?.Kind is TokenKind.LeftParen => ParseMethodDecl(visibility),
 
             _ => null,
         };
@@ -350,7 +350,7 @@ internal class ParserImpl
     /// <summary>
     /// Parses `const identifier = expr;`
     /// </summary>
-    private DeclarationNode? ParseConstDeclaration(SimpleToken? visibility)
+    private DeclNode? ParseConstDecl(SimpleToken? visibility)
     {
         var constToken = EatAssertedSimpleToken(TokenKind.Const);
         var identifier = ParseIdentifier();
@@ -358,52 +358,52 @@ internal class ParserImpl
         var (type, elided) = ParseOptionalColonTy();
         if (!elided && type == null) return null;
         var equalToken = EatExpectedSimpleToken(TokenKind.Equal);
-        var value = ParseExpression_();
+        var value = ParseExpr_();
         if (value == null) return null;
 
-        return new ConstDeclarationNode(visibility, constToken, identifier, type, equalToken, value);
+        return new ConstDeclNode(visibility, constToken, identifier, type, equalToken, value);
     }
 
     /// <summary>
     /// Parses `fn identifier(param1, param2) : Type { ... }`
     /// </summary>
-    private DeclarationNode? ParseFnDeclaration(SimpleToken? visibility)
+    private DeclNode? ParseFnDecl(SimpleToken? visibility)
     {
         var fnToken = EatAssertedSimpleToken(TokenKind.Fn);
-        var signature = ParseFnSignature();
-        if (signature == null) return null;
-        var body = ParseBlockExpression();
+        var sig = ParseFnSig();
+        if (sig == null) return null;
+        var body = ParseBlockExpr();
         if (body == null) return null;
 
-        return new FnDeclarationNode(visibility, fnToken, signature, body);
+        return new FnDeclNode(visibility, fnToken, sig, body);
     }
 
     /// <summary>
     /// Parses `class Name { ... }`
     /// </summary>
-    private DeclarationNode? ParseClassDeclaration(SimpleToken? visibility)
+    private DeclNode? ParseClassDecl(SimpleToken? visibility)
     {
         var classToken = EatAssertedSimpleToken(TokenKind.Class);
         var identifier = ParseIdentifier();
         if (identifier == null) return null;
-        var members = new List<DeclarationNode>();
+        var members = new List<DeclNode>();
 
         var openBraceToken = EatExpectedSimpleToken(TokenKind.LeftBrace);
         while (!CheckToken(TokenKind.RightBrace))
         {
-            var declaration = ParseInnerDeclaration();
-            if (declaration == null) return null;
-            members.Add(declaration);
+            var decl = ParseInnerDecl();
+            if (decl == null) return null;
+            members.Add(decl);
         }
         var closedBraceToken = EatExpectedSimpleToken(TokenKind.RightBrace);
 
-        return new ClassDeclarationNode(visibility, classToken, identifier, openBraceToken, members, closedBraceToken);
+        return new ClassDeclNode(visibility, classToken, identifier, openBraceToken, members, closedBraceToken);
     }
 
     /// <summary>
-    /// Parses `identifier: Type = expression;`
+    /// Parses `identifier: Type = expr;`
     /// </summary>
-    private DeclarationNode? ParseFieldDeclaration(SimpleToken? visibility)
+    private DeclNode? ParseFieldDecl(SimpleToken? visibility)
     {
         var identifier = ParseIdentifier();
         if (identifier == null) return null;
@@ -413,44 +413,44 @@ internal class ParserImpl
         if (initializer == null) return null;
         var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
-        return new FieldDeclarationNode(visibility, identifier, type, initializer, semicolonToken);
+        return new FieldDeclNode(visibility, identifier, type, initializer, semicolonToken);
     }
 
     /// <summary>
     /// Parses `identifier(param1, param2)`
     /// </summary>
-    private DeclarationNode? ParseMethodDeclaration(SimpleToken? visibility)
+    private DeclNode? ParseMethodDecl(SimpleToken? visibility)
     {
-        var signature = ParseFnSignature();
-        if (signature == null) return null;
-        var body = ParseBlockExpression();
+        var sig = ParseFnSig();
+        if (sig == null) return null;
+        var body = ParseBlockExpr();
         if (body == null) return null;
 
-        return new MethodDeclarationNode(visibility, signature, body);
+        return new MethodDeclNode(visibility, sig, body);
     }
 
-    // Statements
+    // Stmts
     // ----------
 
-    private StatementNode? ParseStatement_()
+    private StmtNode? ParseStmt_()
     {
         var current = _current;
         if (current == null) return null;
 
         return current.Kind switch
         {
-            TokenKind.Let => ParseLetStatement(),
-            TokenKind.Return => ParseReturnStatement(),
-            _ when current.Kind.CanStartExpression() => ParseExpressionStatement(),
+            TokenKind.Let => ParseLetStmt(),
+            TokenKind.Return => ParseReturnStmt(),
+            _ when current.Kind.CanStartExpr() => ParseExprStmt(),
 
             _ => null,
         };
     }
 
     /// <summary>
-    /// Parses `let a: Type? = expression;`
+    /// Parses `let a: Type? = expr;`
     /// </summary>
-    private StatementNode? ParseLetStatement()
+    private StmtNode? ParseLetStmt()
     {
         var letToken = EatAssertedSimpleToken(TokenKind.Let);
         var identifier = ParseIdentifier();
@@ -460,49 +460,49 @@ internal class ParserImpl
         var initializer = ParseEqualsValueClause();
         var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
-        return new LetStatementNode(letToken, identifier, type, initializer, semicolonToken);
+        return new LetStmtNode(letToken, identifier, type, initializer, semicolonToken);
     }
 
     /// <summary>
-    /// Parses `return expression;`
+    /// Parses `return expr;`
     /// </summary>
-    private StatementNode? ParseReturnStatement()
+    private StmtNode? ParseReturnStmt()
     {
         var returnToken = EatAssertedSimpleToken(TokenKind.Return);
-        var expression = ParseExpression_();
+        var expr = ParseExpr_();
         var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
-        return new ReturnStatementNode(returnToken, expression, semicolonToken);
+        return new ReturnStmtNode(returnToken, expr, semicolonToken);
     }
 
-    private StatementNode? ParseExpressionStatement()
+    private StmtNode? ParseExprStmt()
     {
-        var expression = ParseExpression_();
-        if (expression == null) return null;
+        var expr = ParseExpr_();
+        if (expr == null) return null;
         var semicolonToken = TryEatSimpleToken(TokenKind.Semicolon);
 
         return semicolonToken is null ?
-            new BareExpressionStatementNode(expression) :
-            new ExpressionStatementNode(expression, semicolonToken);
+            new BareExprStmtNode(expr) :
+            new ExprStmtNode(expr, semicolonToken);
     }
 
-    // Expressions
+    // Exprs
     // -----------
 
-    private ExpressionNode? ParseExpression_() => ParseExpressionForPrecedence(Precedence.None);
+    private ExprNode? ParseExpr_() => ParseExprForPrecedence(Precedence.None);
 
     /// <summary>
-    /// Keeps parsing right expressions as long as the next precedence is greater than the given `precedence`.
+    /// Keeps parsing right exprs as long as the next precedence is greater than the given `precedence`.
     /// </summary>
-    private ExpressionNode? ParseExpressionForPrecedence(Precedence precedence)
+    private ExprNode? ParseExprForPrecedence(Precedence precedence)
     {
         if (_current == null) return null;
         if (!Pratt.IsPrefixRule(_current.Kind))
         {
             return null;
         }
-        var expression = ParsePrefixExpression();
-        if (expression == null) return null;
+        var expr = ParsePrefixExpr();
+        if (expr == null) return null;
 
         while (_current != null)
         {
@@ -514,63 +514,63 @@ internal class ParserImpl
                 break;
             }
 
-            expression = ParseInfixExpression(rule, expression);
-            if (expression == null) return null;
+            expr = ParseInfixExpr(rule, expr);
+            if (expr == null) return null;
         }
 
-        return expression;
+        return expr;
     }
 
-    private ExpressionNode? ParsePrefixExpression()
+    private ExprNode? ParsePrefixExpr()
     {
         var token = AssertedCurrent();
         return token.Kind switch
         {
-            TokenKind.LeftParen => ParseGroupingExpression(),
-            TokenKind.LeftBrace => ParseBlockExpression(),
-            TokenKind.Identifier => ParseIdentifierExpression(),
-            _ when token.Kind.IsUnary() => ParseUnaryExpression(),
-            _ when token.Kind.IsLiteral() => ParseLiteralExpression(),
+            TokenKind.LeftParen => ParseGroupingExpr(),
+            TokenKind.LeftBrace => ParseBlockExpr(),
+            TokenKind.Identifier => ParseIdentifierExpr(),
+            _ when token.Kind.IsUnary() => ParseUnaryExpr(),
+            _ when token.Kind.IsLiteral() => ParseLiteralExpr(),
             _ => throw new Exception("unreachable"),
         };
     }
 
-    private ExpressionNode? ParseGroupingExpression()
+    private ExprNode? ParseGroupingExpr()
     {
         var openParenToken = EatAssertedSimpleToken(TokenKind.LeftParen);
-        var expression = ParseExpression_();
-        if (expression == null) return null;
+        var expr = ParseExpr_();
+        if (expr == null) return null;
         var closedParenToken = EatExpectedSimpleToken(TokenKind.RightParen);
 
-        return new GroupingExpressionNode(openParenToken, expression, closedParenToken);
+        return new GroupingExprNode(openParenToken, expr, closedParenToken);
     }
 
-    private ExpressionNode? ParseIdentifierExpression()
+    private ExprNode? ParseIdentifierExpr()
     {
         var identifier = ParseIdentifier();
         if (identifier == null) return null;
 
-        return new IdentifierExpressionNode(identifier);
+        return new IdentifierExprNode(identifier);
     }
 
     /// <summary>
     /// Parses `!a`
     /// </summary>
-    private ExpressionNode? ParseUnaryExpression()
+    private ExprNode? ParseUnaryExpr()
     {
         Advance();
         var op = UnaryOperatorToken.From(AssertedPrev());
-        var expression = ParseExpressionForPrecedence(Precedence.Prefix);
-        if (expression == null) return null;
+        var expr = ParseExprForPrecedence(Precedence.Prefix);
+        if (expr == null) return null;
 
-        return new UnaryExpressionNode(op, expression);
+        return new UnaryExprNode(op, expr);
     }
 
-    private ExpressionNode? ParseLiteralExpression()
+    private ExprNode? ParseLiteralExpr()
     {
         var literal = ParseLiteralToken();
 
-        return new LiteralExpressionNode(literal);
+        return new LiteralExprNode(literal);
     }
 
     private LiteralToken ParseLiteralToken()
@@ -638,79 +638,79 @@ internal class ParserImpl
         }
     }
 
-    private ExpressionNode? ParseInfixExpression(InfixRule rule, ExpressionNode left)
+    private ExprNode? ParseInfixExpr(InfixRule rule, ExprNode left)
     {
         var token = AssertedCurrent();
         var targetPrecedence = rule.AdjustedPreference();
 
         return token.Kind switch
         {
-            TokenKind.LeftParen => ParseCallExpression(left),
-            TokenKind.Dot => ParseAccessExpression(left),
-            TokenKind.Equal => ParseAssignmentExpression(targetPrecedence, left),
-            _ when token.Kind.IsBinary() => ParseBinaryExpression(targetPrecedence, left),
+            TokenKind.LeftParen => ParseCallExpr(left),
+            TokenKind.Dot => ParseAccessExpr(left),
+            TokenKind.Equal => ParseAssignmentExpr(targetPrecedence, left),
+            _ when token.Kind.IsBinary() => ParseBinaryExpr(targetPrecedence, left),
             _ => throw new Exception("unreachable"),
         };
     }
 
-    private ExpressionNode? ParseCallExpression(ExpressionNode left)
+    private ExprNode? ParseCallExpr(ExprNode left)
     {
-        // Inside the arguments list of a call expression, parsing will continue until we hit the closing paren,
+        // Inside the args list of a call expr, parsing will continue until we hit the closing paren,
         // so we don't pass the precedence (otherwise parsing will prematurely stop since a call has the strongest precedence).
-        var arguments = ParseArgumentsList();
-        if (arguments == null) return null;
+        var args = ParseArgsList();
+        if (args == null) return null;
 
-        return new CallExpressionNode(left, arguments);
+        return new CallExprNode(left, args);
     }
 
-    private ExpressionNode? ParseAccessExpression(ExpressionNode left)
+    private ExprNode? ParseAccessExpr(ExprNode left)
     {
-        // In an access expression, we always parse one identifier, so we don't pass the precedence.
+        // In an access expr, we always parse one identifier, so we don't pass the precedence.
         var dotToken = EatAssertedSimpleToken(TokenKind.Dot);
         var identifier = ParseIdentifier();
         if (identifier == null) return null;
 
-        return new AccessExpressionNode(left, dotToken, identifier);
+        return new AccessExprNode(left, dotToken, identifier);
     }
 
     /// <summary>
     /// Parses `left = right`
     /// </summary>
-    private ExpressionNode? ParseAssignmentExpression(Precedence precedence, ExpressionNode left)
+    private ExprNode? ParseAssignmentExpr(Precedence precedence, ExprNode left)
     {
         var equalToken = EatAssertedSimpleToken(TokenKind.Equal);
-        var rhs = ParseExpressionForPrecedence(precedence);
+        var rhs = ParseExprForPrecedence(precedence);
         if (rhs == null) return null;
 
-        return new AssignmentExpressionNode(left, equalToken, rhs);
+        return new AssignmentExprNode(left, equalToken, rhs);
     }
 
-    private ExpressionNode? ParseBinaryExpression(Precedence precedence, ExpressionNode left)
+    private ExprNode? ParseBinaryExpr(Precedence precedence, ExprNode left)
     {
         Advance();
         var op = BinaryOperatorToken.From(AssertedPrev());
-        var right = ParseExpressionForPrecedence(precedence);
+        var right = ParseExprForPrecedence(precedence);
         if (right == null) return null;
 
-        return new BinaryExpressionNode(left, op, right);
+        return new BinaryExprNode(left, op, right);
     }
 
     /// <summary>
     /// Parses `{ ... }`
     /// </summary>
-    private BlockExpressionNode? ParseBlockExpression()
+    private BlockExprNode? ParseBlockExpr()
     {
         var openBraceToken = EatAssertedSimpleToken(TokenKind.LeftBrace);
-        var statements = new List<StatementNode>();
+        var stmts = new List<StmtNode>();
 
         while (!CheckToken(TokenKind.RightBrace))
         {
-            statements.Add(ParseStatement());
+            stmts.Add(ParseStmt());
         }
 
         var closedBraceToken = EatExpectedSimpleToken(TokenKind.RightBrace);
 
-        return new BlockExpressionNode(openBraceToken, statements, closedBraceToken);
+        return new BlockExprNode(openBraceToken, stmts, closedBraceToken);
     }
 
     // ---
@@ -723,10 +723,10 @@ internal class ParserImpl
             (TokenKind.Semicolon or TokenKind.RightParen)) return null;
 
         var equalToken = EatExpectedSimpleToken(TokenKind.Equal);
-        var expression = ParseExpression_();
-        if (expression == null) return null;
+        var expr = ParseExpr_();
+        if (expr == null) return null;
 
-        return new EqualsValueClauseNode(equalToken, expression);
+        return new EqualsValueClauseNode(equalToken, expr);
     }
 
     /// <summary>
@@ -772,11 +772,11 @@ internal class ParserImpl
     /// Parses `(ident1: Type, ident2: Type)`
     /// Requirements: current is LeftParen.
     /// </summary>
-    private ParametersListNode? ParseParametersList()
+    private ParamsListNode? ParseParamsList()
     {
         var openParenToken = EatAssertedSimpleToken(TokenKind.LeftParen);
 
-        var parameters = new List<ParameterNode>();
+        var @params = new List<ParamNode>();
 
         while (true)
         {
@@ -787,21 +787,21 @@ internal class ParserImpl
                 break;
             }
 
-            var parameter = ParseParameter();
-            if (parameter == null) return null;
+            var param = ParseParam();
+            if (param == null) return null;
 
-            parameters.Add(parameter);
+            @params.Add(param);
         }
 
         var closedParenToken = EatExpectedSimpleToken(TokenKind.RightParen);
 
-        return new ParametersListNode(openParenToken, parameters, closedParenToken);
+        return new ParamsListNode(openParenToken, @params, closedParenToken);
     }
 
     /// <summary>
     /// Parses `field identifier: Type,`
     /// </summary>
-    private ParameterNode? ParseParameter()
+    private ParamNode? ParseParam()
     {
         var fieldToken = TryEatSimpleToken(TokenKind.Field);
         var identifier = ParseIdentifier();
@@ -814,18 +814,18 @@ internal class ParserImpl
             _ => EatExpectedSimpleToken(TokenKind.Comma),
         };
 
-        return new ParameterNode(fieldToken, identifier, type, commaToken);
+        return new ParamNode(fieldToken, identifier, type, commaToken);
     }
 
     /// <summary>
-    /// Parses `(expression1, expression2)`
+    /// Parses `(expr1, expr2)`
     /// Requirements: current is LeftParen.
     /// </summary>
-    private ArgumentsListNode? ParseArgumentsList()
+    private ArgsListNode? ParseArgsList()
     {
         var openParenToken = EatAssertedSimpleToken(TokenKind.LeftParen);
 
-        var arguments = new List<ArgumentNode>();
+        var args = new List<ArgNode>();
 
         while (true)
         {
@@ -836,40 +836,40 @@ internal class ParserImpl
                 break;
             }
 
-            var argument = ParseArgument();
-            if (argument == null) return null;
+            var arg = ParseArg();
+            if (arg == null) return null;
 
-            arguments.Add(argument);
+            args.Add(arg);
         }
 
         var closedParenToken = EatExpectedSimpleToken(TokenKind.RightParen);
 
-        return new ArgumentsListNode(openParenToken, arguments, closedParenToken);
+        return new ArgsListNode(openParenToken, args, closedParenToken);
     }
 
-    private ArgumentNode? ParseArgument()
+    private ArgNode? ParseArg()
     {
-        var expression = ParseExpression_();
-        if (expression == null) return null;
+        var expr = ParseExpr_();
+        if (expr == null) return null;
         var commaToken = _current?.Kind switch
         {
             TokenKind.RightParen => null,
             _ => EatExpectedSimpleToken(TokenKind.Comma),
         };
 
-        return new ArgumentNode(expression, commaToken);
+        return new ArgNode(expr, commaToken);
     }
 
-    private FnSignatureNode? ParseFnSignature()
+    private FnSigNode? ParseFnSig()
     {
         var identifier = ParseIdentifier();
         if (identifier == null) return null;
-        var parameters = ParseParametersList();
-        if (parameters == null) return null;
+        var @params = ParseParamsList();
+        if (@params == null) return null;
         var (returnTy, elided) = ParseOptionalColonTy();
         if (!elided && returnTy == null) return null;
 
-        return new FnSignatureNode(identifier, parameters, returnTy);
+        return new FnSigNode(identifier, @params, returnTy);
     }
 
     private IdentifierToken? ParseIdentifier()

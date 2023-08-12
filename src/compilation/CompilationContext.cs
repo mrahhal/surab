@@ -22,22 +22,22 @@ public sealed class CompilationContext
 
     public SemanticModel Model { get; }
 
-    // TODO: Move to FunctionCompiler? (with the GetOrCreate stuff)
+    // TODO: Move to FnCompiler? (with the GetOrCreate stuff)
     private Dictionary<Symbol, LLVMUnit> SymbolToValue { get; } = new();
 
     internal LLVMCompilationContext LLVM { get; }
 
     public CompilationOptions Options { get; }
 
-    internal LLVMUnit Create(ParameterSymbol parameterSymbol, LLVMValueRef value)
+    internal LLVMUnit Create(ParamSymbol paramSymbol, LLVMValueRef value)
     {
-        var typeRef = GetForType(parameterSymbol.Type);
+        var typeRef = GetForType(paramSymbol.Type);
 
-        var ptr = LLVM.Builder.BuildAlloca(typeRef, parameterSymbol.Identifier?.Value ?? string.Empty);
+        var ptr = LLVM.Builder.BuildAlloca(typeRef, paramSymbol.Identifier?.Value ?? string.Empty);
         var unit = new LLVMUnit(typeRef, ptr);
         LLVM.Builder.BuildStore(value, ptr);
 
-        SymbolToValue[parameterSymbol] = unit;
+        SymbolToValue[paramSymbol] = unit;
         return unit;
     }
 
@@ -89,7 +89,7 @@ public sealed class CompilationContext
     private LLVMUnit Create(FnSymbol fnSymbol)
     {
         var returnType = GetForType(fnSymbol.ReturnType);
-        var @params = fnSymbol.Parameters.Select(p => GetForType(p.Type)).ToArray();
+        var @params = fnSymbol.Params.Select(p => GetForType(p.Type)).ToArray();
 
         var fnType = LLVMTypeRef.CreateFunction(returnType, @params, false);
         var fnValue = LLVM.Module.AddFunction(fnSymbol.Identifier!.Value, fnType);

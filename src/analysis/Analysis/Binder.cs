@@ -125,7 +125,7 @@ internal interface IBinderHasLocals
 
 internal class ModuleBinder : Binder
 {
-    private ImmutableArray<Symbol> _declarations;
+    private ImmutableArray<Symbol> _decls;
 
     private readonly ModuleNode _module;
 
@@ -134,30 +134,30 @@ internal class ModuleBinder : Binder
         _module = module;
     }
 
-    public ImmutableArray<Symbol> Declarations
+    public ImmutableArray<Symbol> Decls
     {
         get
         {
-            if (_declarations.IsDefault)
+            if (_decls.IsDefault)
             {
-                ImmutableInterlocked.InterlockedCompareExchange(ref _declarations, BuildDeclarations(), default);
+                ImmutableInterlocked.InterlockedCompareExchange(ref _decls, BuildDecls(), default);
             }
 
-            return _declarations;
+            return _decls;
         }
     }
 
     public override Symbol? LookupIdentifierHere(IdentifierToken identifier)
     {
-        return LookupIdentifierIn(Declarations, identifier);
+        return LookupIdentifierIn(Decls, identifier);
     }
 
-    private ImmutableArray<Symbol> BuildDeclarations()
+    private ImmutableArray<Symbol> BuildDecls()
     {
         var builder = ImmutableArray.CreateBuilder<Symbol>();
-        foreach (var declaration in _module.Declarations)
+        foreach (var decl in _module.Decls)
         {
-            if (SemanticModel.TryGetDeclaredSymbol(declaration, out var symbol))
+            if (SemanticModel.TryGetDeclaredSymbol(decl, out var symbol))
             {
                 builder.Add(symbol);
             }
@@ -166,16 +166,16 @@ internal class ModuleBinder : Binder
     }
 }
 
-internal class ClassDeclarationBinder : Binder
+internal class ClassDeclBinder : Binder
 {
-    private readonly ClassDeclarationNode _classDeclaration;
+    private readonly ClassDeclNode _classDecl;
     private readonly NamedTypeSymbol _symbol;
 
-    public ClassDeclarationBinder(
-        ClassDeclarationNode classDeclaration,
+    public ClassDeclBinder(
+        ClassDeclNode classDecl,
         NamedTypeSymbol symbol)
     {
-        _classDeclaration = classDeclaration;
+        _classDecl = classDecl;
         _symbol = symbol;
     }
 
@@ -190,32 +190,32 @@ internal class ClassDeclarationBinder : Binder
     }
 }
 
-internal class FunctionBinder : Binder
+internal class FnBinder : Binder
 {
-    private readonly FnSignatureNode _fnSignature;
+    private readonly FnSigNode _fnSig;
     private readonly FnSymbol _fnSymbol;
 
-    public FunctionBinder(
-        FnSignatureNode fnSignature,
+    public FnBinder(
+        FnSigNode fnSig,
         FnSymbol fnSymbol)
     {
-        _fnSignature = fnSignature;
+        _fnSig = fnSig;
         _fnSymbol = fnSymbol;
     }
 
     public override Symbol? LookupIdentifierHere(IdentifierToken identifier)
     {
-        return LookupIdentifierIn(_fnSymbol.Parameters, identifier);
+        return LookupIdentifierIn(_fnSymbol.Params, identifier);
     }
 }
 
-internal class BlockExpressionBinder : Binder, IBinderHasLocals
+internal class BlockExprBinder : Binder, IBinderHasLocals
 {
     private ImmutableArray<LocalSymbol> _locals;
 
-    private readonly BlockExpressionNode _block;
+    private readonly BlockExprNode _block;
 
-    public BlockExpressionBinder(BlockExpressionNode block)
+    public BlockExprBinder(BlockExprNode block)
     {
         _block = block;
     }
@@ -249,9 +249,9 @@ internal class BlockExpressionBinder : Binder, IBinderHasLocals
     private ImmutableArray<LocalSymbol> BuildLocals()
     {
         var builder = ImmutableArray.CreateBuilder<LocalSymbol>();
-        foreach (var declaration in _block.Statements)
+        foreach (var decl in _block.Stmts)
         {
-            if (SemanticModel.TryGetDeclaredSymbol(declaration, out var symbol) && symbol is LocalSymbol localSymbol)
+            if (SemanticModel.TryGetDeclaredSymbol(decl, out var symbol) && symbol is LocalSymbol localSymbol)
             {
                 builder.Add(localSymbol);
             }

@@ -7,19 +7,19 @@ public class LoweringUtilsTests
     [Fact]
     public void Basic()
     {
-        var node = new LoweredStatementList(
+        var node = new LoweredStmtList(
             null!,
-            new LoweredStatement[]
+            new LoweredStmt[]
             {
-                new LoweredStatementList(
+                new LoweredStmtList(
                     null!,
-                    new LoweredStatement[] { new LoweredReturnStatement(null!, null) }),
-                new LoweredReturnStatement(null!, null),
+                    new LoweredStmt[] { new LoweredReturnStmt(null!, null) }),
+                new LoweredReturnStmt(null!, null),
             });
 
         var list = LoweringUtils.EnumerateUnwrappedDescendants(node).ToList();
         list.Should().HaveCount(2);
-        list[0].Should().BeOfType<LoweredReturnStatement>();
-        list[1].Should().BeOfType<LoweredReturnStatement>();
+        list[0].Should().BeOfType<LoweredReturnStmt>();
+        list[1].Should().BeOfType<LoweredReturnStmt>();
     }
 }

@@ -24,28 +24,28 @@ internal class Lowerer
         return new LoweredTree(root);
     }
 
-    private LoweredNode Lower(SyntaxNode node, RewriteExpression? rewrite = null)
+    private LoweredNode Lower(SyntaxNode node, RewriteExpr? rewrite = null)
     {
         var result = node switch
         {
             ModuleNode n => Lower(n),
-            //ConstDeclarationNode n => Lower(n),
-            FnDeclarationNode n => Lower(n),
-            //ClassDeclarationNode n => Lower(n),
-            //FieldDeclarationNode n => Lower(n),
-            //MethodDeclarationNode n => Lower(n),
-            LetStatementNode n => Lower(n),
-            ReturnStatementNode n => Lower(n),
-            ExpressionStatementNode n => Lower(n),
-            BareExpressionStatementNode n => Lower(n),
-            BlockExpressionNode n => Lower(n, rewrite),
-            AssignmentExpressionNode n => Lower(n, rewrite),
-            UnaryExpressionNode n => Lower(n),
-            BinaryExpressionNode n => Lower(n),
-            CallExpressionNode n => Lower(n),
-            //AccessExpressionNode n => Lower(n),
-            LiteralExpressionNode n => Lower(n),
-            IdentifierExpressionNode n => Lower(n),
+            //ConstDeclNode n => Lower(n),
+            FnDeclNode n => Lower(n),
+            //ClassDeclNode n => Lower(n),
+            //FieldDeclNode n => Lower(n),
+            //MethodDeclNode n => Lower(n),
+            LetStmtNode n => Lower(n),
+            ReturnStmtNode n => Lower(n),
+            ExprStmtNode n => Lower(n),
+            BareExprStmtNode n => Lower(n),
+            BlockExprNode n => Lower(n, rewrite),
+            AssignmentExprNode n => Lower(n, rewrite),
+            UnaryExprNode n => Lower(n),
+            BinaryExprNode n => Lower(n),
+            CallExprNode n => Lower(n),
+            //AccessExprNode n => Lower(n),
+            LiteralExprNode n => Lower(n),
+            IdentifierExprNode n => Lower(n),
 
             // These are nodes that are taken care of in other places, there shouldn't be a case where they're called here.
             // => throw new Exception("Unexpected node: " + node.GetType().Name),
@@ -53,13 +53,13 @@ internal class Lowerer
             _ => throw new NotImplementedException(),
         };
 
-        // Catch the remaining simple expressions that didn't apply the rewrite.
+        // Catch the remaining simple exprs that didn't apply the rewrite.
         // This includes: Unary, Binary, Call, Literal, Identifier.
         if (rewrite != null &&
-            result is LoweredExpression loweredExpression)
+            result is LoweredExpr loweredExpr)
         {
-            var rewrittenStatement = rewrite(loweredExpression);
-            return rewrittenStatement;
+            var rewrittenStmt = rewrite(loweredExpr);
+            return rewrittenStmt;
         }
 
         return result;
@@ -69,72 +69,72 @@ internal class Lowerer
     {
         return new LoweredModule(
             node,
-            LowerWithCast(node.Declarations));
+            LowerWithCast(node.Decls));
     }
 
-    private LoweredNode Lower(FnDeclarationNode node)
+    private LoweredNode Lower(FnDeclNode node)
     {
         var fnSymbol = _model.GetDeclaredSymbol(node) as FnSymbol;
         Debug.Assert(fnSymbol != null);
 
-        return new LoweredFnDeclaration(
+        return new LoweredFnDecl(
             node,
             fnSymbol,
-            LowerFunctionBlock(node.Body));
+            LowerFnBlock(node.Body));
     }
 
-    private LoweredNode Lower(LetStatementNode node)
+    private LoweredNode Lower(LetStmtNode node)
     {
         var symbol = _model.GetDeclaredSymbol(node) as LocalSymbol;
         Debug.Assert(symbol != null);
 
-        var variableStatement = (LoweredStatement)new LoweredVariableStatement(
+        var variableStmt = (LoweredStmt)new LoweredVariableStmt(
             node,
             symbol);
 
         if (node.Initializer == null)
         {
-            return variableStatement;
+            return variableStmt;
         }
 
-        var result = Lower(node.Initializer.Expression, rewrite: expression =>
+        var result = Lower(node.Initializer.Expr, rewrite: expr =>
         {
-            return new LoweredVariableStoreStatement(
+            return new LoweredVariableStoreStmt(
                 node,
                 symbol,
-                expression);
+                expr);
         });
 
-        Debug.Assert(result is LoweredStatement);
-        var statementResult = (LoweredStatement)result;
+        Debug.Assert(result is LoweredStmt);
+        var stmtResult = (LoweredStmt)result;
 
-        return new LoweredStatementList(
+        return new LoweredStmtList(
             node,
             new[]
             {
-                variableStatement,
-                statementResult,
+                variableStmt,
+                stmtResult,
             });
     }
 
-    private LoweredNode Lower(ReturnStatementNode node)
+    private LoweredNode Lower(ReturnStmtNode node)
     {
-        var expression = node.Expression == null ? null : LowerWithCast(node.Expression);
-        return new LoweredReturnStatement(
+        var expr = node.Expr == null ? null : LowerWithCast(node.Expr);
+        return new LoweredReturnStmt(
             node,
-            expression);
+            expr);
     }
 
-    private LoweredNode Lower(ExpressionStatementNode node)
+    private LoweredNode Lower(ExprStmtNode node)
     {
-        // Result might not be an expression (e.g. `a = 2;` it'll be var store statement), in which case return as is
-        // as we won't need to wrap in an LoweredExpressionStatement in this case.
-        var result = Lower(node.Expression);
-        if (result is LoweredExpression expression)
+        // Result might not be an expr (e.g. `a = 2;` it'll be var store stmt), in which case return as is
+        // as we won't need to wrap in an LoweredExprStmt in this case.
+        var result = Lower(node.Expr);
+        if (result is LoweredExpr expr)
         {
-            return new LoweredExpressionStatement(
+            return new LoweredExprStmt(
                 node,
-                expression);
+                expr);
         }
         else
         {
@@ -142,93 +142,93 @@ internal class Lowerer
         }
     }
 
-    private LoweredNode Lower(BareExpressionStatementNode node)
+    private LoweredNode Lower(BareExprStmtNode node)
     {
         // This is called in cases such as standalone blocks.
-        return Lower(node.Expression);
+        return Lower(node.Expr);
     }
 
-    private LoweredStatementList LowerFunctionBlock(BlockExpressionNode node)
+    private LoweredStmtList LowerFnBlock(BlockExprNode node)
     {
-        var (statements, bareReturnExpression) = LowerBlock(node);
+        var (stmts, bareReturnExpr) = LowerBlock(node);
 
-        if (bareReturnExpression != null)
+        if (bareReturnExpr != null)
         {
-            statements.Add(new LoweredReturnStatement(
+            stmts.Add(new LoweredReturnStmt(
                 node,
-                bareReturnExpression));
+                bareReturnExpr));
         }
 
-        return new LoweredStatementList(
+        return new LoweredStmtList(
             node,
-            statements);
+            stmts);
     }
 
-    // BareReturnExpression will only be set if there's a bare block return expression (that's not treated as a statement).
-    private (List<LoweredStatement> Statements, LoweredExpression? BareReturnExpression) LowerBlock(BlockExpressionNode node)
+    // BareReturnExpr will only be set if there's a bare block return expr (that's not treated as a stmt).
+    private (List<LoweredStmt> Stmts, LoweredExpr? BareReturnExpr) LowerBlock(BlockExprNode node)
     {
-        var parsedStatements = node.Statements.ToList();
-        var lastParsedStatement = parsedStatements.LastOrDefault();
+        var parsedStmts = node.Stmts.ToList();
+        var lastParsedStmt = parsedStmts.LastOrDefault();
 
-        var bareReturnExpression = default(LoweredExpression?);
-        if (lastParsedStatement is BareExpressionStatementNode bareExpressionStatementNode &&
-            !bareExpressionStatementNode.IsTreatedAsStatement)
+        var bareReturnExpr = default(LoweredExpr?);
+        if (lastParsedStmt is BareExprStmtNode bareExprStmtNode &&
+            !bareExprStmtNode.IsTreatedAsStmt)
         {
-            parsedStatements.Remove(lastParsedStatement);
-            bareReturnExpression = LowerWithCast(bareExpressionStatementNode.Expression);
+            parsedStmts.Remove(lastParsedStmt);
+            bareReturnExpr = LowerWithCast(bareExprStmtNode.Expr);
         }
 
-        var statements = LowerWithCast(parsedStatements).ToList();
+        var stmts = LowerWithCast(parsedStmts).ToList();
 
-        return (statements, bareReturnExpression);
+        return (stmts, bareReturnExpr);
     }
 
-    private LoweredNode Lower(BlockExpressionNode node, RewriteExpression? rewrite)
+    private LoweredNode Lower(BlockExprNode node, RewriteExpr? rewrite)
     {
-        var (statements, bareExpression) = LowerBlock(node);
+        var (stmts, bareExpr) = LowerBlock(node);
 
-        if (bareExpression != null)
+        if (bareExpr != null)
         {
-            // There should always be a rewriter registered if we have a bare expression here.
+            // There should always be a rewriter registered if we have a bare expr here.
             Debug.Assert(rewrite != null);
-            statements.Add(rewrite(bareExpression));
+            stmts.Add(rewrite(bareExpr));
         }
 
-        return new LoweredStatementList(
+        return new LoweredStmtList(
             node,
-            statements);
+            stmts);
     }
 
-    private LoweredNode Lower(AssignmentExpressionNode node, RewriteExpression? rewrite)
+    private LoweredNode Lower(AssignmentExprNode node, RewriteExpr? rewrite)
     {
         var symbol = _model.LookupSymbol(node.Lhs);
-        if (symbol is LocalSymbol or ParameterSymbol)
+        if (symbol is LocalSymbol or ParamSymbol)
         {
-            var result = Lower(node.Rhs, rewrite: expression =>
+            var result = Lower(node.Rhs, rewrite: expr =>
             {
-                return new LoweredVariableStoreStatement(
+                return new LoweredVariableStoreStmt(
                     node,
                     symbol,
-                    expression);
+                    expr);
             });
 
-            Debug.Assert(result is LoweredStatement);
-            var statementResult = (LoweredStatement)result;
+            Debug.Assert(result is LoweredStmt);
+            var stmtResult = (LoweredStmt)result;
 
             if (rewrite == null)
             {
-                return statementResult;
+                return stmtResult;
             }
 
-            var finalApply = rewrite(new LoweredVariableLoadExpression(
+            var finalApply = rewrite(new LoweredVariableLoadExpr(
                 node,
                 symbol));
 
-            return new LoweredStatementList(
+            return new LoweredStmtList(
                 node,
                 new[]
                 {
-                    statementResult,
+                    stmtResult,
                     finalApply,
                 });
         }
@@ -244,74 +244,74 @@ internal class Lowerer
         }
     }
 
-    private LoweredNode Lower(UnaryExpressionNode node)
+    private LoweredNode Lower(UnaryExprNode node)
     {
-        return new LoweredUnaryExpression(
+        return new LoweredUnaryExpr(
             node,
-            LowerWithCast(node.Expression));
+            LowerWithCast(node.Expr));
     }
 
-    private LoweredNode Lower(BinaryExpressionNode node)
+    private LoweredNode Lower(BinaryExprNode node)
     {
-        return new LoweredBinaryExpression(
+        return new LoweredBinaryExpr(
             node,
             LowerWithCast(node.Left),
             LowerWithCast(node.Right));
     }
 
-    private LoweredNode Lower(CallExpressionNode node)
+    private LoweredNode Lower(CallExprNode node)
     {
         // TODO: Not always an identifier?
         var fnSymbol = (FnSymbol)_model.LookupSymbol(node.Callee)!;
 
-        return new LoweredCallExpression(
+        return new LoweredCallExpr(
             node,
             fnSymbol,
-            LowerWithCast(node.Arguments.Arguments.Select(arg => arg.Expression)));
+            LowerWithCast(node.Args.Args.Select(arg => arg.Expr)));
     }
 
-    //private LoweredExpression Lower(AccessExpressionNode node)
+    //private LoweredExpr Lower(AccessExprNode node)
     //{
     //}
 
-    private static LoweredNode Lower(LiteralExpressionNode node)
+    private static LoweredNode Lower(LiteralExprNode node)
     {
-        return new LoweredLiteralExpression(
+        return new LoweredLiteralExpr(
             node,
             node.Literal);
     }
 
-    private LoweredNode Lower(IdentifierExpressionNode node)
+    private LoweredNode Lower(IdentifierExprNode node)
     {
         // Should only be here if we're accessing a variable?
         var symbol = _model.LookupSymbol(node)!;
-        return new LoweredVariableLoadExpression(
+        return new LoweredVariableLoadExpr(
             node,
             symbol);
     }
 
-    private LoweredDeclaration LowerWithCast(DeclarationNode node) => (LoweredDeclaration)Lower((SyntaxNode)node);
+    private LoweredDecl LowerWithCast(DeclNode node) => (LoweredDecl)Lower((SyntaxNode)node);
 
-    private IEnumerable<LoweredDeclaration> LowerWithCast(IEnumerable<DeclarationNode> nodes)
+    private IEnumerable<LoweredDecl> LowerWithCast(IEnumerable<DeclNode> nodes)
     {
         return nodes.Select(LowerWithCast);
     }
 
-    private LoweredStatement LowerWithCast(StatementNode node) => (LoweredStatement)Lower((SyntaxNode)node);
+    private LoweredStmt LowerWithCast(StmtNode node) => (LoweredStmt)Lower((SyntaxNode)node);
 
-    private IEnumerable<LoweredStatement> LowerWithCast(IEnumerable<StatementNode> nodes)
+    private IEnumerable<LoweredStmt> LowerWithCast(IEnumerable<StmtNode> nodes)
     {
         return nodes.Select(LowerWithCast);
     }
 
-    private LoweredExpression LowerWithCast(ExpressionNode node) => (LoweredExpression)Lower((SyntaxNode)node);
+    private LoweredExpr LowerWithCast(ExprNode node) => (LoweredExpr)Lower((SyntaxNode)node);
 
-    private IEnumerable<LoweredExpression> LowerWithCast(IEnumerable<ExpressionNode> nodes)
+    private IEnumerable<LoweredExpr> LowerWithCast(IEnumerable<ExprNode> nodes)
     {
         return nodes.Select(LowerWithCast);
     }
 
-    // Used by a parent to tell a parsed expression child to rewrite last lowered expressions (whether it's literal/call/etc, or bare).
+    // Used by a parent to tell a parsed expr child to rewrite last lowered exprs (whether it's literal/call/etc, or bare).
     // When a parent specifies a rewrite, it has to be used at some point at least once (block with bare uses it once, if+else uses it twice, etc).
-    private delegate LoweredStatement RewriteExpression(LoweredExpression expression);
+    private delegate LoweredStmt RewriteExpr(LoweredExpr expr);
 }

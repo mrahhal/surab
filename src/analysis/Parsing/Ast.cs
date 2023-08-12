@@ -471,60 +471,60 @@ public abstract class SyntaxNode : SyntaxEntity
     }
 }
 
-public abstract class DeclarationNode : SyntaxNode
+public abstract class DeclNode : SyntaxNode
 {
-    public DeclarationNode(SyntaxNodeKind kind)
+    public DeclNode(SyntaxNodeKind kind)
         : base(kind)
     {
     }
 }
 
-public abstract class StatementNode : SyntaxNode
+public abstract class StmtNode : SyntaxNode
 {
-    public StatementNode(SyntaxNodeKind kind)
+    public StmtNode(SyntaxNodeKind kind)
         : base(kind)
     {
     }
 }
 
-public abstract class ExpressionNode : SyntaxNode
+public abstract class ExprNode : SyntaxNode
 {
-    public ExpressionNode(SyntaxNodeKind kind)
+    public ExprNode(SyntaxNodeKind kind)
         : base(kind)
     {
     }
 }
 
-public partial class BareExpressionStatementNode
+public partial class BareExprStmtNode
 {
-    private bool? _isTreatedAsStatement;
+    private bool? _isTreatedAsStmt;
 
-    public bool IsTreatedAsStatement
+    public bool IsTreatedAsStmt
     {
         get
         {
-            if (_isTreatedAsStatement.HasValue)
-                return _isTreatedAsStatement.Value;
+            if (_isTreatedAsStmt.HasValue)
+                return _isTreatedAsStmt.Value;
 
-            _isTreatedAsStatement = Expression is BlockExpressionNode childBlock && !childBlock.ReturnsExpression;
-            return _isTreatedAsStatement.Value;
+            _isTreatedAsStmt = Expr is BlockExprNode childBlock && !childBlock.ReturnsExpr;
+            return _isTreatedAsStmt.Value;
         }
     }
 }
 
-public partial class BlockExpressionNode
+public partial class BlockExprNode
 {
-    private bool? _returnsExpression;
+    private bool? _returnsExpr;
 
-    public bool ReturnsExpression
+    public bool ReturnsExpr
     {
         get
         {
-            if (_returnsExpression.HasValue)
-                return _returnsExpression.Value;
+            if (_returnsExpr.HasValue)
+                return _returnsExpr.Value;
 
-            _returnsExpression = Statements.Any() && Statements.Last() is BareExpressionStatementNode;
-            return _returnsExpression.Value;
+            _returnsExpr = Stmts.Any() && Stmts.Last() is BareExprStmtNode;
+            return _returnsExpr.Value;
         }
     }
 }

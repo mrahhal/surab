@@ -11,8 +11,8 @@ public class SemanticModelTests
         var tree = Parser.ParseModule(src);
         var model = SemanticModel.Create(tree);
 
-        var declaration = tree.Root.DescendantNodes().OfType<ConstDeclarationNode>().Single();
-        model.TryGetDeclaredSymbol(declaration, out var symbol).Should().BeTrue();
+        var decl = tree.Root.DescendantNodes().OfType<ConstDeclNode>().Single();
+        model.TryGetDeclaredSymbol(decl, out var symbol).Should().BeTrue();
         symbol.Should().BeOfType<ConstSymbol>();
     }
 
@@ -39,10 +39,10 @@ public class SemanticModelTests
         var tree = Parser.ParseModule(src);
         var model = SemanticModel.Create(tree);
 
-        var declaration1 = tree.Root.DescendantNodes().OfType<ConstDeclarationNode>().First();
-        var declaration2 = tree.Root.DescendantNodes().OfType<ConstDeclarationNode>().Skip(1).Single();
-        var valueSymbol = model.LookupSymbol(declaration2.Value);
-        model.TryGetDeclaredSymbol(declaration1, out var symbol).Should().BeTrue();
+        var decl1 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().First();
+        var decl2 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().Skip(1).Single();
+        var valueSymbol = model.LookupSymbol(decl2.Value);
+        model.TryGetDeclaredSymbol(decl1, out var symbol).Should().BeTrue();
 
         valueSymbol.Should().NotBeNull().And.Be(symbol);
     }
@@ -59,15 +59,15 @@ public class SemanticModelTests
         var tree = Parser.ParseModule(src);
         var model = SemanticModel.Create(tree);
 
-        var declaration1 = tree.Root.DescendantNodes().OfType<ConstDeclarationNode>().First();
-        var declaration2 = tree.Root.DescendantNodes().OfType<ConstDeclarationNode>().Skip(1).First();
-        var declaration3 = tree.Root.DescendantNodes().OfType<ConstDeclarationNode>().Skip(2).First();
-        var declaration4 = tree.Root.DescendantNodes().OfType<ConstDeclarationNode>().Skip(3).Single();
+        var decl1 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().First();
+        var decl2 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().Skip(1).First();
+        var decl3 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().Skip(2).First();
+        var decl4 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().Skip(3).Single();
 
-        model.LookupType(declaration1.Value).Should().Be(BuiltInTypeSystem.Number);
-        model.LookupType(declaration2.Value).Should().Be(BuiltInTypeSystem.Char);
-        model.LookupType(declaration3.Value).Should().Be(BuiltInTypeSystem.String);
-        model.LookupType(declaration4.Value).Should().Be(BuiltInTypeSystem.Bool);
+        model.LookupType(decl1.Value).Should().Be(BuiltInTypeSystem.Number);
+        model.LookupType(decl2.Value).Should().Be(BuiltInTypeSystem.Char);
+        model.LookupType(decl3.Value).Should().Be(BuiltInTypeSystem.String);
+        model.LookupType(decl4.Value).Should().Be(BuiltInTypeSystem.Bool);
     }
 
     [Fact]
@@ -81,8 +81,8 @@ public class SemanticModelTests
         var tree = Parser.ParseModule(src);
         var model = SemanticModel.Create(tree);
 
-        var letStatement = tree.Root.DescendantNodes().OfType<LetStatementNode>().Single();
-        var initializerSymbol = model.LookupType(letStatement.Initializer!);
+        var letStmt = tree.Root.DescendantNodes().OfType<LetStmtNode>().Single();
+        var initializerSymbol = model.LookupType(letStmt.Initializer!);
         initializerSymbol.Should().Be(BuiltInTypeSystem.Number);
     }
 
@@ -97,8 +97,8 @@ public class SemanticModelTests
         var tree = Parser.ParseModule(src);
         var model = SemanticModel.Create(tree);
 
-        var letStatement = tree.Root.DescendantNodes().OfType<LetStatementNode>().Single();
-        model.TryGetDeclaredSymbol(letStatement, out var symbol).Should().BeTrue();
+        var letStmt = tree.Root.DescendantNodes().OfType<LetStmtNode>().Single();
+        model.TryGetDeclaredSymbol(letStmt, out var symbol).Should().BeTrue();
         var localSymbol = (LocalSymbol)symbol!;
         localSymbol.Type.Should().BeOfType<ErrorTypeSymbol>().Subject.Name.Should().Be("Unknown");
         localSymbol.IsTypeInferred.Should().BeFalse();
@@ -115,8 +115,8 @@ public class SemanticModelTests
         var tree = Parser.ParseModule(src);
         var model = SemanticModel.Create(tree);
 
-        var letStatement = tree.Root.DescendantNodes().OfType<LetStatementNode>().Single();
-        model.TryGetDeclaredSymbol(letStatement, out var symbol).Should().BeTrue();
+        var letStmt = tree.Root.DescendantNodes().OfType<LetStmtNode>().Single();
+        model.TryGetDeclaredSymbol(letStmt, out var symbol).Should().BeTrue();
         var localSymbol = (LocalSymbol)symbol!;
         localSymbol.Type.Should().Be(BuiltInTypeSystem.Number);
         localSymbol.IsTypeInferred.Should().BeTrue();
@@ -133,14 +133,14 @@ public class SemanticModelTests
         var tree = Parser.ParseModule(src);
         var model = SemanticModel.Create(tree);
 
-        var letStatement = tree.Root.DescendantNodes().OfType<LetStatementNode>().Single();
-        model.TryGetDeclaredSymbol(letStatement, out var symbol).Should().BeTrue();
+        var letStmt = tree.Root.DescendantNodes().OfType<LetStmtNode>().Single();
+        model.TryGetDeclaredSymbol(letStmt, out var symbol).Should().BeTrue();
         var localSymbol = symbol.Should().BeOfType<LocalSymbol>().Subject;
         localSymbol.Type.Should().Be(BuiltInTypeSystem.Number);
     }
 
     [Fact]
-    public void FunctionReturnTypeAsNoneIfNotSet()
+    public void FnReturnTypeAsNoneIfNotSet()
     {
         var src = """
             fn f() { }
@@ -148,8 +148,8 @@ public class SemanticModelTests
         var tree = Parser.ParseModule(src);
         var model = SemanticModel.Create(tree);
 
-        var fnDeclaration = tree.Root.DescendantNodes().OfType<FnDeclarationNode>().Single();
-        model.TryGetDeclaredSymbol(fnDeclaration, out var symbol).Should().BeTrue();
+        var fnDecl = tree.Root.DescendantNodes().OfType<FnDeclNode>().Single();
+        model.TryGetDeclaredSymbol(fnDecl, out var symbol).Should().BeTrue();
         var fnSymbol = symbol.Should().BeOfType<FnSymbol>().Subject;
         fnSymbol.ReturnType.Should().Be(BuiltInTypeSystem.None);
     }
