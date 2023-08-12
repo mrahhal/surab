@@ -1,4 +1,6 @@
-﻿namespace Surab.Analysis;
+﻿using System.Diagnostics;
+
+namespace Surab.Analysis;
 
 public static class Parser
 {
@@ -531,7 +533,7 @@ internal class ParserImpl
             TokenKind.Identifier => ParseIdentifierExpr(),
             _ when token.Kind.IsUnary() => ParseUnaryExpr(),
             _ when token.Kind.IsLiteral() => ParseLiteralExpr(),
-            _ => throw new Exception("unreachable"),
+            _ => throw new UnreachableException(),
         };
     }
 
@@ -593,7 +595,7 @@ internal class ParserImpl
         {
             TokenKind.False => LiteralToken.FromBool(token, false),
             TokenKind.True => LiteralToken.FromBool(token, true),
-            _ => throw new Exception("unreachable"),
+            _ => throw new UnreachableException(),
         };
     }
 
@@ -649,7 +651,7 @@ internal class ParserImpl
             TokenKind.Dot => ParseAccessExpr(left),
             TokenKind.Equal => ParseAssignmentExpr(targetPrecedence, left),
             _ when token.Kind.IsBinary() => ParseBinaryExpr(targetPrecedence, left),
-            _ => throw new Exception("unreachable"),
+            _ => throw new UnreachableException(),
         };
     }
 
