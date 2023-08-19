@@ -37,7 +37,7 @@ if (diags.Any(x => x.Level >= DiagnosticLevel.Error))
     return;
 }
 
-var exe = Compiler.Compile(model);
+var exe = Compiler.Compile(model, "");
 
 var p = new Process
 {

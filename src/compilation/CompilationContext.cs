@@ -7,13 +7,15 @@ namespace Surab.Compilation;
 public sealed class CompilationContext
 {
     internal CompilationContext(
-        LoweredTree tree,
         SemanticModel model,
+        LoweredTree tree,
+        Target target,
         LLVMCompilationContext llvmCompilationContext,
         CompilationOptions options)
     {
         LoweredTree = tree;
         Model = model;
+        Target = target;
         LLVM = llvmCompilationContext;
         Options = options;
     }
@@ -21,6 +23,8 @@ public sealed class CompilationContext
     internal LoweredTree LoweredTree { get; }
 
     public SemanticModel Model { get; }
+
+    internal Target Target { get; }
 
     // TODO: Move to FnCompiler? (with the GetOrCreate stuff)
     private Dictionary<Symbol, LLVMUnit> SymbolToValue { get; } = new();

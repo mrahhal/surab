@@ -12,25 +12,34 @@ public sealed class Compiler
     private Compiler(
         SemanticModel model,
         LoweredTree loweredTree,
+        Target target,
         CompilationOptions options)
     {
         var llvm = LLVMCompilationContext.Create();
 
-        _context = new CompilationContext(loweredTree, model, llvm, options);
+        _context = new CompilationContext(model, loweredTree, target, llvm, options);
     }
 
     public static string Compile(
         SemanticModel model,
+        string targetTriple,
         CompilationOptions? options = null)
     {
         var loweredTree = Lowerer.Lower(model);
-        var compiler = new Compiler(model, loweredTree, options ?? CompilationOptions.CreateDefault());
+        var target = ParseTargetTriple(targetTriple);
+        var compiler = new Compiler(model, loweredTree, target, options ?? CompilationOptions.CreateDefault());
         return compiler.Compile();
     }
 
     private string Compile()
     {
         return RootCompiler.Compile(_context);
+    }
+
+    private static Target ParseTargetTriple(string targetTriple)
+    {
+        // TODO
+        return new x86_64WindowsMSVCTarget();
     }
 }
 

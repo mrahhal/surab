@@ -29,7 +29,7 @@ public static class IntegrationRunner
             return string.Empty;
         }
 
-        var exe = Compiler.Compile(model);
+        var exe = Compiler.Compile(model, "");
 
         var p = new Process
         {
