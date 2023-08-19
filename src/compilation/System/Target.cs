@@ -4,22 +4,22 @@ using System.Diagnostics;
 
 namespace Surab.Compilation;
 
-internal enum TargetArch
+public enum TargetArch
 {
     x86_64,
 }
 
-internal enum TargetOS
+public enum TargetOS
 {
     Windows,
 }
 
-internal enum TargetEnv
+public enum TargetEnv
 {
     MSVC,
 }
 
-internal enum TypeLoweringKind
+public enum TypeLoweringKind
 {
     no_bits,
     byval,
@@ -28,12 +28,12 @@ internal enum TypeLoweringKind
     abi_sized_int,
 }
 
-internal readonly struct TypeLowering
+public readonly struct TypeLowering
 {
     public required TypeLoweringKind Kind { get; init; }
 }
 
-internal abstract class Target
+public abstract class Target
 {
     public Target(TargetArch arch, TargetOS os, TargetEnv env)
     {

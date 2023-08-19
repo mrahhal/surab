@@ -24,7 +24,7 @@ public sealed class CompilationContext
 
     public SemanticModel Model { get; }
 
-    internal Target Target { get; }
+    public Target Target { get; }
 
     // TODO: Move to FnCompiler? (with the GetOrCreate stuff)
     private Dictionary<Symbol, LLVMUnit> SymbolToValue { get; } = new();

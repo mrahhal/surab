@@ -3,14 +3,14 @@ using Surab.Analysis;
 
 namespace Surab.Compilation;
 
-internal enum TypeTag
+public enum TypeTag
 {
     Number,
     Char,
     Bool,
 }
 
-internal static class TypeTagExtensions
+public static class TypeTagExtensions
 {
     public static TypeTag GetTag(this TypeSymbol type)
     {

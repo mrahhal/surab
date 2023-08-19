@@ -1,6 +1,6 @@
 ﻿namespace Surab.Compilation;
 
-internal readonly struct BitSize
+public readonly struct BitSize
 {
     private BitSize(int bits)
     {
