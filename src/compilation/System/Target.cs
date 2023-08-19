@@ -39,15 +39,15 @@ internal abstract class Target
     {
         if (type == BuiltInTypeSystem.None)
         {
-            return 0.Bytes();
+            return 0.AsBytes();
         }
         if (type == BuiltInTypeSystem.Char || type == BuiltInTypeSystem.Bool)
         {
-            return 1.Bytes();
+            return 1.AsBytes();
         }
         if (type == BuiltInTypeSystem.Number)
         {
-            return 8.Bytes();
+            return 8.AsBytes();
         }
 
         //if (type == BuiltInTypeSystem.String)
@@ -62,26 +62,26 @@ internal abstract class Target
     {
         if (type == BuiltInTypeSystem.None)
         {
-            return 0.Bytes();
+            return 0.AsBytes();
         }
         if (type == BuiltInTypeSystem.Char || type == BuiltInTypeSystem.Bool)
         {
-            return 1.Bytes();
+            return 1.AsBytes();
         }
         if (type == BuiltInTypeSystem.Number)
         {
-            return 8.Bytes();
+            return 8.AsBytes();
         }
 
         throw new UnreachableException();
     }
 }
 
-internal sealed class X86_64WindowsMSVCTarget : Target
+internal sealed class x86_64WindowsMSVCTarget : Target
 {
-    public X86_64WindowsMSVCTarget() :
+    public x86_64WindowsMSVCTarget() :
         base(TargetArch.x86_64, TargetOS.Windows, TargetEnv.MSVC)
     {
-        PtrWidth = 64.Bits();
+        PtrWidth = 64.AsBits();
     }
 }

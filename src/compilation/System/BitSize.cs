@@ -50,7 +50,7 @@ internal readonly struct BitSize
 
 internal static class BitSizeExtensions
 {
-    public static BitSize Bits(this int bits) => BitSize.FromBits(bits);
+    public static BitSize AsBits(this int bits) => BitSize.FromBits(bits);
 
-    public static BitSize Bytes(this int bytes) => BitSize.FromBytes(bytes);
+    public static BitSize AsBytes(this int bytes) => BitSize.FromBytes(bytes);
 }
