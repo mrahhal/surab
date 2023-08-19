@@ -222,6 +222,7 @@ public sealed class LocalSymbol : Symbol
 
 public abstract class TypeSymbol : Symbol
 {
+    public bool IsBuiltInType => this is BuiltInNamedTypeSymbol;
 }
 
 public class NamedTypeSymbol : TypeSymbol
