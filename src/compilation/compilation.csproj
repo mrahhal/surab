@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <RootNamespace>Surab.Compilation</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
