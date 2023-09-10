@@ -17,6 +17,18 @@ internal static class LLVMExtensions
     {
         LLVMInterop.AddAttributeAtIndex(@this, Idx, A);
     }
+
+    public static unsafe void AddCallSiteAttributeAtIndex(this LLVMValueRef @this, LLVMAttributeIndex Idx, LLVMAttributeRef A)
+    {
+        LLVMInterop.AddCallSiteAttribute(@this, Idx, A);
+    }
+}
+
+internal static class AttributeIndex
+{
+    public static readonly LLVMAttributeIndex Function = (LLVMAttributeIndex)~0;
+    public static readonly LLVMAttributeIndex Return = 0;
+    public static readonly LLVMAttributeIndex FirstArg = (LLVMAttributeIndex)1;
 }
 
 internal enum AttributeKind
