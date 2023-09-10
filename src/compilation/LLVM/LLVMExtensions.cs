@@ -8,19 +8,29 @@ namespace Surab.Compilation.LLVM;
 /// </summary>
 internal static class LLVMExtensions
 {
-    public static unsafe LLVMAttributeRef CreateEnumAttribute(this LLVMContextRef @this, uint KindId, ulong Val)
+    public static unsafe LLVMAttributeRef CreateEnumAttribute(this LLVMContextRef @this, AttributeKind kind, ulong val = default)
     {
-        return LLVMInterop.CreateEnumAttribute(@this, KindId, Val);
+        return LLVMInterop.CreateEnumAttribute(@this, (uint)kind, val);
     }
 
-    public static unsafe void AddAttributeAtIndex(this LLVMValueRef @this, LLVMAttributeIndex Idx, LLVMAttributeRef A)
+    public static unsafe void AddAttributeAtIndex(this LLVMValueRef @this, LLVMAttributeIndex idx, LLVMAttributeRef a)
     {
-        LLVMInterop.AddAttributeAtIndex(@this, Idx, A);
+        LLVMInterop.AddAttributeAtIndex(@this, idx, a);
     }
 
-    public static unsafe void AddCallSiteAttributeAtIndex(this LLVMValueRef @this, LLVMAttributeIndex Idx, LLVMAttributeRef A)
+    public static unsafe void AddCallSiteAttributeAtIndex(this LLVMValueRef @this, LLVMAttributeIndex idx, LLVMAttributeRef a)
     {
-        LLVMInterop.AddCallSiteAttribute(@this, Idx, A);
+        LLVMInterop.AddCallSiteAttribute(@this, idx, a);
+    }
+
+    public static unsafe CallConv GetFunctionCallConv(this LLVMValueRef @this)
+    {
+        return (CallConv)@this.FunctionCallConv;
+    }
+
+    public static unsafe void SetFunctionCallConv(this LLVMValueRef @this, CallConv cc)
+    {
+        @this.FunctionCallConv = (uint)cc;
     }
 }
 
@@ -130,4 +140,15 @@ internal enum AttributeKind
     EmptyKey,
     TombstoneKey,
 #pragma warning restore CA1069 // Enums values should not be duplicated
+}
+
+internal enum CallConv
+{
+    C = 0,
+
+    Fast = 8,
+
+    Cold = 9,
+
+    Win64 = 79,
 }
