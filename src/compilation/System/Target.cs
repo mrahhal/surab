@@ -1,5 +1,6 @@
 ﻿using LLVMSharp.Interop;
 using Surab.Analysis;
+using Surab.Compilation.LLVM;
 using System.Diagnostics;
 
 namespace Surab.Compilation;
@@ -17,20 +18,6 @@ public enum TargetOS
 public enum TargetEnv
 {
     MSVC,
-}
-
-public enum TypeLoweringKind
-{
-    no_bits,
-    byval,
-    byref,
-    byref_mut,
-    abi_sized_int,
-}
-
-public readonly struct TypeLowering
-{
-    public required TypeLoweringKind Kind { get; init; }
 }
 
 public abstract class Target
@@ -53,45 +40,42 @@ public abstract class Target
     public BitSize GetSize(TypeSymbol type)
     {
         if (type == BuiltInTypeSystem.None)
-        {
             return 0.AsBytes();
-        }
         if (type == BuiltInTypeSystem.Char || type == BuiltInTypeSystem.Bool)
-        {
             return 1.AsBytes();
-        }
         if (type == BuiltInTypeSystem.Number)
-        {
             return 8.AsBytes();
-        }
 
         //if (type == BuiltInTypeSystem.String)
-        //{
         //    return target.PtrWidth;
-        //}
 
         throw new UnreachableException();
     }
 
-    public BitSize GetAlignment(TypeSymbol type)
+    public abstract BitSize GetAbiSize(TypeSymbol type);
+
+    public BitSize GetAbiAlignment(TypeSymbol type)
     {
-        if (type == BuiltInTypeSystem.None)
-        {
+        if (GetAbiSize(type).IsZeroSized)
             return 0.AsBytes();
-        }
+
         if (type == BuiltInTypeSystem.Char || type == BuiltInTypeSystem.Bool)
-        {
             return 1.AsBytes();
-        }
         if (type == BuiltInTypeSystem.Number)
-        {
             return 8.AsBytes();
-        }
 
         throw new UnreachableException();
     }
 
-    public abstract bool IsFirstParamSRet(FnSymbol fn, CompilationContext context);
+    public bool IsReturnSRet(FnSymbol fn, CompilationContext context)
+    {
+        if (GetAbiSize(fn.ReturnType).IsZeroSized)
+            return false;
+
+        return IsReturnSRetCore(fn, context);
+    }
+
+    public abstract bool IsReturnSRetCore(FnSymbol fn, CompilationContext context);
 
     // Consider moving LLVM related stuff to some other place.
 
@@ -101,20 +85,29 @@ public abstract class Target
     public LLVMTypeRef LowerType(TypeSymbol type, CompilationContext context)
     {
         if (type == BuiltInTypeSystem.None)
-        {
             return LLVMTypeRef.Void;
-        }
         if (type == BuiltInTypeSystem.Char || type == BuiltInTypeSystem.Bool)
-        {
             return LLVMTypeRef.Int1;
-        }
         if (type == BuiltInTypeSystem.Number)
-        {
             return LLVMTypeRef.Double;
-        }
+
+        // Struct
+        // Class
+        // FnPtr
+        // ...
 
         throw new UnreachableException();
     }
+
+    internal LLVMTypeLowering GetLLVMLowering(TypeSymbol type)
+    {
+        if (GetAbiSize(type).IsZeroSized)
+            return LLVMTypeLowering.no_bits;
+
+        return GetLLVMLoweringCore(type);
+    }
+
+    internal abstract LLVMTypeLowering GetLLVMLoweringCore(TypeSymbol type);
 }
 
 internal abstract class x86_64WindowsTarget : Target
@@ -123,7 +116,12 @@ internal abstract class x86_64WindowsTarget : Target
     {
     }
 
-    public override bool IsFirstParamSRet(FnSymbol fn, CompilationContext context)
+    public override BitSize GetAbiSize(TypeSymbol type)
+    {
+        return Abi.x86_64.GetAbiSize(type, this);
+    }
+
+    public override bool IsReturnSRetCore(FnSymbol fn, CompilationContext context)
     {
         return Classify(fn.ReturnType) == Classification.Memory;
     }
@@ -145,6 +143,20 @@ internal abstract class x86_64WindowsTarget : Target
     protected Classification Classify(TypeSymbol type)
     {
         return Abi.x86_64.ClassifyTypeForWindows(type, this);
+    }
+
+    internal override LLVMTypeLowering GetLLVMLoweringCore(TypeSymbol type)
+    {
+        Debug.Assert(!GetAbiSize(type).IsZeroSized);
+
+        return Classify(type) switch
+        {
+            Classification.Integer => LLVMTypeLowering.byval, // abi_sized_int in what cases?
+            //win_i128 =>
+            Classification.Memory => LLVMTypeLowering.byref_mut,
+            Classification.SSE => LLVMTypeLowering.byval,
+            _ => throw new UnreachableException(),
+        };
     }
 }
 

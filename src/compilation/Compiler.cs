@@ -88,8 +88,7 @@ internal sealed class FnCompiler : LoweredVisitor
 {
     private readonly CompilationContext _context;
     private readonly LoweredFnDecl _fnDecl;
-    private readonly LLVMTypeRef _fnType;
-    private readonly LLVMValueRef _fnValue;
+    private readonly LLVMFn _llvmFn;
 
     private readonly Stack<LLVMUnit> _stack = new();
     private bool _returnSeen = false;
@@ -101,11 +100,8 @@ internal sealed class FnCompiler : LoweredVisitor
         _context = context;
         _fnDecl = fnDecl;
 
-        var (fnType, fnValue) = CreateFn(fnDecl.FnSymbol);
-        Debug.Assert(fnValue.BasicBlocksCount == 0);
-
-        _fnType = fnType;
-        _fnValue = fnValue;
+        _llvmFn = GetOrCreateFn(fnDecl.FnSymbol);
+        Debug.Assert(_llvmFn.Value.BasicBlocksCount == 0);
     }
 
     private Target Target => _context.Target;
@@ -123,7 +119,7 @@ internal sealed class FnCompiler : LoweredVisitor
     private void Compile()
     {
         // Entry has to exist before visiting the params in the signature.
-        var entry = _fnValue.AppendBasicBlock("entry");
+        var entry = _llvmFn.Value.AppendBasicBlock("entry");
         LLVM.Builder.PositionAtEnd(entry);
 
         SetupParams(_fnDecl.FnSymbol.Params);
@@ -152,8 +148,51 @@ internal sealed class FnCompiler : LoweredVisitor
             }
         }
 
-        _fnValue.VerifyFunction(LLVMVerifierFailureAction.LLVMPrintMessageAction);
+        _llvmFn.Value.VerifyFunction(LLVMVerifierFailureAction.LLVMPrintMessageAction);
         //LLVM.PassManager.RunFunctionPassManager(_fnValue);
+    }
+
+    private void SetupParams(IEnumerable<ParamSymbol> @params)
+    {
+        var llvmParamOffset = 0;
+        if (_llvmFn.SRet.HasValue)
+        {
+            // Skip sret.
+            llvmParamOffset++;
+        }
+
+        foreach (var param in @params)
+        {
+            var paramValue = _llvmFn.Value.GetParam((uint)llvmParamOffset);
+            CreateParam(param, paramValue);
+
+            // TODO: From updateFunc.
+            var lowering = GetLLVMLowering(param.Type);
+            switch (lowering.Kind)
+            {
+                case LLVMTypeLoweringKind.byval:
+                    {
+
+                    }
+                    break;
+                case LLVMTypeLoweringKind.byref:
+                    {
+
+                    }
+                    break;
+                case LLVMTypeLoweringKind.byref_mut:
+                    {
+
+                    }
+                    break;
+                    //case LLVMTypeLoweringKind.abi_sized_int:
+                    //    {
+                    //    }
+                    //    break;
+            }
+
+            llvmParamOffset++;
+        }
     }
 
     private void SetupLocals()
@@ -174,23 +213,11 @@ internal sealed class FnCompiler : LoweredVisitor
             printf = LLVM.Module.AddFunction("printf", printfType);
         }
 
-        var value = _fnValue.GetParam(0);
+        var value = _llvmFn.Value.GetParam(0);
 
         var strF = LLVM.Builder.BuildGlobalStringPtr("%g\n", "strF");
         LLVM.Builder.BuildCall2(printfType, printf, new[] { strF, value });
         LLVM.Builder.BuildRetVoid();
-    }
-
-    private void SetupParams(IEnumerable<ParamSymbol> @params)
-    {
-        var i = (uint)0;
-        foreach (var p in @params)
-        {
-            var paramValueRef = _fnValue.GetParam(i);
-            CreateParam(p, paramValueRef);
-
-            i++;
-        }
     }
 
     public override void VisitExprStmt(LoweredExprStmt node)
@@ -224,24 +251,78 @@ internal sealed class FnCompiler : LoweredVisitor
 
     public override void VisitCallExpr(LoweredCallExpr node)
     {
-        var (fnType, fnValue) = Get(node.Callee);
+        var (fnType, fnValue, sret) = GetOrCreateFn(node.Callee);
 
         // TODO: node.Callee is not always an IdentifierExprNode.
         // After desugaring this will always be the identifier (or what's equivalent)?
 
-        var fnSymbol = node.Callee;
-
         VisitList(node.Args);
 
-        var args = new List<LLVMValueRef>(capacity: fnSymbol.Params.Length);
+        var fnSymbol = node.Callee;
 
-        for (var i = 0; i < fnSymbol.Params.Length; i++)
+        var argOffset = 0;
+        var llvmIndex = 0;
+        var llvmArgCount = (int)fnType.ParamTypesCount;
+        var args = new List<LLVMValueRef>(llvmArgCount);
+        var attrs = new LLVMAttributeRef[llvmArgCount][]; // Associated to each index in args above.
+
+        if (sret.HasValue)
+        {
+            var size = Target.GetAbiSize(fnSymbol.ReturnType);
+
+            var sretAlloc = LLVM.Builder.BuildAlloca(sret.Value);
+            sretAlloc.SetAlignment((uint)size.Bytes);
+            args.Add(sretAlloc);
+
+            attrs[llvmIndex] = new[]
+            {
+                LLVM.Context.CreateEnumAttribute(AttributeKind.StructRet, default),
+            };
+            llvmIndex++;
+        }
+
+        while (llvmIndex < llvmArgCount)
         {
             var (_, argValue) = _stack.Pop();
+
+            // TODO: Remove, and do it in lowering.
             args.Add(argValue);
+            attrs[llvmIndex] = Array.Empty<LLVMAttributeRef>();
+
+            var param = fnSymbol.Params[argOffset];
+            var lowering = GetLLVMLowering(param.Type);
+            switch (lowering.Kind)
+            {
+                case LLVMTypeLoweringKind.byval:
+                    {
+
+                    }
+                    break;
+                case LLVMTypeLoweringKind.byref:
+                    {
+
+                    }
+                    break;
+                case LLVMTypeLoweringKind.byref_mut:
+                    {
+
+                    }
+                    break;
+            }
+
+            argOffset++;
+            llvmIndex++;
         }
 
         var returnValue = LLVM.Builder.BuildCall2(fnType, fnValue, args.ToArray());
+        for (var i = 0; i < args.Count; i++)
+        {
+            foreach (var attr in attrs[i])
+            {
+                fnValue.AddCallSiteAttributeAtIndex((LLVMAttributeIndex)i + 1, attr);
+            }
+        }
+
         // Always push a value, even if void, since this gets popped in VisitExprStmt.
         _stack.Push((fnType.ReturnType, returnValue));
     }
@@ -301,27 +382,15 @@ internal sealed class FnCompiler : LoweredVisitor
         }
     }
 
-    private LLVMUnit CreateParam(ParamSymbol paramSymbol, LLVMValueRef value)
+    private LLVMFn GetOrCreateFn(FnSymbol symbol)
     {
-        var typeRef = GetForType(paramSymbol.Type);
-
-        var ptr = LLVM.Builder.BuildAlloca(typeRef, paramSymbol.Identifier?.Value ?? string.Empty);
-        var unit = new LLVMUnit(typeRef, ptr);
-        LLVM.Builder.BuildStore(value, ptr);
-
-        _context.SymbolToValue[paramSymbol] = unit;
-        return unit;
-    }
-
-    private LLVMUnit CreateLocal(LocalSymbol localSymbol)
-    {
-        var typeRef = GetForType(localSymbol.Type);
-
-        var ptr = LLVM.Builder.BuildAlloca(typeRef, localSymbol.Identifier?.Value ?? string.Empty);
-        var unit = new LLVMUnit(typeRef, ptr);
-
-        _context.SymbolToValue[localSymbol] = unit;
-        return unit;
+        if (_context.SymbolToValue.TryGetValue(symbol, out var unit))
+        {
+            return (LLVMFn)unit;
+        }
+        var llvmFn = CreateFn(symbol);
+        _context.SymbolToValue[symbol] = llvmFn;
+        return llvmFn;
     }
 
     private LLVMUnit Get(Symbol symbol)
@@ -334,28 +403,108 @@ internal sealed class FnCompiler : LoweredVisitor
         throw new Exception("Unexpected?");
     }
 
-    private LLVMUnit CreateFn(FnSymbol fnSymbol)
+    private LLVMUnit CreateParam(ParamSymbol paramSymbol, LLVMValueRef paramValue)
     {
-        var returnType = GetForType(fnSymbol.ReturnType);
-        var @params = fnSymbol.Params.Select(p => GetForType(p.Type)).ToArray();
+        var typeRef = Target.LowerType(paramSymbol.Type, _context);
 
-        var fnType = LLVMTypeRef.CreateFunction(returnType, @params, false);
-        var fnValue = LLVM.Module.AddFunction(fnSymbol.Identifier!.Value, fnType);
+        var ptr = LLVM.Builder.BuildAlloca(typeRef, paramSymbol.Identifier?.Value ?? string.Empty);
+        var unit = new LLVMUnit(typeRef, ptr);
+        LLVM.Builder.BuildStore(paramValue, ptr);
 
-        return new LLVMUnit(fnType, fnValue);
+        _context.SymbolToValue[paramSymbol] = unit;
+        return unit;
     }
 
-    private static LLVMTypeRef GetForType(TypeSymbol type)
+    private LLVMUnit CreateLocal(LocalSymbol localSymbol)
     {
-        if (type == BuiltInTypeSystem.None)
+        var typeRef = Target.LowerType(localSymbol.Type, _context);
+
+        var ptr = LLVM.Builder.BuildAlloca(typeRef, localSymbol.Identifier?.Value ?? string.Empty);
+        var unit = new LLVMUnit(typeRef, ptr);
+
+        _context.SymbolToValue[localSymbol] = unit;
+        return unit;
+    }
+
+    private LLVMFn CreateFn(FnSymbol fnSymbol)
+    {
+        var returnType = Target.LowerType(fnSymbol.ReturnType, _context);
+
+        // TODO: Better way?
+        var llvmIndex = 0;
+        var capacity = fnSymbol.Params.Length + 1; // Max length of llvm params.
+        var @params = new List<LLVMTypeRef>(capacity);
+        var attrs = new LLVMAttributeRef[capacity][]; // Associated to each index in @params above.
+
+        var sret = Target.IsReturnSRet(fnSymbol, _context);
+        if (sret)
         {
-            return LLVMTypeRef.Void;
-        }
-        else if (type == BuiltInTypeSystem.Number)
-        {
-            return LLVMTypeRef.Double;
+            @params.Add(returnType);
+            attrs[llvmIndex] = new[]
+            {
+                LLVM.Context.CreateEnumAttribute(AttributeKind.StructRet, default),
+            };
+            llvmIndex++;
         }
 
-        throw new Exception();
+        foreach (var param in fnSymbol.Params)
+        {
+            // TODO: Remove, add to lowering.
+            @params.Add(Target.LowerType(param.Type, _context));
+            attrs[llvmIndex] = Array.Empty<LLVMAttributeRef>();
+
+            // TODO: if (isExtern) ?
+
+            // This is for attributes.
+            var lowering = GetLLVMLowering(param.Type);
+            switch (lowering.Kind)
+            {
+                case LLVMTypeLoweringKind.byval:
+                    {
+
+                    }
+                    break;
+                case LLVMTypeLoweringKind.byref:
+                    {
+
+                    }
+                    break;
+                case LLVMTypeLoweringKind.byref_mut:
+                    {
+
+                    }
+                    break;
+            }
+
+            llvmIndex++;
+        }
+
+        var fnType = LLVMTypeRef.CreateFunction(sret ? LLVMTypeRef.Void : returnType, @params.ToArray(), false);
+        var fnValue = LLVM.Module.AddFunction(fnSymbol.Identifier!.Value, fnType);
+
+        // TODO: switch (cc)
+        fnValue.SetFunctionCallConv(CallConv.C);
+
+        for (var i = 0; i < @params.Count; i++)
+        {
+            foreach (var attr in attrs[i])
+            {
+                fnValue.AddAttributeAtIndex((LLVMAttributeIndex)i + 1, attr);
+            }
+        }
+
+        return new LLVMFn(fnType, fnValue, sret ? returnType : (LLVMTypeRef?)null);
+    }
+
+    public bool IsByRef(TypeSymbol type)
+    {
+        // TODO: Classes, Pointers, etc
+
+        return false;
+    }
+
+    public LLVMTypeLowering GetLLVMLowering(TypeSymbol type)
+    {
+        return Target.GetLLVMLowering(type);
     }
 }
