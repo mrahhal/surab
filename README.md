@@ -6,3 +6,5 @@
 Surab is an experimental modern programming language written in Rust and C#.
 
 Focused on: [TODO]
+
+Need to install LLVM 16, and make sure to add it to path.

@@ -348,6 +348,9 @@ internal sealed class FnCompiler : LoweredVisitor
 
     public override void VisitVariableLoadExpr(LoweredVariableLoadExpr node)
     {
+        // Isn't this only working right now because all of our variables are always pass by value?
+        // If they're pass by ref, isn't there a case where we want to just pass the ptr itself without loading it?
+
         var (type, value) = Get(node.Variable);
         value = LLVM.Builder.BuildLoad2(type, value);
         _stack.Push((type, value));
@@ -461,7 +464,10 @@ internal sealed class FnCompiler : LoweredVisitor
             {
                 case LLVMTypeLoweringKind.byval:
                     {
+                        if (!IsByRef(param.Type))
+                        {
 
+                        }
                     }
                     break;
                 case LLVMTypeLoweringKind.byref:
@@ -498,6 +504,12 @@ internal sealed class FnCompiler : LoweredVisitor
 
     public bool IsByRef(TypeSymbol type)
     {
+        // Not sure if will be needed, but should return true for things like load a (since it'll be ptr so we know to load),
+        // and false for when the variable is stuff like 1 + 2 (since it won't be a ptr so we know). ?
+
+        // Or maybe we don't need it because of VisitVariableLoadExpr? But what about when there's a fn call with a param
+        // that takes a ptr, in that case we wouldn't want to load the variable ptr (which is done in VisitVariableLoadExpr). ?
+
         // TODO: Classes, Pointers, etc
 
         return false;

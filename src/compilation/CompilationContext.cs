@@ -25,9 +25,11 @@ public sealed class CompilationContext
 
     public Target Target { get; }
 
-    internal Dictionary<Symbol, LLVMUnit> SymbolToValue { get; } = new();
-
     internal LLVMCompilationContext LLVM { get; }
 
     public CompilationOptions Options { get; }
+
+    internal Dictionary<Symbol, LLVMUnit> SymbolToValue { get; } = new();
+
+    //internal Dictionary<Symbol>
 }

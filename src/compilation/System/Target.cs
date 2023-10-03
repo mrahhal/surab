@@ -46,6 +46,8 @@ public abstract class Target
         if (type == BuiltInTypeSystem.Number)
             return 8.AsBytes();
 
+        // if ptr return ptr bit width
+
         //if (type == BuiltInTypeSystem.String)
         //    return target.PtrWidth;
 
@@ -132,7 +134,7 @@ internal abstract class x86_64WindowsTarget : Target
         var classification = Classify(returnType);
         return classification switch
         {
-            Classification.Integer => LowerType(returnType, context),
+            Classification.Integer => LowerType(returnType, context), // TODO: This is only for scalars?
             //win_i128 =>
             Classification.Memory => LLVMTypeRef.Void,
             Classification.SSE => LowerType(returnType, context),
