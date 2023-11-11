@@ -264,7 +264,7 @@ internal sealed class FnCompiler : LoweredVisitor
         var llvmIndex = 0;
         var llvmArgCount = (int)fnType.ParamTypesCount;
         var args = new List<LLVMValueRef>(llvmArgCount);
-        var attrs = new LLVMAttributeRef[llvmArgCount][]; // Associated to each index in args above.
+        var attrs = new LLVMFnAttrsDef();
 
         if (sret.HasValue)
         {
@@ -274,10 +274,7 @@ internal sealed class FnCompiler : LoweredVisitor
             sretAlloc.SetAlignment((uint)size.Bytes);
             args.Add(sretAlloc);
 
-            attrs[llvmIndex] = new[]
-            {
-                LLVM.Context.CreateEnumAttribute(AttributeKind.StructRet, default),
-            };
+            attrs.AddParam(llvmIndex, LLVM.Context.CreateEnumAttribute(AttributeKind.StructRet, default));
             llvmIndex++;
         }
 
@@ -287,7 +284,7 @@ internal sealed class FnCompiler : LoweredVisitor
 
             // TODO: Remove, and do it in lowering.
             args.Add(argValue);
-            attrs[llvmIndex] = Array.Empty<LLVMAttributeRef>();
+            //attrs[llvmIndex] = Array.Empty<LLVMAttributeRef>();
 
             var param = fnSymbol.Params[argOffset];
             var lowering = GetLLVMLowering(param.Type);
@@ -315,13 +312,7 @@ internal sealed class FnCompiler : LoweredVisitor
         }
 
         var returnValue = LLVM.Builder.BuildCall2(fnType, fnValue, args.ToArray());
-        for (var i = 0; i < args.Count; i++)
-        {
-            foreach (var attr in attrs[i])
-            {
-                fnValue.AddCallSiteAttributeAtIndex((LLVMAttributeIndex)i + 1, attr);
-            }
-        }
+        attrs.Apply((index, attr) => fnValue.AddCallSiteAttributeAtIndex(index, attr));
 
         // Always push a value, even if void, since this gets popped in VisitExprStmt.
         _stack.Push((fnType.ReturnType, returnValue));
@@ -437,16 +428,13 @@ internal sealed class FnCompiler : LoweredVisitor
         var llvmIndex = 0;
         var capacity = fnSymbol.Params.Length + 1; // Max length of llvm params.
         var @params = new List<LLVMTypeRef>(capacity);
-        var attrs = new LLVMAttributeRef[capacity][]; // Associated to each index in @params above.
+        var attrs = new LLVMFnAttrsDef();
 
         var sret = Target.IsReturnSRet(fnSymbol, _context);
         if (sret)
         {
             @params.Add(returnType);
-            attrs[llvmIndex] = new[]
-            {
-                LLVM.Context.CreateEnumAttribute(AttributeKind.StructRet, default),
-            };
+            attrs.AddParam(llvmIndex, LLVM.Context.CreateEnumAttribute(AttributeKind.StructRet, default));
             llvmIndex++;
         }
 
@@ -454,7 +442,6 @@ internal sealed class FnCompiler : LoweredVisitor
         {
             // TODO: Remove, add to lowering.
             @params.Add(Target.LowerType(param.Type, _context));
-            attrs[llvmIndex] = Array.Empty<LLVMAttributeRef>();
 
             // TODO: if (isExtern) ?
 
@@ -491,13 +478,7 @@ internal sealed class FnCompiler : LoweredVisitor
         // TODO: switch (cc)
         fnValue.SetFunctionCallConv(CallConv.C);
 
-        for (var i = 0; i < @params.Count; i++)
-        {
-            foreach (var attr in attrs[i])
-            {
-                fnValue.AddAttributeAtIndex((LLVMAttributeIndex)i + 1, attr);
-            }
-        }
+        attrs.Apply((index, attr) => fnValue.AddAttributeAtIndex(index, attr));
 
         return new LLVMFn(fnType, fnValue, sret ? returnType : (LLVMTypeRef?)null);
     }
