@@ -341,6 +341,7 @@ internal sealed class FnCompiler : LoweredVisitor
     {
         // Isn't this only working right now because all of our variables are always pass by value?
         // If they're pass by ref, isn't there a case where we want to just pass the ptr itself without loading it?
+        // But even in that case, if it's a ptr, won't it have an alloca pointing to the ptr just the same?
 
         var (type, value) = Get(node.Variable);
         value = LLVM.Builder.BuildLoad2(type, value);
