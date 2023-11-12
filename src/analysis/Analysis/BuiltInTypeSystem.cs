@@ -19,9 +19,9 @@ public static class BuiltInTypeSystem
             new IdentifierToken(TextSpan.Empty, "Char"),
             new List<BuiltInNamedTypeSymbol> { });
 
-        String = new BuiltInNamedTypeSymbol(
-            new IdentifierToken(TextSpan.Empty, "String"),
-            new List<BuiltInNamedTypeSymbol> { });
+        //String = new BuiltInNamedTypeSymbol(
+        //    new IdentifierToken(TextSpan.Empty, "String"),
+        //    new List<BuiltInNamedTypeSymbol> { });
 
         Bool = new BuiltInNamedTypeSymbol(
             new IdentifierToken(TextSpan.Empty, "Bool"),
@@ -34,7 +34,7 @@ public static class BuiltInTypeSystem
 
     public static  BuiltInNamedTypeSymbol Char { get; }
 
-    public static  BuiltInNamedTypeSymbol String { get; }
+    //public static BuiltInNamedTypeSymbol String { get; }
 
     public static  BuiltInNamedTypeSymbol Bool { get; }
 }

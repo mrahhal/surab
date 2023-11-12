@@ -131,7 +131,7 @@ public class SemanticModel
             "None" => BuiltInTypeSystem.None,
             "Number" => BuiltInTypeSystem.Number,
             "Char" => BuiltInTypeSystem.Char,
-            "String" => BuiltInTypeSystem.String,
+            //"String" => BuiltInTypeSystem.String,
             "Bool" => BuiltInTypeSystem.Bool,
 
             _ => null,
@@ -244,7 +244,7 @@ public class SemanticModel
         {
             LiteralTokenKind.Number => BuiltInTypeSystem.Number,
             LiteralTokenKind.Char => BuiltInTypeSystem.Char,
-            LiteralTokenKind.String => BuiltInTypeSystem.String,
+            //LiteralTokenKind.String => BuiltInTypeSystem.String,
             LiteralTokenKind.Bool => BuiltInTypeSystem.Bool,
 
             _ => null,

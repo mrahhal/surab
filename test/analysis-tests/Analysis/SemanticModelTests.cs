@@ -53,7 +53,7 @@ public class SemanticModelTests
         var src = """
             const a = 2;
             const c = '2';
-            const b = "2";
+            //const b = "2";
             const d = true;
             """;
         var tree = Parser.ParseModule(src);
@@ -61,12 +61,12 @@ public class SemanticModelTests
 
         var decl1 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().First();
         var decl2 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().Skip(1).First();
-        var decl3 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().Skip(2).First();
-        var decl4 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().Skip(3).Single();
+        //var decl3 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().Skip(2).First();
+        var decl4 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().Skip(2).Single();
 
         model.LookupType(decl1.Value).Should().Be(BuiltInTypeSystem.Number);
         model.LookupType(decl2.Value).Should().Be(BuiltInTypeSystem.Char);
-        model.LookupType(decl3.Value).Should().Be(BuiltInTypeSystem.String);
+        //model.LookupType(decl3.Value).Should().Be(BuiltInTypeSystem.String);
         model.LookupType(decl4.Value).Should().Be(BuiltInTypeSystem.Bool);
     }
 
