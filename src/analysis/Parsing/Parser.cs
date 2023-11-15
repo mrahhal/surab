@@ -328,6 +328,7 @@ internal class ParserImpl
         {
             TokenKind.Const => ParseConstDecl(visibility),
             TokenKind.Fn => ParseFnDecl(visibility),
+            TokenKind.Struct => ParseStructDecl(visibility),
             TokenKind.Class => ParseClassDecl(visibility),
 
             _ => null,
@@ -378,6 +379,28 @@ internal class ParserImpl
         if (body == null) return null;
 
         return new FnDeclNode(visibility, fnToken, sig, body);
+    }
+
+    /// <summary>
+    /// Parses `struct Name { ... }`
+    /// </summary>
+    private DeclNode? ParseStructDecl(SimpleToken? visibility)
+    {
+        var classToken = EatAssertedSimpleToken(TokenKind.Struct);
+        var identifier = ParseIdentifier();
+        if (identifier == null) return null;
+        var members = new List<DeclNode>();
+
+        var openBraceToken = EatExpectedSimpleToken(TokenKind.LeftBrace);
+        while (!CheckToken(TokenKind.RightBrace))
+        {
+            var decl = ParseInnerDecl();
+            if (decl == null) return null;
+            members.Add(decl);
+        }
+        var closedBraceToken = EatExpectedSimpleToken(TokenKind.RightBrace);
+
+        return new StructDeclNode(visibility, classToken, identifier, openBraceToken, members, closedBraceToken);
     }
 
     /// <summary>

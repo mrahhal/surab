@@ -37,6 +37,7 @@ public enum TokenKind
     CaretCaret,
 
     Fn,
+    Struct,
     Class,
     New,
     This,

@@ -27,6 +27,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
     private static readonly Dictionary<string, TokenKind> KeywordsMap = new()
     {
         { "fn" , TokenKind.Fn },
+        { "struct" , TokenKind.Struct },
         { "class" , TokenKind.Class },
         { "new" , TokenKind.New },
         { "this" , TokenKind.This },

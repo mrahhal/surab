@@ -54,6 +54,7 @@ public enum SyntaxNodeKind
     Module,
     ConstDecl,
     FnDecl,
+    StructDecl,
     ClassDecl,
     FieldDecl,
     MethodDecl,
@@ -149,6 +150,31 @@ public partial class FnDeclNode : DeclNode
     public override void Accept(Visitor visitor)
     {
         visitor.VisitFnDecl(this);
+    }
+}
+
+public partial class StructDeclNode : DeclNode
+{
+    public StructDeclNode(SimpleToken? publicToken, SimpleToken structToken, IdentifierToken identifier, SimpleToken openBraceToken, IEnumerable<DeclNode> members, SimpleToken closedBraceToken)
+        : base(SyntaxNodeKind.StructDecl)
+    {
+        ChildTokens = new() { publicToken, structToken, identifier, openBraceToken, closedBraceToken, };
+        ChildNodes = members.Cast<SyntaxNode?>().ToList();
+
+        Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+        SetChildrenParent();
+    }
+
+    public SimpleToken? PublicToken => (SimpleToken?)ChildTokens[0]!;
+    public SimpleToken StructToken => (SimpleToken)ChildTokens[1]!;
+    public IdentifierToken Identifier => (IdentifierToken)ChildTokens[2]!;
+    public SimpleToken OpenBraceToken => (SimpleToken)ChildTokens[3]!;
+    public IEnumerable<DeclNode> Members => ChildNodes.Cast<DeclNode>();
+    public SimpleToken ClosedBraceToken => (SimpleToken)ChildTokens[4]!;
+
+    public override void Accept(Visitor visitor)
+    {
+        visitor.VisitStructDecl(this);
     }
 }
 

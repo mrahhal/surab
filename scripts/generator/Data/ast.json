@@ -67,6 +67,38 @@
       ]
     },
     {
+      "Name": "StructDecl",
+      "Base": "DeclNode",
+      "Members": [
+        {
+          "Name": "publicToken",
+          "Type": "SimpleToken",
+          "Optional": true
+        },
+        {
+          "Name": "structToken",
+          "Type": "SimpleToken"
+        },
+        {
+          "Name": "identifier",
+          "Type": "IdentifierToken"
+        },
+        {
+          "Name": "openBraceToken",
+          "Type": "SimpleToken"
+        },
+        {
+          "Name": "members",
+          "Type": "DeclNode",
+          "List": true
+        },
+        {
+          "Name": "closedBraceToken",
+          "Type": "SimpleToken"
+        }
+      ]
+    },
+    {
       "Name": "ClassDecl",
       "Base": "DeclNode",
       "Members": [

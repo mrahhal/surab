@@ -26,6 +26,15 @@ public class ParserTests
     }
 
     [Fact]
+    public void Decl_Struct()
+    {
+        var src = "struct Foo { a = 2; foo() {} }";
+        var node = ParseDecl(src).Should().BeOfType<StructDeclNode>().Subject;
+        node.PublicToken.Should().BeNull();
+        node.Members.Should().HaveCount(2);
+    }
+
+    [Fact]
     public void Decl_Class()
     {
         var src = "class Foo { a = 2; foo() {} }";
