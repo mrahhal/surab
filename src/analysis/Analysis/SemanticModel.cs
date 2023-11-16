@@ -350,7 +350,8 @@ public class SemanticModel
                 FnDeclNode n => new FnSymbol(n.Sig),
                 MethodDeclNode n => new FnSymbol(n.Sig),
                 FieldDeclNode n => new FieldSymbol(n),
-                ClassDeclNode n => new NamedTypeSymbol(n),
+                StructDeclNode n => new StructTypeSymbol(n),
+                ClassDeclNode n => new ClassTypeSymbol(n),
 
                 LetStmtNode n => new LocalSymbol(n),
 

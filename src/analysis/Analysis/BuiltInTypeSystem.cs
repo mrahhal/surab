@@ -7,34 +7,34 @@ public static class BuiltInTypeSystem
 {
     static BuiltInTypeSystem()
     {
-        None = new BuiltInNamedTypeSymbol(
+        None = new BuiltInStructTypeSymbol(
             new IdentifierToken(TextSpan.Empty, "None"),
-            new List<BuiltInNamedTypeSymbol> { });
+            new List<BuiltInStructTypeSymbol> { });
 
-        Number = new BuiltInNamedTypeSymbol(
+        Number = new BuiltInStructTypeSymbol(
             new IdentifierToken(TextSpan.Empty, "Number"),
-            new List<BuiltInNamedTypeSymbol> { });
+            new List<BuiltInStructTypeSymbol> { });
 
-        Char = new BuiltInNamedTypeSymbol(
+        Char = new BuiltInStructTypeSymbol(
             new IdentifierToken(TextSpan.Empty, "Char"),
-            new List<BuiltInNamedTypeSymbol> { });
+            new List<BuiltInStructTypeSymbol> { });
 
-        //String = new BuiltInNamedTypeSymbol(
+        //String = new BuiltInClassTypeSymbol(
         //    new IdentifierToken(TextSpan.Empty, "String"),
         //    new List<BuiltInNamedTypeSymbol> { });
 
-        Bool = new BuiltInNamedTypeSymbol(
+        Bool = new BuiltInStructTypeSymbol(
             new IdentifierToken(TextSpan.Empty, "Bool"),
-            new List<BuiltInNamedTypeSymbol> { });
+            new List<BuiltInStructTypeSymbol> { });
     }
 
-    public static BuiltInNamedTypeSymbol None { get; }
+    public static BuiltInStructTypeSymbol None { get; }
 
-    public static BuiltInNamedTypeSymbol Number { get; }
+    public static BuiltInStructTypeSymbol Number { get; }
 
-    public static  BuiltInNamedTypeSymbol Char { get; }
+    public static  BuiltInStructTypeSymbol Char { get; }
 
-    //public static BuiltInNamedTypeSymbol String { get; }
+    //public static BuiltInClassTypeSymbol String { get; }
 
-    public static  BuiltInNamedTypeSymbol Bool { get; }
+    public static  BuiltInStructTypeSymbol Bool { get; }
 }

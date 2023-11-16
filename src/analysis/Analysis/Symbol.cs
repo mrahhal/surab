@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Xml.Linq;
 
 namespace Surab.Analysis;
 
@@ -222,10 +223,10 @@ public sealed class LocalSymbol : Symbol
 
 public abstract class TypeSymbol : Symbol
 {
-    public bool IsBuiltInType => this is BuiltInNamedTypeSymbol;
+    public bool IsBuiltInType => this is BuiltInStructTypeSymbol;
 }
 
-public class NamedTypeSymbol : TypeSymbol
+public abstract class NamedTypeSymbol : TypeSymbol
 {
     private readonly DeclNode? _node;
     private ImmutableArray<Symbol> _members;
@@ -242,8 +243,11 @@ public class NamedTypeSymbol : TypeSymbol
     public override IdentifierToken? Identifier => _node switch
     {
         ClassDeclNode classDecl => classDecl.Identifier,
+        StructDeclNode structDecl => structDecl.Identifier,
         _ => null,
     };
+
+    public bool IsError => this is ErrorTypeSymbol;
 
     public virtual ImmutableArray<Symbol> Members
     {
@@ -271,23 +275,48 @@ public class NamedTypeSymbol : TypeSymbol
         return builder.ToImmutable();
     }
 
-    private IEnumerable<SyntaxNode> EnumerateMembers()
-    {
-        switch (_node)
-        {
-            case ClassDeclNode classDecl:
-                foreach (var member in classDecl.Members)
-                {
-                    yield return member;
-                }
-                break;
+    protected abstract IEnumerable<SyntaxNode> EnumerateMembers();
+}
 
-            default:
-                break;
+public class StructTypeSymbol : NamedTypeSymbol
+{
+    internal StructTypeSymbol(StructDeclNode? node) : base(node)
+    {
+    }
+
+    public new StructDeclNode? DeclaringNode => (StructDeclNode?)base.DeclaringNode;
+
+    protected override IEnumerable<SyntaxNode> EnumerateMembers()
+    {
+        Debug.Assert(DeclaringNode != null, "Unreachable in built in types.");
+        foreach (var member in DeclaringNode.Members)
+        {
+            yield return member;
         }
     }
 }
 
+public class ClassTypeSymbol : NamedTypeSymbol
+{
+    internal ClassTypeSymbol(ClassDeclNode? node) : base(node)
+    {
+    }
+
+    public new ClassDeclNode? DeclaringNode => (ClassDeclNode?)base.DeclaringNode;
+
+    protected override IEnumerable<SyntaxNode> EnumerateMembers()
+    {
+        Debug.Assert(DeclaringNode != null, "Unreachable in built in types.");
+        foreach (var member in DeclaringNode.Members)
+        {
+            yield return member;
+        }
+    }
+}
+
+/// <summary>
+/// Represents a type symbol that failed to bind.
+/// </summary>
 public sealed class ErrorTypeSymbol : NamedTypeSymbol
 {
     private readonly IdentifierToken? _identifier;
@@ -298,14 +327,19 @@ public sealed class ErrorTypeSymbol : NamedTypeSymbol
     }
 
     public override IdentifierToken? Identifier => _identifier;
+
+    protected override IEnumerable<SyntaxNode> EnumerateMembers()
+    {
+        yield break;
+    }
 }
 
-public sealed class BuiltInNamedTypeSymbol : NamedTypeSymbol
+public sealed class BuiltInStructTypeSymbol : StructTypeSymbol
 {
     private readonly IdentifierToken _name;
     private readonly ImmutableArray<Symbol> _members;
 
-    internal BuiltInNamedTypeSymbol(
+    internal BuiltInStructTypeSymbol(
         IdentifierToken name,
         IEnumerable<Symbol> members) : base(null)
     {
