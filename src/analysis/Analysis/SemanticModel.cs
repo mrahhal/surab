@@ -283,16 +283,11 @@ public class SemanticModel
         };
     }
 
-    private class Builder : Visitor
+    private class Builder(SyntaxTree tree) : Visitor
     {
-        private readonly SemanticModel _model;
+        private readonly SemanticModel _model = new(tree);
         private Binder? _parentBinder;
         private Symbol? _parentSymbol;
-
-        public Builder(SyntaxTree tree)
-        {
-            _model = new(tree);
-        }
 
         public static SemanticModel Build(SyntaxTree tree)
         {

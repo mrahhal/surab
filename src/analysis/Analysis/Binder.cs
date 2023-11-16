@@ -1,5 +1,4 @@
 ﻿using System.Collections.Immutable;
-using System.Diagnostics;
 
 namespace Surab.Analysis;
 
@@ -123,16 +122,11 @@ internal interface IBinderHasLocals
     ImmutableArray<LocalSymbol> Locals { get; }
 }
 
-internal class ModuleBinder : Binder
+internal class ModuleBinder(ModuleNode module) : Binder
 {
     private ImmutableArray<Symbol> _decls;
 
-    private readonly ModuleNode _module;
-
-    public ModuleBinder(ModuleNode module)
-    {
-        _module = module;
-    }
+    private readonly ModuleNode _module = module;
 
     public ImmutableArray<Symbol> Decls
     {
@@ -166,18 +160,12 @@ internal class ModuleBinder : Binder
     }
 }
 
-internal class ClassDeclBinder : Binder
+internal class ClassDeclBinder(
+    ClassDeclNode classDecl,
+    NamedTypeSymbol symbol) : Binder
 {
-    private readonly ClassDeclNode _classDecl;
-    private readonly NamedTypeSymbol _symbol;
-
-    public ClassDeclBinder(
-        ClassDeclNode classDecl,
-        NamedTypeSymbol symbol)
-    {
-        _classDecl = classDecl;
-        _symbol = symbol;
-    }
+    private readonly ClassDeclNode _classDecl = classDecl;
+    private readonly NamedTypeSymbol _symbol = symbol;
 
     public override Symbol? LookupIdentifierHere(IdentifierToken identifier)
     {
@@ -190,18 +178,12 @@ internal class ClassDeclBinder : Binder
     }
 }
 
-internal class FnBinder : Binder
+internal class FnBinder(
+    FnSigNode fnSig,
+    FnSymbol fnSymbol) : Binder
 {
-    private readonly FnSigNode _fnSig;
-    private readonly FnSymbol _fnSymbol;
-
-    public FnBinder(
-        FnSigNode fnSig,
-        FnSymbol fnSymbol)
-    {
-        _fnSig = fnSig;
-        _fnSymbol = fnSymbol;
-    }
+    private readonly FnSigNode _fnSig = fnSig;
+    private readonly FnSymbol _fnSymbol = fnSymbol;
 
     public override Symbol? LookupIdentifierHere(IdentifierToken identifier)
     {
@@ -209,16 +191,11 @@ internal class FnBinder : Binder
     }
 }
 
-internal class BlockExprBinder : Binder, IBinderHasLocals
+internal class BlockExprBinder(BlockExprNode block) : Binder, IBinderHasLocals
 {
     private ImmutableArray<LocalSymbol> _locals;
 
-    private readonly BlockExprNode _block;
-
-    public BlockExprBinder(BlockExprNode block)
-    {
-        _block = block;
-    }
+    private readonly BlockExprNode _block = block;
 
     public ImmutableArray<LocalSymbol> Locals
     {

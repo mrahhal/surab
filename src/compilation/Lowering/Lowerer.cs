@@ -3,6 +3,8 @@ using Surab.Analysis;
 
 namespace Surab.Compilation;
 
+#pragma warning disable CA1859 // Use concrete types when possible for improved performance
+
 internal class Lowerer
 {
     private readonly SemanticModel _model;

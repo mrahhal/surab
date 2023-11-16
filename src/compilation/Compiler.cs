@@ -43,14 +43,9 @@ public sealed class Compiler
     }
 }
 
-internal sealed class RootCompiler : LoweredVisitor
+internal sealed class RootCompiler(CompilationContext context) : LoweredVisitor
 {
-    private readonly CompilationContext _context;
-
-    public RootCompiler(CompilationContext context)
-    {
-        _context = context;
-    }
+    private readonly CompilationContext _context = context;
 
     private LLVMCompilationContext LLVM => _context.LLVM;
 
@@ -216,7 +211,7 @@ internal sealed class FnCompiler : LoweredVisitor
         var value = _llvmFn.Value.GetParam(0);
 
         var strF = LLVM.Builder.BuildGlobalStringPtr("%g\n", "strF");
-        LLVM.Builder.BuildCall2(printfType, printf, new[] { strF, value });
+        LLVM.Builder.BuildCall2(printfType, printf, [strF, value]);
         LLVM.Builder.BuildRetVoid();
     }
 
@@ -311,7 +306,7 @@ internal sealed class FnCompiler : LoweredVisitor
             llvmIndex++;
         }
 
-        var returnValue = LLVM.Builder.BuildCall2(fnType, fnValue, args.ToArray());
+        var returnValue = LLVM.Builder.BuildCall2(fnType, fnValue, [.. args]);
         attrs.Apply((index, attr) => fnValue.AddCallSiteAttributeAtIndex(index, attr));
 
         // Always push a value, even if void, since this gets popped in VisitExprStmt.

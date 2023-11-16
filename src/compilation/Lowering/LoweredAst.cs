@@ -4,40 +4,24 @@ using Surab.Analysis;
 
 namespace Surab.Compilation;
 
-internal class LoweredTree
+internal class LoweredTree(LoweredNode root)
 {
-    public LoweredTree(LoweredNode root)
-    {
-        Root = root;
-    }
-
-    public LoweredNode Root { get; }
+    public LoweredNode Root { get; } = root;
 }
 
 [DebuggerDisplay("\\{{GetType().Name,nq}\\}")]
-internal abstract class LoweredNode
+internal abstract class LoweredNode(SyntaxNode parsedNode)
 {
-    public LoweredNode(SyntaxNode parsedNode)
-    {
-        ParsedNode = parsedNode;
-    }
-
-    public SyntaxNode ParsedNode { get; }
+    public SyntaxNode ParsedNode { get; } = parsedNode;
 
     public abstract IEnumerable<LoweredNode> EnumerateChildren();
 }
 
-internal sealed class LoweredModule : LoweredNode
+internal sealed class LoweredModule(
+    SyntaxNode parsedNode,
+    IEnumerable<LoweredDecl> decls) : LoweredNode(parsedNode)
 {
-    public LoweredModule(
-        SyntaxNode parsedNode,
-        IEnumerable<LoweredDecl> decls)
-        : base(parsedNode)
-    {
-        Decls = decls.ToImmutableArray();
-    }
-
-    public ImmutableArray<LoweredDecl> Decls { get; }
+    public ImmutableArray<LoweredDecl> Decls { get; } = decls.ToImmutableArray();
 
     public override IEnumerable<LoweredNode> EnumerateChildren()
     {
@@ -48,29 +32,19 @@ internal sealed class LoweredModule : LoweredNode
     }
 }
 
-internal abstract class LoweredDecl : LoweredNode
+internal abstract class LoweredDecl(SyntaxNode parsedNode) : LoweredNode(parsedNode)
 {
-    public LoweredDecl(SyntaxNode parsedNode) : base(parsedNode)
-    {
-    }
 }
 
 // Lowered from both functions and methods.
-internal sealed class LoweredFnDecl : LoweredDecl
+internal sealed class LoweredFnDecl(
+    SyntaxNode parsedNode,
+    FnSymbol fnSymbol,
+    LoweredStmtList body) : LoweredDecl(parsedNode)
 {
-    public LoweredFnDecl(
-        SyntaxNode parsedNode,
-        FnSymbol fnSymbol,
-        LoweredStmtList body)
-        : base(parsedNode)
-    {
-        FnSymbol = fnSymbol;
-        Body = body;
-    }
+    public FnSymbol FnSymbol { get; } = fnSymbol;
 
-    public FnSymbol FnSymbol { get; }
-
-    public LoweredStmtList Body { get; }
+    public LoweredStmtList Body { get; } = body;
 
     public override IEnumerable<LoweredNode> EnumerateChildren()
     {
@@ -78,64 +52,42 @@ internal sealed class LoweredFnDecl : LoweredDecl
     }
 }
 
-internal sealed class LoweredTypeDecl : LoweredDecl
+internal sealed class LoweredTypeDecl(
+    SyntaxNode parsedNode,
+    TypeSymbol typeSymbol,
+    ImmutableArray<Symbol> members) : LoweredDecl(parsedNode)
 {
-    public LoweredTypeDecl(
-        SyntaxNode parsedNode,
-        TypeSymbol typeSymbol,
-        ImmutableArray<Symbol> members)
-        : base(parsedNode)
-    {
-        TypeSymbol = typeSymbol;
-        Members = members;
-    }
-
-    public TypeSymbol TypeSymbol { get; }
+    public TypeSymbol TypeSymbol { get; } = typeSymbol;
 
     // Only includes data members. Behavior (methods) will be their own functions.
-    public ImmutableArray<Symbol> Members { get; }
+    public ImmutableArray<Symbol> Members { get; } = members;
 
     public override IEnumerable<LoweredNode> EnumerateChildren() => Enumerable.Empty<LoweredNode>();
 }
 
-internal abstract class LoweredStmt : LoweredNode
+internal abstract class LoweredStmt(SyntaxNode parsedNode) : LoweredNode(parsedNode)
 {
-    public LoweredStmt(SyntaxNode parsedNode) : base(parsedNode)
-    {
-    }
 }
 
 // Lowered from local variables, ?
 // Only declares the variable. (i.e `let a: Type;`)
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
-internal sealed class LoweredVariableStmt : LoweredStmt
+internal sealed class LoweredVariableStmt(
+    SyntaxNode parsedNode,
+    LocalSymbol symbol) : LoweredStmt(parsedNode)
 {
-    public LoweredVariableStmt(
-        SyntaxNode parsedNode,
-        LocalSymbol symbol)
-        : base(parsedNode)
-    {
-        Symbol = symbol;
-    }
-
-    public LocalSymbol Symbol { get; }
+    public LocalSymbol Symbol { get; } = symbol;
 
     public override IEnumerable<LoweredNode> EnumerateChildren() => Enumerable.Empty<LoweredNode>();
 
     public override string ToString() => $"let {Symbol.Name}: {Symbol.Type.Name};";
 }
 
-internal sealed class LoweredReturnStmt : LoweredStmt
+internal sealed class LoweredReturnStmt(
+    SyntaxNode parsedNode,
+    LoweredExpr? expr) : LoweredStmt(parsedNode)
 {
-    public LoweredReturnStmt(
-        SyntaxNode parsedNode,
-        LoweredExpr? expr)
-        : base(parsedNode)
-    {
-        Expr = expr;
-    }
-
-    public LoweredExpr? Expr { get; }
+    public LoweredExpr? Expr { get; } = expr;
 
     public override IEnumerable<LoweredNode> EnumerateChildren()
     {
@@ -144,17 +96,11 @@ internal sealed class LoweredReturnStmt : LoweredStmt
     }
 }
 
-internal sealed class LoweredExprStmt : LoweredStmt
+internal sealed class LoweredExprStmt(
+    SyntaxNode parsedNode,
+    LoweredExpr expr) : LoweredStmt(parsedNode)
 {
-    public LoweredExprStmt(
-        SyntaxNode parsedNode,
-        LoweredExpr expr)
-        : base(parsedNode)
-    {
-        Expr = expr;
-    }
-
-    public LoweredExpr Expr { get; }
+    public LoweredExpr Expr { get; } = expr;
 
     public override IEnumerable<LoweredNode> EnumerateChildren()
     {
@@ -170,17 +116,11 @@ internal sealed class LoweredExprStmt : LoweredStmt
 //{
 //}
 
-internal sealed class LoweredStmtList : LoweredStmt
+internal sealed class LoweredStmtList(
+    SyntaxNode parsedNode,
+    IEnumerable<LoweredStmt> stmts) : LoweredStmt(parsedNode)
 {
-    public LoweredStmtList(
-        SyntaxNode parsedNode,
-        IEnumerable<LoweredStmt> stmts)
-        : base(parsedNode)
-    {
-        Stmts = stmts.ToImmutableArray();
-    }
-
-    public ImmutableArray<LoweredStmt> Stmts { get; }
+    public ImmutableArray<LoweredStmt> Stmts { get; } = stmts.ToImmutableArray();
 
     public override IEnumerable<LoweredNode> EnumerateChildren()
     {
@@ -192,25 +132,16 @@ internal sealed class LoweredStmtList : LoweredStmt
     }
 }
 
-internal abstract class LoweredExpr : LoweredNode
+internal abstract class LoweredExpr(SyntaxNode parsedNode) : LoweredNode(parsedNode)
 {
-    public LoweredExpr(SyntaxNode parsedNode) : base(parsedNode)
-    {
-    }
 }
 
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
-internal sealed class LoweredVariableLoadExpr : LoweredExpr
+internal sealed class LoweredVariableLoadExpr(
+    SyntaxNode parsedNode,
+    Symbol variable) : LoweredExpr(parsedNode)
 {
-    public LoweredVariableLoadExpr(
-        SyntaxNode parsedNode,
-        Symbol variable)
-        : base(parsedNode)
-    {
-        Variable = variable;
-    }
-
-    public Symbol Variable { get; }
+    public Symbol Variable { get; } = variable;
 
     public override IEnumerable<LoweredNode> EnumerateChildren() => Enumerable.Empty<LoweredNode>();
 
@@ -237,21 +168,14 @@ internal sealed class LoweredVariableLoadExpr : LoweredExpr
 //}
 
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
-internal sealed class LoweredVariableStoreStmt : LoweredStmt
+internal sealed class LoweredVariableStoreStmt(
+    SyntaxNode parsedNode,
+    Symbol variable,
+    LoweredExpr expr) : LoweredStmt(parsedNode)
 {
-    public LoweredVariableStoreStmt(
-        SyntaxNode parsedNode,
-        Symbol variable,
-        LoweredExpr expr)
-        : base(parsedNode)
-    {
-        Variable = variable;
-        Expr = expr;
-    }
+    public Symbol Variable { get; } = variable;
 
-    public Symbol Variable { get; }
-
-    public LoweredExpr Expr { get; }
+    public LoweredExpr Expr { get; } = expr;
 
     public override IEnumerable<LoweredNode> EnumerateChildren()
     {
@@ -288,19 +212,13 @@ internal sealed class LoweredVariableStoreStmt : LoweredStmt
 //}
 
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
-internal sealed class LoweredUnaryExpr : LoweredExpr
+internal sealed class LoweredUnaryExpr(
+    SyntaxNode parsedNode,
+    LoweredExpr expr) : LoweredExpr(parsedNode)
 {
-    public LoweredUnaryExpr(
-        SyntaxNode parsedNode,
-        LoweredExpr expr)
-        : base(parsedNode)
-    {
-        Expr = expr;
-    }
-
     public new UnaryExprNode ParsedNode => (UnaryExprNode)base.ParsedNode;
 
-    public LoweredExpr Expr { get; }
+    public LoweredExpr Expr { get; } = expr;
 
     public UnaryOperatorTokenKind Op => ParsedNode.Op.UnaryOperatorTokenKind;
 
@@ -313,23 +231,16 @@ internal sealed class LoweredUnaryExpr : LoweredExpr
 }
 
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
-internal sealed class LoweredBinaryExpr : LoweredExpr
+internal sealed class LoweredBinaryExpr(
+    SyntaxNode parsedNode,
+    LoweredExpr left,
+    LoweredExpr right) : LoweredExpr(parsedNode)
 {
-    public LoweredBinaryExpr(
-        SyntaxNode parsedNode,
-        LoweredExpr left,
-        LoweredExpr right)
-        : base(parsedNode)
-    {
-        Left = left;
-        Right = right;
-    }
-
     public new BinaryExprNode ParsedNode => (BinaryExprNode)base.ParsedNode;
 
-    public LoweredExpr Left { get; set; }
+    public LoweredExpr Left { get; set; } = left;
 
-    public LoweredExpr Right { get; set; }
+    public LoweredExpr Right { get; set; } = right;
 
     public BinaryOperatorTokenKind Op => ParsedNode.Op.BinaryOperatorTokenKind;
 
@@ -343,21 +254,14 @@ internal sealed class LoweredBinaryExpr : LoweredExpr
 }
 
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
-internal sealed class LoweredCallExpr : LoweredExpr
+internal sealed class LoweredCallExpr(
+    SyntaxNode parsedNode,
+    FnSymbol callee,
+    IEnumerable<LoweredExpr> args) : LoweredExpr(parsedNode)
 {
-    public LoweredCallExpr(
-        SyntaxNode parsedNode,
-        FnSymbol callee,
-        IEnumerable<LoweredExpr> args)
-        : base(parsedNode)
-    {
-        Callee = callee;
-        Args = args.ToImmutableArray();
-    }
+    public FnSymbol Callee { get; set; } = callee;
 
-    public FnSymbol Callee { get; set; }
-
-    public ImmutableArray<LoweredExpr> Args { get; }
+    public ImmutableArray<LoweredExpr> Args { get; } = args.ToImmutableArray();
 
     public override IEnumerable<LoweredNode> EnumerateChildren()
     {
@@ -371,17 +275,11 @@ internal sealed class LoweredCallExpr : LoweredExpr
 }
 
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
-internal sealed class LoweredLiteralExpr : LoweredExpr
+internal sealed class LoweredLiteralExpr(
+    SyntaxNode parsedNode,
+    LiteralToken literal) : LoweredExpr(parsedNode)
 {
-    public LoweredLiteralExpr(
-        SyntaxNode parsedNode,
-        LiteralToken literal)
-        : base(parsedNode)
-    {
-        Literal = literal;
-    }
-
-    public LiteralToken Literal { get; }
+    public LiteralToken Literal { get; } = literal;
 
     public override IEnumerable<LoweredNode> EnumerateChildren() => Enumerable.Empty<LoweredNode>();
 

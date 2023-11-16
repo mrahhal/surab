@@ -2,7 +2,7 @@ using System.Text;
 
 public static class StringExtensions
 {
-    private static readonly char[] Delimeters = { ' ', '-', '_' };
+    private static readonly char[] Delimeters = [' ', '-', '_'];
 
     public static string ToComment(this string? comment)
     {
@@ -35,10 +35,10 @@ public static class StringExtensions
             {
                 if (disableFrontDelimeter)
                 {
-                    return new char[] { char.ToLowerInvariant(s) };
+                    return [char.ToLowerInvariant(s)];
                 }
 
-                return new char[] { char.ToUpperInvariant(s) };
+                return [char.ToUpperInvariant(s)];
             });
     }
 
@@ -53,10 +53,10 @@ public static class StringExtensions
             {
                 if (disableFrontDelimeter)
                 {
-                    return new char[] { char.ToLowerInvariant(s) };
+                    return [char.ToLowerInvariant(s)];
                 }
 
-                return new char[] { '-', char.ToLowerInvariant(s) };
+                return ['-', char.ToLowerInvariant(s)];
             });
     }
 
@@ -71,10 +71,10 @@ public static class StringExtensions
             {
                 if (disableFrontDelimeter)
                 {
-                    return new char[] { char.ToLowerInvariant(s) };
+                    return [char.ToLowerInvariant(s)];
                 }
 
-                return new char[] { '_', char.ToLowerInvariant(s) };
+                return ['_', char.ToLowerInvariant(s)];
             });
     }
 
@@ -89,10 +89,10 @@ public static class StringExtensions
             {
                 if (disableFrontDelimeter)
                 {
-                    return new char[] { char.ToUpperInvariant(s) };
+                    return [char.ToUpperInvariant(s)];
                 }
 
-                return new char[] { '-', char.ToUpperInvariant(s) };
+                return ['-', char.ToUpperInvariant(s)];
             });
     }
 

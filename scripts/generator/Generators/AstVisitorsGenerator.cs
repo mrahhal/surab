@@ -2,15 +2,10 @@ using System.Text;
 using MR.AttributeDI;
 
 [AddToServices(Lifetime.Transient)]
-public class AstVisitorsGenerator : GeneratorBase
+public class AstVisitorsGenerator(
+    AstDataProvider astDataProvider) : GeneratorBase
 {
-    public AstVisitorsGenerator(
-        AstDataProvider astDataProvider)
-    {
-        Data = astDataProvider.Data;
-    }
-
-    public AstProcessedData Data { get; }
+    public AstProcessedData Data { get; } = astDataProvider.Data;
 
     protected override Task GenerateCoreAsync()
     {
@@ -27,22 +22,15 @@ public class AstVisitorsGenerator : GeneratorBase
             """.NL(2));
     }
 
-    private class VisitorGenerator
+    private class VisitorGenerator(
+        StringBuilder sb,
+        AstProcessedData data,
+        string name)
     {
-        private readonly StringBuilder _sb;
+        private readonly StringBuilder _sb = sb;
 
-        public VisitorGenerator(
-            StringBuilder sb,
-            AstProcessedData data,
-            string name)
-        {
-            _sb = sb;
-            Data = data;
-            Name = name;
-        }
-
-        public AstProcessedData Data { get; }
-        public string Name { get; }
+        public AstProcessedData Data { get; } = data;
+        public string Name { get; } = name;
 
         public void Generate()
         {

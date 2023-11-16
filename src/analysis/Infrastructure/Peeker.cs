@@ -2,21 +2,16 @@
 
 namespace Surab.Analysis;
 
-internal class Peeker<T> : IEnumerable<T>, IEnumerator<T>
+internal class Peeker<T>(IEnumerator<T> source) : IEnumerable<T>, IEnumerator<T>
     where T : notnull
 {
     private readonly List<T?> _peeks = [];
     private T? _current = default;
 
-    private IEnumerator<T>? _enumerator;
+    private IEnumerator<T>? _enumerator = source;
 
     public Peeker(IEnumerable<T> source) : this(source.GetEnumerator())
     {
-    }
-
-    public Peeker(IEnumerator<T> source)
-    {
-        _enumerator = source;
     }
 
     public T Current => _current!;
@@ -29,9 +24,9 @@ internal class Peeker<T> : IEnumerable<T>, IEnumerator<T>
 
     public bool MoveNext()
     {
-        if (_enumerator == null) throw new ObjectDisposedException(GetType().Name);
+        ObjectDisposedException.ThrowIf(_enumerator == null, this);
 
-        if (_peeks.Any())
+        if (_peeks.Count != 0)
         {
             // Shift
             _current = _peeks[0];
@@ -48,7 +43,7 @@ internal class Peeker<T> : IEnumerable<T>, IEnumerator<T>
 
     public void Reset()
     {
-        if (_enumerator == null) throw new ObjectDisposedException(GetType().Name);
+        ObjectDisposedException.ThrowIf(_enumerator == null, this);
 
         _peeks.Clear();
         _enumerator.Reset();
@@ -68,7 +63,7 @@ internal class Peeker<T> : IEnumerable<T>, IEnumerator<T>
     /// </summary>
     public bool TryPeek(int n, out T? result)
     {
-        if (_enumerator == null) throw new ObjectDisposedException(GetType().Name);
+        ObjectDisposedException.ThrowIf(_enumerator == null, this);
 
         result = default;
 

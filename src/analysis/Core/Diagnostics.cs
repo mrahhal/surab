@@ -7,20 +7,13 @@ public enum DiagnosticLevel
     Error,
 }
 
-public class Diagnostic
+public class Diagnostic(TextSpan span, DiagnosticLevel level, string message)
 {
-    public Diagnostic(TextSpan span, DiagnosticLevel level, string message)
-    {
-        Span = span;
-        Level = level;
-        Message = message;
-    }
+    public TextSpan Span { get; } = span;
 
-    public TextSpan Span { get; }
+    public DiagnosticLevel Level { get; } = level;
 
-    public DiagnosticLevel Level { get; }
-
-    public string Message { get; }
+    public string Message { get; } = message;
 
     public string Visualize(string src)
     {

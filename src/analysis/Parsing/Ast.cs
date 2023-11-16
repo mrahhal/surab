@@ -2,17 +2,11 @@
 
 namespace Surab.Analysis;
 
-public class SyntaxTree
+public class SyntaxTree(SyntaxNode root, DiagnosticBag diagnostics)
 {
-    public SyntaxTree(SyntaxNode root, DiagnosticBag diagnostics)
-    {
-        Root = root;
-        Diagnostics = diagnostics;
-    }
+    public SyntaxNode Root { get; } = root;
 
-    public SyntaxNode Root { get; }
-
-    public DiagnosticBag Diagnostics { get; }
+    public DiagnosticBag Diagnostics { get; } = diagnostics;
 }
 
 public abstract class SyntaxEntity : IVisitable
@@ -39,14 +33,9 @@ public enum SyntaxTokenKind
     Skipped,
 }
 
-public abstract class SyntaxToken : SyntaxEntity
+public abstract class SyntaxToken(SyntaxTokenKind kind) : SyntaxEntity
 {
-    public SyntaxToken(SyntaxTokenKind kind)
-    {
-        Kind = kind;
-    }
-
-    public SyntaxTokenKind Kind { get; }
+    public SyntaxTokenKind Kind { get; } = kind;
 }
 
 public enum SimpleTokenKind
@@ -387,14 +376,9 @@ public sealed class SkippedToken : SyntaxToken
     }
 }
 
-public abstract class SyntaxNode : SyntaxEntity
+public abstract class SyntaxNode(SyntaxNodeKind kind) : SyntaxEntity
 {
-    public SyntaxNode(SyntaxNodeKind kind)
-    {
-        Kind = kind;
-    }
-
-    public SyntaxNodeKind Kind { get; init; }
+    public SyntaxNodeKind Kind { get; init; } = kind;
 
     public List<SyntaxNode?> ChildNodes { get; protected set; } = default!;
 
@@ -473,28 +457,16 @@ public abstract class SyntaxNode : SyntaxEntity
     }
 }
 
-public abstract class DeclNode : SyntaxNode
+public abstract class DeclNode(SyntaxNodeKind kind) : SyntaxNode(kind)
 {
-    public DeclNode(SyntaxNodeKind kind)
-        : base(kind)
-    {
-    }
 }
 
-public abstract class StmtNode : SyntaxNode
+public abstract class StmtNode(SyntaxNodeKind kind) : SyntaxNode(kind)
 {
-    public StmtNode(SyntaxNodeKind kind)
-        : base(kind)
-    {
-    }
 }
 
-public abstract class ExprNode : SyntaxNode
+public abstract class ExprNode(SyntaxNodeKind kind) : SyntaxNode(kind)
 {
-    public ExprNode(SyntaxNodeKind kind)
-        : base(kind)
-    {
-    }
 }
 
 public partial class BareExprStmtNode

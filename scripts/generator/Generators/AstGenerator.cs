@@ -2,15 +2,10 @@ using System.Text;
 using MR.AttributeDI;
 
 [AddToServices(Lifetime.Transient)]
-public class AstGenerator : GeneratorBase
+public class AstGenerator(
+    AstDataProvider astDataProvider) : GeneratorBase
 {
-    public AstGenerator(
-        AstDataProvider astDataProvider)
-    {
-        Data = astDataProvider.Data;
-    }
-
-    public AstProcessedData Data { get; }
+    public AstProcessedData Data { get; } = astDataProvider.Data;
 
     protected override Task GenerateCoreAsync()
     {
@@ -134,7 +129,7 @@ public class AstGenerator : GeneratorBase
             var sb = new StringBuilder();
             sb.Append($"{INDENT}{INDENT}{storedField.Name} = ");
 
-            if (!members.Any())
+            if (members.Count == 0)
             {
                 sb.Append("new()");
             }

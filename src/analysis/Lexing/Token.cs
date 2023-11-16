@@ -65,18 +65,11 @@ public enum TokenKind
 /// A lexical token.
 /// </summary>
 [DebuggerDisplay("Token: [{Kind}] {ToString()}")]
-public class Token
+public class Token(TokenKind kind, TextSpan span, object? data)
 {
-    public Token(TokenKind kind, TextSpan span, object? data)
-    {
-        Kind = kind;
-        Span = span;
-        Data = data;
-    }
+    public TokenKind Kind { get; } = kind;
 
-    public TokenKind Kind { get; }
-
-    public TextSpan Span { get; }
+    public TextSpan Span { get; } = span;
 
     /// <summary>
     /// An optional data object. The actual type (if it exists) is always well known for each <see cref="Kind"/>.
@@ -87,7 +80,7 @@ public class Token
     /// - <see cref="TokenKind.StringLiteral"/>
     /// - <see cref="TokenKind.BlockComment"/>
     /// </remarks>
-    public object? Data { get; }
+    public object? Data { get; } = data;
 
     public override string ToString()
     {

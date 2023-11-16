@@ -5,15 +5,10 @@ namespace Surab.Analysis;
 /// <summary>
 /// A visitor that detects all semantic diagnostics for a given <see cref="SemanticModel"/>.
 /// </summary>
-internal class SemanticAnalyzer : Visitor
+internal class SemanticAnalyzer(SemanticModel model) : Visitor
 {
-    private readonly SemanticModel _model;
+    private readonly SemanticModel _model = model;
     private readonly DiagnosticBag _diagnostics = new();
-
-    public SemanticAnalyzer(SemanticModel model)
-    {
-        _model = model;
-    }
 
     public static DiagnosticBag Analyze(SemanticModel model)
     {

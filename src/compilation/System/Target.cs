@@ -20,20 +20,13 @@ public enum TargetEnv
     MSVC,
 }
 
-public abstract class Target
+public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 {
-    public Target(TargetArch arch, TargetOS os, TargetEnv env)
-    {
-        Arch = arch;
-        OS = os;
-        Env = env;
-    }
+    public TargetArch Arch { get; } = arch;
 
-    public TargetArch Arch { get; }
+    public TargetOS OS { get; } = os;
 
-    public TargetOS OS { get; }
-
-    public TargetEnv Env { get; }
+    public TargetEnv Env { get; } = env;
 
     public BitSize PtrWidth { get; protected set; }
 

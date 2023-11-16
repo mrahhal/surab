@@ -2,25 +2,18 @@
 
 namespace Surab.Compilation.LLVM;
 
-internal sealed class LLVMCompilationContext
+internal sealed class LLVMCompilationContext(
+    LLVMModuleRef module,
+    LLVMBuilderRef builder,
+    LLVMPassManagerRef passManager)
 {
-    public LLVMCompilationContext(
-        LLVMModuleRef module,
-        LLVMBuilderRef builder,
-        LLVMPassManagerRef passManager)
-    {
-        Module = module;
-        Builder = builder;
-        PassManager = passManager;
-    }
-
-    public LLVMModuleRef Module { get; }
+    public LLVMModuleRef Module { get; } = module;
 
     public LLVMContextRef Context => Module.Context;
 
-    public LLVMBuilderRef Builder { get; }
+    public LLVMBuilderRef Builder { get; } = builder;
 
-    public LLVMPassManagerRef PassManager { get; }
+    public LLVMPassManagerRef PassManager { get; } = passManager;
 
     public static LLVMCompilationContext Create()
     {
