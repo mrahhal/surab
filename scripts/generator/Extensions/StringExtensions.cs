@@ -16,10 +16,7 @@ public static class StringExtensions
 
     public static string ToPascalCase(this string source)
     {
-        if (source == null)
-        {
-            throw new ArgumentNullException(nameof(source));
-        }
+        ArgumentNullException.ThrowIfNull(source);
 
         return SymbolsPipe(
             source,
@@ -29,10 +26,7 @@ public static class StringExtensions
 
     public static string ToCamelCase(this string source)
     {
-        if (source == null)
-        {
-            throw new ArgumentNullException(nameof(source));
-        }
+        ArgumentNullException.ThrowIfNull(source);
 
         return SymbolsPipe(
             source,
@@ -50,10 +44,7 @@ public static class StringExtensions
 
     public static string ToKebabCase(this string source)
     {
-        if (source == null)
-        {
-            throw new ArgumentNullException(nameof(source));
-        }
+        ArgumentNullException.ThrowIfNull(source);
 
         return SymbolsPipe(
             source,
@@ -71,10 +62,7 @@ public static class StringExtensions
 
     public static string ToSnakeCase(this string source)
     {
-        if (source == null)
-        {
-            throw new ArgumentNullException(nameof(source));
-        }
+        ArgumentNullException.ThrowIfNull(source);
 
         return SymbolsPipe(
             source,
@@ -92,10 +80,7 @@ public static class StringExtensions
 
     public static string ToTrainCase(this string source)
     {
-        if (source == null)
-        {
-            throw new ArgumentNullException(nameof(source));
-        }
+        ArgumentNullException.ThrowIfNull(source);
 
         return SymbolsPipe(
             source,
