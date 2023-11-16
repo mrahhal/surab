@@ -66,7 +66,7 @@ public interface IDiagnosticsProvider
 
 public class DiagnosticBag
 {
-    public List<Diagnostic> Diagnostics { get; } = new();
+    public List<Diagnostic> Diagnostics { get; } = [];
 
     public Diagnostic Add(TextSpan span, DiagnosticLevel level, string message)
     {

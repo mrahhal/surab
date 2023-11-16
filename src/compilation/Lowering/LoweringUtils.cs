@@ -37,7 +37,7 @@ internal static class LoweringUtils
 
 file class LocalVariableStmtsCollector : LoweredVisitor
 {
-    private readonly List<LoweredVariableStmt> _stmts = new();
+    private readonly List<LoweredVariableStmt> _stmts = [];
 
     public static List<LoweredVariableStmt> Collect(LoweredNode node)
     {

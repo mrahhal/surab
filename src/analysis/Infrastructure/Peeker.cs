@@ -5,7 +5,7 @@ namespace Surab.Analysis;
 internal class Peeker<T> : IEnumerable<T>, IEnumerator<T>
     where T : notnull
 {
-    private readonly List<T?> _peeks = new();
+    private readonly List<T?> _peeks = [];
     private T? _current = default;
 
     private IEnumerator<T>? _enumerator;

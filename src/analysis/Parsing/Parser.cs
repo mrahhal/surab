@@ -51,7 +51,7 @@ internal class ParserImpl
     private readonly Peeker<Token> _tokens;
     private Token? _current;
     private Token? _prev;
-    private readonly List<Token> _tokensConsumed = new();
+    private readonly List<Token> _tokensConsumed = [];
     private DiagnosticBag _diagnostics = new();
 
     public ParserImpl(

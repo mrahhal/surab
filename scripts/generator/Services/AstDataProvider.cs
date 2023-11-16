@@ -66,7 +66,7 @@ public class AstDataProvider
         {
             node.Base ??= "SyntaxNode";
             node.TypeName = $"{node.Name}Node";
-            node.Members ??= new();
+            node.Members ??= [];
             foreach (var m in node.Members)
             {
                 m.StoredField = m.Type.EndsWith("Node") ?

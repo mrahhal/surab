@@ -4,13 +4,13 @@ namespace Surab.Compilation.LLVM;
 
 internal class LLVMFnAttrsDef
 {
-    private readonly Dictionary<LLVMAttributeIndex, List<LLVMAttributeRef>> _map = new();
+    private readonly Dictionary<LLVMAttributeIndex, List<LLVMAttributeRef>> _map = [];
 
     public void Add(LLVMAttributeIndex index, params LLVMAttributeRef[] attrs)
     {
         if (!_map.TryGetValue(index, out var list))
         {
-            list = new();
+            list = [];
             _map[index] = list;
         }
 

@@ -5,8 +5,8 @@ namespace Surab.Analysis;
 
 public class SemanticModel
 {
-    private readonly Dictionary<SyntaxNode, Binder> _nodeToBinderMap = new();
-    private readonly Dictionary<SyntaxNode, Symbol> _nodeToSymbolMap = new();
+    private readonly Dictionary<SyntaxNode, Binder> _nodeToBinderMap = [];
+    private readonly Dictionary<SyntaxNode, Symbol> _nodeToSymbolMap = [];
 
     private SemanticModel(SyntaxTree tree)
     {
