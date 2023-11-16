@@ -15,6 +15,8 @@ public class ParserTests
         var src = "fn foo() {}";
         var node = ParseDecl(src).Should().BeOfType<FnDeclNode>().Subject;
         node.PublicToken.Should().BeNull();
+        node.Body.Should().NotBeNull();
+        node.SemicolonToken.Should().BeNull();
     }
 
     [Fact]
@@ -23,6 +25,17 @@ public class ParserTests
         var src = "public fn foo(number: Number): Number { 2 }";
         var node = ParseDecl(src).Should().BeOfType<FnDeclNode>().Subject;
         node.PublicToken.Should().NotBeNull();
+        node.Body.Should().NotBeNull();
+        node.SemicolonToken.Should().BeNull();
+    }
+
+    [Fact]
+    public void Decl_ExternFn()
+    {
+        var src = "extern fn foo(number: Number);";
+        var node = ParseDecl(src).Should().BeOfType<FnDeclNode>().Subject;
+        node.Body.Should().BeNull();
+        node.SemicolonToken.Should().NotBeNull();
     }
 
     [Fact]
@@ -31,6 +44,17 @@ public class ParserTests
         var src = "struct Foo { a = 2; foo() {} }";
         var node = ParseDecl(src).Should().BeOfType<StructDeclNode>().Subject;
         node.PublicToken.Should().BeNull();
+        node.ExternToken.Should().BeNull();
+        node.Members.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void Decl_ExternStruct()
+    {
+        var src = "extern struct Foo { a = 2; foo() {} }";
+        var node = ParseDecl(src).Should().BeOfType<StructDeclNode>().Subject;
+        node.PublicToken.Should().BeNull();
+        node.ExternToken.Should().NotBeNull();
         node.Members.Should().HaveCount(2);
     }
 
@@ -350,7 +374,8 @@ public class ParserTests
             }
             """;
         var node = ParseDecl(src).Should().BeOfType<FnDeclNode>().Subject;
-        var body = node.Body;
+        var body = node.Body!;
+        body.Should().NotBeNull();
         body.Stmts.Should().HaveCount(2);
         body.Stmts.ElementAt(0).Should().BeOfType<BareExprStmtNode>();
         body.Stmts.ElementAt(1).Should().BeOfType<BareExprStmtNode>();

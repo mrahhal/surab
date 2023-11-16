@@ -46,6 +46,7 @@ public enum TokenKind
     Let,
     Const,
     Field,
+    Extern,
     Public,
     Return,
 
@@ -122,6 +123,7 @@ public class Token(TokenKind kind, TextSpan span, object? data)
             Let => "let",
             Const => "const",
             Field => "field",
+            Extern => "extern",
             Public => "public",
             Return => "return",
             NumberLiteral => "numlit",

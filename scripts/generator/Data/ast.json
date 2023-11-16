@@ -53,6 +53,11 @@
           "Optional": true
         },
         {
+          "Name": "externToken",
+          "Type": "SimpleToken",
+          "Optional": true
+        },
+        {
           "Name": "fnToken",
           "Type": "SimpleToken"
         },
@@ -62,7 +67,14 @@
         },
         {
           "Name": "body",
-          "Type": "BlockExprNode"
+          "Type": "BlockExprNode",
+          "Optional": true
+        },
+        {
+          "Name": "semicolonToken",
+          "Type": "SimpleToken",
+          "Optional": true,
+          "Comment": "Exists when body is null."
         }
       ]
     },
@@ -72,6 +84,11 @@
       "Members": [
         {
           "Name": "publicToken",
+          "Type": "SimpleToken",
+          "Optional": true
+        },
+        {
+          "Name": "externToken",
           "Type": "SimpleToken",
           "Optional": true
         },

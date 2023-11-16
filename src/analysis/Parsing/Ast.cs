@@ -60,6 +60,7 @@ public enum SimpleTokenKind
     Let,
     Const,
     Field,
+    Extern,
     Public,
     Return,
 }
@@ -110,6 +111,7 @@ public sealed class SimpleToken : SyntaxToken
                 TokenKind.Let => SimpleTokenKind.Let,
                 TokenKind.Const => SimpleTokenKind.Const,
                 TokenKind.Field => SimpleTokenKind.Field,
+                TokenKind.Extern => SimpleTokenKind.Extern,
                 TokenKind.Public => SimpleTokenKind.Public,
                 TokenKind.Return => SimpleTokenKind.Return,
                 _ => throw new Exception($"TokenKind {tokenKind} not supported."),

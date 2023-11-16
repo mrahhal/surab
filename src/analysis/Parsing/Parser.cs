@@ -326,11 +326,12 @@ internal class ParserImpl
     private DeclNode? ParseDecl_()
     {
         var visibility = TryParseVisibility();
+        var @extern = TryParseExtern();
         return _current?.Kind switch
         {
             TokenKind.Const => ParseConstDecl(visibility),
-            TokenKind.Fn => ParseFnDecl(visibility),
-            TokenKind.Struct => ParseStructDecl(visibility),
+            TokenKind.Fn => ParseFnDecl(visibility, @extern),
+            TokenKind.Struct => ParseStructDecl(visibility, @extern),
             TokenKind.Class => ParseClassDecl(visibility),
 
             _ => null,
@@ -370,25 +371,35 @@ internal class ParserImpl
     }
 
     /// <summary>
-    /// Parses `fn identifier(param1, param2) : Type { ... }`
+    /// Parses:
+    /// - `fn identifier(param1, param2) : Type { ... }`
+    /// - `extern fn identifier(param1, param2) : Type;`
     /// </summary>
-    private DeclNode? ParseFnDecl(SimpleToken? visibility)
+    private DeclNode? ParseFnDecl(SimpleToken? visibility, SimpleToken? externToken)
     {
         var fnToken = EatAssertedSimpleToken(TokenKind.Fn);
         var sig = ParseFnSig();
         if (sig == null) return null;
-        var body = ParseBlockExpr();
-        if (body == null) return null;
+        var body = default(BlockExprNode?);
+        var semicolonToken = default(SimpleToken?);
+        if (CheckToken(TokenKind.LeftBrace))
+        {
+            body = ParseBlockExpr();
+        }
+        else
+        {
+            semicolonToken = TryEatSimpleToken(TokenKind.Semicolon);
+        }
 
-        return new FnDeclNode(visibility, fnToken, sig, body);
+        return new FnDeclNode(visibility, externToken, fnToken, sig, body, semicolonToken);
     }
 
     /// <summary>
     /// Parses `struct Name { ... }`
     /// </summary>
-    private DeclNode? ParseStructDecl(SimpleToken? visibility)
+    private DeclNode? ParseStructDecl(SimpleToken? visibility, SimpleToken? externToken)
     {
-        var classToken = EatAssertedSimpleToken(TokenKind.Struct);
+        var structToken = EatAssertedSimpleToken(TokenKind.Struct);
         var identifier = ParseIdentifier();
         if (identifier == null) return null;
         var members = new List<DeclNode>();
@@ -402,7 +413,7 @@ internal class ParserImpl
         }
         var closedBraceToken = EatExpectedSimpleToken(TokenKind.RightBrace);
 
-        return new StructDeclNode(visibility, classToken, identifier, openBraceToken, members, closedBraceToken);
+        return new StructDeclNode(visibility, externToken, structToken, identifier, openBraceToken, members, closedBraceToken);
     }
 
     /// <summary>
@@ -450,6 +461,7 @@ internal class ParserImpl
     {
         var sig = ParseFnSig();
         if (sig == null) return null;
+        // TODO: Need to accept null body (and semicolon) to report errors.
         var body = ParseBlockExpr();
         if (body == null) return null;
 
@@ -913,4 +925,7 @@ internal class ParserImpl
 
     private SimpleToken? TryParseVisibility() =>
         TryEatSimpleToken(TokenKind.Public);
+
+    private SimpleToken? TryParseExtern() =>
+        TryEatSimpleToken(TokenKind.Extern);
 }
