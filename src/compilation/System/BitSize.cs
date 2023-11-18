@@ -1,5 +1,8 @@
-﻿namespace Surab.Compilation;
+﻿using System.Diagnostics;
 
+namespace Surab.Compilation;
+
+[DebuggerDisplay("{Bits} bits | {Bytes} bytes")]
 public readonly struct BitSize
 {
     private BitSize(int bits)
@@ -46,9 +49,19 @@ public readonly struct BitSize
     {
         return FromBits(x.Bits / y.Bits);
     }
+
+    public static bool operator >(BitSize x, BitSize y)
+    {
+        return x.Bits > y.Bits;
+    }
+
+    public static bool operator <(BitSize x, BitSize y)
+    {
+        return x.Bits < y.Bits;
+    }
 }
 
-internal static class BitSizeExtensions
+public static class BitSizeExtensions
 {
     public static BitSize AsBits(this int bits) => BitSize.FromBits(bits);
 
