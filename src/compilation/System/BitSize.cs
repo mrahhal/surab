@@ -2,8 +2,8 @@
 
 namespace Surab.Compilation;
 
-[DebuggerDisplay("{Bits} bits | {Bytes} bytes")]
-public readonly struct BitSize
+[DebuggerDisplay("{ToString(),nq}")]
+public readonly record struct BitSize
 {
     private BitSize(int bits)
     {
@@ -16,7 +16,7 @@ public readonly struct BitSize
 
     public readonly int Bytes => Bits / 8;
 
-    public readonly bool BytesSafe => Bits % 8 == 0;
+    public readonly bool IsBytesSafe => Bits % 8 == 0;
 
     public readonly bool IsZeroSized => Bits == 0;
 
@@ -58,6 +58,18 @@ public readonly struct BitSize
     public static bool operator <(BitSize x, BitSize y)
     {
         return x.Bits < y.Bits;
+    }
+
+    public override string ToString()
+    {
+        if (IsBytesSafe)
+        {
+            return $"{Bytes} bytes";
+        }
+        else
+        {
+            return $"{Bits} bits (bytes unsafe)";
+        }
     }
 }
 
