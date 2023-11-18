@@ -2,8 +2,6 @@
 
 namespace Surab.Analysis;
 
-#pragma warning disable CA1859 // Use concrete types when possible for improved performance
-
 public static class Parser
 {
     /// <summary>
