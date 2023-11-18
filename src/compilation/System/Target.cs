@@ -124,7 +124,7 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
             {
                 return m.Kind switch
                 {
-                    StructLayoutSectionKind.Padding => LLVMTypeRef.CreateArray(LLVMTypeRef.Int8, (uint)m.Size.Bytes),
+                    StructLayoutSectionKind.Padding => LLVMTypeRef.CreateArray(LLVMTypeRef.Int1, (uint)m.Size.Bytes),
                     StructLayoutSectionKind.Data => LowerType(fields[m.FieldIndex].Type),
                     _ => throw new UnreachableException(),
                 };
