@@ -92,22 +92,22 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 
     public BitSize GetAbiSize(TypeSymbol type) => GetLayout(type).Size;
 
-    public bool IsReturnSRet(FnSymbol fn, CompilationContext context)
+    public bool IsReturnSRet(FnSymbol fn)
     {
         if (GetAbiSize(fn.ReturnType).IsZeroSized)
             return false;
 
-        return IsReturnSRetCore(fn, context);
+        return IsReturnSRetCore(fn);
     }
 
-    public abstract bool IsReturnSRetCore(FnSymbol fn, CompilationContext context);
+    public abstract bool IsReturnSRetCore(FnSymbol fn);
 
     // Consider moving LLVM related stuff to some other place.
 
     // TODO: Support different calling conventions. Right now it's always Win64 cc.
-    public abstract LLVMTypeRef LowerFnReturnType(FnSymbol fn, CompilationContext context);
+    public abstract LLVMTypeRef LowerFnReturnType(FnSymbol fn);
 
-    public LLVMTypeRef LowerType(TypeSymbol type, CompilationContext context)
+    public LLVMTypeRef LowerType(TypeSymbol type)
     {
         if (type == BuiltInTypeSystem.None)
             return LLVMTypeRef.Void;
@@ -125,7 +125,7 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
                 return m.Kind switch
                 {
                     StructLayoutSectionKind.Padding => LLVMTypeRef.CreateArray(LLVMTypeRef.Int8, (uint)m.Size.Bytes),
-                    StructLayoutSectionKind.Data => LowerType(fields[m.FieldIndex].Type, context),
+                    StructLayoutSectionKind.Data => LowerType(fields[m.FieldIndex].Type),
                     _ => throw new UnreachableException(),
                 };
             }).ToArray();
@@ -156,21 +156,21 @@ internal abstract class x86_64WindowsTarget : Target
     {
     }
 
-    public override bool IsReturnSRetCore(FnSymbol fn, CompilationContext context)
+    public override bool IsReturnSRetCore(FnSymbol fn)
     {
         return Classify(fn.ReturnType) == Classification.Memory;
     }
 
-    public override LLVMTypeRef LowerFnReturnType(FnSymbol fn, CompilationContext context)
+    public override LLVMTypeRef LowerFnReturnType(FnSymbol fn)
     {
         var returnType = fn.ReturnType;
         var classification = Classify(returnType);
         return classification switch
         {
-            Classification.Integer => LowerType(returnType, context), // TODO: This is only for scalars?
+            Classification.Integer => LowerType(returnType), // TODO: This is only for scalars?
             //win_i128 =>
             Classification.Memory => LLVMTypeRef.Void,
-            Classification.SSE => LowerType(returnType, context),
+            Classification.SSE => LowerType(returnType),
             _ => throw new UnreachableException(),
         };
     }

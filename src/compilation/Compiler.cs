@@ -395,7 +395,7 @@ internal sealed class FnCompiler : LoweredVisitor
 
     private LLVMUnit CreateParam(ParamSymbol paramSymbol, LLVMValueRef paramValue)
     {
-        var typeRef = Target.LowerType(paramSymbol.Type, _context);
+        var typeRef = Target.LowerType(paramSymbol.Type);
 
         var ptr = LLVM.Builder.BuildAlloca(typeRef, paramSymbol.Identifier?.Value ?? string.Empty);
         var unit = new LLVMUnit(typeRef, ptr);
@@ -407,7 +407,7 @@ internal sealed class FnCompiler : LoweredVisitor
 
     private LLVMUnit CreateLocal(LocalSymbol localSymbol)
     {
-        var typeRef = Target.LowerType(localSymbol.Type, _context);
+        var typeRef = Target.LowerType(localSymbol.Type);
 
         var ptr = LLVM.Builder.BuildAlloca(typeRef, localSymbol.Identifier?.Value ?? string.Empty);
         var unit = new LLVMUnit(typeRef, ptr);
@@ -418,7 +418,7 @@ internal sealed class FnCompiler : LoweredVisitor
 
     private LLVMFn CreateFn(FnSymbol fnSymbol)
     {
-        var returnType = Target.LowerType(fnSymbol.ReturnType, _context);
+        var returnType = Target.LowerType(fnSymbol.ReturnType);
 
         // TODO: Better way?
         var llvmIndex = 0;
@@ -426,7 +426,7 @@ internal sealed class FnCompiler : LoweredVisitor
         var @params = new List<LLVMTypeRef>(capacity);
         var attrs = new LLVMFnAttrsDef();
 
-        var sret = Target.IsReturnSRet(fnSymbol, _context);
+        var sret = Target.IsReturnSRet(fnSymbol);
         if (sret)
         {
             @params.Add(returnType);
@@ -437,7 +437,7 @@ internal sealed class FnCompiler : LoweredVisitor
         foreach (var param in fnSymbol.Params)
         {
             // TODO: Remove, add to lowering.
-            @params.Add(Target.LowerType(param.Type, _context));
+            @params.Add(Target.LowerType(param.Type));
 
             // TODO: if (isExtern) ?
 
