@@ -1,6 +1,4 @@
-﻿using Surab.Analysis;
-
-namespace Surab.Compilation;
+﻿namespace Surab.Compilation;
 
 public partial class TargetTests
 {
@@ -9,15 +7,7 @@ public partial class TargetTests
     {
         var target = CreateTarget();
 
-        // 0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|
-        // a|      -      |b                    |
-        var structType = CreateStruct(
-            [
-                new("a", BuiltInTypeSystem.Char),
-                new("b", BuiltInTypeSystem.Number),
-            ]);
-
-        var structLayout = target.GetStructLayout(structType);
+        var structLayout = target.GetStructLayout(TestStructs.Struct1);
 
         structLayout.Layout.Size.Should().Be(16.AsBytes());
         structLayout.Layout.Alignment.Should().Be(8.AsBytes());
@@ -44,16 +34,7 @@ public partial class TargetTests
     {
         var target = CreateTarget();
 
-        // 0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|
-        // a|      -      |b                    |c |         -          |
-        var structType = CreateStruct(
-            [
-                new("a", BuiltInTypeSystem.Char),
-                new("b", BuiltInTypeSystem.Number),
-                new("a", BuiltInTypeSystem.Char),
-            ]);
-
-        var structLayout = target.GetStructLayout(structType);
+        var structLayout = target.GetStructLayout(TestStructs.Struct2);
 
         structLayout.Layout.Size.Should().Be(24.AsBytes());
         structLayout.Layout.Alignment.Should().Be(8.AsBytes());

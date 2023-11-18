@@ -1,25 +1,41 @@
-﻿using Surab.Analysis;
+﻿using LLVMSharp.Interop;
 
 namespace Surab.Compilation;
 
 public partial class TargetTests
 {
+    [Fact]
+    public void LowerType_Struct_1()
+    {
+        var target = CreateTarget();
+
+        var structLayout = target.GetStructLayout(TestStructs.Struct1);
+        var llvmType = target.LowerType(TestStructs.Struct1);
+
+        llvmType.StructElementTypes.Should().HaveCount(structLayout.Sections.Count);
+        llvmType.StructElementTypes[0].Should().Be(LLVMTypeRef.Int1);
+        llvmType.StructElementTypes[1].Should().Be(LLVMTypeRef.CreateArray(LLVMTypeRef.Int1, 7)); // Padding
+        llvmType.StructElementTypes[2].Should().Be(LLVMTypeRef.Double);
+    }
+
+    [Fact]
+    public void LowerType_Struct_2()
+    {
+        var target = CreateTarget();
+
+        var structLayout = target.GetStructLayout(TestStructs.Struct2);
+        var llvmType = target.LowerType(TestStructs.Struct2);
+
+        llvmType.StructElementTypes.Should().HaveCount(structLayout.Sections.Count);
+        llvmType.StructElementTypes[0].Should().Be(LLVMTypeRef.Int1);
+        llvmType.StructElementTypes[1].Should().Be(LLVMTypeRef.CreateArray(LLVMTypeRef.Int1, 7)); // Padding
+        llvmType.StructElementTypes[2].Should().Be(LLVMTypeRef.Double);
+        llvmType.StructElementTypes[3].Should().Be(LLVMTypeRef.Int1);
+        llvmType.StructElementTypes[4].Should().Be(LLVMTypeRef.CreateArray(LLVMTypeRef.Int1, 7)); // Padding
+    }
+
     private static Target CreateTarget()
     {
         return new x86_64WindowsMSVCTarget();
-    }
-
-    private static BuiltInStructTypeSymbol CreateStruct(IEnumerable<FieldSymbolTestsImpl> fields)
-    {
-        return new BuiltInStructTypeSymbol(
-            new IdentifierToken(TextSpan.Empty, "TestStruct"),
-            fields);
-    }
-
-    private sealed class FieldSymbolTestsImpl(string identifier, TypeSymbol type) : FieldSymbol
-    {
-        public override IdentifierToken? Identifier { get; } = new IdentifierToken(TextSpan.Empty, identifier);
-
-        public override TypeSymbol Type { get; } = type;
     }
 }
