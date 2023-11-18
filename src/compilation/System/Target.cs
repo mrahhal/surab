@@ -30,14 +30,20 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 
     public BitSize PtrWidth { get; protected set; }
 
-    public BitSize GetSize(TypeSymbol type)
+    // Should this be in Abi?
+    public Layout GetLayout(TypeSymbol type)
     {
         if (type == BuiltInTypeSystem.None)
-            return 0.AsBytes();
+            return new(0.AsBytes(), 0.AsBytes());
         if (type == BuiltInTypeSystem.Char || type == BuiltInTypeSystem.Bool)
-            return 1.AsBytes();
+            return new(1.AsBytes(), 1.AsBytes());
         if (type == BuiltInTypeSystem.Number)
-            return 8.AsBytes();
+            return new(8.AsBytes(), 8.AsBytes());
+
+        if (type is StructTypeSymbol structType)
+        {
+            return GetStructLayout(structType).Layout;
+        }
 
         // if ptr return ptr bit width
 
@@ -47,20 +53,44 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
         throw new UnreachableException();
     }
 
-    public abstract BitSize GetAbiSize(TypeSymbol type);
-
-    public BitSize GetAbiAlignment(TypeSymbol type)
+    // Should this be in Abi?
+    public StructLayout GetStructLayout(StructTypeSymbol structType)
     {
-        if (GetAbiSize(type).IsZeroSized)
-            return 0.AsBytes();
+        var offset = 0.AsBytes();
+        var structAlignment = 0.AsBytes();
+        var sections = new List<StructLayoutSection>();
 
-        if (type == BuiltInTypeSystem.Char || type == BuiltInTypeSystem.Bool)
-            return 1.AsBytes();
-        if (type == BuiltInTypeSystem.Number)
-            return 8.AsBytes();
+        var fieldIndex = 0;
+        foreach (var m in structType.Members.Fields())
+        {
+            var fieldLayout = GetLayout(m.Type);
+            AddPaddingIfNecessary(fieldLayout.Alignment);
+            structAlignment = Math.Max(structAlignment.Bytes, fieldLayout.Alignment.Bytes).AsBytes();
+            sections.Add(StructLayoutSection.Data(offset, fieldLayout.Size, fieldIndex));
 
-        throw new UnreachableException();
+            offset += fieldLayout.Size;
+            fieldIndex++;
+        }
+
+        AddPaddingIfNecessary(structAlignment);
+
+        var layout = new Layout(size: offset, alignment: structAlignment);
+        return new(layout, sections);
+
+        void AddPaddingIfNecessary(BitSize alignment)
+        {
+            var newOffset = Memory.AlignForward(offset, alignment);
+            if (newOffset != offset)
+            {
+                // Padding was needed.
+                var padding = newOffset - offset;
+                sections.Add(StructLayoutSection.Padding(offset, padding));
+                offset = newOffset;
+            }
+        }
     }
+
+    public BitSize GetAbiSize(TypeSymbol type) => GetLayout(type).Size;
 
     public bool IsReturnSRet(FnSymbol fn, CompilationContext context)
     {
@@ -86,7 +116,22 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
         if (type == BuiltInTypeSystem.Number)
             return LLVMTypeRef.Double;
 
-        // Struct
+        if (type is StructTypeSymbol structType)
+        {
+            var fields = structType.Members.Fields().ToList();
+            var structLayout = GetStructLayout(structType);
+            var elements = structLayout.Sections.Select(m =>
+            {
+                return m.Kind switch
+                {
+                    StructLayoutSectionKind.Padding => LLVMTypeRef.CreateArray(LLVMTypeRef.Int8, (uint)m.Size.Bytes),
+                    StructLayoutSectionKind.Data => LowerType(fields[m.FieldIndex].Type, context),
+                    _ => throw new UnreachableException(),
+                };
+            }).ToArray();
+            return LLVMTypeRef.CreateStruct(elements, Packed: false);
+        }
+
         // Class
         // FnPtr
         // ...
@@ -109,11 +154,6 @@ internal abstract class x86_64WindowsTarget : Target
 {
     protected x86_64WindowsTarget(TargetEnv env) : base(TargetArch.x86_64, TargetOS.Windows, env)
     {
-    }
-
-    public override BitSize GetAbiSize(TypeSymbol type)
-    {
-        return Abi.x86_64.GetAbiSize(type, this);
     }
 
     public override bool IsReturnSRetCore(FnSymbol fn, CompilationContext context)

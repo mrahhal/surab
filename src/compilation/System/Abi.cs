@@ -22,7 +22,7 @@ internal static class Abi
         // https://learn.microsoft.com/en-us/cpp/build/x64-software-conventions
         public static Classification ClassifyTypeForWindows(TypeSymbol type, Target target)
         {
-            var size = GetAbiSize(type, target);
+            var size = target.GetLayout(type).Size;
             Debug.Assert(!size.IsZeroSized, "Classify shouldn't be called with zero sized types.");
 
             return type.GetTag() switch
@@ -40,11 +40,6 @@ internal static class Abi
 
                 _ => throw new UnreachableException(),
             };
-        }
-
-        public static BitSize GetAbiSize(TypeSymbol type, Target target)
-        {
-            return target.GetSize(type);
         }
     }
 }

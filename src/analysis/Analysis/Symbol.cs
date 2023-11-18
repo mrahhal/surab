@@ -1,6 +1,5 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Xml.Linq;
 
 namespace Surab.Analysis;
 
@@ -135,12 +134,22 @@ public sealed class FnSymbol : Symbol
     }
 }
 
-public sealed class FieldSymbol : Symbol
+public abstract class FieldSymbol : Symbol
+{
+    public override SymbolKind Kind => SymbolKind.Field;
+
+    /// <summary>
+    /// The type of the field.
+    /// </summary>
+    public abstract TypeSymbol Type { get; }
+}
+
+internal sealed class FieldSymbolImpl : FieldSymbol
 {
     private readonly FieldDeclNode _node;
     private ResolvedType? _type;
 
-    internal FieldSymbol(FieldDeclNode node)
+    internal FieldSymbolImpl(FieldDeclNode node)
     {
         _node = node;
     }
@@ -154,7 +163,7 @@ public sealed class FieldSymbol : Symbol
     /// <summary>
     /// The type of the field.
     /// </summary>
-    public TypeSymbol Type => EnsureResolveType().Type;
+    public override TypeSymbol Type => EnsureResolveType().Type;
 
     public bool IsTypeInferred => EnsureResolveType().IsInferred;
 
@@ -366,3 +375,12 @@ public sealed class BuiltInStructTypeSymbol : StructTypeSymbol
 //    /// </summary>
 //    public ResolvedType ElementType { get; }
 //}
+
+public static class SymbolCollectionExtensions
+{
+    public static IEnumerable<FieldSymbol> Fields<TSymbol>(this IEnumerable<TSymbol> collection)
+        where TSymbol : Symbol
+    {
+        return collection.OfType<FieldSymbol>();
+    }
+}
