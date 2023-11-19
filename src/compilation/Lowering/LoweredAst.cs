@@ -59,14 +59,14 @@ internal sealed class LoweredFnDecl(
 internal sealed class LoweredTypeDecl(
     SyntaxNode parsedNode,
     TypeSymbol typeSymbol,
-    ImmutableArray<Symbol> members) : LoweredDecl(parsedNode)
+    ImmutableArray<FieldSymbol> members) : LoweredDecl(parsedNode)
 {
     public TypeSymbol TypeSymbol { get; } = typeSymbol;
 
     // Only includes data members. Behavior (methods) will be their own functions.
-    public ImmutableArray<Symbol> Members { get; } = members;
+    public ImmutableArray<FieldSymbol> Members { get; } = members;
 
-    public override IEnumerable<LoweredNode> EnumerateChildren() => Enumerable.Empty<LoweredNode>();
+    public override IEnumerable<LoweredNode> EnumerateChildren() => [];
 }
 
 internal abstract class LoweredStmt(SyntaxNode parsedNode) : LoweredNode(parsedNode)
@@ -82,7 +82,7 @@ internal sealed class LoweredVariableStmt(
 {
     public LocalSymbol Symbol { get; } = symbol;
 
-    public override IEnumerable<LoweredNode> EnumerateChildren() => Enumerable.Empty<LoweredNode>();
+    public override IEnumerable<LoweredNode> EnumerateChildren() => [];
 
     public override string ToString() => $"let {Symbol.Name}: {Symbol.Type.Name};";
 }
@@ -147,7 +147,7 @@ internal sealed class LoweredVariableLoadExpr(
 {
     public Symbol Variable { get; } = variable;
 
-    public override IEnumerable<LoweredNode> EnumerateChildren() => Enumerable.Empty<LoweredNode>();
+    public override IEnumerable<LoweredNode> EnumerateChildren() => [];
 
     public override string ToString() => $"{Variable.Name}";
 }
@@ -168,7 +168,7 @@ internal sealed class LoweredVariableLoadExpr(
 
 //    public Symbol Field { get; }
 
-//    public override IEnumerable<LoweredNode> EnumerateChildren() => Enumerable.Empty<LoweredNode>();
+//    public override IEnumerable<LoweredNode> EnumerateChildren() => [];
 //}
 
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]

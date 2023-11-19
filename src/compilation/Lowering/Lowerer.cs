@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Immutable;
+using System.Diagnostics;
 using Surab.Analysis;
 
 namespace Surab.Compilation;
@@ -86,8 +87,13 @@ internal class Lowerer
 
     private LoweredNode Lower(StructDeclNode node)
     {
-        // TODO:
-        throw new NotImplementedException();
+        var structTypeSymbol = _model.GetDeclaredSymbol(node) as StructTypeSymbol;
+        Debug.Assert(structTypeSymbol != null);
+
+        return new LoweredTypeDecl(
+            node,
+            structTypeSymbol,
+            structTypeSymbol.Members.OfType<FieldSymbol>().ToImmutableArray());
     }
 
     private LoweredNode Lower(LetStmtNode node)
