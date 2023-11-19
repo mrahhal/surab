@@ -159,7 +159,6 @@ internal sealed class FnCompiler : LoweredVisitor
         foreach (var param in @params)
         {
             var paramValue = _llvmFn.Value.GetParam((uint)llvmParamOffset);
-            CreateParam(param, paramValue);
 
             // TODO: From updateFunc.
             var lowering = GetLLVMLowering(param.Type);
@@ -167,23 +166,25 @@ internal sealed class FnCompiler : LoweredVisitor
             {
                 case LLVMTypeLoweringKind.ByValue:
                     {
-
-                    }
-                    break;
-                case LLVMTypeLoweringKind.ByRef:
-                    {
-
+                        var alignment = Target.GetAbiAlignment(param.Type);
+                        CreateParam(param, paramValue, alignment);
                     }
                     break;
                 case LLVMTypeLoweringKind.ByMutRef:
                     {
-
+                        // paramValue is already a ptr. Treat it as the wrapper ptr directly.
+                        var alignment = Target.GetAbiAlignment(param.Type);
+                        CreateParam(param, paramValue, alignment, createWrapperPtr: false);
                     }
                     break;
-                    //case LLVMTypeLoweringKind.abi_sized_int:
-                    //    {
-                    //    }
-                    //    break;
+                case LLVMTypeLoweringKind.AbiInt:
+                    {
+                        var layout = Target.GetLayout(param.Type);
+                        var llvmIntType = LLVMTypeRef.CreateInt((uint)layout.Size.Bits);
+                        var alignment = Math.Max(layout.Alignment.Bytes, (int)LLVM.TargetData.ABIAlignmentOfType(llvmIntType)).AsBytes();
+                        CreateParam(param, paramValue, alignment);
+                    }
+                    break;
             }
 
             llvmParamOffset++;
@@ -259,7 +260,7 @@ internal sealed class FnCompiler : LoweredVisitor
         var llvmIndex = 0;
         var llvmArgCount = (int)fnType.ParamTypesCount;
         var args = new List<LLVMValueRef>(llvmArgCount);
-        var attrs = new LLVMFnAttrsDef();
+        var attrs = _context.FnToAttrs[fnSymbol];
 
         if (sret.HasValue)
         {
@@ -269,7 +270,6 @@ internal sealed class FnCompiler : LoweredVisitor
             sretAlloc.SetAlignment((uint)size.Bytes);
             args.Add(sretAlloc);
 
-            attrs.AddParam(llvmIndex, LLVM.Context.CreateEnumAttribute(AttributeKind.StructRet, default));
             llvmIndex++;
         }
 
@@ -277,27 +277,33 @@ internal sealed class FnCompiler : LoweredVisitor
         {
             var (_, argValue) = _stack.Pop();
 
-            // TODO: Remove, and do it in lowering.
-            args.Add(argValue);
-            //attrs[llvmIndex] = Array.Empty<LLVMAttributeRef>();
-
             var param = fnSymbol.Params[argOffset];
             var lowering = GetLLVMLowering(param.Type);
             switch (lowering.Kind)
             {
                 case LLVMTypeLoweringKind.ByValue:
                     {
-
-                    }
-                    break;
-                case LLVMTypeLoweringKind.ByRef:
-                    {
-
+                        args.Add(argValue);
                     }
                     break;
                 case LLVMTypeLoweringKind.ByMutRef:
                     {
-
+                        var llvmType = Target.LowerType(param.Type);
+                        var ptr = LLVM.Builder.BuildAlloca(llvmType, string.Empty);
+                        LLVM.Builder.BuildStore(argValue, ptr);
+                        args.Add(ptr);
+                    }
+                    break;
+                case LLVMTypeLoweringKind.AbiInt:
+                    {
+                        var layout = Target.GetLayout(param.Type);
+                        var llvmIntType = LLVMTypeRef.CreateInt((uint)layout.Size.Bits);
+                        var alignment = Math.Max(layout.Alignment.Bytes, (int)LLVM.TargetData.ABIAlignmentOfType(llvmIntType)).AsBytes();
+                        var ptr = LLVM.Builder.BuildAlloca(llvmIntType, string.Empty);
+                        ptr.SetAlignment((uint)alignment.Bytes);
+                        LLVM.Builder.BuildStore(argValue, ptr);
+                        var loaded = LLVM.Builder.BuildLoad2(llvmIntType, ptr);
+                        args.Add(loaded);
                     }
                     break;
             }
@@ -393,13 +399,23 @@ internal sealed class FnCompiler : LoweredVisitor
         throw new Exception("Unexpected?");
     }
 
-    private LLVMUnit CreateParam(ParamSymbol paramSymbol, LLVMValueRef paramValue)
+    private LLVMUnit CreateParam(ParamSymbol paramSymbol, LLVMValueRef paramValue, BitSize alignment, bool createWrapperPtr = true)
     {
-        var typeRef = Target.LowerType(paramSymbol.Type);
+        var llvmType = Target.LowerType(paramSymbol.Type);
 
-        var ptr = LLVM.Builder.BuildAlloca(typeRef, paramSymbol.Identifier?.Value ?? string.Empty);
-        var unit = new LLVMUnit(typeRef, ptr);
-        LLVM.Builder.BuildStore(paramValue, ptr);
+        LLVMUnit unit;
+        if (createWrapperPtr)
+        {
+            var ptr = LLVM.Builder.BuildAlloca(llvmType, paramSymbol.Identifier?.Value ?? string.Empty);
+            ptr.SetAlignment((uint)alignment.Bytes);
+            LLVM.Builder.BuildStore(paramValue, ptr);
+            unit = new(llvmType, ptr);
+        }
+        else
+        {
+            Debug.Assert(paramValue.TypeOf.Kind == LLVMTypeKind.LLVMPointerTypeKind, "Param value should already be a ptr.");
+            unit = new(llvmType, paramValue);
+        }
 
         _context.SymbolToValue[paramSymbol] = unit;
         return unit;
@@ -425,6 +441,7 @@ internal sealed class FnCompiler : LoweredVisitor
         var capacity = fnSymbol.Params.Length + 1; // Max length of llvm params.
         var @params = new List<LLVMTypeRef>(capacity);
         var attrs = new LLVMFnAttrsDef();
+        _context.FnToAttrs[fnSymbol] = attrs;
 
         var sret = Target.IsReturnSRet(fnSymbol);
         if (sret)
@@ -436,9 +453,6 @@ internal sealed class FnCompiler : LoweredVisitor
 
         foreach (var param in fnSymbol.Params)
         {
-            // TODO: Remove, add to lowering.
-            @params.Add(Target.LowerType(param.Type));
-
             // TODO: if (isExtern) ?
 
             // This is for attributes.
@@ -446,14 +460,6 @@ internal sealed class FnCompiler : LoweredVisitor
             switch (lowering.Kind)
             {
                 case LLVMTypeLoweringKind.ByValue:
-                    {
-                        if (!IsByRef(param.Type))
-                        {
-
-                        }
-                    }
-                    break;
-                case LLVMTypeLoweringKind.ByRef:
                     {
 
                     }
@@ -463,7 +469,14 @@ internal sealed class FnCompiler : LoweredVisitor
 
                     }
                     break;
+                case LLVMTypeLoweringKind.AbiInt:
+                    {
+
+                    }
+                    break;
             }
+
+            @params.Add(Target.LowerType(param.Type));
 
             llvmIndex++;
         }
@@ -477,19 +490,6 @@ internal sealed class FnCompiler : LoweredVisitor
         attrs.Apply((index, attr) => fnValue.AddAttributeAtIndex(index, attr));
 
         return new LLVMFn(fnType, fnValue, sret ? returnType : (LLVMTypeRef?)null);
-    }
-
-    public bool IsByRef(TypeSymbol type)
-    {
-        // Not sure if will be needed, but should return true for things like load a (since it'll be ptr so we know to load),
-        // and false for when the variable is stuff like 1 + 2 (since it won't be a ptr so we know). ?
-
-        // Or maybe we don't need it because of VisitVariableLoadExpr? But what about when there's a fn call with a param
-        // that takes a ptr, in that case we wouldn't want to load the variable ptr (which is done in VisitVariableLoadExpr). ?
-
-        // TODO: Classes, Pointers, etc
-
-        return false;
     }
 
     public LLVMTypeLowering GetLLVMLowering(TypeSymbol type)

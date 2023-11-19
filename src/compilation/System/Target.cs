@@ -92,6 +92,8 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 
     public BitSize GetAbiSize(TypeSymbol type) => GetLayout(type).Size;
 
+    public BitSize GetAbiAlignment(TypeSymbol type) => GetLayout(type).Alignment;
+
     public bool IsReturnSRet(FnSymbol fn)
     {
         if (GetAbiSize(fn.ReturnType).IsZeroSized)

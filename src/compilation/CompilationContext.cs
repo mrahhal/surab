@@ -31,5 +31,5 @@ public sealed class CompilationContext
 
     internal Dictionary<Symbol, LLVMUnit> SymbolToValue { get; } = [];
 
-    //internal Dictionary<Symbol>
+    internal Dictionary<FnSymbol, LLVMFnAttrsDef> FnToAttrs { get; } = [];
 }

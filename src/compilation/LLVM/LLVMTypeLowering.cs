@@ -4,7 +4,7 @@ internal enum LLVMTypeLoweringKind
 {
     ZeroSized,
     ByValue,
-    ByRef,
+    //ByRef,
     ByMutRef,
     AbiInt,
 }
@@ -17,7 +17,7 @@ internal readonly struct LLVMTypeLowering
 
     public static readonly LLVMTypeLowering ByValue = new() { Kind = LLVMTypeLoweringKind.ByValue };
 
-    public static readonly LLVMTypeLowering ByRef = new() { Kind = LLVMTypeLoweringKind.ByRef };
+    //public static readonly LLVMTypeLowering ByRef = new() { Kind = LLVMTypeLoweringKind.ByRef };
 
     public static readonly LLVMTypeLowering ByMutRef = new() { Kind = LLVMTypeLoweringKind.ByMutRef };
 

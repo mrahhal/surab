@@ -1,10 +1,13 @@
 ﻿using LLVMSharp.Interop;
+using LLVMInterop = LLVMSharp.Interop.LLVM;
 
 namespace Surab.Compilation.LLVM;
 
 internal sealed class LLVMCompilationContext(
     LLVMModuleRef module,
     LLVMBuilderRef builder,
+    LLVMTargetMachineRef targetMachine,
+    LLVMTargetDataRef targetData,
     LLVMPassManagerRef passManager)
 {
     public LLVMModuleRef Module { get; } = module;
@@ -13,6 +16,10 @@ internal sealed class LLVMCompilationContext(
 
     public LLVMBuilderRef Builder { get; } = builder;
 
+    public LLVMTargetMachineRef TargetMachine { get; } = targetMachine;
+
+    public LLVMTargetDataRef TargetData { get; } = targetData;
+
     public LLVMPassManagerRef PassManager { get; } = passManager;
 
     public static LLVMCompilationContext Create()
@@ -20,12 +27,26 @@ internal sealed class LLVMCompilationContext(
         var module = LLVMModuleRef.CreateWithName("surabmodule");
         var builder = module.Context.CreateBuilder();
 
+        LLVMInterop.InitializeX86Target();
+        LLVMInterop.InitializeX86TargetInfo();
+        LLVMInterop.InitializeX86TargetMC();
+
         // TODO:
         module.Target = "x86_64-pc-windows-msvc19.20.0";
+        var succeeded = LLVMTargetRef.TryGetTargetFromTriple(module.Target, out var targetRef, out var error);
+        if (!succeeded)
+        {
+            throw new Exception(error);
+        }
+
+        var targetMachine = targetRef.CreateTargetMachine(
+            module.Target, null!, null!,
+            LLVMCodeGenOptLevel.LLVMCodeGenLevelDefault, LLVMRelocMode.LLVMRelocDefault, LLVMCodeModel.LLVMCodeModelDefault);
+        var targetData = targetMachine.CreateTargetDataLayout();
 
         var passManager = CreatePassManager();
 
-        return new LLVMCompilationContext (module, builder, passManager);
+        return new(module, builder, targetMachine, targetData, passManager);
 
         // ---
 
