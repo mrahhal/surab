@@ -142,6 +142,8 @@ public abstract class FieldSymbol : Symbol
     /// The type of the field.
     /// </summary>
     public abstract TypeSymbol Type { get; }
+
+    public abstract bool IsTypeInferred { get; }
 }
 
 internal sealed class FieldSymbolImpl : FieldSymbol
@@ -160,12 +162,9 @@ internal sealed class FieldSymbolImpl : FieldSymbol
 
     public override IdentifierToken? Identifier => _node.Identifier;
 
-    /// <summary>
-    /// The type of the field.
-    /// </summary>
     public override TypeSymbol Type => EnsureResolveType().Type;
 
-    public bool IsTypeInferred => EnsureResolveType().IsInferred;
+    public override bool IsTypeInferred => EnsureResolveType().IsInferred;
 
     private ResolvedType EnsureResolveType()
     {

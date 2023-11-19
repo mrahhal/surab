@@ -140,6 +140,24 @@ public class SemanticModelTests
     }
 
     [Fact]
+    public void Symbol_InferType_Field()
+    {
+        var src = """
+            struct Foo {
+                a = true;
+            }
+            """;
+        var tree = Parser.ParseModule(src);
+        var model = SemanticModel.Create(tree);
+
+        var fieldDecl = tree.Root.DescendantNodes().OfType<FieldDeclNode>().Single();
+        model.TryGetDeclaredSymbol(fieldDecl, out var symbol).Should().BeTrue();
+        var fieldSymbol = (FieldSymbol)symbol!;
+        fieldSymbol.Type.Should().Be(BuiltInTypeSystem.Bool);
+        fieldSymbol.IsTypeInferred.Should().BeTrue();
+    }
+
+    [Fact]
     public void FnReturnTypeAsNoneIfNotSet()
     {
         var src = """

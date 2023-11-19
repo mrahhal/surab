@@ -279,6 +279,7 @@ public class SemanticModel
         return node switch
         {
             LetStmtNode letStmt => LookupType(letStmt.Initializer),
+            FieldDeclNode fieldDecl => LookupType(fieldDecl.Initializer),
             _ => null,
         };
     }

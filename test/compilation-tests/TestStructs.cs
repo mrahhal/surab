@@ -22,7 +22,7 @@ public static class TestStructs
         [
             new("a", BuiltInTypeSystem.Char),
             new("b", BuiltInTypeSystem.Number),
-            new("a", BuiltInTypeSystem.Char),
+            new("c", BuiltInTypeSystem.Char),
         ]);
 
     public static BuiltInStructTypeSymbol CreateStruct(IEnumerable<FieldSymbolTestsImpl> fields)
@@ -38,4 +38,6 @@ public sealed class FieldSymbolTestsImpl(string identifier, TypeSymbol type) : F
     public override IdentifierToken? Identifier { get; } = new IdentifierToken(TextSpan.Empty, identifier);
 
     public override TypeSymbol Type { get; } = type;
+
+    public override bool IsTypeInferred => false;
 }
