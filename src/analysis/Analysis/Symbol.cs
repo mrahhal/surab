@@ -233,6 +233,12 @@ public sealed class LocalSymbol : Symbol
 public abstract class TypeSymbol : Symbol
 {
     public bool IsBuiltInType => this is BuiltInStructTypeSymbol;
+
+    public bool IsScalar =>
+        this == BuiltInTypeSystem.None ||
+        this == BuiltInTypeSystem.Number ||
+        this == BuiltInTypeSystem.Char ||
+        this == BuiltInTypeSystem.Bool;
 }
 
 public abstract class NamedTypeSymbol : TypeSymbol

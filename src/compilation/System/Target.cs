@@ -167,7 +167,7 @@ internal abstract class x86_64WindowsTarget : Target
         var classification = Classify(returnType);
         return classification switch
         {
-            Classification.Integer => LowerType(returnType),
+            Classification.Integer => returnType.IsScalar ? LowerType(returnType) : LLVMTypeRef.CreateInt((uint)GetAbiSize(returnType).Bits),
             //win_i128 =>
             Classification.Memory => LLVMTypeRef.Void,
             Classification.SSE => LowerType(returnType),
@@ -186,7 +186,7 @@ internal abstract class x86_64WindowsTarget : Target
 
         return Classify(type) switch
         {
-            Classification.Integer => LLVMTypeLowering.ByValue, // AbiInt in what cases?
+            Classification.Integer => type.IsScalar ? LLVMTypeLowering.ByValue : LLVMTypeLowering.AbiInt,
             //win_i128 =>
             Classification.Memory => LLVMTypeLowering.ByMutRef,
             Classification.SSE => LLVMTypeLowering.ByValue,
