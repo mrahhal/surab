@@ -30,6 +30,8 @@ internal sealed class LLVMCompilationContext(
         LLVMInterop.InitializeX86Target();
         LLVMInterop.InitializeX86TargetInfo();
         LLVMInterop.InitializeX86TargetMC();
+        LLVMInterop.InitializeX86AsmPrinter();
+        LLVMInterop.InitializeX86AsmParser();
 
         // TODO:
         module.Target = "x86_64-pc-windows-msvc19.20.0";
