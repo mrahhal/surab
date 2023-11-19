@@ -31,6 +31,7 @@ internal class Lowerer
             ModuleNode n => Lower(n),
             //ConstDeclNode n => Lower(n),
             FnDeclNode n => Lower(n),
+            StructDeclNode n => Lower(n),
             //ClassDeclNode n => Lower(n),
             //FieldDeclNode n => Lower(n),
             //MethodDeclNode n => Lower(n),
@@ -80,7 +81,13 @@ internal class Lowerer
         return new LoweredFnDecl(
             node,
             fnSymbol,
-            LowerFnBlock(node.Body));
+            node.Body == null ? null : LowerFnBlock(node.Body));
+    }
+
+    private LoweredNode Lower(StructDeclNode node)
+    {
+        // TODO:
+        throw new NotImplementedException();
     }
 
     private LoweredNode Lower(LetStmtNode node)

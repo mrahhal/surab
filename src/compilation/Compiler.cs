@@ -126,7 +126,10 @@ internal sealed class FnCompiler : LoweredVisitor
         }
         else
         {
-            Visit(_fnDecl.Body);
+            if (_fnDecl.Body != null)
+            {
+                Visit(_fnDecl.Body);
+            }
 
             //if (_fnType.ReturnType.Kind != LLVMTypeKind.LLVMVoidTypeKind)
             //{
@@ -193,6 +196,8 @@ internal sealed class FnCompiler : LoweredVisitor
 
     private void SetupLocals()
     {
+        if (_fnDecl.Body == null) return;
+
         foreach (var variableStmt in LoweringUtils.CollectLocalVariableStmts(_fnDecl.Body))
         {
             CreateLocal(variableStmt.Symbol);

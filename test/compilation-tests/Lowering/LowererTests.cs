@@ -13,7 +13,7 @@ public class LowererTests
             }
             """;
         var f = LowerFn(src);
-        var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body).ToList();
+        var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body!).ToList();
         body.Should().HaveCount(1);
         body[0].Should().BeOfType<LoweredReturnStmt>().Subject
             .Expr.Should().BeOfType<LoweredLiteralExpr>();
@@ -26,7 +26,7 @@ public class LowererTests
             fn foo() { }
             """;
         var f = LowerFn(src);
-        var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body).ToList();
+        var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body!).ToList();
         body.Should().HaveCount(0);
     }
 
@@ -39,7 +39,7 @@ public class LowererTests
             }
             """;
         var f = LowerFn(src);
-        var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body).ToList();
+        var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body!).ToList();
         body.Should().HaveCount(2);
         body[0].Should().BeOfType<LoweredVariableStmt>().Subject.Symbol.Name.Should().Be("a");
         var store1 = body[1].Should().BeOfType<LoweredVariableStoreStmt>().Subject;
@@ -57,7 +57,7 @@ public class LowererTests
             }
             """;
         var f = LowerFn(src);
-        var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body).ToList();
+        var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body!).ToList();
         body.Should().HaveCount(4);
         body[0].Should().BeOfType<LoweredVariableStmt>().Subject.Symbol.Name.Should().Be("b");
         body[1].Should().BeOfType<LoweredVariableStmt>().Subject.Symbol.Name.Should().Be("a");
@@ -78,7 +78,7 @@ public class LowererTests
             }
             """;
         var f = LowerFn(src);
-        var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body).ToList();
+        var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body!).ToList();
         body.Should().HaveCount(2);
         body[0].Should().BeOfType<LoweredVariableStmt>().Subject.Symbol.Name.Should().Be("a");
         var store1 = body[1].Should().BeOfType<LoweredVariableStoreStmt>().Subject;
@@ -95,7 +95,7 @@ public class LowererTests
             }
             """;
         var f = LowerFn(src);
-        var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body).ToList();
+        var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body!).ToList();
         body.Should().HaveCount(4);
         body[0].Should().BeOfType<LoweredVariableStmt>().Subject.Symbol.Name.Should().Be("a");
         body[1].Should().BeOfType<LoweredVariableStmt>().Subject.Symbol.Name.Should().Be("b");
@@ -117,7 +117,7 @@ public class LowererTests
             }
             """;
         var f = LowerFn(src);
-        var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body).ToList();
+        var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body!).ToList();
         body.Should().HaveCount(2);
         body[0].Should().BeOfType<LoweredVariableStmt>().Subject.Symbol.Name.Should().Be("a");
         var store1 = body[1].Should().BeOfType<LoweredVariableStoreStmt>().Subject;
@@ -134,7 +134,7 @@ public class LowererTests
             }
             """;
         var f = LowerFn(src);
-        var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body).ToList();
+        var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body!).ToList();
         body.Should().HaveCount(0);
     }
 

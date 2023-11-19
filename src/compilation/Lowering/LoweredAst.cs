@@ -40,14 +40,18 @@ internal abstract class LoweredDecl(SyntaxNode parsedNode) : LoweredNode(parsedN
 internal sealed class LoweredFnDecl(
     SyntaxNode parsedNode,
     FnSymbol fnSymbol,
-    LoweredStmtList body) : LoweredDecl(parsedNode)
+    LoweredStmtList? body) : LoweredDecl(parsedNode)
 {
     public FnSymbol FnSymbol { get; } = fnSymbol;
 
-    public LoweredStmtList Body { get; } = body;
+    public LoweredStmtList? Body { get; } = body;
 
     public override IEnumerable<LoweredNode> EnumerateChildren()
     {
+        if (Body == null)
+        {
+            yield break;
+        }
         yield return Body;
     }
 }
