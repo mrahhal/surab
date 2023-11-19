@@ -446,7 +446,6 @@ internal class ParserImpl
         var (type, elided) = ParseOptionalColonTy();
         if (!elided && type == null) return null;
         var initializer = ParseEqualsValueClause();
-        if (initializer == null) return null;
         var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
         return new FieldDeclNode(visibility, identifier, type, initializer, semicolonToken);

@@ -1,4 +1,6 @@
-﻿namespace Surab.Analysis;
+﻿using FluentAssertions.Equivalency;
+
+namespace Surab.Analysis;
 
 public class ParserTests
 {
@@ -41,7 +43,19 @@ public class ParserTests
     [Fact]
     public void Decl_Struct()
     {
-        var src = "struct Foo { a = 2; foo() {} }";
+        var src = "struct Foo { a: Number = 2; foo() {} }";
+        var node = ParseDecl(src).Should().BeOfType<StructDeclNode>().Subject;
+        node.PublicToken.Should().BeNull();
+        node.ExternToken.Should().BeNull();
+        node.Members.Should().HaveCount(2);
+        node.Members.ElementAt(0).Should().BeOfType<FieldDeclNode>();
+        node.Members.ElementAt(1).Should().BeOfType<FnDeclNode>();
+    }
+
+    [Fact]
+    public void Decl_Struct2()
+    {
+        var src = "struct Foo { a: Number; foo() {} }";
         var node = ParseDecl(src).Should().BeOfType<StructDeclNode>().Subject;
         node.PublicToken.Should().BeNull();
         node.ExternToken.Should().BeNull();

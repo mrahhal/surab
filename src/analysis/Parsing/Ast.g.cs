@@ -208,7 +208,7 @@ public partial class ClassDeclNode : DeclNode
 
 public partial class FieldDeclNode : DeclNode
 {
-    public FieldDeclNode(SimpleToken? publicToken, IdentifierToken identifier, ColonTypeNode? type, EqualsValueClauseNode initializer, SimpleToken semicolonToken)
+    public FieldDeclNode(SimpleToken? publicToken, IdentifierToken identifier, ColonTypeNode? type, EqualsValueClauseNode? initializer, SimpleToken semicolonToken)
         : base(SyntaxNodeKind.FieldDecl)
     {
         ChildTokens = new() { publicToken, identifier, semicolonToken, };
@@ -221,7 +221,7 @@ public partial class FieldDeclNode : DeclNode
     public SimpleToken? PublicToken => (SimpleToken?)ChildTokens[0]!;
     public IdentifierToken Identifier => (IdentifierToken)ChildTokens[1]!;
     public ColonTypeNode? Type => (ColonTypeNode?)ChildNodes[0]!;
-    public EqualsValueClauseNode Initializer => (EqualsValueClauseNode)ChildNodes[1]!;
+    public EqualsValueClauseNode? Initializer => (EqualsValueClauseNode?)ChildNodes[1]!;
     public SimpleToken SemicolonToken => (SimpleToken)ChildTokens[2]!;
 
     public override void Accept(Visitor visitor)

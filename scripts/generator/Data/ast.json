@@ -167,7 +167,8 @@
         },
         {
           "Name": "initializer",
-          "Type": "EqualsValueClauseNode"
+          "Type": "EqualsValueClauseNode",
+          "Optional": true
         },
         {
           "Name": "semicolonToken",
