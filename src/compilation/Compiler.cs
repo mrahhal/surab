@@ -165,17 +165,17 @@ internal sealed class FnCompiler : LoweredVisitor
             var lowering = GetLLVMLowering(param.Type);
             switch (lowering.Kind)
             {
-                case LLVMTypeLoweringKind.byval:
+                case LLVMTypeLoweringKind.ByValue:
                     {
 
                     }
                     break;
-                case LLVMTypeLoweringKind.byref:
+                case LLVMTypeLoweringKind.ByRef:
                     {
 
                     }
                     break;
-                case LLVMTypeLoweringKind.byref_mut:
+                case LLVMTypeLoweringKind.ByMutRef:
                     {
 
                     }
@@ -285,17 +285,17 @@ internal sealed class FnCompiler : LoweredVisitor
             var lowering = GetLLVMLowering(param.Type);
             switch (lowering.Kind)
             {
-                case LLVMTypeLoweringKind.byval:
+                case LLVMTypeLoweringKind.ByValue:
                     {
 
                     }
                     break;
-                case LLVMTypeLoweringKind.byref:
+                case LLVMTypeLoweringKind.ByRef:
                     {
 
                     }
                     break;
-                case LLVMTypeLoweringKind.byref_mut:
+                case LLVMTypeLoweringKind.ByMutRef:
                     {
 
                     }
@@ -445,7 +445,7 @@ internal sealed class FnCompiler : LoweredVisitor
             var lowering = GetLLVMLowering(param.Type);
             switch (lowering.Kind)
             {
-                case LLVMTypeLoweringKind.byval:
+                case LLVMTypeLoweringKind.ByValue:
                     {
                         if (!IsByRef(param.Type))
                         {
@@ -453,12 +453,12 @@ internal sealed class FnCompiler : LoweredVisitor
                         }
                     }
                     break;
-                case LLVMTypeLoweringKind.byref:
+                case LLVMTypeLoweringKind.ByRef:
                     {
 
                     }
                     break;
-                case LLVMTypeLoweringKind.byref_mut:
+                case LLVMTypeLoweringKind.ByMutRef:
                     {
 
                     }

@@ -142,7 +142,7 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
     internal LLVMTypeLowering GetLLVMLowering(TypeSymbol type)
     {
         if (GetAbiSize(type).IsZeroSized)
-            return LLVMTypeLowering.no_bits;
+            return LLVMTypeLowering.ZeroSized;
 
         return GetLLVMLoweringCore(type);
     }
@@ -167,7 +167,7 @@ internal abstract class x86_64WindowsTarget : Target
         var classification = Classify(returnType);
         return classification switch
         {
-            Classification.Integer => LowerType(returnType), // TODO: This is only for scalars?
+            Classification.Integer => LowerType(returnType),
             //win_i128 =>
             Classification.Memory => LLVMTypeRef.Void,
             Classification.SSE => LowerType(returnType),
@@ -186,10 +186,10 @@ internal abstract class x86_64WindowsTarget : Target
 
         return Classify(type) switch
         {
-            Classification.Integer => LLVMTypeLowering.byval, // abi_sized_int in what cases?
+            Classification.Integer => LLVMTypeLowering.ByValue, // AbiInt in what cases?
             //win_i128 =>
-            Classification.Memory => LLVMTypeLowering.byref_mut,
-            Classification.SSE => LLVMTypeLowering.byval,
+            Classification.Memory => LLVMTypeLowering.ByMutRef,
+            Classification.SSE => LLVMTypeLowering.ByValue,
             _ => throw new UnreachableException(),
         };
     }
