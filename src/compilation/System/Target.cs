@@ -74,7 +74,7 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 
         AddPaddingIfNecessary(structAlignment);
 
-        var layout = new Layout(size: offset, alignment: structAlignment);
+        var layout = new Layout(offset, structAlignment);
         return new(layout, sections);
 
         void AddPaddingIfNecessary(BitSize alignment)

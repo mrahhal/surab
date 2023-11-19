@@ -3,15 +3,11 @@
 namespace Surab.Compilation;
 
 [DebuggerDisplay("{ToString(),nq}")]
-public readonly record struct Layout(BitSize size, BitSize alignment)
+public readonly record struct Layout(BitSize Size, BitSize Alignment)
 {
-    public BitSize Size { get; } = size;
-
-    public BitSize Alignment { get; } = alignment;
-
     public override string ToString()
     {
-        return $"size={size}, alignment={alignment}";
+        return $"size={Size}, alignment={Alignment}";
     }
 }
 
