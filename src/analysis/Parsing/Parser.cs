@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Surab.Analysis;
 
@@ -96,8 +97,12 @@ internal class ParserImpl
     private Token AssertedPrev() =>
         _prev ?? throw new Exception("Expected prev token to exist.");
 
+    [MemberNotNullWhen(false, nameof(_current))]
     private bool IsAtEnd() => _current == null;
 
+    /// <summary>
+    /// Peek ahead by n tokens. n = 0 => next token.
+    /// </summary>
     private Token? Peek(int n)
     {
         if (_tokens.TryPeek(n, out var result))
@@ -470,8 +475,8 @@ internal class ParserImpl
 
     private StmtNode? ParseStmt_()
     {
+        if (IsAtEnd()) return null;
         var current = _current;
-        if (current == null) return null;
 
         return current.Kind switch
         {
@@ -532,7 +537,7 @@ internal class ParserImpl
     /// </summary>
     private ExprNode? ParseExprForPrecedence(Precedence precedence)
     {
-        if (_current == null) return null;
+        if (IsAtEnd()) return null;
         if (!Pratt.IsPrefixRule(_current.Kind))
         {
             return null;
@@ -816,7 +821,7 @@ internal class ParserImpl
 
         while (true)
         {
-            if (_current == null) return null;
+            if (IsAtEnd()) return null;
 
             if (CheckToken(TokenKind.RightParen))
             {
@@ -865,7 +870,7 @@ internal class ParserImpl
 
         while (true)
         {
-            if (_current == null) return null;
+            if (IsAtEnd()) return null;
 
             if (CheckToken(TokenKind.RightParen))
             {
