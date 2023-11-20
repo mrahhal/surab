@@ -32,4 +32,19 @@ public sealed class CompilationContext
     internal Dictionary<Symbol, LLVMUnit> SymbolToValue { get; } = [];
 
     internal Dictionary<FnSymbol, LLVMFnAttrsDef> FnToAttrs { get; } = [];
+
+    internal Dictionary<Symbol, LLVMTypeUnit> TypeToLLVMType { get; } = [];
+
+    internal LLVMTypeUnit GetOrCreateType(TypeSymbol typeSymbol)
+    {
+        // Cache LLVM lowered types.
+        if (!TypeToLLVMType.TryGetValue(typeSymbol, out var llvmTypeUnit))
+        {
+            var llvmType = Target.LowerType(typeSymbol);
+            llvmTypeUnit = new LLVMTypeUnit(llvmType);
+            TypeToLLVMType[typeSymbol] = llvmTypeUnit;
+        }
+
+        return llvmTypeUnit;
+    }
 }

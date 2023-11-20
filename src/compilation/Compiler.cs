@@ -83,7 +83,7 @@ internal sealed class FnCompiler : LoweredVisitor
 {
     private readonly CompilationContext _context;
     private readonly LoweredFnDecl _fnDecl;
-    private readonly LLVMFn _llvmFn;
+    private readonly LLVMFnUnit _llvmFn;
 
     private readonly Stack<LLVMUnit> _stack = new();
     private bool _returnSeen = false;
@@ -383,11 +383,11 @@ internal sealed class FnCompiler : LoweredVisitor
         }
     }
 
-    private LLVMFn GetOrCreateFn(FnSymbol symbol)
+    private LLVMFnUnit GetOrCreateFn(FnSymbol symbol)
     {
         if (_context.SymbolToValue.TryGetValue(symbol, out var unit))
         {
-            return (LLVMFn)unit;
+            return (LLVMFnUnit)unit;
         }
         var llvmFn = CreateFn(symbol);
         _context.SymbolToValue[symbol] = llvmFn;
@@ -437,7 +437,7 @@ internal sealed class FnCompiler : LoweredVisitor
         return unit;
     }
 
-    private LLVMFn CreateFn(FnSymbol fnSymbol)
+    private LLVMFnUnit CreateFn(FnSymbol fnSymbol)
     {
         var returnType = Target.LowerType(fnSymbol.ReturnType);
 
@@ -494,7 +494,7 @@ internal sealed class FnCompiler : LoweredVisitor
 
         attrs.Apply((index, attr) => fnValue.AddAttributeAtIndex(index, attr));
 
-        return new LLVMFn(fnType, fnValue, sret ? returnType : (LLVMTypeRef?)null);
+        return new LLVMFnUnit(fnType, fnValue, sret ? returnType : (LLVMTypeRef?)null);
     }
 
     public LLVMTypeLowering GetLLVMLowering(TypeSymbol type)
