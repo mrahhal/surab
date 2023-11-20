@@ -40,6 +40,10 @@
           "Name": "value",
           "Type": "ExprNode",
           "Comment": "Well formed: Literal"
+        },
+        {
+          "Name": "semicolonToken",
+          "Type": "SimpleToken"
         }
       ]
     },

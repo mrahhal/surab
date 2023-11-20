@@ -1,9 +1,17 @@
-﻿using FluentAssertions.Equivalency;
-
-namespace Surab.Analysis;
+﻿namespace Surab.Analysis;
 
 public class ParserTests
 {
+    [Fact]
+    public void Module()
+    {
+        var src = "const a = 2;";
+        var module = ParseModule(src);
+        module.Should().NotBeNull();
+        module.Decls.Should().HaveCount(1);
+        module.Decls.ElementAt(0).Should().BeOfType<ConstDeclNode>();
+    }
+
     [Fact]
     public void Decl_Const()
     {
@@ -413,6 +421,12 @@ public class ParserTests
     }
 
     // ---
+
+    private static ModuleNode ParseModule(string src)
+    {
+        var tree = Parser.ParseModule(src);
+        return (ModuleNode)tree.Root;
+    }
 
     private static DeclNode ParseDecl(string src)
     {

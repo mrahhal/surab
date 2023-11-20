@@ -107,10 +107,10 @@ public partial class ModuleNode : SyntaxNode
 
 public partial class ConstDeclNode : DeclNode
 {
-    public ConstDeclNode(SimpleToken? publicToken, SimpleToken constToken, IdentifierToken identifier, ColonTypeNode? type, SimpleToken equalToken, ExprNode value)
+    public ConstDeclNode(SimpleToken? publicToken, SimpleToken constToken, IdentifierToken identifier, ColonTypeNode? type, SimpleToken equalToken, ExprNode value, SimpleToken semicolonToken)
         : base(SyntaxNodeKind.ConstDecl)
     {
-        ChildTokens = new() { publicToken, constToken, identifier, equalToken, };
+        ChildTokens = new() { publicToken, constToken, identifier, equalToken, semicolonToken, };
         ChildNodes = new() { type, value, };
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
@@ -123,6 +123,7 @@ public partial class ConstDeclNode : DeclNode
     public ColonTypeNode? Type => (ColonTypeNode?)ChildNodes[0]!;
     public SimpleToken EqualToken => (SimpleToken)ChildTokens[3]!;
     public ExprNode Value => (ExprNode)ChildNodes[1]!;
+    public SimpleToken SemicolonToken => (SimpleToken)ChildTokens[4]!;
 
     public override void Accept(Visitor visitor)
     {

@@ -369,8 +369,9 @@ internal class ParserImpl
         var equalToken = EatExpectedSimpleToken(TokenKind.Equal);
         var value = ParseExpr_();
         if (value == null) return null;
+        var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
-        return new ConstDeclNode(visibility, constToken, identifier, type, equalToken, value);
+        return new ConstDeclNode(visibility, constToken, identifier, type, equalToken, value, semicolonToken);
     }
 
     /// <summary>
@@ -538,10 +539,18 @@ internal class ParserImpl
     private ExprNode? ParseExprForPrecedence(Precedence precedence)
     {
         if (IsAtEnd()) return null;
+
+        // Struct creation takes priority.
+        if (_current.Kind == TokenKind.Identifier && P1()?.Kind == TokenKind.LeftBrace)
+        {
+            return ParseStructCreationExpr();
+        }
+
         if (!Pratt.IsPrefixRule(_current.Kind))
         {
             return null;
         }
+
         var expr = ParsePrefixExpr();
         if (expr == null) return null;
 
@@ -752,6 +761,61 @@ internal class ParserImpl
         var closedBraceToken = EatExpectedSimpleToken(TokenKind.RightBrace);
 
         return new BlockExprNode(openBraceToken, stmts, closedBraceToken);
+    }
+
+    /// <summary>
+    /// Parses `Struct1 { a = b, c = d }`
+    /// Requirements: current is Identifier and next is LeftParen.
+    /// </summary>
+    private StructCreationExprNode? ParseStructCreationExpr()
+    {
+        Debug.Assert(CheckToken(TokenKind.Identifier));
+
+        var identifier = ParseIdentifier();
+        Debug.Assert(identifier != null);
+
+        var mapInitializer = ParseMapInitializer();
+        if (mapInitializer == null) return null;
+
+        return new StructCreationExprNode(identifier, mapInitializer);
+    }
+
+    /// <summary>
+    /// Parses `{ a = b, c = d }`
+    /// Requirements: current is LeftParen.
+    /// </summary>
+    /// <returns></returns>
+    private MapInitializerNode? ParseMapInitializer()
+    {
+        var openBraceToken = EatAssertedSimpleToken(TokenKind.LeftBrace);
+        var exprs = new List<ExprNode>();
+
+        while (true)
+        {
+            if (IsAtEnd()) return null;
+
+            if (CheckToken(TokenKind.RightBrace))
+            {
+                break;
+            }
+
+            // Will parse a whole single assignment expr.
+            var expr = ParseExpr_();
+            if (expr == null) return null;
+
+            exprs.Add(expr);
+
+            // TODO: Not doing anything with this comma token for now?
+            _ = _current?.Kind switch
+            {
+                TokenKind.RightBrace => null,
+                _ => EatExpectedSimpleToken(TokenKind.Comma),
+            };
+        }
+
+        var closedBraceToken = EatExpectedSimpleToken(TokenKind.RightBrace);
+
+        return new MapInitializerNode(openBraceToken, exprs, closedBraceToken);
     }
 
     // ---
