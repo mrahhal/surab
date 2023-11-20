@@ -57,7 +57,7 @@ public class ParserTests
         node.ExternToken.Should().BeNull();
         node.Members.Should().HaveCount(2);
         node.Members.ElementAt(0).Should().BeOfType<FieldDeclNode>();
-        node.Members.ElementAt(1).Should().BeOfType<FnDeclNode>();
+        node.Members.ElementAt(1).Should().BeOfType<MethodDeclNode>();
     }
 
     [Fact]
