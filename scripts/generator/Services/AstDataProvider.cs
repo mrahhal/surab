@@ -21,6 +21,7 @@ public class SyntaxNodeMember
     public string TypeFull => List ? $"IEnumerable<{TypeWithOptional}>" : TypeWithOptional;
     public required bool Optional { get; set; }
     public required bool List { get; set; }
+    public required string? Comment { get; set; }
 
     public required int Index { get; set; }
     public required SyntaxNodeMemberStoredField StoredField { get; set; }

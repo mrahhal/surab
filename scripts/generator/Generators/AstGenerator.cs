@@ -1,4 +1,5 @@
 using System.Text;
+using System.Xml.Linq;
 using MR.AttributeDI;
 
 [AddToServices(Lifetime.Transient)]
@@ -82,6 +83,12 @@ public class AstGenerator(
             var node = Data.Nodes[i];
             var isLast = i == Data.Nodes.Count - 1;
 
+            var comment = node.Comment.ToDocComment();
+            if (!string.IsNullOrWhiteSpace(comment))
+            {
+                _sb.Append(comment.NL());
+            }
+
             _sb.Append($$"""
                 public partial class {{node.TypeName}} : {{node.Base}}
                 {
@@ -152,10 +159,16 @@ public class AstGenerator(
 
             foreach (var m in node.Members)
             {
-                sb.Append(INDENT);
                 var retText = m.List ?
                     $"{m.StoredField.Name}.Cast<{m.Type}>()" :
                     $"({m.TypeWithOptional}){m.StoredField.Name}[{m.Index}]!";
+                var comment = m.Comment.ToDocComment(INDENT);
+                if (!string.IsNullOrWhiteSpace(comment))
+                {
+                    sb.Append(comment.NL());
+                }
+
+                sb.Append(INDENT);
                 sb.Append($"public {m.TypeFull} {m.NamePascal} => {retText};".NL());
             }
 
