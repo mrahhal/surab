@@ -74,7 +74,7 @@ internal abstract class LoweredStmt(SyntaxNode parsedNode) : LoweredNode(parsedN
 }
 
 // Lowered from local variables, ?
-// Only declares the variable. (i.e `let a: Type;`)
+// Only declares the variable. (i.e `var a: Type;`)
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
 internal sealed class LoweredVariableStmt(
     SyntaxNode parsedNode,
@@ -84,7 +84,7 @@ internal sealed class LoweredVariableStmt(
 
     public override IEnumerable<LoweredNode> EnumerateChildren() => [];
 
-    public override string ToString() => $"let {Symbol.Name}: {Symbol.Type.Name};";
+    public override string ToString() => $"var {Symbol.Name}: {Symbol.Type.Name};";
 }
 
 internal sealed class LoweredReturnStmt(
