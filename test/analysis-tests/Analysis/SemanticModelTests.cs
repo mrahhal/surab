@@ -75,13 +75,13 @@ public class SemanticModelTests
     {
         var src = """
             fn f() {
-                let a = { 2 };
+                var a = { 2 };
             }
             """;
         var tree = Parser.ParseModule(src);
         var model = SemanticModel.Create(tree);
 
-        var letStmt = tree.Root.DescendantNodes().OfType<LetStmtNode>().Single();
+        var letStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Single();
         var initializerSymbol = model.LookupType(letStmt.Initializer!);
         initializerSymbol.Should().Be(BuiltInTypeSystem.Number);
     }
@@ -91,13 +91,13 @@ public class SemanticModelTests
     {
         var src = """
             fn f() {
-                let a: Unknown = 2;
+                var a: Unknown = 2;
             }
             """;
         var tree = Parser.ParseModule(src);
         var model = SemanticModel.Create(tree);
 
-        var letStmt = tree.Root.DescendantNodes().OfType<LetStmtNode>().Single();
+        var letStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Single();
         model.TryGetDeclaredSymbol(letStmt, out var symbol).Should().BeTrue();
         var localSymbol = (LocalSymbol)symbol!;
         localSymbol.Type.Should().BeOfType<ErrorTypeSymbol>().Subject.Name.Should().Be("Unknown");
@@ -109,13 +109,13 @@ public class SemanticModelTests
     {
         var src = """
             fn f() {
-                let a = 2;
+                var a = 2;
             }
             """;
         var tree = Parser.ParseModule(src);
         var model = SemanticModel.Create(tree);
 
-        var letStmt = tree.Root.DescendantNodes().OfType<LetStmtNode>().Single();
+        var letStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Single();
         model.TryGetDeclaredSymbol(letStmt, out var symbol).Should().BeTrue();
         var localSymbol = (LocalSymbol)symbol!;
         localSymbol.Type.Should().Be(BuiltInTypeSystem.Number);
@@ -127,13 +127,13 @@ public class SemanticModelTests
     {
         var src = """
             fn f() {
-                let a = { 2 };
+                var a = { 2 };
             }
             """;
         var tree = Parser.ParseModule(src);
         var model = SemanticModel.Create(tree);
 
-        var letStmt = tree.Root.DescendantNodes().OfType<LetStmtNode>().Single();
+        var letStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Single();
         model.TryGetDeclaredSymbol(letStmt, out var symbol).Should().BeTrue();
         var localSymbol = symbol.Should().BeOfType<LocalSymbol>().Subject;
         localSymbol.Type.Should().Be(BuiltInTypeSystem.Number);

@@ -7,12 +7,12 @@ public class BlockExprTests
     [InlineData("{ 2 }")]
     [InlineData("{ { 4; } 2 }")]
     [InlineData("{ { 4; }; 2 }")]
-    [InlineData("{ let a = { 2 }; a }")]
+    [InlineData("{ var a = { 2 }; a }")]
     public void Test_1(string snippet)
     {
         var output = IntegrationRunner.Run($$"""
             fn main() {
-                let a = {{snippet}};
+                var a = {{snippet}};
                 print(a);
             }
             """);
@@ -29,7 +29,7 @@ public class BlockExprTests
     {
         IntegrationRunner.Run($$"""
             fn main() {
-                let a = {{snippet}};
+                var a = {{snippet}};
                 print(a);
             }
             """, fails: true);
@@ -40,7 +40,7 @@ public class BlockExprTests
     {
         var output = IntegrationRunner.Run("""
             fn main() {
-                let a = 2;
+                var a = 2;
                 print(a);
             }
             """);
@@ -57,9 +57,9 @@ public class BlockExprTests
             fn main() {
                 { }
                 {
-                    let a = 4;
+                    var a = 4;
                 }
-                let a = 2;
+                var a = 2;
                 print(a);
                 { }
             }

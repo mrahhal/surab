@@ -47,7 +47,7 @@ public abstract partial class Visitor
         Walk(node);
     }
 
-    public virtual void VisitLetStmt(LetStmtNode node)
+    public virtual void VisitVarStmt(VarStmtNode node)
     {
         Walk(node);
     }

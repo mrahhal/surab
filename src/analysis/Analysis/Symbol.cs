@@ -202,10 +202,10 @@ public sealed class ParamSymbol : Symbol
 
 public sealed class LocalSymbol : Symbol
 {
-    private readonly LetStmtNode _node;
+    private readonly VarStmtNode _node;
     private ResolvedType? _type;
 
-    internal LocalSymbol(LetStmtNode node)
+    internal LocalSymbol(VarStmtNode node)
     {
         _node = node;
     }

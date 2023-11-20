@@ -18,7 +18,7 @@ static SOME_RESULT = {
 
 // Functions can exist out of classes, in which case they simply live in the namespace.
 fn main() {
-    let greeter = Greeter.new("mrahhal");
+    var greeter = Greeter.new("mrahhal");
     greeter.greet();
 
   // Can't call `greeter.Change_name` because `greeter` is an immutable reference.
@@ -60,12 +60,12 @@ Records (by value is optional):
 record [struct|class] Response(name: String, number: Number);
 
 fn main() {
-    let r = Response {
+    var r = Response {
         name: "mrahhal",
         number: 3,
     };
 
-    let updated = r with {
+    var updated = r with {
         number: 42,
     };
 }
@@ -88,8 +88,8 @@ Script:
 
 // Top level execution
 
-let a = 1;
-let b = 2;
+var a = 1;
+var b = 2;
 
 Print(add(a, b));
 

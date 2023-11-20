@@ -278,7 +278,7 @@ public class SemanticModel
     {
         return node switch
         {
-            LetStmtNode letStmt => LookupType(letStmt.Initializer),
+            VarStmtNode letStmt => LookupType(letStmt.Initializer),
             FieldDeclNode fieldDecl => LookupType(fieldDecl.Initializer),
             _ => null,
         };
@@ -354,7 +354,7 @@ public class SemanticModel
                 StructDeclNode n => new StructTypeSymbol(n),
                 ClassDeclNode n => new ClassTypeSymbol(n),
 
-                LetStmtNode n => new LocalSymbol(n),
+                VarStmtNode n => new LocalSymbol(n),
 
                 ParamNode n => new ParamSymbol(n),
 

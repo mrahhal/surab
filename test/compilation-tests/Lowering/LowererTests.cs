@@ -35,7 +35,7 @@ public class LowererTests
     {
         var src = """
             fn foo() {
-                let a = 2;
+                var a = 2;
             }
             """;
         var f = LowerFn(src);
@@ -52,8 +52,8 @@ public class LowererTests
     {
         var src = """
             fn foo() {
-                let b: Number;
-                let a = b = 2;
+                var b: Number;
+                var a = b = 2;
             }
             """;
         var f = LowerFn(src);
@@ -74,7 +74,7 @@ public class LowererTests
     {
         var src = """
             fn foo() {
-                let a = { 2 };
+                var a = { 2 };
             }
             """;
         var f = LowerFn(src);
@@ -91,7 +91,7 @@ public class LowererTests
     {
         var src = """
             fn foo() {
-                let a = { let b = 2 + 1; b };
+                var a = { var b = 2 + 1; b };
             }
             """;
         var f = LowerFn(src);
@@ -112,7 +112,7 @@ public class LowererTests
     {
         var src = """
             fn foo() {
-                let a: Number;
+                var a: Number;
                 a = 2;
             }
             """;

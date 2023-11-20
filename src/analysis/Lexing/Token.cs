@@ -43,7 +43,7 @@ public enum TokenKind
     This,
     True,
     False,
-    Let,
+    Var,
     Const,
     Field,
     Extern,
@@ -120,7 +120,7 @@ public class Token(TokenKind kind, TextSpan span, object? data)
             This => "this",
             True => "true",
             False => "false",
-            Let => "let",
+            Var => "let",
             Const => "const",
             Field => "field",
             Extern => "extern",
@@ -201,7 +201,7 @@ public static class TokenKindExtensions
 
     public static bool CanStartStmt(this TokenKind kind) =>
         kind.CanStartExpr() ||
-        kind is Identifier or This or Let or Return;
+        kind is Identifier or This or Var or Return;
 
     public static bool CanStartExpr(this TokenKind kind) =>
         kind.IsUnary() ||

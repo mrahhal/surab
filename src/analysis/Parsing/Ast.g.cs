@@ -59,7 +59,7 @@ public enum SyntaxNodeKind
     FieldDecl,
     MethodDecl,
     SkippedTokensDecl,
-    LetStmt,
+    VarStmt,
     ReturnStmt,
     ExprStmt,
     BareExprStmt,
@@ -281,19 +281,19 @@ public partial class SkippedTokensDeclNode : DeclNode
     }
 }
 
-public partial class LetStmtNode : StmtNode
+public partial class VarStmtNode : StmtNode
 {
-    public LetStmtNode(SimpleToken letToken, IdentifierToken identifier, ColonTypeNode? type, EqualsValueClauseNode? initializer, SimpleToken semicolonToken)
-        : base(SyntaxNodeKind.LetStmt)
+    public VarStmtNode(SimpleToken varToken, IdentifierToken identifier, ColonTypeNode? type, EqualsValueClauseNode? initializer, SimpleToken semicolonToken)
+        : base(SyntaxNodeKind.VarStmt)
     {
-        ChildTokens = new() { letToken, identifier, semicolonToken, };
+        ChildTokens = new() { varToken, identifier, semicolonToken, };
         ChildNodes = new() { type, initializer, };
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
     }
 
-    public SimpleToken LetToken => (SimpleToken)ChildTokens[0]!;
+    public SimpleToken VarToken => (SimpleToken)ChildTokens[0]!;
     public IdentifierToken Identifier => (IdentifierToken)ChildTokens[1]!;
     public ColonTypeNode? Type => (ColonTypeNode?)ChildNodes[0]!;
     public EqualsValueClauseNode? Initializer => (EqualsValueClauseNode?)ChildNodes[1]!;
@@ -301,7 +301,7 @@ public partial class LetStmtNode : StmtNode
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitLetStmt(this);
+        visitor.VisitVarStmt(this);
     }
 }
 

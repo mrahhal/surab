@@ -90,35 +90,35 @@ public class ParserTests
     }
 
     [Fact]
-    public void Stmt_Let_1()
+    public void Stmt_Var_1()
     {
-        var src = "let a = 2;";
-        var node = ParseStmt(src).Should().BeOfType<LetStmtNode>().Subject;
+        var src = "var a = 2;";
+        var node = ParseStmt(src).Should().BeOfType<VarStmtNode>().Subject;
         node.Type.Should().BeNull();
     }
 
     [Fact]
-    public void Stmt_Let_2()
+    public void Stmt_Var_2()
     {
-        var src = "let a: Number = 2;";
-        var node = ParseStmt(src).Should().BeOfType<LetStmtNode>().Subject;
+        var src = "var a: Number = 2;";
+        var node = ParseStmt(src).Should().BeOfType<VarStmtNode>().Subject;
         node.Type.Should().NotBeNull();
     }
 
     [Fact]
-    public void Stmt_Let_MissingInitializer()
+    public void Stmt_Var_MissingInitializer()
     {
-        var src = "let a: Number;";
-        var node = ParseStmt(src).Should().BeOfType<LetStmtNode>().Subject;
+        var src = "var a: Number;";
+        var node = ParseStmt(src).Should().BeOfType<VarStmtNode>().Subject;
         node.Type.Should().NotBeNull();
         node.Initializer.Should().BeNull();
     }
 
     [Fact]
-    public void Stmt_Let_MissingTyAndInitializer()
+    public void Stmt_Var_MissingTyAndInitializer()
     {
-        var src = "let a;";
-        var node = ParseStmt(src).Should().BeOfType<LetStmtNode>().Subject;
+        var src = "var a;";
+        var node = ParseStmt(src).Should().BeOfType<VarStmtNode>().Subject;
         node.Type.Should().BeNull();
         node.Initializer.Should().BeNull();
     }
@@ -396,8 +396,8 @@ public class ParserTests
     [Fact]
     public void BlockAsExpr()
     {
-        var src = "let a = { 2 };";
-        var node = ParseStmt(src).Should().BeOfType<LetStmtNode>().Subject;
+        var src = "var a = { 2 };";
+        var node = ParseStmt(src).Should().BeOfType<VarStmtNode>().Subject;
         var block = node.Initializer!.Expr.Should().BeOfType<BlockExprNode>().Subject;
         block.Stmts.Should().HaveCount(1);
         var bareExpr = block.Stmts.ElementAt(0).Should().BeOfType<BareExprStmtNode>().Subject;

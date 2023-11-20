@@ -33,7 +33,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
         { "this" , TokenKind.This },
         { "true" , TokenKind.True },
         { "false" , TokenKind.False },
-        { "let" , TokenKind.Let },
+        { "var" , TokenKind.Var },
         { "const" , TokenKind.Const },
         { "field" , TokenKind.Field },
         { "extern" , TokenKind.Extern },

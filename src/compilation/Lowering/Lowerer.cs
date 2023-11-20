@@ -36,7 +36,7 @@ internal class Lowerer
             //ClassDeclNode n => Lower(n),
             //FieldDeclNode n => Lower(n),
             //MethodDeclNode n => Lower(n),
-            LetStmtNode n => Lower(n),
+            VarStmtNode n => Lower(n),
             ReturnStmtNode n => Lower(n),
             ExprStmtNode n => Lower(n),
             BareExprStmtNode n => Lower(n),
@@ -96,7 +96,7 @@ internal class Lowerer
             structTypeSymbol.Members.OfType<FieldSymbol>().ToImmutableArray());
     }
 
-    private LoweredNode Lower(LetStmtNode node)
+    private LoweredNode Lower(VarStmtNode node)
     {
         var symbol = _model.GetDeclaredSymbol(node) as LocalSymbol;
         Debug.Assert(symbol != null);

@@ -481,7 +481,7 @@ internal class ParserImpl
 
         return current.Kind switch
         {
-            TokenKind.Let => ParseLetStmt(),
+            TokenKind.Var => ParseVarStmt(),
             TokenKind.Return => ParseReturnStmt(),
             _ when current.Kind.CanStartExpr() => ParseExprStmt(),
 
@@ -490,11 +490,11 @@ internal class ParserImpl
     }
 
     /// <summary>
-    /// Parses `let a: Type? = expr;`
+    /// Parses `var a: Type? = expr;`
     /// </summary>
-    private StmtNode? ParseLetStmt()
+    private StmtNode? ParseVarStmt()
     {
-        var letToken = EatAssertedSimpleToken(TokenKind.Let);
+        var varToken = EatAssertedSimpleToken(TokenKind.Var);
         var identifier = ParseIdentifier();
         if (identifier == null) return null;
         var (type, elided) = ParseOptionalColonTy();
@@ -502,7 +502,7 @@ internal class ParserImpl
         var initializer = ParseEqualsValueClause();
         var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
-        return new LetStmtNode(letToken, identifier, type, initializer, semicolonToken);
+        return new VarStmtNode(varToken, identifier, type, initializer, semicolonToken);
     }
 
     /// <summary>

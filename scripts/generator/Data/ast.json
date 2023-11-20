@@ -210,11 +210,11 @@
       ]
     },
     {
-      "Name": "LetStmt",
+      "Name": "VarStmt",
       "Base": "StmtNode",
       "Members": [
         {
-          "Name": "letToken",
+          "Name": "varToken",
           "Type": "SimpleToken"
         },
         {
