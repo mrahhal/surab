@@ -259,6 +259,32 @@ public class ParserTests
     }
 
     [Fact]
+    public void Expr_StructCreation()
+    {
+        var src = "Foo { a = 42, b = false }";
+        var structCreationExprNode = ParseExpr(src).Should().BeOfType<StructCreationExprNode>().Subject;
+        structCreationExprNode.Identifier.Value.Should().Be("Foo");
+        structCreationExprNode.MapInitializer.Exprs.Should().HaveCount(2);
+        structCreationExprNode.MapInitializer.Exprs.ElementAt(0).GCast<AssignmentExprNode>().Lhs.Should().BeOfType<IdentifierExprNode>()
+            .Which.Identifier.Value.Should().Be("a");
+        structCreationExprNode.MapInitializer.Exprs.ElementAt(0).GCast<AssignmentExprNode>().Rhs.Should().BeOfType<LiteralExprNode>()
+            .Which.Literal.LiteralTokenKind.Should().Be(LiteralTokenKind.Number);
+        structCreationExprNode.MapInitializer.Exprs.ElementAt(1).GCast<AssignmentExprNode>().Lhs.Should().BeOfType<IdentifierExprNode>()
+            .Which.Identifier.Value.Should().Be("b");
+        structCreationExprNode.MapInitializer.Exprs.ElementAt(1).GCast<AssignmentExprNode>().Rhs.Should().BeOfType<LiteralExprNode>()
+            .Which.Literal.LiteralTokenKind.Should().Be(LiteralTokenKind.Bool);
+    }
+
+    [Fact]
+    public void Expr_StructCreation_EmptyInitializer()
+    {
+        var src = "Foo { }";
+        var structCreationExprNode = ParseExpr(src).Should().BeOfType<StructCreationExprNode>().Subject;
+        structCreationExprNode.Identifier.Value.Should().Be("Foo");
+        structCreationExprNode.MapInitializer.Exprs.Should().HaveCount(0);
+    }
+
+    [Fact]
     public void Params_NoType()
     {
         // Syntax error, but should still lead to a proper FnDeclNode.

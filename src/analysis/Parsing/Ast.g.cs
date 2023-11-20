@@ -74,6 +74,8 @@ public enum SyntaxNodeKind
     LiteralExpr,
     IdentifierExpr,
     ThisExpr,
+    StructCreationExpr,
+    MapInitializer,
     SkippedTokensExpr,
     ParamsList,
     Param,
@@ -122,6 +124,9 @@ public partial class ConstDeclNode : DeclNode
     public IdentifierToken Identifier => (IdentifierToken)ChildTokens[2]!;
     public ColonTypeNode? Type => (ColonTypeNode?)ChildNodes[0]!;
     public SimpleToken EqualToken => (SimpleToken)ChildTokens[3]!;
+    /// <summary>
+    /// Well formed: Literal
+    /// </summary>
     public ExprNode Value => (ExprNode)ChildNodes[1]!;
     public SimpleToken SemicolonToken => (SimpleToken)ChildTokens[4]!;
 
@@ -148,6 +153,9 @@ public partial class FnDeclNode : DeclNode
     public SimpleToken FnToken => (SimpleToken)ChildTokens[2]!;
     public FnSigNode Sig => (FnSigNode)ChildNodes[0]!;
     public BlockExprNode? Body => (BlockExprNode?)ChildNodes[1]!;
+    /// <summary>
+    /// Exists when body is null.
+    /// </summary>
     public SimpleToken? SemicolonToken => (SimpleToken?)ChildTokens[3]!;
 
     public override void Accept(Visitor visitor)
@@ -319,6 +327,9 @@ public partial class ReturnStmtNode : StmtNode
     }
 }
 
+/// <summary>
+/// An expression statement (`expr();`).
+/// </summary>
 public partial class ExprStmtNode : StmtNode
 {
     public ExprStmtNode(ExprNode expr, SimpleToken semicolonToken)
@@ -340,6 +351,9 @@ public partial class ExprStmtNode : StmtNode
     }
 }
 
+/// <summary>
+/// An expression statement without the trailing semicolon (`expr()`).
+/// </summary>
 public partial class BareExprStmtNode : StmtNode
 {
     public BareExprStmtNode(ExprNode expr)
@@ -489,6 +503,9 @@ public partial class GroupingExprNode : ExprNode
     }
 }
 
+/// <summary>
+/// A function/method call (`callee(args)`).
+/// </summary>
 public partial class CallExprNode : ExprNode
 {
     public CallExprNode(ExprNode callee, ArgsListNode args)
@@ -510,6 +527,9 @@ public partial class CallExprNode : ExprNode
     }
 }
 
+/// <summary>
+/// A member access (`target.identifier`).
+/// </summary>
 public partial class AccessExprNode : ExprNode
 {
     public AccessExprNode(ExprNode target, SimpleToken dotToken, IdentifierToken identifier)
@@ -592,6 +612,52 @@ public partial class ThisExprNode : ExprNode
     }
 }
 
+public partial class StructCreationExprNode : ExprNode
+{
+    public StructCreationExprNode(IdentifierToken identifier, MapInitializerNode mapInitializer)
+        : base(SyntaxNodeKind.StructCreationExpr)
+    {
+        ChildTokens = new() { identifier, };
+        ChildNodes = new() { mapInitializer, };
+
+        Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+        SetChildrenParent();
+    }
+
+    public IdentifierToken Identifier => (IdentifierToken)ChildTokens[0]!;
+    public MapInitializerNode MapInitializer => (MapInitializerNode)ChildNodes[0]!;
+
+    public override void Accept(Visitor visitor)
+    {
+        visitor.VisitStructCreationExpr(this);
+    }
+}
+
+public partial class MapInitializerNode : SyntaxNode
+{
+    public MapInitializerNode(SimpleToken openBraceToken, IEnumerable<ExprNode> exprs, SimpleToken closedBraceToken)
+        : base(SyntaxNodeKind.MapInitializer)
+    {
+        ChildTokens = new() { openBraceToken, closedBraceToken, };
+        ChildNodes = exprs.Cast<SyntaxNode?>().ToList();
+
+        Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+        SetChildrenParent();
+    }
+
+    public SimpleToken OpenBraceToken => (SimpleToken)ChildTokens[0]!;
+    /// <summary>
+    /// Well formed: AssignmentExprNode
+    /// </summary>
+    public IEnumerable<ExprNode> Exprs => ChildNodes.Cast<ExprNode>();
+    public SimpleToken ClosedBraceToken => (SimpleToken)ChildTokens[1]!;
+
+    public override void Accept(Visitor visitor)
+    {
+        visitor.VisitMapInitializer(this);
+    }
+}
+
 public partial class SkippedTokensExprNode : ExprNode
 {
     public SkippedTokensExprNode(SkippedToken skipped)
@@ -648,6 +714,9 @@ public partial class ParamNode : SyntaxNode
 
     public SimpleToken? FieldToken => (SimpleToken?)ChildTokens[0]!;
     public IdentifierToken Identifier => (IdentifierToken)ChildTokens[1]!;
+    /// <summary>
+    /// Well formed: Has value
+    /// </summary>
     public ColonTypeNode? Type => (ColonTypeNode?)ChildNodes[0]!;
     public SimpleToken? CommaToken => (SimpleToken?)ChildTokens[2]!;
 

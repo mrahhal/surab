@@ -444,6 +444,39 @@
       ]
     },
     {
+      "Name": "StructCreationExpr", // Should be renamed to a more general ObjectCreationExpr?
+      "Base": "ExprNode",
+      "Members": [
+        {
+          "Name": "identifier",
+          "Type": "IdentifierToken"
+        },
+        {
+          "Name": "mapInitializer",
+          "Type": "MapInitializerNode"
+        }
+      ]
+    },
+    {
+      "Name": "MapInitializer",
+      "Members": [
+        {
+          "Name": "openBraceToken",
+          "Type": "SimpleToken"
+        },
+        {
+          "Name": "exprs",
+          "Type": "ExprNode",
+          "List": true,
+          "Comment": "Well formed: AssignmentExprNode"
+        },
+        {
+          "Name": "closedBraceToken",
+          "Type": "SimpleToken"
+        }
+      ]
+    },
+    {
       "Name": "SkippedTokensExpr",
       "Base": "ExprNode",
       "Members": [

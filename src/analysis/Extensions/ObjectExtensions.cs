@@ -8,7 +8,7 @@ internal static class ObjectExtensions
     /// Performs a guaranteed cast. Throws on failure.
     /// </summary>
     [return: NotNullIfNotNull(nameof(obj))]
-    public static T? Cast<T>(this object? obj)
+    public static T? GCast<T>(this object? obj)
         where T : class
     {
         if (obj == null) return null;

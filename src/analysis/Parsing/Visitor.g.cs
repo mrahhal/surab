@@ -122,6 +122,16 @@ public abstract partial class Visitor
         Walk(node);
     }
 
+    public virtual void VisitStructCreationExpr(StructCreationExprNode node)
+    {
+        Walk(node);
+    }
+
+    public virtual void VisitMapInitializer(MapInitializerNode node)
+    {
+        Walk(node);
+    }
+
     public virtual void VisitSkippedTokensExpr(SkippedTokensExprNode node)
     {
         Walk(node);
