@@ -138,6 +138,23 @@ public class LowererTests
         body.Should().HaveCount(0);
     }
 
+    [Fact]
+    public void StructCreationExpr()
+    {
+        var src = """
+            struct Foo { a: Number; }
+            fn foo() {
+                var foo = Foo { a = 42 };
+            }
+            """;
+        var module = LowerModule(src);
+        var body = LoweringUtils.EnumerateUnwrappedDescendants(module.Decls[1]).ToList();
+        body.Should().HaveCount(2);
+        var store = body.OfType<LoweredVariableStoreStmt>().Single();
+        store.Variable.Name.Should().Be("foo");
+        store.Expr.Should().BeOfType<LoweredStructCreationExpr>();
+    }
+
     private static LoweredFnDecl LowerFn(string src)
     {
         var module = LowerModule(src);

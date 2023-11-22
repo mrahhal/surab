@@ -106,6 +106,7 @@ public class SemanticModel
             TypeNode n => LookupSymbol(n.Identifier, n),
             ArgNode n => LookupSymbol(n.Expr),
             //CallExprNode n => LookupSymbol(n.Callee),
+            StructCreationExprNode n => LookupSymbol(n.Identifier, n),
 
             _ => null,
         };

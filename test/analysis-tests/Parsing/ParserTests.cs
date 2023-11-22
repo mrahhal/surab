@@ -265,13 +265,13 @@ public class ParserTests
         var structCreationExprNode = ParseExpr(src).Should().BeOfType<StructCreationExprNode>().Subject;
         structCreationExprNode.Identifier.Value.Should().Be("Foo");
         structCreationExprNode.MapInitializer.Exprs.Should().HaveCount(2);
-        structCreationExprNode.MapInitializer.Exprs.ElementAt(0).GCast<AssignmentExprNode>().Lhs.Should().BeOfType<IdentifierExprNode>()
+        structCreationExprNode.MapInitializer.WellFormedExprs.ElementAt(0).Lhs.Should().BeOfType<IdentifierExprNode>()
             .Which.Identifier.Value.Should().Be("a");
-        structCreationExprNode.MapInitializer.Exprs.ElementAt(0).GCast<AssignmentExprNode>().Rhs.Should().BeOfType<LiteralExprNode>()
+        structCreationExprNode.MapInitializer.WellFormedExprs.ElementAt(0).Rhs.Should().BeOfType<LiteralExprNode>()
             .Which.Literal.LiteralTokenKind.Should().Be(LiteralTokenKind.Number);
-        structCreationExprNode.MapInitializer.Exprs.ElementAt(1).GCast<AssignmentExprNode>().Lhs.Should().BeOfType<IdentifierExprNode>()
+        structCreationExprNode.MapInitializer.WellFormedExprs.ElementAt(1).Lhs.Should().BeOfType<IdentifierExprNode>()
             .Which.Identifier.Value.Should().Be("b");
-        structCreationExprNode.MapInitializer.Exprs.ElementAt(1).GCast<AssignmentExprNode>().Rhs.Should().BeOfType<LiteralExprNode>()
+        structCreationExprNode.MapInitializer.WellFormedExprs.ElementAt(1).Rhs.Should().BeOfType<LiteralExprNode>()
             .Which.Literal.LiteralTokenKind.Should().Be(LiteralTokenKind.Bool);
     }
 
@@ -281,7 +281,7 @@ public class ParserTests
         var src = "Foo { }";
         var structCreationExprNode = ParseExpr(src).Should().BeOfType<StructCreationExprNode>().Subject;
         structCreationExprNode.Identifier.Value.Should().Be("Foo");
-        structCreationExprNode.MapInitializer.Exprs.Should().HaveCount(0);
+        structCreationExprNode.MapInitializer.WellFormedExprs.Should().HaveCount(0);
     }
 
     [Fact]

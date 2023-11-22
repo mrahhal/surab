@@ -285,7 +285,48 @@ internal sealed class LoweredLiteralExpr(
 {
     public LiteralToken Literal { get; } = literal;
 
-    public override IEnumerable<LoweredNode> EnumerateChildren() => Enumerable.Empty<LoweredNode>();
+    public override IEnumerable<LoweredNode> EnumerateChildren() => [];
 
     public override string ToString() => $"{Literal}";
+}
+
+[DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
+internal sealed class LoweredStructCreationExpr(
+    SyntaxNode parsedNode,
+    StructTypeSymbol symbol,
+    LoweredMapInitializer mapInitializer) : LoweredExpr(parsedNode)
+{
+    public StructTypeSymbol Symbol { get; } = symbol;
+
+    public LoweredMapInitializer MapInitializer { get; } = mapInitializer;
+
+    public override IEnumerable<LoweredNode> EnumerateChildren()
+    {
+        yield return MapInitializer;
+    }
+
+    public override string ToString() => $"{Symbol.Name}";
+}
+
+internal sealed class LoweredMapInitializer(
+    SyntaxNode parsedNode,
+    IEnumerable<LoweredMapInitializerItem> items) : LoweredNode(parsedNode)
+{
+    public ImmutableArray<LoweredMapInitializerItem> Items { get; } = items.ToImmutableArray();
+
+    public override IEnumerable<LoweredNode> EnumerateChildren()
+    {
+        foreach(var item in Items)
+        {
+            yield return item.Left;
+            yield return item.Right;
+        }
+    }
+}
+
+internal sealed class LoweredMapInitializerItem(LoweredExpr left, LoweredExpr right)
+{
+    public LoweredExpr Left { get; } = left;
+
+    public LoweredExpr Right { get; } = right;
 }

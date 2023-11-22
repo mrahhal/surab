@@ -48,6 +48,7 @@ internal class Lowerer
             //AccessExprNode n => Lower(n),
             LiteralExprNode n => Lower(n),
             IdentifierExprNode n => Lower(n),
+            StructCreationExprNode n => Lower(n),
 
             // These are nodes that are taken care of in other places, there shouldn't be a case where they're called here.
             // => throw new Exception("Unexpected node: " + node.GetType().Name),
@@ -301,6 +302,29 @@ internal class Lowerer
         return new LoweredVariableLoadExpr(
             node,
             symbol);
+    }
+
+    private LoweredNode Lower(StructCreationExprNode node)
+    {
+        var symbol = (StructTypeSymbol)_model.LookupSymbol(node)!;
+        return new LoweredStructCreationExpr(
+            node,
+            symbol,
+            Lower(node.MapInitializer));
+    }
+
+    private LoweredMapInitializer Lower(MapInitializerNode node)
+    {
+        var items = new List<LoweredMapInitializerItem>();
+
+        foreach (var expr in node.WellFormedExprs)
+        {
+            items.Add(new(LowerWithCast(expr.Lhs), LowerWithCast(expr.Rhs)));
+        }
+
+        return new LoweredMapInitializer(
+            node,
+            items);
     }
 
     private LoweredDecl LowerWithCast(DeclNode node) => (LoweredDecl)Lower((SyntaxNode)node);

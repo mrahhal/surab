@@ -504,3 +504,8 @@ public partial class BlockExprNode
         }
     }
 }
+
+public partial class MapInitializerNode
+{
+    public IEnumerable<AssignmentExprNode> WellFormedExprs => Exprs.Cast<AssignmentExprNode>();
+}

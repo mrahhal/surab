@@ -3,6 +3,11 @@ using Surab.Analysis;
 using Surab.Compilation;
 
 var src = """
+    struct Foo {
+        a: Number;
+        b = false;
+    }
+
     fn print(v: Number) {
         // Compiler intrinsic
     }
@@ -23,6 +28,10 @@ var src = """
         c = 999.2;
         print(c);
         print(41 + 1);
+
+        var foo = Foo { a = 42, b = true };
+        print(foo.a);
+        print(foo.b);
     }
     """;
 var tree = Parser.ParseModule(src);
