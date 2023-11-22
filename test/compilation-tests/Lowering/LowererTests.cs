@@ -155,6 +155,41 @@ public class LowererTests
         store.Expr.Should().BeOfType<LoweredStructCreationExpr>();
     }
 
+    [Fact]
+    public void StructFieldLoad()
+    {
+        var src = """
+            struct Foo { a: Number; }
+            fn foo() {
+                var foo = Foo { a = 42 };
+                var a = foo.a;
+            }
+            """;
+        var module = LowerModule(src);
+        var body = LoweringUtils.EnumerateUnwrappedDescendants(module.Decls[1]).ToList();
+        body.Should().HaveCount(4);
+        var variableStore = body.OfType<LoweredVariableStoreStmt>().Last();
+        var fieldStore = variableStore.Expr.Should().BeOfType<LoweredFieldLoadExpr>().Subject;
+        fieldStore.Field.Name.Should().Be("a");
+    }
+
+    [Fact]
+    public void StructFieldStore()
+    {
+        var src = """
+            struct Foo { a: Number; }
+            fn foo() {
+                var foo = Foo { a = 42 };
+                foo.a = 43;
+            }
+            """;
+        var module = LowerModule(src);
+        var body = LoweringUtils.EnumerateUnwrappedDescendants(module.Decls[1]).ToList();
+        body.Should().HaveCount(3);
+        var fieldStore = body.OfType<LoweredFieldStoreStmt>().Last();
+        fieldStore.Field.Name.Should().Be("a");
+    }
+
     private static LoweredFnDecl LowerFn(string src)
     {
         var module = LowerModule(src);

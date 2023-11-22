@@ -15,6 +15,34 @@ internal abstract class LoweredNode(SyntaxNode parsedNode)
     public SyntaxNode ParsedNode { get; } = parsedNode;
 
     public abstract IEnumerable<LoweredNode> EnumerateChildren();
+
+    // No ancestor methods because we don't store the parent right now..
+
+    /// <summary>
+    /// Enumerates descendant nodes in breadth first order.
+    /// </summary>
+    public IEnumerable<LoweredNode> DescendantNodes() => DescendantNodesCore(includeSelf: false);
+
+    /// <summary>
+    /// Enumerates descendant nodes and self in breadth first order.
+    /// </summary>
+    public IEnumerable<LoweredNode> DescendantNodesAndSelf() => DescendantNodesCore(includeSelf: true);
+
+    private IEnumerable<LoweredNode> DescendantNodesCore(bool includeSelf)
+    {
+        if (includeSelf)
+        {
+            yield return this;
+        }
+
+        foreach (var child in EnumerateChildren())
+        {
+            if (child != null)
+            {
+                yield return child;
+            }
+        }
+    }
 }
 
 internal sealed class LoweredModule(
@@ -152,25 +180,6 @@ internal sealed class LoweredVariableLoadExpr(
     public override string ToString() => $"{Variable.Name}";
 }
 
-//internal sealed class LoweredFieldLoadExpr : LoweredExpr
-//{
-//    public LoweredFieldLoadExpr(
-//        SyntaxNode parsedNode,
-//        Symbol instance,
-//        Symbol field)
-//        : base(parsedNode)
-//    {
-//        Instance = instance;
-//        Field = field;
-//    }
-
-//    public Symbol Instance { get; }
-
-//    public Symbol Field { get; }
-
-//    public override IEnumerable<LoweredNode> EnumerateChildren() => [];
-//}
-
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
 internal sealed class LoweredVariableStoreStmt(
     SyntaxNode parsedNode,
@@ -189,31 +198,41 @@ internal sealed class LoweredVariableStoreStmt(
     public override string ToString() => $"{Variable.Name} = ...;";
 }
 
-//internal sealed class LoweredFieldStoreStmt : LoweredStmt
-//{
-//    public LoweredFieldStoreStmt(
-//        SyntaxNode parsedNode,
-//        Symbol instance,
-//        Symbol field,
-//        LoweredExpr expr)
-//        : base(parsedNode)
-//    {
-//        Instance = instance;
-//        Field = field;
-//        Expr = expr;
-//    }
+[DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
+internal sealed class LoweredFieldLoadExpr(
+    SyntaxNode parsedNode,
+    LoweredExpr target,
+    Symbol field) : LoweredExpr(parsedNode)
+{
+    public LoweredExpr Target { get; } = target;
 
-//    public Symbol Instance { get; }
+    public Symbol Field { get; } = field;
 
-//    public Symbol Field { get; }
+    public override IEnumerable<LoweredNode> EnumerateChildren() => [];
 
-//    public LoweredExpr Expr { get; }
+    public override string ToString() => $"{Field.Name}";
+}
 
-//    public override IEnumerable<LoweredNode> EnumerateChildren()
-//    {
-//        yield return Expr;
-//    }
-//}
+[DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
+internal sealed class LoweredFieldStoreStmt(
+    SyntaxNode parsedNode,
+    LoweredExpr target,
+    Symbol field,
+    LoweredExpr expr) : LoweredStmt(parsedNode)
+{
+    public LoweredExpr Target { get; } = target;
+
+    public Symbol Field { get; } = field;
+
+    public LoweredExpr Expr { get; } = expr;
+
+    public override IEnumerable<LoweredNode> EnumerateChildren()
+    {
+        yield return Expr;
+    }
+
+    public override string ToString() => $"{Field.Name} = ...;";
+}
 
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
 internal sealed class LoweredUnaryExpr(

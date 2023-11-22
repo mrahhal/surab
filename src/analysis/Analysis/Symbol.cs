@@ -47,7 +47,23 @@ public abstract class Symbol
     public override string ToString() => Name ?? string.Empty;
 }
 
-public sealed class ConstSymbol : Symbol
+/// <summary>
+/// Marks symbols that have a type.
+/// </summary>
+public interface ISymbolHasType
+{
+    /// <summary>
+    /// Gets the type of the symbol.
+    /// </summary>
+    public TypeSymbol Type { get; }
+
+    /// <summary>
+    /// Gets whether the type of the symbol was inferred rather than typed.
+    /// </summary>
+    public bool IsTypeInferred { get; }
+}
+
+public sealed class ConstSymbol : Symbol, ISymbolHasType
 {
     private readonly ConstDeclNode _node;
     private ResolvedType? _type;
@@ -63,9 +79,6 @@ public sealed class ConstSymbol : Symbol
 
     public override IdentifierToken? Identifier => _node.Identifier;
 
-    /// <summary>
-    /// The type of the const.
-    /// </summary>
     public TypeSymbol Type => EnsureResolveType().Type;
 
     public bool IsTypeInferred => EnsureResolveType().IsInferred;
@@ -134,7 +147,7 @@ public sealed class FnSymbol : Symbol
     }
 }
 
-public abstract class FieldSymbol : Symbol
+public abstract class FieldSymbol : Symbol, ISymbolHasType
 {
     public override SymbolKind Kind => SymbolKind.Field;
 
@@ -144,12 +157,18 @@ public abstract class FieldSymbol : Symbol
     public abstract TypeSymbol Type { get; }
 
     public abstract bool IsTypeInferred { get; }
+
+    /// <summary>
+    /// The type symbol of the enclosing type (struct/class).
+    /// </summary>
+    public abstract TypeSymbol EnclosingType { get; }
 }
 
-internal sealed class FieldSymbolImpl : FieldSymbol
+internal sealed class FieldSymbolImpl : FieldSymbol, ISymbolHasType
 {
     private readonly FieldDeclNode _node;
     private ResolvedType? _type;
+    private TypeSymbol? _enclosingType;
 
     internal FieldSymbolImpl(FieldDeclNode node)
     {
@@ -166,13 +185,26 @@ internal sealed class FieldSymbolImpl : FieldSymbol
 
     public override bool IsTypeInferred => EnsureResolveType().IsInferred;
 
+    public override TypeSymbol EnclosingType => EnsureResolveEnclosingType();
+
     private ResolvedType EnsureResolveType()
     {
         return _type ??= Context.BindType(_node, _node.Type);
     }
+
+    private TypeSymbol EnsureResolveEnclosingType()
+    {
+        return _enclosingType ??= ResolveEnclosingType();
+
+        TypeSymbol ResolveEnclosingType()
+        {
+            var enclosingType = Context.LookupTypeDecl();
+            return enclosingType ?? new ErrorTypeSymbol(null);
+        }
+    }
 }
 
-public sealed class ParamSymbol : Symbol
+public sealed class ParamSymbol : Symbol, ISymbolHasType
 {
     private readonly ParamNode _node;
     private TypeSymbol? _type;
@@ -188,9 +220,6 @@ public sealed class ParamSymbol : Symbol
 
     public override IdentifierToken? Identifier => _node.Identifier;
 
-    /// <summary>
-    /// The type of the param.
-    /// </summary>
     public TypeSymbol Type
     {
         get
@@ -198,9 +227,12 @@ public sealed class ParamSymbol : Symbol
             return _type ??= Context.BindType(_node, _node.Type).Type; // Will never be inferred.
         }
     }
+
+    // Param type is always typed.
+    public bool IsTypeInferred => false;
 }
 
-public sealed class LocalSymbol : Symbol
+public sealed class LocalSymbol : Symbol, ISymbolHasType
 {
     private readonly VarStmtNode _node;
     private ResolvedType? _type;
@@ -231,6 +263,8 @@ public sealed class LocalSymbol : Symbol
 
 public abstract class TypeSymbol : Symbol
 {
+    private ImmutableArray<Symbol> _members;
+
     public bool IsBuiltInType => this is BuiltInStructTypeSymbol;
 
     public bool IsScalar =>
@@ -238,30 +272,6 @@ public abstract class TypeSymbol : Symbol
         this == BuiltInTypeSystem.Number ||
         this == BuiltInTypeSystem.Char ||
         this == BuiltInTypeSystem.Bool;
-}
-
-public abstract class NamedTypeSymbol : TypeSymbol
-{
-    private readonly DeclNode? _node;
-    private ImmutableArray<Symbol> _members;
-
-    internal NamedTypeSymbol(DeclNode? node)
-    {
-        _node = node;
-    }
-
-    public override SymbolKind Kind => SymbolKind.NamedType;
-
-    public override DeclNode? DeclaringNode => _node;
-
-    public override IdentifierToken? Identifier => _node switch
-    {
-        ClassDeclNode classDecl => classDecl.Identifier,
-        StructDeclNode structDecl => structDecl.Identifier,
-        _ => null,
-    };
-
-    public bool IsError => this is ErrorTypeSymbol;
 
     public virtual ImmutableArray<Symbol> Members
     {
@@ -290,6 +300,29 @@ public abstract class NamedTypeSymbol : TypeSymbol
     }
 
     protected abstract IEnumerable<SyntaxNode> EnumerateMembers();
+}
+
+public abstract class NamedTypeSymbol : TypeSymbol
+{
+    private readonly DeclNode? _node;
+
+    internal NamedTypeSymbol(DeclNode? node)
+    {
+        _node = node;
+    }
+
+    public override SymbolKind Kind => SymbolKind.NamedType;
+
+    public override DeclNode? DeclaringNode => _node;
+
+    public override IdentifierToken? Identifier => _node switch
+    {
+        ClassDeclNode classDecl => classDecl.Identifier,
+        StructDeclNode structDecl => structDecl.Identifier,
+        _ => null,
+    };
+
+    public bool IsError => this is ErrorTypeSymbol;
 }
 
 public class StructTypeSymbol : NamedTypeSymbol

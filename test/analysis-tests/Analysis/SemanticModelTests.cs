@@ -48,6 +48,23 @@ public class SemanticModelTests
     }
 
     [Fact]
+    public void LookupSymbol_Field()
+    {
+        var src = """
+            struct Foo { a: Number = 42; }
+            fn foo() { var f = Foo { }; var a = f.a; }
+            """;
+        var tree = Parser.ParseModule(src);
+        var model = SemanticModel.Create(tree);
+
+        var varStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Skip(1).Single();
+        var accessExpr = varStmt.Initializer!.Expr;
+        var fieldSymbol = model.LookupSymbol(accessExpr);
+
+        fieldSymbol.Should().NotBeNull().And.BeAssignableTo<FieldSymbol>();
+    }
+
+    [Fact]
     public void LookupType()
     {
         var src = """
@@ -84,6 +101,22 @@ public class SemanticModelTests
         var letStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Single();
         var initializerSymbol = model.LookupType(letStmt.Initializer!);
         initializerSymbol.Should().Be(BuiltInTypeSystem.Number);
+    }
+
+    [Fact]
+    public void LookupType_Field()
+    {
+        var src = """
+            struct Foo { a: Number = 42; }
+            fn foo() { var f = Foo { }; var a = f.a; }
+            """;
+        var tree = Parser.ParseModule(src);
+        var model = SemanticModel.Create(tree);
+
+        var varStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Skip(1).Single();
+        var accessExpr = varStmt.Initializer!.Expr;
+        var fieldType = model.LookupType(accessExpr);
+        fieldType.Should().NotBeNull().And.Be(BuiltInTypeSystem.Number);
     }
 
     [Fact]

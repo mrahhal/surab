@@ -35,9 +35,18 @@ public static class TestStructs
 
 public sealed class FieldSymbolTestsImpl(string identifier, TypeSymbol type) : FieldSymbol
 {
+    private TypeSymbol _enclosingType = null!;
+
     public override IdentifierToken? Identifier { get; } = new IdentifierToken(TextSpan.Empty, identifier);
 
     public override TypeSymbol Type { get; } = type;
 
+    public override TypeSymbol EnclosingType => _enclosingType;
+
     public override bool IsTypeInferred => false;
+
+    public void SetEnclosingType(TypeSymbol enclosingType)
+    {
+        _enclosingType = enclosingType;
+    }
 }

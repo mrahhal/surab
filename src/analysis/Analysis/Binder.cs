@@ -21,19 +21,7 @@ internal abstract class Binder
     /// </summary>
     public Symbol? LookupIdentifier(IdentifierToken identifier)
     {
-        var current = this;
-        while (current != null)
-        {
-            var result = current.LookupIdentifierHere(identifier);
-            if (result != null)
-            {
-                return result;
-            }
-
-            current = current.Parent;
-        }
-
-        return null;
+        return LookupWalkingUp(b => b.LookupIdentifierHere(identifier));
     }
 
     /// <summary>
@@ -41,10 +29,23 @@ internal abstract class Binder
     /// </summary>
     public TypeSymbol? LookupThis()
     {
+        return LookupWalkingUp(b => b.LookupThisHere());
+    }
+
+    /// <summary>
+    /// Looks up any type decl starting from the given binder's scope and walking up.
+    /// </summary>
+    public TypeSymbol? LookupTypeDecl()
+    {
+        return LookupWalkingUp(b => b.LookupTypeDeclHere());
+    }
+
+    private T? LookupWalkingUp<T>(Func<Binder, T> func)
+    {
         var current = this;
         while (current != null)
         {
-            var result = current.LookupThisHere();
+            var result = func(current);
             if (result != null)
             {
                 return result;
@@ -53,7 +54,7 @@ internal abstract class Binder
             current = current.Parent;
         }
 
-        return null;
+        return default;
     }
 
     // TODO: Seperate this into LookupIdentifierForType and LookupIdentifierForInstance?
@@ -66,6 +67,11 @@ internal abstract class Binder
     /// Looks up `this` in this binder's scope.
     /// </summary>
     public virtual TypeSymbol? LookupThisHere() => null;
+
+    /// <summary>
+    /// Looks up any type decl in this binder's scope.
+    /// </summary>
+    public virtual TypeSymbol? LookupTypeDeclHere() => null;
 
     protected static T? LookupIdentifierIn<T>(ImmutableArray<T> array, IdentifierToken identifier)
         where T : Symbol
@@ -160,12 +166,9 @@ internal class ModuleBinder(ModuleNode module) : Binder
     }
 }
 
-internal class ClassDeclBinder(
-    ClassDeclNode classDecl,
-    NamedTypeSymbol symbol) : Binder
+internal class TypeDeclBinder(NamedTypeSymbol symbol) : Binder
 {
-    private readonly ClassDeclNode _classDecl = classDecl;
-    private readonly NamedTypeSymbol _symbol = symbol;
+    protected readonly NamedTypeSymbol _symbol = symbol;
 
     public override Symbol? LookupIdentifierHere(IdentifierToken identifier)
     {
@@ -176,6 +179,25 @@ internal class ClassDeclBinder(
     {
         return _symbol;
     }
+
+    public override TypeSymbol? LookupTypeDeclHere()
+    {
+        return _symbol;
+    }
+}
+
+internal class StructDeclBinder(
+    StructDeclNode structDecl,
+    StructTypeSymbol symbol) : TypeDeclBinder(symbol)
+{
+    private readonly StructDeclNode _structDecl = structDecl;
+}
+
+internal class ClassDeclBinder(
+    ClassDeclNode classDecl,
+    NamedTypeSymbol symbol) : TypeDeclBinder(symbol)
+{
+    private readonly ClassDeclNode _classDecl = classDecl;
 }
 
 internal class FnBinder(

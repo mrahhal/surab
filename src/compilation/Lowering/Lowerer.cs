@@ -45,7 +45,7 @@ internal class Lowerer
             UnaryExprNode n => Lower(n),
             BinaryExprNode n => Lower(n),
             CallExprNode n => Lower(n),
-            //AccessExprNode n => Lower(n),
+            AccessExprNode n => Lower(n),
             LiteralExprNode n => Lower(n),
             IdentifierExprNode n => Lower(n),
             StructCreationExprNode n => Lower(n),
@@ -240,22 +240,63 @@ internal class Lowerer
 
             return new LoweredStmtList(
                 node,
-                new[]
-                {
+                [
                     stmtResult,
                     finalApply,
-                });
+                ]);
         }
-        else if (symbol is FieldSymbol)
+        else if (symbol is FieldSymbol fieldSymbol)
         {
-            // TODO: Lookup the lowered class in some map. Use that here.
-            throw new NotImplementedException();
+            var accessExpr = (AccessExprNode)node.Lhs; // Is this always valid?
+            //var targetSymbol = _model.LookupSymbol(accessExpr.Target);
+            var loweredTarget = LowerWithCast(accessExpr.Target);
+            //var enclosingType = fieldSymbol.EnclosingType;
+
+            var result = Lower(node.Rhs, rewrite: expr =>
+            {
+                return new LoweredFieldStoreStmt(
+                    node,
+                    loweredTarget,
+                    symbol,
+                    expr);
+            });
+
+            Debug.Assert(result is LoweredStmt);
+            var stmtResult = (LoweredStmt)result;
+
+            if (rewrite == null)
+            {
+                return stmtResult;
+            }
+
+            var finalApply = rewrite(new LoweredFieldLoadExpr(
+                node,
+                loweredTarget,
+                symbol));
+
+            return new LoweredStmtList(
+                node,
+                [
+                    stmtResult,
+                    finalApply,
+                ]);
         }
         else
         {
             // ?
             throw new NotImplementedException();
         }
+    }
+
+    private LoweredExpr Lower(AccessExprNode node)
+    {
+        // Should only be here if we're loading a field?
+        var symbol = _model.LookupSymbol(node)!;
+        var loweredTarget = LowerWithCast(node.Target);
+        return new LoweredFieldLoadExpr(
+            node,
+            loweredTarget,
+            symbol);
     }
 
     private LoweredNode Lower(UnaryExprNode node)
@@ -284,10 +325,6 @@ internal class Lowerer
             LowerWithCast(node.Args.Args.Select(arg => arg.Expr)));
     }
 
-    //private LoweredExpr Lower(AccessExprNode node)
-    //{
-    //}
-
     private static LoweredNode Lower(LiteralExprNode node)
     {
         return new LoweredLiteralExpr(
@@ -297,7 +334,7 @@ internal class Lowerer
 
     private LoweredNode Lower(IdentifierExprNode node)
     {
-        // Should only be here if we're accessing a variable?
+        // Should only be here if we're loading a variable?
         var symbol = _model.LookupSymbol(node)!;
         return new LoweredVariableLoadExpr(
             node,

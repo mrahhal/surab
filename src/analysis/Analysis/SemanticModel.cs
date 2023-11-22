@@ -106,6 +106,7 @@ public class SemanticModel
             TypeNode n => LookupSymbol(n.Identifier, n),
             ArgNode n => LookupSymbol(n.Expr),
             //CallExprNode n => LookupSymbol(n.Callee),
+            AccessExprNode n => LookupSymbol(n),
             StructCreationExprNode n => LookupSymbol(n.Identifier, n),
 
             _ => null,
@@ -123,6 +124,20 @@ public class SemanticModel
     {
         var binder = GetEnclosingBinder(node);
         return binder?.LookupIdentifier(identifier) ?? LookupBuiltIn(identifier);
+    }
+
+    private Symbol? LookupSymbol(AccessExprNode node)
+    {
+        // Lookup the field/etc symbol in the access expr.
+
+        var targetSymbol = LookupSymbol(node.Target); // TODO: Remove this?
+        Debug.Assert(targetSymbol != null);
+
+        // This might need an update if we have access exprs for other than types later.
+        var targetType = LookupType(node.Target);
+        Debug.Assert(targetType != null);
+
+        return targetType.Context.LookupIdentifierHere(node.Identifier);
     }
 
     internal static TypeSymbol? LookupBuiltIn(IdentifierToken identifier)
@@ -178,6 +193,7 @@ public class SemanticModel
             LiteralExprNode n => LookupType(n),
             IdentifierExprNode n => LookupType(n),
             ThisExprNode n => LookupType(n),
+            StructCreationExprNode n => LookupType(n),
 
             _ => null,
         };
@@ -218,22 +234,17 @@ public class SemanticModel
         var targetSymbol = LookupSymbol(node.Target);
         return targetSymbol switch
         {
-            NamedTypeSymbol s => GetMemberTypeSymbol(s),
-
+            TypeSymbol s => GetMemberTypeSymbol(s), // Static access
+            ISymbolHasType s => GetMemberTypeSymbol(s.Type), // Instance access
             _ => null,
         };
 
-        TypeSymbol? GetMemberTypeSymbol(NamedTypeSymbol namedTypeSymbol)
+        TypeSymbol? GetMemberTypeSymbol(TypeSymbol typeSymbol)
         {
-            // TODO: Make comparing identifiers better.
-            var member = namedTypeSymbol.Members.FirstOrDefault(m => m.Name == node.Identifier.Value);
-            if (member == null) return null;
+            var member = typeSymbol.Context.LookupIdentifierHere(node.Identifier);
             return member switch
             {
-                // TODO: Make this Type optionally accessible from the Symbol type itself?
-                ConstSymbol s => s.Type,
-                FieldSymbol s => s.Type,
-
+                ISymbolHasType s => s.Type,
                 _ => null,
             };
         }
@@ -252,27 +263,33 @@ public class SemanticModel
         };
     }
 
-    private TypeSymbol? LookupType(IdentifierExprNode node)
+    private TypeSymbol? LookupType(SyntaxNode node, IdentifierToken identifier)
     {
         var binder = GetEnclosingBinder(node);
-        var symbol = binder?.LookupIdentifier(node.Identifier);
+        var symbol = binder?.LookupIdentifier(identifier);
 
         return symbol switch
         {
             TypeSymbol s => s,
-            ConstSymbol s => s.Type,
-            FieldSymbol s => s.Type,
-            ParamSymbol s => s.Type,
-            LocalSymbol s => s.Type,
-
+            ISymbolHasType s => s.Type,
             _ => null,
         };
+    }
+
+    private TypeSymbol? LookupType(IdentifierExprNode node)
+    {
+        return LookupType(node, node.Identifier);
     }
 
     private TypeSymbol? LookupType(ThisExprNode node)
     {
         var binder = GetEnclosingBinder(node);
         return binder?.LookupThis();
+    }
+
+    private TypeSymbol? LookupType(StructCreationExprNode node)
+    {
+        return LookupType(node, node.Identifier);
     }
 
     public TypeSymbol? InferTypeOfDeclaringNode(SyntaxNode node)
@@ -380,6 +397,7 @@ public class SemanticModel
             return node switch
             {
                 ModuleNode n => new ModuleBinder(n),
+                StructDeclNode n => new StructDeclBinder(n, (StructTypeSymbol)symbol!),
                 ClassDeclNode n => new ClassDeclBinder(n, (NamedTypeSymbol)symbol!),
                 FnDeclNode n => new FnBinder(n.Sig, (FnSymbol)symbol!),
                 MethodDeclNode n => new FnBinder(n.Sig, (FnSymbol)symbol!),
