@@ -1,6 +1,6 @@
 ﻿namespace Surab;
 
-public class SmokeTest
+public class SmokeTests
 {
     [Fact]
     public void Succeed()

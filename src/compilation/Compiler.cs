@@ -408,6 +408,7 @@ internal sealed class FnCompiler : LoweredVisitor
 
         var ptr = LLVM.Builder.BuildAlloca(llvmType.Type);
 
+        var fieldsSet = new HashSet<FieldSymbol>();
         foreach (var item in node.MapInitializer.Items)
         {
             // Assumed to be only an identifier to a field for now.
@@ -420,7 +421,11 @@ internal sealed class FnCompiler : LoweredVisitor
             // Duplicated a bit from VisitFieldStoreExpr?
             var ptrToField = LLVM.Builder.BuildStructGEP2(llvmType.Type, ptr, (uint)fieldSection.SectionIndex);
             LLVM.Builder.BuildStore(rhs, ptrToField);
+
+            fieldsSet.Add(field);
         }
+
+        // TODO: Set fields with default values.
 
         _stack.Push(LLVMUnit.Wrapped(llvmType.Type, ptr));
     }
