@@ -268,7 +268,8 @@ internal sealed class FnCompiler : LoweredVisitor
         // TODO: node.Callee is not always an IdentifierExprNode.
         // After desugaring this will always be the identifier (or what's equivalent)?
 
-        VisitList(node.Args);
+        // Process in reverse args order because values are pushed to a LIFO stack.
+        VisitList(node.Args.Reverse());
 
         var fnSymbol = node.Callee;
 
