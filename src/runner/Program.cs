@@ -3,7 +3,7 @@ using Surab.Analysis;
 using Surab.Compilation;
 
 var src = """
-    struct Foo {
+    struct S1 {
         a: Number;
         b = false;
     }
@@ -14,7 +14,7 @@ var src = """
 
     fn noop() { }
 
-    fn foo(x: Number, y: Number): Number {
+    fn f(x: Number, y: Number): Number {
         var e = x + y;
         return e + 1;
         //return x + y;
@@ -24,14 +24,14 @@ var src = """
         var a = 2;
         noop();
         var b: Number = 4;
-        var c = foo(a, b);
+        var c = f(a, b);
         c = 999.2;
         print(c);
         print(41 + 1);
 
-        var foo = Foo { a = 42, b = true };
-        print(foo.a);
-        print(foo.b);
+        var s1 = S1 { a = 42, b = true };
+        print(s1.a);
+        print(s1.b);
     }
     """;
 var tree = Parser.ParseModule(src);

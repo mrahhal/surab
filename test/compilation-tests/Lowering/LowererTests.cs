@@ -8,7 +8,7 @@ public class LowererTests
     public void BareExprStmtToReturnStmt()
     {
         var src = """
-            fn foo(): Number {
+            fn f(): Number {
                 2
             }
             """;
@@ -23,7 +23,7 @@ public class LowererTests
     public void EmptyFn()
     {
         var src = """
-            fn foo() { }
+            fn f() { }
             """;
         var f = LowerFn(src);
         var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body!).ToList();
@@ -34,7 +34,7 @@ public class LowererTests
     public void ExprRewriting_1()
     {
         var src = """
-            fn foo() {
+            fn f() {
                 var a = 2;
             }
             """;
@@ -51,7 +51,7 @@ public class LowererTests
     public void ExprRewriting_2()
     {
         var src = """
-            fn foo() {
+            fn f() {
                 var b: Number;
                 var a = b = 2;
             }
@@ -73,7 +73,7 @@ public class LowererTests
     public void ExprRewriting_3()
     {
         var src = """
-            fn foo() {
+            fn f() {
                 var a = { 2 };
             }
             """;
@@ -90,7 +90,7 @@ public class LowererTests
     public void ExprRewriting_4()
     {
         var src = """
-            fn foo() {
+            fn f() {
                 var a = { var b = 2 + 1; b };
             }
             """;
@@ -111,7 +111,7 @@ public class LowererTests
     public void ExprRewriting_5()
     {
         var src = """
-            fn foo() {
+            fn f() {
                 var a: Number;
                 a = 2;
             }
@@ -129,7 +129,7 @@ public class LowererTests
     public void LastStandaloneBlocks()
     {
         var src = """
-            fn foo() {
+            fn f() {
                 { }
             }
             """;
@@ -142,16 +142,16 @@ public class LowererTests
     public void StructCreationExpr()
     {
         var src = """
-            struct Foo { a: Number; }
-            fn foo() {
-                var foo = Foo { a = 42 };
+            struct S1 { a: Number; }
+            fn f() {
+                var s = S1 { a = 42 };
             }
             """;
         var module = LowerModule(src);
         var body = LoweringUtils.EnumerateUnwrappedDescendants(module.Decls[1]).ToList();
         body.Should().HaveCount(2);
         var store = body.OfType<LoweredVariableStoreStmt>().Single();
-        store.Variable.Name.Should().Be("foo");
+        store.Variable.Name.Should().Be("s");
         store.Expr.Should().BeOfType<LoweredStructCreationExpr>();
     }
 
@@ -159,10 +159,10 @@ public class LowererTests
     public void StructFieldLoad()
     {
         var src = """
-            struct Foo { a: Number; }
-            fn foo() {
-                var foo = Foo { a = 42 };
-                var a = foo.a;
+            struct S1 { a: Number; }
+            fn f() {
+                var s = S1 { a = 42 };
+                var a = s.a;
             }
             """;
         var module = LowerModule(src);
@@ -177,10 +177,10 @@ public class LowererTests
     public void StructFieldStore()
     {
         var src = """
-            struct Foo { a: Number; }
-            fn foo() {
-                var foo = Foo { a = 42 };
-                foo.a = 43;
+            struct S1 { a: Number; }
+            fn f() {
+                var s = S1 { a = 42 };
+                s.a = 43;
             }
             """;
         var module = LowerModule(src);

@@ -51,8 +51,8 @@ public class SemanticModelTests
     public void LookupSymbol_Field()
     {
         var src = """
-            struct Foo { a: Number = 42; }
-            fn foo() { var f = Foo { }; var a = f.a; }
+            struct S1 { a: Number = 42; }
+            fn f() { var s = S1 { }; var a = s.a; }
             """;
         var tree = Parser.ParseModule(src);
         var model = SemanticModel.Create(tree);
@@ -107,8 +107,8 @@ public class SemanticModelTests
     public void LookupType_Field()
     {
         var src = """
-            struct Foo { a: Number = 42; }
-            fn foo() { var f = Foo { }; var a = f.a; }
+            struct S1 { a: Number = 42; }
+            fn f() { var s = S1 { }; var a = s.a; }
             """;
         var tree = Parser.ParseModule(src);
         var model = SemanticModel.Create(tree);
@@ -176,7 +176,7 @@ public class SemanticModelTests
     public void Symbol_InferType_Field()
     {
         var src = """
-            struct Foo {
+            struct S1 {
                 a = true;
             }
             """;

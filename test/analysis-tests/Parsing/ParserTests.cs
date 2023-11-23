@@ -22,7 +22,7 @@ public class ParserTests
     [Fact]
     public void Decl_Fn()
     {
-        var src = "fn foo() {}";
+        var src = "fn f() {}";
         var node = ParseDecl(src).Should().BeOfType<FnDeclNode>().Subject;
         node.PublicToken.Should().BeNull();
         node.Body.Should().NotBeNull();
@@ -32,7 +32,7 @@ public class ParserTests
     [Fact]
     public void Decl_Fn2()
     {
-        var src = "public fn foo(number: Number): Number { 2 }";
+        var src = "public fn f(number: Number): Number { 2 }";
         var node = ParseDecl(src).Should().BeOfType<FnDeclNode>().Subject;
         node.PublicToken.Should().NotBeNull();
         node.Body.Should().NotBeNull();
@@ -42,7 +42,7 @@ public class ParserTests
     [Fact]
     public void Decl_ExternFn()
     {
-        var src = "extern fn foo(number: Number);";
+        var src = "extern fn f(number: Number);";
         var node = ParseDecl(src).Should().BeOfType<FnDeclNode>().Subject;
         node.Body.Should().BeNull();
         node.SemicolonToken.Should().NotBeNull();
@@ -51,7 +51,7 @@ public class ParserTests
     [Fact]
     public void Decl_Struct()
     {
-        var src = "struct Foo { a: Number = 2; foo() {} }";
+        var src = "struct S1 { a: Number = 2; f() {} }";
         var node = ParseDecl(src).Should().BeOfType<StructDeclNode>().Subject;
         node.PublicToken.Should().BeNull();
         node.ExternToken.Should().BeNull();
@@ -63,7 +63,7 @@ public class ParserTests
     [Fact]
     public void Decl_Struct2()
     {
-        var src = "struct Foo { a: Number; foo() {} }";
+        var src = "struct S1 { a: Number; f() {} }";
         var node = ParseDecl(src).Should().BeOfType<StructDeclNode>().Subject;
         node.PublicToken.Should().BeNull();
         node.ExternToken.Should().BeNull();
@@ -73,7 +73,7 @@ public class ParserTests
     [Fact]
     public void Decl_ExternStruct()
     {
-        var src = "extern struct Foo { a = 2; foo() {} }";
+        var src = "extern struct S1 { a = 2; f() {} }";
         var node = ParseDecl(src).Should().BeOfType<StructDeclNode>().Subject;
         node.PublicToken.Should().BeNull();
         node.ExternToken.Should().NotBeNull();
@@ -83,7 +83,7 @@ public class ParserTests
     [Fact]
     public void Decl_Class()
     {
-        var src = "class Foo { a = 2; foo() {} }";
+        var src = "class S1 { a = 2; f() {} }";
         var node = ParseDecl(src).Should().BeOfType<ClassDeclNode>().Subject;
         node.PublicToken.Should().BeNull();
         node.Members.Should().HaveCount(2);
@@ -416,7 +416,7 @@ public class ParserTests
     public void BlockAsStmt_2()
     {
         var src = """
-            fn foo(): Number {
+            fn f(): Number {
                 { 1 }
                 { 2; }
             }
