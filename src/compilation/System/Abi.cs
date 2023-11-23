@@ -28,7 +28,8 @@ internal static class Abi
             return type.GetTag() switch
             {
                 TypeTag.Bool or
-                TypeTag.Char
+                TypeTag.Char or
+                TypeTag.Struct
                 => size.Bytes switch
                 {
                     1 or 2 or 4 or 8 => Classification.Integer,
