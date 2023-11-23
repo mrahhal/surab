@@ -12,6 +12,8 @@ var src = """
         a: Number;
     }
 
+    extern fn print_from_rust(s2: S2);
+
     fn print(v: Number) {
         // Compiler intrinsic
     }
@@ -54,6 +56,8 @@ var src = """
         var s2 = S2 { a = 42 };
 
         fs(s1, s2);
+
+        print_from_rust(s2);
     }
     """;
 var tree = Parser.ParseModule(src);
