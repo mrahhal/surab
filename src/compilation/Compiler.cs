@@ -376,7 +376,10 @@ internal sealed class FnCompiler : LoweredVisitor
         Visit(node.Target);
         var (targetType, targetPtr) = _stack.Pop();
 
-        var ptrToField = LLVM.Builder.BuildStructGEP2(targetType, targetPtr, 0);
+        var structLayout = Target.GetStructLayout((StructTypeSymbol)node.Field.Parent!);
+        var fieldSection = structLayout.Sections.First(s => s.FieldIndex == node.Field.FieldIndex);
+
+        var ptrToField = LLVM.Builder.BuildStructGEP2(targetType, targetPtr, (uint)fieldSection.SectionIndex);
         var fieldLLVMType = Target.LowerType(node.Field.Type);
         // We don't load it, for the same reason outlined in VisitVariableLoadExpr.
         _stack.Push(LLVMUnit.Wrapped(fieldLLVMType, ptrToField));

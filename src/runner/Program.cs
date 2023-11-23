@@ -5,7 +5,7 @@ using Surab.Compilation;
 var src = """
     struct S1 {
         a: Number;
-        b: Bool = false;
+        b: Bool;
     }
 
     fn print(v: Number) {
