@@ -8,6 +8,10 @@ var src = """
         b: Bool;
     }
 
+    struct S2 {
+        a: Number;
+    }
+
     fn print(v: Number) {
         // Compiler intrinsic
     }
@@ -22,6 +26,11 @@ var src = """
         var e = x + y;
         return e + 1;
         //return x + y;
+    }
+
+    fn fs(s1: S1, s2: S2) {
+        print(s1.a);
+        print(s2.a);
     }
 
     fn main() {
@@ -41,6 +50,10 @@ var src = """
         s1.a = 83;
         print(s1.a);
         printb(s1.b);
+
+        var s2 = S2 { a = 42 };
+
+        fs(s1, s2);
     }
     """;
 var tree = Parser.ParseModule(src);

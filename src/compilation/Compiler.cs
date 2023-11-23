@@ -539,25 +539,28 @@ internal sealed class FnCompiler : LoweredVisitor
         {
             // TODO: if (isExtern) ?
 
-            // This is for attributes.
             var lowering = GetLLVMLowering(param.Type);
+            var llvmType = Target.LowerType(param.Type);
             switch (lowering.Kind)
             {
                 case LLVMTypeLoweringKind.ByValue:
                     {
+                        @params.Add(llvmType);
                     }
                     break;
                 case LLVMTypeLoweringKind.ByMutRef:
                     {
+                        @params.Add(LLVMTypeRef.CreatePointer(llvmType, 0));
                     }
                     break;
                 case LLVMTypeLoweringKind.AbiInt:
                     {
+                        var layout = Target.GetLayout(param.Type);
+                        var llvmIntType = LLVMTypeRef.CreateInt((uint)layout.Size.Bits);
+                        @params.Add(llvmIntType);
                     }
                     break;
             }
-
-            @params.Add(Target.LowerType(param.Type));
 
             llvmIndex++;
         }
