@@ -61,7 +61,9 @@ internal abstract class Binder
     /// <summary>
     /// Looks up an identifier in this binder's scope.
     /// </summary>
-    public virtual Symbol? LookupIdentifierHere(IdentifierToken identifier) => null;
+    public virtual Symbol? LookupIdentifierHere(string identifier) => null;
+
+    public Symbol? LookupIdentifierHere(IdentifierToken identifier) => LookupIdentifierHere(identifier.Value);
 
     /// <summary>
     /// Looks up `this` in this binder's scope.
@@ -73,14 +75,14 @@ internal abstract class Binder
     /// </summary>
     public virtual TypeSymbol? LookupTypeDeclHere() => null;
 
-    protected static T? LookupIdentifierIn<T>(ImmutableArray<T> array, IdentifierToken identifier)
+    protected static T? LookupIdentifierIn<T>(ImmutableArray<T> array, string identifier)
         where T : Symbol
     {
         // Move from bottom to top trying to match the identifier.
         for (var i = array.Length - 1; i >= 0; i--)
         {
             var item = array[i];
-            if (item.Identifier != null && item.Identifier.Value == identifier.Value)
+            if (item.Identifier != null && item.Identifier.Value == identifier)
             {
                 return item;
             }
@@ -147,7 +149,7 @@ internal class ModuleBinder(ModuleNode module) : Binder
         }
     }
 
-    public override Symbol? LookupIdentifierHere(IdentifierToken identifier)
+    public override Symbol? LookupIdentifierHere(string identifier)
     {
         return LookupIdentifierIn(Decls, identifier);
     }
@@ -170,7 +172,7 @@ internal class TypeDeclBinder(NamedTypeSymbol symbol) : Binder
 {
     protected readonly NamedTypeSymbol _symbol = symbol;
 
-    public override Symbol? LookupIdentifierHere(IdentifierToken identifier)
+    public override Symbol? LookupIdentifierHere(string identifier)
     {
         return LookupIdentifierIn(_symbol.Members, identifier);
     }
@@ -207,7 +209,7 @@ internal class FnBinder(
     private readonly FnSigNode _fnSig = fnSig;
     private readonly FnSymbol _fnSymbol = fnSymbol;
 
-    public override Symbol? LookupIdentifierHere(IdentifierToken identifier)
+    public override Symbol? LookupIdentifierHere(string identifier)
     {
         return LookupIdentifierIn(_fnSymbol.Params, identifier);
     }
@@ -232,17 +234,9 @@ internal class BlockExprBinder(BlockExprNode block) : Binder, IBinderHasLocals
         }
     }
 
-    public override Symbol? LookupIdentifierHere(IdentifierToken identifier)
+    public override Symbol? LookupIdentifierHere(string identifier)
     {
-        for (var i = Locals.Length - 1; i >= 0; i--)
-        {
-            var local = Locals[i];
-            if (local.Identifier != null && local.Identifier.Value == identifier.Value)
-            {
-                return local;
-            }
-        }
-        return null;
+        return LookupIdentifierIn(Locals, identifier);
     }
 
     private ImmutableArray<LocalSymbol> BuildLocals()

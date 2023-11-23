@@ -34,7 +34,6 @@ internal class Lowerer
             FnDeclNode n => Lower(n),
             StructDeclNode n => Lower(n),
             //ClassDeclNode n => Lower(n),
-            //FieldDeclNode n => Lower(n),
             //MethodDeclNode n => Lower(n),
             VarStmtNode n => Lower(n),
             ReturnStmtNode n => Lower(n),
@@ -356,7 +355,10 @@ internal class Lowerer
 
         foreach (var expr in node.WellFormedExprs)
         {
-            items.Add(new(LowerWithCast(expr.Lhs), LowerWithCast(expr.Rhs)));
+            var identifierNode = (IdentifierExprNode)expr.Lhs;
+            // Later, this will have to handle other cases than just a simple identifier signifying a field.
+
+            items.Add(new(identifierNode.Identifier.Value, LowerWithCast(expr.Rhs)));
         }
 
         return new LoweredMapInitializer(

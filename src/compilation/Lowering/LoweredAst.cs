@@ -337,15 +337,14 @@ internal sealed class LoweredMapInitializer(
     {
         foreach(var item in Items)
         {
-            yield return item.Left;
             yield return item.Right;
         }
     }
 }
 
-internal sealed class LoweredMapInitializerItem(LoweredExpr left, LoweredExpr right)
+internal sealed class LoweredMapInitializerItem(string left, LoweredExpr right)
 {
-    public LoweredExpr Left { get; } = left;
+    public string Left { get; } = left; // Later, this won't be enough.
 
     public LoweredExpr Right { get; } = right;
 }

@@ -299,6 +299,11 @@ public abstract class TypeSymbol : Symbol
         return builder.ToImmutable();
     }
 
+    public Symbol? GetMember(string name)
+    {
+        return Context.LookupIdentifierHere(name);
+    }
+
     protected abstract IEnumerable<SyntaxNode> EnumerateMembers();
 }
 

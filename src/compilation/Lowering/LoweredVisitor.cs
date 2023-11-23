@@ -1,4 +1,7 @@
-﻿namespace Surab.Compilation;
+﻿
+using System.Xml.Linq;
+
+namespace Surab.Compilation;
 
 /// <summary>
 /// A lowered tree visitor.
@@ -27,13 +30,14 @@ internal abstract partial class LoweredVisitor
             case LoweredExprStmt n: VisitExprStmt(n); break;
             case LoweredStmtList n: VisitStmtList(n); break;
             case LoweredVariableLoadExpr n: VisitVariableLoadExpr(n); break;
-            //case LoweredFieldLoadExpr n: VisitFieldLoadExpr(n); break;
             case LoweredVariableStoreStmt n: VisitVariableStoreExpr(n); break;
-            //case LoweredFieldStoreStmt n: VisitFieldStoreExpr(n); break;
+            case LoweredFieldLoadExpr n: VisitFieldLoadExpr(n); break;
+            case LoweredFieldStoreStmt n: VisitFieldStoreExpr(n); break;
             case LoweredUnaryExpr n: VisitUnaryExpr(n); break;
             case LoweredBinaryExpr n: VisitBinaryExpr(n); break;
             case LoweredCallExpr n: VisitCallExpr(n); break;
             case LoweredLiteralExpr n: VisitLiteralExpr(n); break;
+            case LoweredStructCreationExpr n: VisitStructCreationExpr(n); break;
 
             default:
                 break;
@@ -80,20 +84,20 @@ internal abstract partial class LoweredVisitor
         Walk(node);
     }
 
-    //public virtual void VisitFieldLoadExpr(LoweredFieldLoadExpr node)
-    //{
-    //    Walk(node);
-    //}
-
     public virtual void VisitVariableStoreExpr(LoweredVariableStoreStmt node)
     {
         Walk(node);
     }
 
-    //public virtual void VisitFieldStoreExpr(LoweredFieldStoreStmt node)
-    //{
-    //    Walk(node);
-    //}
+    public virtual void VisitFieldLoadExpr(LoweredFieldLoadExpr node)
+    {
+        Walk(node);
+    }
+
+    public virtual void VisitFieldStoreExpr(LoweredFieldStoreStmt node)
+    {
+        Walk(node);
+    }
 
     public virtual void VisitUnaryExpr(LoweredUnaryExpr node)
     {
@@ -111,6 +115,11 @@ internal abstract partial class LoweredVisitor
     }
 
     public virtual void VisitLiteralExpr(LoweredLiteralExpr node)
+    {
+        Walk(node);
+    }
+
+    public virtual void VisitStructCreationExpr(LoweredStructCreationExpr node)
     {
         Walk(node);
     }

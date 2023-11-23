@@ -5,7 +5,7 @@ using Surab.Compilation;
 var src = """
     struct S1 {
         a: Number;
-        b = false;
+        //b = false;
     }
 
     fn print(v: Number) {
@@ -29,9 +29,11 @@ var src = """
         print(c);
         print(41 + 1);
 
-        var s1 = S1 { a = 42, b = true };
+        var s1 = S1 { a = 82, }; // b = true
         print(s1.a);
-        print(s1.b);
+        s1.a = 83;
+        print(s1.a);
+        //print(s1.b);
     }
     """;
 var tree = Parser.ParseModule(src);

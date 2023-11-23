@@ -83,7 +83,7 @@ internal sealed class FnCompiler : LoweredVisitor
 {
     private readonly CompilationContext _context;
     private readonly LoweredFnDecl _fnDecl;
-    private readonly LLVMFnUnit _llvmFn;
+    private readonly LLVMFn _llvmFn;
 
     private readonly Stack<LLVMUnit> _stack = new();
     private bool _returnSeen = false;
@@ -131,15 +131,6 @@ internal sealed class FnCompiler : LoweredVisitor
                 Visit(_fnDecl.Body);
             }
 
-            //if (_fnType.ReturnType.Kind != LLVMTypeKind.LLVMVoidTypeKind)
-            //{
-            //    var (_, value) = _stack.Pop();
-            //    LLVM.Builder.BuildRet(value);
-            //}
-            //else
-            //{
-            //    LLVM.Builder.BuildRetVoid();
-            //}
             if (!_returnSeen)
             {
                 LLVM.Builder.BuildRetVoid();
@@ -163,7 +154,6 @@ internal sealed class FnCompiler : LoweredVisitor
         {
             var paramValue = _llvmFn.Value.GetParam((uint)llvmParamOffset);
 
-            // TODO: From updateFunc.
             var lowering = GetLLVMLowering(param.Type);
             switch (lowering.Kind)
             {
@@ -245,7 +235,7 @@ internal sealed class FnCompiler : LoweredVisitor
         else
         {
             Visit(node.Expr);
-            var (_, value) = _stack.Pop();
+            var (_, value) = _stack.Pop().Unwrap(LLVM);
             LLVM.Builder.BuildRet(value);
         }
     }
@@ -280,7 +270,7 @@ internal sealed class FnCompiler : LoweredVisitor
 
         while (llvmIndex < llvmArgCount)
         {
-            var (_, argValue) = _stack.Pop();
+            var unit = _stack.Pop();
 
             var param = fnSymbol.Params[argOffset];
             var lowering = GetLLVMLowering(param.Type);
@@ -288,26 +278,25 @@ internal sealed class FnCompiler : LoweredVisitor
             {
                 case LLVMTypeLoweringKind.ByValue:
                     {
+                        var (_, argValue) = unit.Unwrap(LLVM);
                         args.Add(argValue);
                     }
                     break;
                 case LLVMTypeLoweringKind.ByMutRef:
                     {
                         var llvmType = Target.LowerType(param.Type);
-                        var ptr = LLVM.Builder.BuildAlloca(llvmType, string.Empty);
-                        LLVM.Builder.BuildStore(argValue, ptr);
-                        args.Add(ptr);
+                        var (_, argValuePtr) = unit;
+                        // TODO: This might be wrong. This is giving the same ptr to the fn (should be in ByRef), we might want to give a copy here in ByMutRef?
+                        args.Add(argValuePtr);
                     }
                     break;
                 case LLVMTypeLoweringKind.AbiInt:
                     {
+                        var (_, argValuePtr) = unit;
                         var layout = Target.GetLayout(param.Type);
                         var llvmIntType = LLVMTypeRef.CreateInt((uint)layout.Size.Bits);
-                        var alignment = Math.Max(layout.Alignment.Bytes, (int)LLVM.TargetData.ABIAlignmentOfType(llvmIntType)).AsBytes();
-                        var ptr = LLVM.Builder.BuildAlloca(llvmIntType, string.Empty);
-                        ptr.SetAlignment((uint)alignment.Bytes);
-                        LLVM.Builder.BuildStore(argValue, ptr);
-                        var loaded = LLVM.Builder.BuildLoad2(llvmIntType, ptr);
+                        var loaded = LLVM.Builder.BuildLoad2(llvmIntType, argValuePtr);
+                        loaded.SetAlignment((uint)layout.Alignment.Bytes);
                         args.Add(loaded);
                     }
                     break;
@@ -321,16 +310,16 @@ internal sealed class FnCompiler : LoweredVisitor
         attrs.Apply((index, attr) => fnValue.AddCallSiteAttributeAtIndex(index, attr));
 
         // Always push a value, even if void, since this gets popped in VisitExprStmt.
-        _stack.Push((fnType.ReturnType, returnValue));
+        _stack.Push(LLVMUnit.UnWrapped(fnType.ReturnType, returnValue));
     }
 
     public override void VisitBinaryExpr(LoweredBinaryExpr node)
     {
         Visit(node.Left);
-        var (_, leftValue) = _stack.Pop();
+        var (_, leftValue) = _stack.Pop().Unwrap(LLVM);
 
         Visit(node.Right);
-        var (_, rightValue) = _stack.Pop();
+        var (_, rightValue) = _stack.Pop().Unwrap(LLVM);
 
         var value = node.Op switch
         {
@@ -340,27 +329,68 @@ internal sealed class FnCompiler : LoweredVisitor
             _ => throw new NotImplementedException(),
         };
 
-        _stack.Push((LLVMTypeRef.Double, value));
+        _stack.Push(LLVMUnit.UnWrapped(LLVMTypeRef.Double, value));
     }
 
     public override void VisitVariableLoadExpr(LoweredVariableLoadExpr node)
     {
-        // Isn't this only working right now because all of our variables are always pass by value?
-        // If they're pass by ref, isn't there a case where we want to just pass the ptr itself without loading it?
-        // But even in that case, if it's a ptr, won't it have an alloca pointing to the ptr just the same?
-
-        var (type, value) = Get(node.Variable);
-        value = LLVM.Builder.BuildLoad2(type, value);
-        _stack.Push((type, value));
+        // Units tied to a variable are always wrapped.
+        var unit = Get(node.Variable);
+        // We don't load it, but give that option to the consumer of this unit.
+        // Some consumers will want to simply load it and deal with the value, but others will need access to the ptr.
+        _stack.Push(unit);
     }
 
     public override void VisitVariableStoreExpr(LoweredVariableStoreStmt node)
     {
         var (_, value) = Get(node.Variable);
         Visit(node.Expr);
-        var (_, rhs) = _stack.Pop();
+        var (_, rhs) = _stack.Pop().Unwrap(LLVM);
 
         LLVM.Builder.BuildStore(rhs, value);
+    }
+
+    public override void VisitFieldLoadExpr(LoweredFieldLoadExpr node)
+    {
+        Visit(node.Target);
+        var (targetType, targetPtr) = _stack.Pop();
+
+        var ptrToField = LLVM.Builder.BuildStructGEP2(targetType, targetPtr, 0);
+        // We don't load it, for the same reason outlined in VisitVariableLoadExpr.
+        _stack.Push(LLVMUnit.Wrapped(LLVMTypeRef.Double, ptrToField));
+    }
+
+    public override void VisitFieldStoreExpr(LoweredFieldStoreStmt node)
+    {
+        Visit(node.Target);
+        var (targetType, targetPtr) = _stack.Pop();
+
+        Visit(node.Expr);
+        var (_, rhs) = _stack.Pop().Unwrap(LLVM);
+
+        var ptrToField = LLVM.Builder.BuildStructGEP2(targetType, targetPtr, 0);
+        LLVM.Builder.BuildStore(rhs, ptrToField);
+    }
+
+    public override void VisitStructCreationExpr(LoweredStructCreationExpr node)
+    {
+        var llvmTypeUnit = _context.GetOrCreateType(node.Symbol);
+
+        var ptr = LLVM.Builder.BuildAlloca(llvmTypeUnit.Type);
+
+        foreach (var item in node.MapInitializer.Items)
+        {
+            // Assumed to be only an identifier to a field for now.
+            var field = (FieldSymbol)node.Symbol.GetMember(item.Left)!;
+            Visit(item.Right);
+            var (_, rhs) = _stack.Pop().Unwrap(LLVM);
+
+            // Duplicated a bit from VisitFieldStoreExpr?
+            var ptrToField = LLVM.Builder.BuildStructGEP2(llvmTypeUnit.Type, ptr, 0);
+            LLVM.Builder.BuildStore(rhs, ptrToField);
+        }
+
+        _stack.Push(LLVMUnit.Wrapped(llvmTypeUnit.Type, ptr));
     }
 
     public override void VisitLiteralExpr(LoweredLiteralExpr node)
@@ -373,7 +403,7 @@ internal sealed class FnCompiler : LoweredVisitor
                     Debug.Assert(node.Literal.TryGetNumberValue(out var v));
                     var llvmType = LLVMTypeRef.Double;
                     var llvmValue = LLVMValueRef.CreateConstReal(llvmType, v);
-                    _stack.Push((llvmType, llvmValue));
+                    _stack.Push(LLVMUnit.UnWrapped(llvmType, llvmValue));
                 }
                 break;
 
@@ -383,20 +413,20 @@ internal sealed class FnCompiler : LoweredVisitor
         }
     }
 
-    private LLVMFnUnit GetOrCreateFn(FnSymbol symbol)
+    private LLVMFn GetOrCreateFn(FnSymbol symbol)
     {
-        if (_context.SymbolToValue.TryGetValue(symbol, out var unit))
+        if (_context.FnSymbolToLLVMFn.TryGetValue(symbol, out var llvmFn))
         {
-            return (LLVMFnUnit)unit;
+            return llvmFn;
         }
-        var llvmFn = CreateFn(symbol);
-        _context.SymbolToValue[symbol] = llvmFn;
+        llvmFn = CreateFn(symbol);
+        _context.FnSymbolToLLVMFn[symbol] = llvmFn;
         return llvmFn;
     }
 
     private LLVMUnit Get(Symbol symbol)
     {
-        if (_context.SymbolToValue.TryGetValue(symbol, out var unit))
+        if (_context.SymbolToLLVMUnit.TryGetValue(symbol, out var unit))
         {
             return unit;
         }
@@ -414,15 +444,15 @@ internal sealed class FnCompiler : LoweredVisitor
             var ptr = LLVM.Builder.BuildAlloca(llvmType, paramSymbol.Identifier?.Value ?? string.Empty);
             ptr.SetAlignment((uint)alignment.Bytes);
             LLVM.Builder.BuildStore(paramValue, ptr);
-            unit = new(llvmType, ptr);
+            unit = LLVMUnit.Wrapped(llvmType, ptr);
         }
         else
         {
             Debug.Assert(paramValue.TypeOf.Kind == LLVMTypeKind.LLVMPointerTypeKind, "Param value should already be a ptr.");
-            unit = new(llvmType, paramValue);
+            unit = LLVMUnit.Wrapped(llvmType, paramValue);
         }
 
-        _context.SymbolToValue[paramSymbol] = unit;
+        _context.SymbolToLLVMUnit[paramSymbol] = unit;
         return unit;
     }
 
@@ -431,13 +461,13 @@ internal sealed class FnCompiler : LoweredVisitor
         var typeRef = Target.LowerType(localSymbol.Type);
 
         var ptr = LLVM.Builder.BuildAlloca(typeRef, localSymbol.Identifier?.Value ?? string.Empty);
-        var unit = new LLVMUnit(typeRef, ptr);
+        var unit = LLVMUnit.Wrapped(typeRef, ptr);
 
-        _context.SymbolToValue[localSymbol] = unit;
+        _context.SymbolToLLVMUnit[localSymbol] = unit;
         return unit;
     }
 
-    private LLVMFnUnit CreateFn(FnSymbol fnSymbol)
+    private LLVMFn CreateFn(FnSymbol fnSymbol)
     {
         var returnType = Target.LowerType(fnSymbol.ReturnType);
 
@@ -466,17 +496,14 @@ internal sealed class FnCompiler : LoweredVisitor
             {
                 case LLVMTypeLoweringKind.ByValue:
                     {
-
                     }
                     break;
                 case LLVMTypeLoweringKind.ByMutRef:
                     {
-
                     }
                     break;
                 case LLVMTypeLoweringKind.AbiInt:
                     {
-
                     }
                     break;
             }
@@ -494,7 +521,7 @@ internal sealed class FnCompiler : LoweredVisitor
 
         attrs.Apply((index, attr) => fnValue.AddAttributeAtIndex(index, attr));
 
-        return new LLVMFnUnit(fnType, fnValue, sret ? returnType : (LLVMTypeRef?)null);
+        return new LLVMFn(LLVMUnit.Wrapped(fnType, fnValue), sret ? returnType : (LLVMTypeRef?)null);
     }
 
     public LLVMTypeLowering GetLLVMLowering(TypeSymbol type)

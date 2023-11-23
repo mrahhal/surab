@@ -282,23 +282,18 @@ internal class SemanticAnalyzer(SemanticModel model) : Visitor
 
     public override void VisitAccessExpr(AccessExprNode node)
     {
-        var targetSymbol = _model.LookupSymbol(node.Target);
-        // TODO: ?
-        //targetSymbol.Members
-
-        // TODO: Shouldn't this be TypeSymbol?
-        if (targetSymbol is not NamedTypeSymbol typeSymbol)
+        var targetType = _model.LookupType(node.Target);
+        if (targetType == null)
         {
             _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"unallowed access");
+            return; // Should we return?
         }
-        else
+
+        // TODO: Store and use a lookup table for this?
+        var matched = targetType.GetMember(node.Identifier.Value);
+        if (matched == null)
         {
-            // TODO: Store and use a lookup table for this.
-            var matched = typeSymbol.Members.FirstOrDefault(x => x.Name == node.Identifier.Value);
-            if (matched == null)
-            {
-                _diagnostics.Add(node.Identifier.Span, DiagnosticLevel.Error, $"unknown member access");
-            }
+            _diagnostics.Add(node.Identifier.Span, DiagnosticLevel.Error, $"unknown member access");
         }
 
         base.VisitAccessExpr(node);

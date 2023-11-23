@@ -3,11 +3,12 @@ using Surab.Analysis;
 
 namespace Surab.Compilation.LLVM;
 
+// TODO(docs): Explain more the idea behind LLVMUnit.IsWrapped.
+
 /// <summary>
-/// Represents an LLVM ptr value with its original type.
-/// Note that this should only be used for ptr values.
+/// Represents an LLVM type and value pair that is optionally wrapped in a ptr.
 /// </summary>
-public class LLVMUnit(LLVMTypeRef type, LLVMValueRef value)
+internal class LLVMUnit(LLVMTypeRef type, LLVMValueRef value, bool isWrapped)
 {
     /// <summary>
     /// The LLVM type of the unit.
@@ -19,36 +20,61 @@ public class LLVMUnit(LLVMTypeRef type, LLVMValueRef value)
     /// </summary>
     public LLVMValueRef Value { get; } = value;
 
-    internal void Deconstruct(out LLVMTypeRef type, out LLVMValueRef value)
+    /// <summary>
+    /// Whether the value is the wrapper ptr of the actual value.
+    /// </summary>
+    public bool IsWrapped { get; } = isWrapped;
+
+    public static LLVMUnit Wrapped(LLVMTypeRef type, LLVMValueRef value)
+    {
+        return new LLVMUnit(type, value, true);
+    }
+
+    public static LLVMUnit UnWrapped(LLVMTypeRef type, LLVMValueRef value)
+    {
+        return new LLVMUnit(type, value, false);
+    }
+
+    public void Deconstruct(out LLVMTypeRef type, out LLVMValueRef value)
     {
         type = Type;
         value = Value;
     }
 
-    public static implicit operator LLVMUnit((LLVMTypeRef Type, LLVMValueRef Value) tuple)
+    /// <summary>
+    /// Returns the unrwapped value, usually does a load on the wrapper ptr. If this is called on an already unwrapped unit the same unit is returned.
+    /// </summary>
+    public LLVMUnit Unwrap(LLVMCompilationContext context)
     {
-        return new(tuple.Type, tuple.Value);
+        if (!IsWrapped) return this;
+        return WithUnwrapped(context.Builder.BuildLoad2(Type, Value));
     }
 
-    public static implicit operator (LLVMTypeRef Type, LLVMValueRef Value)(LLVMUnit unit)
+    protected virtual LLVMUnit WithUnwrapped(LLVMValueRef unwrappedValue)
     {
-        return (unit.Type, unit.Value);
+        return UnWrapped(Type, unwrappedValue);
     }
 }
 
 /// <summary>
 /// Represents a created LLVM function.
 /// </summary>
-public class LLVMFnUnit(LLVMTypeRef type, LLVMValueRef value, LLVMTypeRef? sret) : LLVMUnit(type, value)
+internal class LLVMFn(LLVMUnit unit, LLVMTypeRef? sret)
 {
+    public LLVMUnit Unit { get; } = unit;
+
+    public LLVMTypeRef Type => Unit.Type;
+
+    public LLVMValueRef Value => Unit.Value;
+
     /// <summary>
     /// The type of the sret param if it exists, null otherwise.
     /// </summary>
     public LLVMTypeRef? SRet { get; } = sret;
 
-    internal void Deconstruct(out LLVMTypeRef type, out LLVMValueRef value, out LLVMTypeRef? sret)
+    public void Deconstruct(out LLVMTypeRef type, out LLVMValueRef value, out LLVMTypeRef? sret)
     {
-        Deconstruct(out type, out value);
+        Unit.Deconstruct(out type, out value);
         sret = SRet;
     }
 }
@@ -56,7 +82,7 @@ public class LLVMFnUnit(LLVMTypeRef type, LLVMValueRef value, LLVMTypeRef? sret)
 /// <summary>
 /// Represents a created LLVM type lowered from a <see cref="TypeSymbol"/>.
 /// </summary>
-public class LLVMTypeUnit(LLVMTypeRef type)
+internal class LLVMType(LLVMTypeRef type)
 {
     /// <summary>
     /// The LLVM lowered type of the <see cref="TypeSymbol"/>.
