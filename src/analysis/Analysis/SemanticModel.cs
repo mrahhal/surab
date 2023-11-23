@@ -117,12 +117,18 @@ public class SemanticModel
 
     public Symbol? LookupSymbol(IdentifierExprNode node)
     {
-        return LookupSymbol(node.Identifier, node);
+        var binder = ResolveBinderForIdentifier(node);
+        return LookupSymbol(node.Identifier, binder);
     }
 
     private Symbol? LookupSymbol(IdentifierToken identifier, SyntaxNode node)
     {
         var binder = GetEnclosingBinder(node);
+        return LookupSymbol(identifier, binder);
+    }
+
+    private Symbol? LookupSymbol(IdentifierToken identifier, Binder? binder)
+    {
         return binder?.LookupIdentifier(identifier) ?? LookupBuiltIn(identifier);
     }
 
@@ -263,9 +269,20 @@ public class SemanticModel
         };
     }
 
-    private TypeSymbol? LookupType(SyntaxNode node, IdentifierToken identifier)
+    private TypeSymbol? LookupType(IdentifierExprNode node)
+    {
+        var binder = ResolveBinderForIdentifier(node);
+        return LookupType(node.Identifier, binder);
+    }
+
+    private TypeSymbol? LookupType(IdentifierToken identifier, SyntaxNode node)
     {
         var binder = GetEnclosingBinder(node);
+        return LookupType(identifier, binder);
+    }
+
+    private TypeSymbol? LookupType(IdentifierToken identifier, Binder? binder)
+    {
         var symbol = binder?.LookupIdentifier(identifier);
 
         return symbol switch
@@ -276,11 +293,6 @@ public class SemanticModel
         };
     }
 
-    private TypeSymbol? LookupType(IdentifierExprNode node)
-    {
-        return LookupType(node, node.Identifier);
-    }
-
     private TypeSymbol? LookupType(ThisExprNode node)
     {
         var binder = GetEnclosingBinder(node);
@@ -289,7 +301,25 @@ public class SemanticModel
 
     private TypeSymbol? LookupType(StructCreationExprNode node)
     {
-        return LookupType(node, node.Identifier);
+        return LookupType(node.Identifier, node);
+    }
+
+    /// <summary>
+    /// Resolves the correct binder to resolve identifier symbol/type.
+    /// Resolves to either the containing scope, a type, etc, depending on what the identifier really means (i.e. local identifier vs identifier inside MapInitializer).
+    /// </summary>
+    private Binder? ResolveBinderForIdentifier(IdentifierExprNode identifierExpr)
+    {
+        if (identifierExpr.Parent is AssignmentExprNode assignmentExpr &&
+            assignmentExpr.Parent is MapInitializerNode mapInitializer &&
+            mapInitializer.Parent is StructCreationExprNode structCreationExpr)
+        {
+            // Creating a struct: `S1 { a = 42 }`
+            // Identifier `a` should return the S1 struct's scope.
+            var structType = LookupType(structCreationExpr);
+            return structType?.Context;
+        }
+        return GetEnclosingBinder(identifierExpr);
     }
 
     public TypeSymbol? InferTypeOfDeclaringNode(SyntaxNode node)
@@ -304,9 +334,15 @@ public class SemanticModel
 
     private class Builder(SyntaxTree tree) : Visitor
     {
+        private class TempTypeContext
+        {
+            public int FieldCounter = 0;
+        }
+
         private readonly SemanticModel _model = new(tree);
         private Binder? _parentBinder;
         private Symbol? _parentSymbol;
+        private TempTypeContext? _typeContext;
 
         public static SemanticModel Build(SyntaxTree tree)
         {
@@ -319,6 +355,7 @@ public class SemanticModel
         {
             var symbol = CreateSymbol(node);
             var binder = CreateBinder(node, symbol);
+            var typeContext = CreateTypeContext(node);
 
             if (symbol != null)
             {
@@ -337,6 +374,11 @@ public class SemanticModel
             {
                 _parentBinder = binder;
             }
+            var prevTypeContext = _typeContext;
+            if (typeContext != null)
+            {
+                _typeContext = typeContext;
+            }
 
             Walk(node);
 
@@ -347,6 +389,10 @@ public class SemanticModel
             if (binder != null)
             {
                 _parentBinder = prevParentBinder;
+            }
+            if (typeContext != null)
+            {
+                _typeContext = prevTypeContext;
             }
         }
 
@@ -361,14 +407,14 @@ public class SemanticModel
             return symbol;
         }
 
-        private static Symbol? CreateSymbolOnNode(SyntaxNode node)
+        private Symbol? CreateSymbolOnNode(SyntaxNode node)
         {
             return node switch
             {
                 ConstDeclNode n => new ConstSymbol(n),
                 FnDeclNode n => new FnSymbol(n.Sig),
                 MethodDeclNode n => new FnSymbol(n.Sig),
-                FieldDeclNode n => new FieldSymbolImpl(n),
+                FieldDeclNode n => new FieldSymbolImpl(n, _typeContext == null ? -1 : _typeContext.FieldCounter++),
                 StructDeclNode n => new StructTypeSymbol(n),
                 ClassDeclNode n => new ClassTypeSymbol(n),
 
@@ -402,6 +448,16 @@ public class SemanticModel
                 FnDeclNode n => new FnBinder(n.Sig, (FnSymbol)symbol!),
                 MethodDeclNode n => new FnBinder(n.Sig, (FnSymbol)symbol!),
                 BlockExprNode n => new BlockExprBinder(n),
+
+                _ => null,
+            };
+        }
+
+        private static TempTypeContext? CreateTypeContext(SyntaxNode node)
+        {
+            return node switch
+            {
+                StructDeclNode or ClassDeclNode => new TempTypeContext(),
 
                 _ => null,
             };

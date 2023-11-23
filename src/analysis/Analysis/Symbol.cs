@@ -162,6 +162,8 @@ public abstract class FieldSymbol : Symbol, ISymbolHasType
     /// The type symbol of the enclosing type (struct/class).
     /// </summary>
     public abstract TypeSymbol EnclosingType { get; }
+
+    public abstract int FieldIndex { get; }
 }
 
 internal sealed class FieldSymbolImpl : FieldSymbol, ISymbolHasType
@@ -170,9 +172,10 @@ internal sealed class FieldSymbolImpl : FieldSymbol, ISymbolHasType
     private ResolvedType? _type;
     private TypeSymbol? _enclosingType;
 
-    internal FieldSymbolImpl(FieldDeclNode node)
+    internal FieldSymbolImpl(FieldDeclNode node, int fieldIndex)
     {
         _node = node;
+        FieldIndex = fieldIndex;
     }
 
     public override SymbolKind Kind => SymbolKind.Field;
@@ -186,6 +189,8 @@ internal sealed class FieldSymbolImpl : FieldSymbol, ISymbolHasType
     public override bool IsTypeInferred => EnsureResolveType().IsInferred;
 
     public override TypeSymbol EnclosingType => EnsureResolveEnclosingType();
+
+    public override int FieldIndex { get; }
 
     private ResolvedType EnsureResolveType()
     {

@@ -124,6 +124,10 @@ internal sealed class FnCompiler : LoweredVisitor
         {
             CompileSpecialPrint();
         }
+        else if (_fnDecl.FnSymbol.Identifier?.Value == "printb")
+        {
+            CompileSpecialPrintB();
+        }
         else
         {
             if (_fnDecl.Body != null)
@@ -138,7 +142,7 @@ internal sealed class FnCompiler : LoweredVisitor
         }
 
         _llvmFn.Value.VerifyFunction(LLVMVerifierFailureAction.LLVMPrintMessageAction);
-        //LLVM.PassManager.RunFunctionPassManager(_fnValue);
+        //LLVM.PassManager.RunFunctionPassManager(_llvmFn.Value);
     }
 
     private void SetupParams(IEnumerable<ParamSymbol> @params)
@@ -207,6 +211,23 @@ internal sealed class FnCompiler : LoweredVisitor
         var value = _llvmFn.Value.GetParam(0);
 
         var strF = LLVM.Builder.BuildGlobalStringPtr("%g\n", "strF");
+        LLVM.Builder.BuildCall2(printfType, printf, [strF, value]);
+        LLVM.Builder.BuildRetVoid();
+    }
+
+    // Only prints a bool for now.
+    private void CompileSpecialPrintB()
+    {
+        var printfType = LLVMTypeRef.CreateFunction(LLVMTypeRef.Int32, new[] { LLVMTypeRef.CreatePointer(LLVMTypeRef.Int8, 0) }, true);
+        var printf = LLVM.Module.GetNamedFunction("printf");
+        if (printf == default)
+        {
+            printf = LLVM.Module.AddFunction("printf", printfType);
+        }
+
+        var value = _llvmFn.Value.GetParam(0);
+
+        var strF = LLVM.Builder.BuildGlobalStringPtr("%d\n", "strF");
         LLVM.Builder.BuildCall2(printfType, printf, [strF, value]);
         LLVM.Builder.BuildRetVoid();
     }
@@ -310,7 +331,7 @@ internal sealed class FnCompiler : LoweredVisitor
         attrs.Apply((index, attr) => fnValue.AddCallSiteAttributeAtIndex(index, attr));
 
         // Always push a value, even if void, since this gets popped in VisitExprStmt.
-        _stack.Push(LLVMUnit.UnWrapped(fnType.ReturnType, returnValue));
+        _stack.Push(LLVMUnit.Unwrapped(fnType.ReturnType, returnValue));
     }
 
     public override void VisitBinaryExpr(LoweredBinaryExpr node)
@@ -329,7 +350,7 @@ internal sealed class FnCompiler : LoweredVisitor
             _ => throw new NotImplementedException(),
         };
 
-        _stack.Push(LLVMUnit.UnWrapped(LLVMTypeRef.Double, value));
+        _stack.Push(LLVMUnit.Unwrapped(LLVMTypeRef.Double, value));
     }
 
     public override void VisitVariableLoadExpr(LoweredVariableLoadExpr node)
@@ -356,8 +377,9 @@ internal sealed class FnCompiler : LoweredVisitor
         var (targetType, targetPtr) = _stack.Pop();
 
         var ptrToField = LLVM.Builder.BuildStructGEP2(targetType, targetPtr, 0);
+        var fieldLLVMType = Target.LowerType(node.Field.Type);
         // We don't load it, for the same reason outlined in VisitVariableLoadExpr.
-        _stack.Push(LLVMUnit.Wrapped(LLVMTypeRef.Double, ptrToField));
+        _stack.Push(LLVMUnit.Wrapped(fieldLLVMType, ptrToField));
     }
 
     public override void VisitFieldStoreExpr(LoweredFieldStoreStmt node)
@@ -368,29 +390,39 @@ internal sealed class FnCompiler : LoweredVisitor
         Visit(node.Expr);
         var (_, rhs) = _stack.Pop().Unwrap(LLVM);
 
-        var ptrToField = LLVM.Builder.BuildStructGEP2(targetType, targetPtr, 0);
+        // TODO: Optimize somehow to remove the need to compute the struct layout again here.
+        var structLayout = Target.GetStructLayout((StructTypeSymbol)node.Field.Parent!);
+        var fieldSection = structLayout.Sections.First(s => s.FieldIndex == node.Field.FieldIndex);
+        var fieldLLVMType = Target.LowerType(node.Field.Type);
+
+        var ptrToField = LLVM.Builder.BuildStructGEP2(targetType, targetPtr, (uint)fieldSection.SectionIndex);
         LLVM.Builder.BuildStore(rhs, ptrToField);
     }
 
     public override void VisitStructCreationExpr(LoweredStructCreationExpr node)
     {
-        var llvmTypeUnit = _context.GetOrCreateType(node.Symbol);
+        var llvmType = _context.GetOrCreateType(node.Symbol);
 
-        var ptr = LLVM.Builder.BuildAlloca(llvmTypeUnit.Type);
+        // TODO: Optimize somehow to remove the need to compute the struct layout again here.
+        var structLayout = Target.GetStructLayout(node.Symbol);
+
+        var ptr = LLVM.Builder.BuildAlloca(llvmType.Type);
 
         foreach (var item in node.MapInitializer.Items)
         {
             // Assumed to be only an identifier to a field for now.
             var field = (FieldSymbol)node.Symbol.GetMember(item.Left)!;
+            var fieldSection = structLayout.Sections.First(s => s.FieldIndex == field.FieldIndex);
+
             Visit(item.Right);
             var (_, rhs) = _stack.Pop().Unwrap(LLVM);
 
             // Duplicated a bit from VisitFieldStoreExpr?
-            var ptrToField = LLVM.Builder.BuildStructGEP2(llvmTypeUnit.Type, ptr, 0);
+            var ptrToField = LLVM.Builder.BuildStructGEP2(llvmType.Type, ptr, (uint)fieldSection.SectionIndex);
             LLVM.Builder.BuildStore(rhs, ptrToField);
         }
 
-        _stack.Push(LLVMUnit.Wrapped(llvmTypeUnit.Type, ptr));
+        _stack.Push(LLVMUnit.Wrapped(llvmType.Type, ptr));
     }
 
     public override void VisitLiteralExpr(LoweredLiteralExpr node)
@@ -403,7 +435,16 @@ internal sealed class FnCompiler : LoweredVisitor
                     Debug.Assert(node.Literal.TryGetNumberValue(out var v));
                     var llvmType = LLVMTypeRef.Double;
                     var llvmValue = LLVMValueRef.CreateConstReal(llvmType, v);
-                    _stack.Push(LLVMUnit.UnWrapped(llvmType, llvmValue));
+                    _stack.Push(LLVMUnit.Unwrapped(llvmType, llvmValue));
+                }
+                break;
+
+            case LiteralTokenKind.Bool:
+                {
+                    Debug.Assert(node.Literal.TryGetBoolValue(out var v));
+                    var llvmType = LLVMTypeRef.Int1;
+                    var llvmValue = LLVMValueRef.CreateConstInt(llvmType, v ? (ulong)1 : 0);
+                    _stack.Push(LLVMUnit.Unwrapped(llvmType, llvmValue));
                 }
                 break;
 

@@ -256,7 +256,7 @@ internal class Lowerer
                 return new LoweredFieldStoreStmt(
                     node,
                     loweredTarget,
-                    symbol,
+                    fieldSymbol,
                     expr);
             });
 
@@ -271,7 +271,7 @@ internal class Lowerer
             var finalApply = rewrite(new LoweredFieldLoadExpr(
                 node,
                 loweredTarget,
-                symbol));
+                fieldSymbol));
 
             return new LoweredStmtList(
                 node,
@@ -290,7 +290,7 @@ internal class Lowerer
     private LoweredExpr Lower(AccessExprNode node)
     {
         // Should only be here if we're loading a field?
-        var symbol = _model.LookupSymbol(node)!;
+        var symbol = (FieldSymbol)_model.LookupSymbol(node)!;
         var loweredTarget = LowerWithCast(node.Target);
         return new LoweredFieldLoadExpr(
             node,

@@ -202,11 +202,11 @@ internal sealed class LoweredVariableStoreStmt(
 internal sealed class LoweredFieldLoadExpr(
     SyntaxNode parsedNode,
     LoweredExpr target,
-    Symbol field) : LoweredExpr(parsedNode)
+    FieldSymbol field) : LoweredExpr(parsedNode)
 {
     public LoweredExpr Target { get; } = target;
 
-    public Symbol Field { get; } = field;
+    public FieldSymbol Field { get; } = field;
 
     public override IEnumerable<LoweredNode> EnumerateChildren() => [];
 
@@ -217,12 +217,12 @@ internal sealed class LoweredFieldLoadExpr(
 internal sealed class LoweredFieldStoreStmt(
     SyntaxNode parsedNode,
     LoweredExpr target,
-    Symbol field,
+    FieldSymbol field,
     LoweredExpr expr) : LoweredStmt(parsedNode)
 {
     public LoweredExpr Target { get; } = target;
 
-    public Symbol Field { get; } = field;
+    public FieldSymbol Field { get; } = field;
 
     public LoweredExpr Expr { get; } = expr;
 

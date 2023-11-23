@@ -30,7 +30,7 @@ internal class LLVMUnit(LLVMTypeRef type, LLVMValueRef value, bool isWrapped)
         return new LLVMUnit(type, value, true);
     }
 
-    public static LLVMUnit UnWrapped(LLVMTypeRef type, LLVMValueRef value)
+    public static LLVMUnit Unwrapped(LLVMTypeRef type, LLVMValueRef value)
     {
         return new LLVMUnit(type, value, false);
     }
@@ -52,7 +52,7 @@ internal class LLVMUnit(LLVMTypeRef type, LLVMValueRef value, bool isWrapped)
 
     protected virtual LLVMUnit WithUnwrapped(LLVMValueRef unwrappedValue)
     {
-        return UnWrapped(Type, unwrappedValue);
+        return Unwrapped(Type, unwrappedValue);
     }
 }
 

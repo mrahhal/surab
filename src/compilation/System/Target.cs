@@ -66,7 +66,7 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
             var fieldLayout = GetLayout(m.Type);
             AddPaddingIfNecessary(fieldLayout.Alignment);
             structAlignment = Math.Max(structAlignment.Bytes, fieldLayout.Alignment.Bytes).AsBytes();
-            sections.Add(StructLayoutSection.Data(offset, fieldLayout.Size, fieldIndex));
+            sections.Add(StructLayoutSection.Data(offset, fieldLayout.Size, fieldIndex, sectionIndex: sections.Count));
 
             offset += fieldLayout.Size;
             fieldIndex++;
@@ -84,7 +84,7 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
             {
                 // Padding was needed.
                 var padding = newOffset - offset;
-                sections.Add(StructLayoutSection.Padding(offset, padding));
+                sections.Add(StructLayoutSection.Padding(offset, padding, sectionIndex: sections.Count));
                 offset = newOffset;
             }
         }

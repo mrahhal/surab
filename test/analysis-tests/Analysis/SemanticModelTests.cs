@@ -65,6 +65,27 @@ public class SemanticModelTests
     }
 
     [Fact]
+    public void LookupSymbol_LookupType_Field_InsideMapInitializer()
+    {
+        var src = """
+            struct S1 { a: Number; }
+            fn f() { var s = S1 { a = 42 }; }
+            """;
+        var tree = Parser.ParseModule(src);
+        var model = SemanticModel.Create(tree);
+
+        var varStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Single();
+        var structCreationExpr = (StructCreationExprNode)varStmt.Initializer!.Expr;
+        var mapInitializer = structCreationExpr.MapInitializer;
+
+        var fieldSymbol = model.LookupSymbol(mapInitializer.WellFormedExprs.ElementAt(0).Lhs);
+        var fieldType = model.LookupType(mapInitializer.WellFormedExprs.ElementAt(0).Lhs);
+
+        fieldSymbol.Should().NotBeNull().And.BeAssignableTo<FieldSymbol>();
+        fieldType.Should().NotBeNull().And.Be(BuiltInTypeSystem.Number);
+    }
+
+    [Fact]
     public void LookupType()
     {
         var src = """

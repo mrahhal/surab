@@ -45,6 +45,8 @@ public sealed class FieldSymbolTestsImpl(string identifier, TypeSymbol type) : F
 
     public override bool IsTypeInferred => false;
 
+    public override int FieldIndex => -1;
+
     public void SetEnclosingType(TypeSymbol enclosingType)
     {
         _enclosingType = enclosingType;

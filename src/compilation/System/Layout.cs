@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Surab.Analysis;
 
 namespace Surab.Compilation;
 
@@ -29,32 +30,37 @@ public enum StructLayoutSectionKind
 /// <summary>
 /// Represents either data or padding sections of a struct.
 /// </summary>
-public class StructLayoutSection
+public sealed class StructLayoutSection
 {
     private StructLayoutSection(StructLayoutSectionKind kind)
     {
         Kind = kind;
     }
 
-    public StructLayoutSectionKind Kind { get; init; }
+    public StructLayoutSectionKind Kind { get; }
 
-    public BitSize Offset { get; init; }
+    public required BitSize Offset { get; init; }
 
-    public BitSize Size { get; init; }
+    public required BitSize Size { get; init; }
 
     /// <summary>
-    /// Points to the index of the field in the struct this data member is associated with.
+    /// Gets the index of the field in the struct this data section is associated with.
     /// This is -1 when Kind is Padding.
     /// </summary>
-    public int FieldIndex { get; init; }
+    public required int FieldIndex { get; init; }
 
-    public static StructLayoutSection Data(BitSize offset, BitSize size, int fieldIndex)
+    /// <summary>
+    /// Gets the index of this section in the sections array of the struct.
+    /// </summary>
+    public required int SectionIndex { get; init; }
+
+    public static StructLayoutSection Data(BitSize offset, BitSize size, int fieldIndex, int sectionIndex)
     {
-        return new(StructLayoutSectionKind.Data) { Offset = offset, Size = size, FieldIndex = fieldIndex };
+        return new(StructLayoutSectionKind.Data) { Offset = offset, Size = size, FieldIndex = fieldIndex, SectionIndex = sectionIndex };
     }
 
-    public static StructLayoutSection Padding(BitSize offset, BitSize size)
+    public static StructLayoutSection Padding(BitSize offset, BitSize size, int sectionIndex)
     {
-        return new(StructLayoutSectionKind.Padding) { Offset = offset, Size = size, FieldIndex = -1 };
+        return new(StructLayoutSectionKind.Padding) { Offset = offset, Size = size, FieldIndex = -1, SectionIndex = sectionIndex };
     }
 }
