@@ -30,7 +30,7 @@ public class ParserTests
     }
 
     [Fact]
-    public void Decl_Fn2()
+    public void Decl_Fn_2()
     {
         var src = "public fn f(number: Number): Number { 2 }";
         var node = ParseDecl(src).Should().BeOfType<FnDeclNode>().Subject;
@@ -40,11 +40,12 @@ public class ParserTests
     }
 
     [Fact]
-    public void Decl_ExternFn()
+    public void Decl_Fn_Extern()
     {
         var src = "extern fn f(number: Number);";
         var node = ParseDecl(src).Should().BeOfType<FnDeclNode>().Subject;
         node.Body.Should().BeNull();
+        node.ExternToken.Should().NotBeNull();
         node.SemicolonToken.Should().NotBeNull();
     }
 
@@ -61,7 +62,7 @@ public class ParserTests
     }
 
     [Fact]
-    public void Decl_Struct2()
+    public void Decl_Struct_2()
     {
         var src = "struct S1 { a: Number; f() {} }";
         var node = ParseDecl(src).Should().BeOfType<StructDeclNode>().Subject;

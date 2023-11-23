@@ -212,7 +212,7 @@ public class SemanticModelTests
     }
 
     [Fact]
-    public void FnReturnTypeAsNoneIfNotSet()
+    public void FnSymbol_ReturnTypeAsNoneIfNotSet()
     {
         var src = """
             fn f() { }
@@ -224,5 +224,20 @@ public class SemanticModelTests
         model.TryGetDeclaredSymbol(fnDecl, out var symbol).Should().BeTrue();
         var fnSymbol = symbol.Should().BeOfType<FnSymbol>().Subject;
         fnSymbol.ReturnType.Should().Be(BuiltInTypeSystem.None);
+    }
+
+    [Fact]
+    public void FnSymbol_IsExtern()
+    {
+        var src = """
+            extern fn f();
+            """;
+        var tree = Parser.ParseModule(src);
+        var model = SemanticModel.Create(tree);
+
+        var fnDecl = tree.Root.DescendantNodes().OfType<FnDeclNode>().Single();
+        model.TryGetDeclaredSymbol(fnDecl, out var symbol).Should().BeTrue();
+        var fnSymbol = symbol.Should().BeOfType<FnSymbol>().Subject;
+        fnSymbol.IsExtern.Should().BeTrue();
     }
 }

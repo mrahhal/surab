@@ -107,6 +107,8 @@ public sealed class FnSymbol : Symbol
 
     public override IdentifierToken? Identifier => _node.Identifier;
 
+    public bool IsExtern => _node.Parent is FnDeclNode fnDeclNode && fnDeclNode.ExternToken != null;
+
     /// <summary>
     /// The return type of the function.
     /// </summary>

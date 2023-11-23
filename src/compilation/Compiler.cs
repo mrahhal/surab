@@ -103,6 +103,8 @@ internal sealed class FnCompiler : LoweredVisitor
 
     private LLVMCompilationContext LLVM => _context.LLVM;
 
+    private FnSymbol FnSymbol => _fnDecl.FnSymbol;
+
     public static void Compile(
         CompilationContext context,
         LoweredFnDecl fnDecl)
@@ -113,6 +115,12 @@ internal sealed class FnCompiler : LoweredVisitor
 
     private void Compile()
     {
+        // TODO: Is extern fns always without body?
+        if (FnSymbol.IsExtern)
+        {
+            return;
+        }
+
         // Entry has to exist before visiting the params in the signature.
         var entry = _llvmFn.Value.AppendBasicBlock("entry");
         LLVM.Builder.PositionAtEnd(entry);
@@ -463,14 +471,14 @@ internal sealed class FnCompiler : LoweredVisitor
         }
     }
 
-    private LLVMFn GetOrCreateFn(FnSymbol symbol)
+    private LLVMFn GetOrCreateFn(FnSymbol fnSymbol)
     {
-        if (_context.FnSymbolToLLVMFn.TryGetValue(symbol, out var llvmFn))
+        if (_context.FnSymbolToLLVMFn.TryGetValue(fnSymbol, out var llvmFn))
         {
             return llvmFn;
         }
-        llvmFn = CreateFn(symbol);
-        _context.FnSymbolToLLVMFn[symbol] = llvmFn;
+        llvmFn = CreateFn(fnSymbol);
+        _context.FnSymbolToLLVMFn[fnSymbol] = llvmFn;
         return llvmFn;
     }
 
