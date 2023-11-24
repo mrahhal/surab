@@ -353,6 +353,13 @@ internal class SemanticAnalyzer(SemanticModel model) : Visitor
         base.VisitType(node);
     }
 
+    public override void VisitSkippedToken(SkippedToken skippedToken)
+    {
+        _diagnostics.Add(skippedToken.Span, DiagnosticLevel.Error, $"unknown");
+
+        base.VisitSkippedToken(skippedToken);
+    }
+
     // TODO: Things to consider adding here.
     // - LetStmtNode.Type and Initializer:
     //   - Initializer should always be given a value as a start
