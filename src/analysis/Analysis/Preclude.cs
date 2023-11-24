@@ -2,8 +2,9 @@
 
 internal static class Preclude
 {
-    // TODO: Find a better way to do this.
+    // TODO: Find a better way to do this (so as not to use static?).
     private static SemanticModel? _precludeSemanticModel = null;
+    private static readonly object _lock = new();
 
     public static void EnsurePrecludeLoaded()
     {
@@ -12,7 +13,14 @@ internal static class Preclude
 
     public static SemanticModel GetPrecludeSemanticModel()
     {
-        return _precludeSemanticModel ??= CreatePrecludeSemanticModel();
+        if (_precludeSemanticModel != null) return _precludeSemanticModel;
+        // Need a lock to avoid concurrency issues when running parallel tests.
+        lock (_lock)
+        {
+            // Double lock test.
+            if (_precludeSemanticModel != null) return _precludeSemanticModel;
+            return _precludeSemanticModel ??= CreatePrecludeSemanticModel();
+        }
     }
 
     private static SemanticModel CreatePrecludeSemanticModel()
