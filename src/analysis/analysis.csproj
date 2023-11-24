@@ -4,4 +4,8 @@
     <RootNamespace>Surab.Analysis</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\common\common.csproj" />
+  </ItemGroup>
+
 </Project>
