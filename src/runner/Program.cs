@@ -75,6 +75,7 @@ if (diags.Any(x => x.Level >= DiagnosticLevel.Error))
 
 var exe = Compiler.Compile(model, "");
 ConsoleHelper.WriteInfo($"Running compiled exe '{Path.GetFileName(exe)}'...".NL());
+ConsoleHelper.WriteInfo("===".NL());
 
 var p = new Process
 {

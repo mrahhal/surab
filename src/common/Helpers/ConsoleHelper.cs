@@ -55,7 +55,7 @@ public static class ConsoleHelper
         return new ConsoleTextBuilder();
     }
 
-    public static void WriteInfo(string value) => Write(value, ConsoleColor.Blue, ConsoleColor.White);
+    public static void WriteInfo(string value) => Write(value, ConsoleColor.Blue);
 
     public static void WriteSuccess(string value) => Write(value, ConsoleColor.Green);
 
