@@ -62,6 +62,10 @@ internal static class ClangRunner
             throw new Exception("Clang failed to exit.");
         }
 
+        var exeFileInfo = new FileInfo(outputFilePath);
+        var exeSize = exeFileInfo.Length.ToReadableSize();
+        ConsoleHelper.WriteInfo($"Compiled to file of size {exeSize}".NL());
+
         return outputFilePath;
     }
 }
