@@ -27,9 +27,10 @@ internal static class ClangRunner
         var arguments = $$"""
             -fuse-ld=lld-link
             {{additionalLibs}}
-            {{string.Join(' ', llFiles)}}
             {{rpfsPath}}
+            {{string.Join(' ', llFiles)}}
             -o {{outputFileName}}
+            -v
             """;
 
         var p = new Process
@@ -39,20 +40,21 @@ internal static class ClangRunner
                 FileName = "clang.exe",
                 Arguments = arguments,
                 WorkingDirectory = Directory.GetCurrentDirectory(),
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
             }
         };
 
         var outputFilePath = Path.Combine(p.StartInfo.WorkingDirectory, outputFileName);
 
         p.Start();
-        var exited = p.WaitForExit(TimeSpan.FromSeconds(15));
+        var exited = p.WaitForExit(TimeSpan.FromSeconds(30));
 
-        if (p.ExitCode != 0)
+        if (exited && p.ExitCode != 0)
         {
-            var err = p.StandardError.ReadToEnd();
-            throw new Exception("clang failed: " + err);
+            throw new Exception("Clang failed.");
+        }
+        else if (!exited)
+        {
+            throw new Exception("Clang failed to exit.");
         }
 
         return outputFilePath;
