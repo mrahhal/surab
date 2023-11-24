@@ -3,21 +3,24 @@
 namespace Surab.Analysis;
 
 /// <summary>
-/// A binder binds identifiers to symbols and exposes these symbols at certain scopes.
+/// A scope is responsible for binding identifiers to symbols and exposing these symbols at certain scopes so lookups can be done on them.
 /// </summary>
-internal abstract class Binder
+internal abstract class Scope
 {
-    public Binder? Parent { get; private set; }
+    public Scope? Parent { get; private set; }
 
     public SemanticModel SemanticModel { get; internal set; } = default!;
 
-    public void SetParent(Binder? parent)
+    /// <summary>
+    /// Sets the parent scope of this scope.
+    /// </summary>
+    public void SetParent(Scope? parent)
     {
         Parent = parent;
     }
 
     /// <summary>
-    /// Looks up an identifier starting from the given binder's scope and walking up.
+    /// Looks up an identifier starting from this scope and walking up.
     /// </summary>
     public Symbol? LookupIdentifier(IdentifierToken identifier)
     {
@@ -25,7 +28,7 @@ internal abstract class Binder
     }
 
     /// <summary>
-    /// Looks up `this` starting from the given binder's scope and walking up.
+    /// Looks up `this` starting from this scope and walking up.
     /// </summary>
     public TypeSymbol? LookupThis()
     {
@@ -33,14 +36,14 @@ internal abstract class Binder
     }
 
     /// <summary>
-    /// Looks up any type decl starting from the given binder's scope and walking up.
+    /// Looks up any type decl starting from this scope and walking up.
     /// </summary>
     public TypeSymbol? LookupTypeDecl()
     {
         return LookupWalkingUp(b => b.LookupTypeDeclHere());
     }
 
-    private T? LookupWalkingUp<T>(Func<Binder, T> func)
+    private T? LookupWalkingUp<T>(Func<Scope, T> func)
     {
         var current = this;
         while (current != null)
@@ -59,19 +62,19 @@ internal abstract class Binder
 
     // TODO: Seperate this into LookupIdentifierForType and LookupIdentifierForInstance?
     /// <summary>
-    /// Looks up an identifier in this binder's scope.
+    /// Looks up an identifier in this scope.
     /// </summary>
     public virtual Symbol? LookupIdentifierHere(string identifier) => null;
 
     public Symbol? LookupIdentifierHere(IdentifierToken identifier) => LookupIdentifierHere(identifier.Value);
 
     /// <summary>
-    /// Looks up `this` in this binder's scope.
+    /// Looks up `this` in this scope.
     /// </summary>
     public virtual TypeSymbol? LookupThisHere() => null;
 
     /// <summary>
-    /// Looks up any type decl in this binder's scope.
+    /// Looks up any type decl in this scope.
     /// </summary>
     public virtual TypeSymbol? LookupTypeDeclHere() => null;
 
@@ -91,10 +94,10 @@ internal abstract class Binder
     }
 
     /// <summary>
-    /// Binds a type node to its symbol.
-    /// This method will never return null. If binding fails a special <see cref="ErrorTypeSymbol"/> will be returned.
+    /// Resolves a type, binding the type node to its type symbol.
+    /// This method never returns `null`. If resolving fails a special <see cref="ErrorTypeSymbol"/> will be returned.
     /// </summary>
-    public ResolvedType BindType(SyntaxNode parentNode, ColonTypeNode? colonType)
+    public ResolvedType ResolveType(SyntaxNode parentNode, ColonTypeNode? colonType)
     {
         var type = colonType?.Type;
 
@@ -102,7 +105,7 @@ internal abstract class Binder
         if (type != null)
         {
             // TODO: Not nice calling SemanticModel.LookupBuiltIn() here.
-            // TODO: Feels like there are two apis doing similar things (SemanticModel's lookup type, and binder's lookup type)
+            // TODO: Feels like there are two apis doing similar things (SemanticModel's lookup type, and Scope's lookup type)
             // leading to both places having to call SemanticModel.LookupBuiltIn() after trying to lookup the identifier.
             var boundType = LookupIdentifier(type.Identifier) as TypeSymbol ?? SemanticModel.LookupBuiltIn(type.Identifier);
             if (boundType != null)
@@ -120,17 +123,17 @@ internal abstract class Binder
 }
 
 /// <summary>
-/// Marks binders that have locals.
+/// Marks scopes that have locals.
 /// </summary>
-internal interface IBinderHasLocals
+internal interface IScopeHasLocals
 {
     /// <summary>
-    /// The locals introduced by the binder.
+    /// The locals exposed by the scope.
     /// </summary>
     ImmutableArray<LocalSymbol> Locals { get; }
 }
 
-internal class ModuleBinder(ModuleNode module) : Binder
+internal class ModuleScope(ModuleNode module) : Scope
 {
     private ImmutableArray<Symbol> _decls;
 
@@ -168,7 +171,7 @@ internal class ModuleBinder(ModuleNode module) : Binder
     }
 }
 
-internal class TypeDeclBinder(NamedTypeSymbol symbol) : Binder
+internal class TypeDeclScope(NamedTypeSymbol symbol) : Scope
 {
     protected readonly NamedTypeSymbol _symbol = symbol;
 
@@ -188,23 +191,23 @@ internal class TypeDeclBinder(NamedTypeSymbol symbol) : Binder
     }
 }
 
-internal class StructDeclBinder(
+internal class StructDeclScope(
     StructDeclNode structDecl,
-    StructTypeSymbol symbol) : TypeDeclBinder(symbol)
+    StructTypeSymbol symbol) : TypeDeclScope(symbol)
 {
     private readonly StructDeclNode _structDecl = structDecl;
 }
 
-internal class ClassDeclBinder(
+internal class ClassDeclScope(
     ClassDeclNode classDecl,
-    NamedTypeSymbol symbol) : TypeDeclBinder(symbol)
+    NamedTypeSymbol symbol) : TypeDeclScope(symbol)
 {
     private readonly ClassDeclNode _classDecl = classDecl;
 }
 
-internal class FnBinder(
+internal class FnScope(
     FnSigNode fnSig,
-    FnSymbol fnSymbol) : Binder
+    FnSymbol fnSymbol) : Scope
 {
     private readonly FnSigNode _fnSig = fnSig;
     private readonly FnSymbol _fnSymbol = fnSymbol;
@@ -215,7 +218,7 @@ internal class FnBinder(
     }
 }
 
-internal class BlockExprBinder(BlockExprNode block) : Binder, IBinderHasLocals
+internal class BlockExprScope(BlockExprNode block) : Scope, IScopeHasLocals
 {
     private ImmutableArray<LocalSymbol> _locals;
 

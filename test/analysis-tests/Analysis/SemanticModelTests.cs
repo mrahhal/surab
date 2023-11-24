@@ -17,7 +17,7 @@ public class SemanticModelTests
     }
 
     [Fact]
-    public void CreatesBinders()
+    public void CreatesScopes()
     {
         var src = """
             const a = 2;
@@ -25,8 +25,8 @@ public class SemanticModelTests
         var tree = Parser.ParseModule(src);
         var model = SemanticModel.Create(tree);
 
-        model.TryGetBinder(tree.Root, out var symbol).Should().BeTrue();
-        symbol.Should().BeOfType<ModuleBinder>();
+        model.TryGetScope(tree.Root, out var symbol).Should().BeTrue();
+        symbol.Should().BeOfType<ModuleScope>();
     }
 
     [Fact]

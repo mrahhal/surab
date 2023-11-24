@@ -22,7 +22,7 @@ public abstract class Symbol
 
     public Symbol? Parent { get; private set; }
 
-    internal Binder Context { get; private set; } = default!;
+    internal Scope Scope { get; private set; } = default!;
 
     /// <summary>
     /// The node in the tree representing this symbol.
@@ -39,9 +39,9 @@ public abstract class Symbol
         Parent = parent;
     }
 
-    internal void SetContextBinder(Binder context)
+    internal void SetContextScope(Scope scope)
     {
-        Context = context;
+        Scope = scope;
     }
 
     public override string ToString() => Name ?? string.Empty;
@@ -85,7 +85,7 @@ public sealed class ConstSymbol : Symbol, ISymbolHasType
 
     private ResolvedType EnsureResolveType()
     {
-        return _type ??= Context.BindType(_node, _node.Type);
+        return _type ??= Scope.ResolveType(_node, _node.Type);
     }
 }
 
@@ -118,7 +118,7 @@ public sealed class FnSymbol : Symbol
         {
             return _returnType ??= _node.ReturnTy?.Type == null ?
                 BuiltInTypeSystem.None :
-                Context.BindType(_node, _node.ReturnTy).Type; // Will never be inferred.
+                Scope.ResolveType(_node, _node.ReturnTy).Type; // Will never be inferred.
         }
     }
 
@@ -140,7 +140,7 @@ public sealed class FnSymbol : Symbol
         var builder = ImmutableArray.CreateBuilder<ParamSymbol>();
         foreach (var paramNode in _node.Params.Params)
         {
-            if (Context.SemanticModel.TryGetDeclaredSymbol(paramNode, out var symbol))
+            if (Scope.SemanticModel.TryGetDeclaredSymbol(paramNode, out var symbol))
             {
                 builder.Add((ParamSymbol)symbol);
             }
@@ -196,7 +196,7 @@ internal sealed class FieldSymbolImpl : FieldSymbol, ISymbolHasType
 
     private ResolvedType EnsureResolveType()
     {
-        return _type ??= Context.BindType(_node, _node.Type);
+        return _type ??= Scope.ResolveType(_node, _node.Type);
     }
 
     private TypeSymbol EnsureResolveEnclosingType()
@@ -205,7 +205,7 @@ internal sealed class FieldSymbolImpl : FieldSymbol, ISymbolHasType
 
         TypeSymbol ResolveEnclosingType()
         {
-            var enclosingType = Context.LookupTypeDecl();
+            var enclosingType = Scope.LookupTypeDecl();
             return enclosingType ?? new ErrorTypeSymbol(null);
         }
     }
@@ -231,7 +231,7 @@ public sealed class ParamSymbol : Symbol, ISymbolHasType
     {
         get
         {
-            return _type ??= Context.BindType(_node, _node.Type).Type; // Will never be inferred.
+            return _type ??= Scope.ResolveType(_node, _node.Type).Type; // Will never be inferred.
         }
     }
 
@@ -264,7 +264,7 @@ public sealed class LocalSymbol : Symbol, ISymbolHasType
 
     private ResolvedType EnsureResolveType()
     {
-        return _type ??= Context.BindType(_node, _node.Type);
+        return _type ??= Scope.ResolveType(_node, _node.Type);
     }
 }
 
@@ -298,7 +298,7 @@ public abstract class TypeSymbol : Symbol
         var builder = ImmutableArray.CreateBuilder<Symbol>();
         foreach (var node in EnumerateMembers())
         {
-            if (Context.SemanticModel.TryGetDeclaredSymbol(node, out var symbol))
+            if (Scope.SemanticModel.TryGetDeclaredSymbol(node, out var symbol))
             {
                 builder.Add(symbol);
             }
@@ -308,7 +308,7 @@ public abstract class TypeSymbol : Symbol
 
     public Symbol? GetMember(string name)
     {
-        return Context.LookupIdentifierHere(name);
+        return Scope.LookupIdentifierHere(name);
     }
 
     protected abstract IEnumerable<SyntaxNode> EnumerateMembers();
