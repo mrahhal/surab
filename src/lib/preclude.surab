@@ -1,0 +1,9 @@
+// This preclude is included in all surab compilations.
+
+struct None { }
+
+struct Number { }
+
+struct Char { }
+
+struct Bool { }

@@ -272,7 +272,7 @@ public abstract class TypeSymbol : Symbol
 {
     private ImmutableArray<Symbol> _members;
 
-    public bool IsBuiltInType => this is BuiltInStructTypeSymbol;
+    public bool IsBuiltIn => BuiltInTypeSystem.IsBuiltIn(this);
 
     public bool IsScalar =>
         this == BuiltInTypeSystem.None ||
@@ -391,24 +391,6 @@ public sealed class ErrorTypeSymbol : NamedTypeSymbol
     {
         yield break;
     }
-}
-
-public sealed class BuiltInStructTypeSymbol : StructTypeSymbol
-{
-    private readonly IdentifierToken _name;
-    private readonly ImmutableArray<Symbol> _members;
-
-    internal BuiltInStructTypeSymbol(
-        IdentifierToken name,
-        IEnumerable<Symbol> members) : base(null)
-    {
-        _name = name;
-        _members = members.ToImmutableArray();
-    }
-
-    public override IdentifierToken? Identifier => _name;
-
-    public override ImmutableArray<Symbol> Members => _members;
 }
 
 //public sealed class ArrayTypeSymbol : TypeSymbol

@@ -33,6 +33,8 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
     // Should this be in Abi?
     public Layout GetLayout(TypeSymbol type)
     {
+        ArgumentNullException.ThrowIfNull(type);
+
         if (type == BuiltInTypeSystem.None)
             return new(0.AsBytes(), 0.AsBytes());
         if (type == BuiltInTypeSystem.Char || type == BuiltInTypeSystem.Bool)
@@ -56,6 +58,14 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
     // Should this be in Abi?
     public StructLayout GetStructLayout(StructTypeSymbol structType)
     {
+        ArgumentNullException.ThrowIfNull(structType);
+
+        if (structType.IsBuiltIn)
+        {
+            return new StructLayout(GetLayout(structType), []);
+        }
+
+        // TODO: What about Zero Sized types (that aren't built in)?
         var offset = 0.AsBytes();
         var structAlignment = 0.AsBytes();
         var sections = new List<StructLayoutSection>();

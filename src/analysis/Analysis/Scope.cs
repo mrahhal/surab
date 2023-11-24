@@ -66,6 +66,11 @@ internal abstract class Scope
     /// </summary>
     public virtual Symbol? LookupIdentifierHere(string identifier) => null;
 
+    /// <summary>
+    /// Looks up an identifier that's exported in this scope. Currently only applies to <see cref="ModuleScope"/>.
+    /// </summary>
+    public virtual Symbol? LookupExportedIdentifier(string identifier) => null;
+
     public Symbol? LookupIdentifierHere(IdentifierToken identifier) => LookupIdentifierHere(identifier.Value);
 
     /// <summary>
@@ -104,11 +109,7 @@ internal abstract class Scope
         ResolvedType? resolvedType = null;
         if (type != null)
         {
-            // TODO: Not nice calling SemanticModel.LookupBuiltIn() here.
-            // TODO: Feels like there are two apis doing similar things (SemanticModel's lookup type, and Scope's lookup type)
-            // leading to both places having to call SemanticModel.LookupBuiltIn() after trying to lookup the identifier.
-            var boundType = LookupIdentifier(type.Identifier) as TypeSymbol ?? SemanticModel.LookupBuiltIn(type.Identifier);
-            if (boundType != null)
+            if (LookupIdentifier(type.Identifier) is TypeSymbol boundType)
                 resolvedType = ResolvedType.Typed(boundType);
         }
         else
@@ -133,11 +134,13 @@ internal interface IScopeHasLocals
     ImmutableArray<LocalSymbol> Locals { get; }
 }
 
-internal class ModuleScope(ModuleNode module) : Scope
+// TODO: precludeSemanticModel should become an array of models from imported modules.
+internal class ModuleScope(ModuleNode module, SemanticModel? precludeSemanticModel) : Scope
 {
     private ImmutableArray<Symbol> _decls;
 
     private readonly ModuleNode _module = module;
+    private readonly SemanticModel? _precludeSemanticModel = precludeSemanticModel;
 
     public ImmutableArray<Symbol> Decls
     {
@@ -153,6 +156,13 @@ internal class ModuleScope(ModuleNode module) : Scope
     }
 
     public override Symbol? LookupIdentifierHere(string identifier)
+    {
+        return
+            LookupIdentifierIn(Decls, identifier) ??
+            _precludeSemanticModel?.LookupExportedSymbolByName(identifier);
+    }
+
+    public override Symbol? LookupExportedIdentifier(string identifier)
     {
         return LookupIdentifierIn(Decls, identifier);
     }
