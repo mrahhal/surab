@@ -8,7 +8,7 @@ To fix:
 General:
 
 ```cs
-import "another-file.surab";
+@import "another_file.surab";
 
 const SOME_CONSTANT = 2;
 

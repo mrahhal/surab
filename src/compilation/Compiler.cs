@@ -11,13 +11,13 @@ public sealed class Compiler
 
     private Compiler(
         SemanticModel model,
-        LoweredTree loweredTree,
         Target target,
         CompilationOptions options)
     {
         var llvm = LLVMCompilationContext.Create();
+        var models = new List<SemanticModel> { CreatePrecludeSemanticModel(), model };
 
-        _context = new CompilationContext(model, loweredTree, target, llvm, options);
+        _context = new CompilationContext(models, target, llvm, options);
     }
 
     public static string Compile(
@@ -25,15 +25,20 @@ public sealed class Compiler
         string targetTriple,
         CompilationOptions? options = null)
     {
-        var loweredTree = Lowerer.Lower(model);
         var target = ParseTargetTriple(targetTriple);
-        var compiler = new Compiler(model, loweredTree, target, options ?? CompilationOptions.CreateDefault());
+        var compiler = new Compiler(model, target, options ?? CompilationOptions.CreateDefault());
         return compiler.Compile();
     }
 
     private string Compile()
     {
-        return RootCompiler.Compile(_context);
+        foreach (var model in _context.SemanticModels)
+        {
+            ModuleCompiler.Compile(_context, model);
+        }
+
+        _context.LLVM.Module.PrintToFile(_context.Options.LLFileName);
+        return ClangRunner.Run(new[] { _context.Options.LLFileName });
     }
 
     private static Target ParseTargetTriple(string targetTriple)
@@ -41,27 +46,42 @@ public sealed class Compiler
         // TODO
         return new x86_64WindowsMSVCTarget();
     }
+
+    private static SemanticModel CreatePrecludeSemanticModel()
+    {
+        var precludeFile = Path.GetFullPath(Path.Combine(PathHelper.GetSrcFolderPath(), "lib/preclude.surab"));
+        var preclude = File.ReadAllText(precludeFile);
+        var tree = Parser.ParseModule(preclude);
+
+        var model = SemanticModel.Create(tree);
+        var diags = model.GetAllDiagnostics();
+
+        if (diags.Any(x => x.Level >= DiagnosticLevel.Error))
+        {
+            throw new Exception("Errors in preclude.");
+        }
+
+        return model;
+    }
 }
 
-internal sealed class RootCompiler(CompilationContext context) : LoweredVisitor
+internal sealed class ModuleCompiler(CompilationContext context, LoweredTree loweredTree) : LoweredVisitor
 {
     private readonly CompilationContext _context = context;
+    private readonly LoweredTree _loweredTree = loweredTree;
 
     private LLVMCompilationContext LLVM => _context.LLVM;
 
-    public static string Compile(CompilationContext context)
+    public static void Compile(CompilationContext context, SemanticModel semanticModel)
     {
-        var rootCompiler = new RootCompiler(context);
+        var loweredTree = Lowerer.Lower(semanticModel);
+        var rootCompiler = new ModuleCompiler(context, loweredTree);
         rootCompiler.CompileModule();
-
-        rootCompiler.LLVM.Module.PrintToFile(context.Options.LLFileName);
-
-        return ClangRunner.Run(new[] { context.Options.LLFileName });
     }
 
     private void CompileModule()
     {
-        Visit(_context.LoweredTree.Root);
+        Visit(_loweredTree.Root);
 
         LLVM.Module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction);
     }
