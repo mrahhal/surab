@@ -15,14 +15,6 @@ var src = """
 
     extern fn print_from_rust(s2: S2);
 
-    fn print(v: Number) {
-        // Compiler intrinsic
-    }
-
-    fn printb(b: Bool) {
-        // Compiler intrinsic
-    }
-
     fn noop() { }
 
     fn f(x: Number, y: Number): Number {
@@ -32,8 +24,8 @@ var src = """
     }
 
     fn fs(s1: S1, s2: S2) {
-        print(s1.a);
-        print(s2.a);
+        print_n(s1.a);
+        print_n(s2.a);
     }
 
     fn main() {
@@ -42,17 +34,17 @@ var src = """
         var b: Number = 4;
         var c = f(a, b);
         c = 999.2;
-        print(c);
-        print(41 + 1);
+        print_n(c);
+        print_n(41 + 1);
 
         var s1 = S1 {
             a = 82,
             b = true,
         };
-        print(s1.a);
+        print_n(s1.a);
         s1.a = 83;
-        print(s1.a);
-        printb(s1.b);
+        print_n(s1.a);
+        print_b(s1.b);
 
         var s2 = S2 { a = 42 };
 

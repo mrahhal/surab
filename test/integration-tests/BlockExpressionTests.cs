@@ -13,7 +13,7 @@ public class BlockExprTests
         var output = IntegrationRunner.Run($$"""
             fn main() {
                 var a = {{snippet}};
-                print(a);
+                print_n(a);
             }
             """);
 
@@ -30,7 +30,7 @@ public class BlockExprTests
         IntegrationRunner.Run($$"""
             fn main() {
                 var a = {{snippet}};
-                print(a);
+                print_n(a);
             }
             """, fails: true);
     }
@@ -41,7 +41,7 @@ public class BlockExprTests
         var output = IntegrationRunner.Run("""
             fn main() {
                 var a = 2;
-                print(a);
+                print_n(a);
             }
             """);
 
@@ -60,7 +60,7 @@ public class BlockExprTests
                     var a = 4;
                 }
                 var a = 2;
-                print(a);
+                print_n(a);
                 { }
             }
             """);

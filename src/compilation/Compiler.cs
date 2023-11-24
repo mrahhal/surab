@@ -15,7 +15,8 @@ public sealed class Compiler
         CompilationOptions options)
     {
         var llvm = LLVMCompilationContext.Create();
-        var models = new List<SemanticModel> { model };
+        // Need to compile the preclude too.
+        var models = new List<SemanticModel> { Preclude.GetPrecludeSemanticModel(), model };
 
         _context = new CompilationContext(models, target, llvm, options);
     }
@@ -131,13 +132,9 @@ internal sealed class FnCompiler : LoweredVisitor
         SetupParams(_fnDecl.FnSymbol.Params);
         SetupLocals();
 
-        if (_fnDecl.FnSymbol.Identifier?.Value == "print")
+        if (_fnDecl.FnSymbol.Identifier?.Value.StartsWith("print_") ?? false)
         {
             CompileSpecialPrint();
-        }
-        else if (_fnDecl.FnSymbol.Identifier?.Value == "printb")
-        {
-            CompileSpecialPrintB();
         }
         else
         {
@@ -209,9 +206,15 @@ internal sealed class FnCompiler : LoweredVisitor
         }
     }
 
-    // Only prints a number for now.
     private void CompileSpecialPrint()
     {
+        var specifier = _fnDecl.FnSymbol.Identifier?.Value switch
+        {
+            "print_n" => "%g", // number
+            "print_b" => "%d", // bool
+            _ => throw new UnreachableException(),
+        };
+
         var printfType = LLVMTypeRef.CreateFunction(LLVMTypeRef.Int32, new[] { LLVMTypeRef.CreatePointer(LLVMTypeRef.Int8, 0) }, true);
         var printf = LLVM.Module.GetNamedFunction("printf");
         if (printf == default)
@@ -221,24 +224,7 @@ internal sealed class FnCompiler : LoweredVisitor
 
         var value = _llvmFn.Value.GetParam(0);
 
-        var strF = LLVM.Builder.BuildGlobalStringPtr("%g\n", "strF");
-        LLVM.Builder.BuildCall2(printfType, printf, [strF, value]);
-        LLVM.Builder.BuildRetVoid();
-    }
-
-    // Only prints a bool for now.
-    private void CompileSpecialPrintB()
-    {
-        var printfType = LLVMTypeRef.CreateFunction(LLVMTypeRef.Int32, new[] { LLVMTypeRef.CreatePointer(LLVMTypeRef.Int8, 0) }, true);
-        var printf = LLVM.Module.GetNamedFunction("printf");
-        if (printf == default)
-        {
-            printf = LLVM.Module.AddFunction("printf", printfType);
-        }
-
-        var value = _llvmFn.Value.GetParam(0);
-
-        var strF = LLVM.Builder.BuildGlobalStringPtr("%d\n", "strF");
+        var strF = LLVM.Builder.BuildGlobalStringPtr($"{specifier}\n", "strF");
         LLVM.Builder.BuildCall2(printfType, printf, [strF, value]);
         LLVM.Builder.BuildRetVoid();
     }

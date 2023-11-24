@@ -8,12 +8,6 @@ public static class IntegrationRunner
 {
     public static string Run(string src, bool fails = false)
     {
-        src = """
-            fn print(v: Number) {
-                // Compiler intrinsic
-            }
-            """ + src;
-
         var tree = Parser.ParseModule(src);
 
         var model = SemanticModel.Create(tree);

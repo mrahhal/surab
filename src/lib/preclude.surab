@@ -7,3 +7,11 @@ struct Number { }
 struct Char { }
 
 struct Bool { }
+
+fn print_n(value: Number) {
+    // Compiler intrinsic
+}
+
+fn print_b(value: Bool) {
+    // Compiler intrinsic
+}

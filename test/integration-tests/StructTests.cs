@@ -9,7 +9,7 @@ public class StructTests
             struct S1 { a = 42; }
             fn main() {
                 var s1 = S1 { };
-                print(s1.a);
+                print_n(s1.a);
             }
             """);
 

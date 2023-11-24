@@ -8,7 +8,7 @@ public class SmokeTests
         var output = IntegrationRunner.Run("""
             fn main() {
                 var a = 42;
-                print(a);
+                print_n(a);
             }
             """);
 
