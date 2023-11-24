@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Surab;
 using Surab.Analysis;
 using Surab.Compilation;
 
@@ -73,6 +74,7 @@ if (diags.Any(x => x.Level >= DiagnosticLevel.Error))
 }
 
 var exe = Compiler.Compile(model, "");
+ConsoleHelper.WriteInfo($"Running compiled exe '{Path.GetFileName(exe)}'...".NL());
 
 var p = new Process
 {

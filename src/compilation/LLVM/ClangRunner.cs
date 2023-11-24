@@ -45,6 +45,11 @@ internal static class ClangRunner
 
         var outputFilePath = Path.Combine(p.StartInfo.WorkingDirectory, outputFileName);
 
+        var clangCommand = p.StartInfo.FileName + " " + p.StartInfo.Arguments.Replace("\r\n", " ").Replace("\n", " ");
+        ConsoleHelper.WriteInfo("Running clang command:".NL());
+        ConsoleHelper.Write(clangCommand.NL());
+        ConsoleHelper.WriteInfo("===".NL());
+
         p.Start();
         var exited = p.WaitForExit(TimeSpan.FromSeconds(30));
 
