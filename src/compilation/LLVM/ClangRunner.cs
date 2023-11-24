@@ -25,7 +25,6 @@ internal static class ClangRunner
         var additionalLibs = string.Join(' ', AdditionalLibs.Split(' ').Select(x => $"-l{x}"));
         var arguments = $$"""
             -fuse-ld=lld-link
-            -Xlinker /libpath:"{{LibcPath}}"
             {{additionalLibs}}
             {{string.Join(' ', llFiles)}}
             {{rpfsPath}}
