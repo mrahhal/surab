@@ -60,6 +60,12 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
     {
         ArgumentNullException.ThrowIfNull(structType);
 
+        if (structType.IsBuiltIn)
+        {
+            return new StructLayout(GetLayout(structType), []);
+        }
+
+        // TODO: What about Zero Sized types (that aren't built in)?
         var offset = 0.AsBytes();
         var structAlignment = 0.AsBytes();
         var sections = new List<StructLayoutSection>();

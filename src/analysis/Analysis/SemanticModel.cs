@@ -15,10 +15,10 @@ public class SemanticModel
 
     public SyntaxTree Tree { get; }
 
-    // TODO: internal
-    public static SemanticModel Create(SyntaxTree tree)
+    // TODO: internal?
+    public static SemanticModel Create(SyntaxTree tree, bool usePreclude = true)
     {
-        return Builder.Build(tree);
+        return Builder.Build(tree, usePreclude);
     }
 
     /// <summary>
@@ -129,7 +129,7 @@ public class SemanticModel
 
     private Symbol? LookupSymbol(IdentifierToken identifier, Scope? scope)
     {
-        return scope?.LookupIdentifier(identifier) ?? LookupBuiltIn(identifier);
+        return scope?.LookupIdentifier(identifier);
     }
 
     private Symbol? LookupSymbol(AccessExprNode node)
@@ -146,18 +146,14 @@ public class SemanticModel
         return targetType.Scope.LookupIdentifierHere(node.Identifier);
     }
 
-    internal static TypeSymbol? LookupBuiltIn(IdentifierToken identifier)
+    /// <summary>
+    /// Looks up an exported <see cref="Symbol"/> matching the given name.
+    /// </summary>
+    public Symbol? LookupExportedSymbolByName(string name)
     {
-        return identifier.Value switch
-        {
-            "None" => BuiltInTypeSystem.None,
-            "Number" => BuiltInTypeSystem.Number,
-            "Char" => BuiltInTypeSystem.Char,
-            //"String" => BuiltInTypeSystem.String,
-            "Bool" => BuiltInTypeSystem.Bool,
-
-            _ => null,
-        };
+        // Should be the module's scope.
+        var scope = GetEnclosingScope(Tree.Root);
+        return scope?.LookupExportedIdentifier(name);
     }
 
     /// <summary>
@@ -332,7 +328,7 @@ public class SemanticModel
         };
     }
 
-    private class Builder(SyntaxTree tree) : Visitor
+    private class Builder(SyntaxTree tree, bool usePreclude) : Visitor
     {
         private class TempTypeContext
         {
@@ -344,9 +340,9 @@ public class SemanticModel
         private Symbol? _parentSymbol;
         private TempTypeContext? _typeContext;
 
-        public static SemanticModel Build(SyntaxTree tree)
+        public static SemanticModel Build(SyntaxTree tree, bool usePreclude)
         {
-            var builder = new Builder(tree);
+            var builder = new Builder(tree, usePreclude);
             builder.Visit(tree.Root);
             return builder._model;
         }
@@ -403,6 +399,11 @@ public class SemanticModel
             {
                 symbol.SetParent(_parentSymbol);
                 _model._nodeToSymbolMap[node] = symbol;
+
+                if (symbol is TypeSymbol typeSymbol)
+                {
+                    BuiltInTypeSystem.TryRegisterBuiltInType(typeSymbol);
+                }
             }
             return symbol;
         }
@@ -438,11 +439,11 @@ public class SemanticModel
             return scope;
         }
 
-        private static Scope? CreateScopeOnNode(SyntaxNode node, Symbol? symbol)
+        private Scope? CreateScopeOnNode(SyntaxNode node, Symbol? symbol)
         {
             return node switch
             {
-                ModuleNode n => new ModuleScope(n),
+                ModuleNode n => new ModuleScope(n, usePreclude ? Preclude.GetPrecludeSemanticModel() : null),
                 StructDeclNode n => new StructDeclScope(n, (StructTypeSymbol)symbol!),
                 ClassDeclNode n => new ClassDeclScope(n, (NamedTypeSymbol)symbol!),
                 FnDeclNode n => new FnScope(n.Sig, (FnSymbol)symbol!),

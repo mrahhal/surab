@@ -1,5 +1,7 @@
 ﻿namespace Surab.Analysis;
 
+// TODO: Shouldn't have a static type system here. We should have some kind of static type tag we can match on the symbol somehow.
+
 /// <summary>
 /// Contains the temporarily defined built in type system.
 /// </summary>
@@ -7,34 +9,47 @@ public static class BuiltInTypeSystem
 {
     static BuiltInTypeSystem()
     {
-        None = new BuiltInStructTypeSymbol(
-            new IdentifierToken(TextSpan.Empty, "None"),
-            new List<BuiltInStructTypeSymbol> { });
-
-        Number = new BuiltInStructTypeSymbol(
-            new IdentifierToken(TextSpan.Empty, "Number"),
-            new List<BuiltInStructTypeSymbol> { });
-
-        Char = new BuiltInStructTypeSymbol(
-            new IdentifierToken(TextSpan.Empty, "Char"),
-            new List<BuiltInStructTypeSymbol> { });
-
-        //String = new BuiltInClassTypeSymbol(
-        //    new IdentifierToken(TextSpan.Empty, "String"),
-        //    new List<BuiltInNamedTypeSymbol> { });
-
-        Bool = new BuiltInStructTypeSymbol(
-            new IdentifierToken(TextSpan.Empty, "Bool"),
-            new List<BuiltInStructTypeSymbol> { });
+        Preclude.EnsurePrecludeLoaded();
     }
 
-    public static BuiltInStructTypeSymbol None { get; }
+    public static StructTypeSymbol None { get; private set; } = null!;
 
-    public static BuiltInStructTypeSymbol Number { get; }
+    public static StructTypeSymbol Number { get; private set; } = null!;
 
-    public static  BuiltInStructTypeSymbol Char { get; }
+    public static StructTypeSymbol Char { get; private set; } = null!;
 
-    //public static BuiltInClassTypeSymbol String { get; }
+    public static StructTypeSymbol Bool { get; private set; } = null!;
 
-    public static  BuiltInStructTypeSymbol Bool { get; }
+    public static void TryRegisterBuiltInType(TypeSymbol type)
+    {
+        if (type is not StructTypeSymbol structTypeSymbol) return;
+
+        switch (type.Name)
+        {
+            case "None":
+                None = structTypeSymbol;
+                break;
+
+            case "Number":
+                Number = structTypeSymbol;
+                break;
+
+            case "Char":
+                Char = structTypeSymbol;
+                break;
+
+            case "Bool":
+                Bool = structTypeSymbol;
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    public static bool IsBuiltIn(TypeSymbol type)
+    {
+        // TODO: Do this better.
+        return type == None || type == Number || type == Char || type == Bool;
+    }
 }

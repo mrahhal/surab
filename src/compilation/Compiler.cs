@@ -15,7 +15,7 @@ public sealed class Compiler
         CompilationOptions options)
     {
         var llvm = LLVMCompilationContext.Create();
-        var models = new List<SemanticModel> { CreatePrecludeSemanticModel(), model };
+        var models = new List<SemanticModel> { model };
 
         _context = new CompilationContext(models, target, llvm, options);
     }
@@ -45,23 +45,6 @@ public sealed class Compiler
     {
         // TODO
         return new x86_64WindowsMSVCTarget();
-    }
-
-    private static SemanticModel CreatePrecludeSemanticModel()
-    {
-        var precludeFile = Path.GetFullPath(Path.Combine(PathHelper.GetSrcFolderPath(), "lib/preclude.surab"));
-        var preclude = File.ReadAllText(precludeFile);
-        var tree = Parser.ParseModule(preclude);
-
-        var model = SemanticModel.Create(tree);
-        var diags = model.GetAllDiagnostics();
-
-        if (diags.Any(x => x.Level >= DiagnosticLevel.Error))
-        {
-            throw new Exception("Errors in preclude.");
-        }
-
-        return model;
     }
 }
 
