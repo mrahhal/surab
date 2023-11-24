@@ -4,8 +4,10 @@ namespace Surab.Compilation.LLVM;
 
 internal static class ClangRunner
 {
+#pragma warning disable IDE0051 // Remove unused private members
     // TODO: How to get this properly?
     private static readonly string LibcPath = @"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.38.33130\lib\x64";
+#pragma warning restore IDE0051 // Remove unused private members
 
     private static readonly string rpfsPath = @"C:\dev\src\Projects\_T\rust-playground-for-surab\target\debug\rpfs.lib";
 
@@ -45,7 +47,7 @@ internal static class ClangRunner
 
         var outputFilePath = Path.Combine(p.StartInfo.WorkingDirectory, outputFileName);
 
-        var clangCommand = p.StartInfo.FileName + " " + p.StartInfo.Arguments.Replace("\r\n", " ").Replace("\n", " ");
+        var clangCommand = p.StartInfo.FileName + " " + p.StartInfo.Arguments.ReplaceLineEndings(" ");
         ConsoleHelper.WriteInfo("Running clang command:".NL());
         ConsoleHelper.Write(clangCommand.NL());
         ConsoleHelper.WriteInfo("===".NL());
