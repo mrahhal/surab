@@ -68,7 +68,7 @@ var diags = model.GetAllDiagnostics();
 if (diags.Any(x => x.Level >= DiagnosticLevel.Error))
 {
     var errors = diags.Select(d => (d, v: d.Visualize(src))).ToList();
-    Console.WriteLine("[RED] ERROR COMPILING\n");
+    ConsoleHelper.WriteError("ERROR COMPILING\n");
     Console.WriteLine(string.Join('\n', errors.Select(x => x.v)));
     return;
 }
