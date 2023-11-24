@@ -92,7 +92,7 @@ public class SemanticModel
 
         // Semantic
         var semanticDiagnostics = SemanticAnalyzer.Analyze(this);
-        return Tree.Diagnostics.Diagnostics.Concat(semanticDiagnostics.Diagnostics);
+        return [.. Tree.Diagnostics.Diagnostics, .. semanticDiagnostics.Diagnostics];
     }
 
     /// <summary>
