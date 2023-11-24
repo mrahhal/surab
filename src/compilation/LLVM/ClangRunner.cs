@@ -6,9 +6,9 @@ internal static class ClangRunner
 {
     // TODO: How to get this properly?
     private static readonly string LibcPath = @"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.38.33130\lib\x64";
-    // or?: C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22621.0\um\x64
-    private static readonly string Win32LibsPath = @"C:\Program Files\Microsoft Visual Studio\2022\Community\SDK\ScopeCppSDK\vc15\SDK\lib";
+
     private static readonly string rpfsPath = @"C:\dev\src\Projects\_T\rust-playground-for-surab\target\debug\rpfs.lib";
+
     // Required by rust. From rust's `cargo rustc -- --print native-static-libs`. Minus msvcrt.lib as that creates the printf not found symbol error for some reason.
     // The order and any duplication can be significant on some platforms.
     private static readonly string AdditionalLibs = @"kernel32.lib advapi32.lib bcrypt.lib kernel32.lib ntdll.lib userenv.lib ws2_32.lib kernel32.lib ws2_32.lib kernel32.lib ntdll.lib kernel32.lib";
@@ -20,7 +20,8 @@ internal static class ClangRunner
 
         // TODO: Add -O3 for release?
 
-        // `-Xlinker /libpath:"{{LibcPath}}"` is not affecting output anymore for some reason?
+        // Linker is working without `-Xlinker /libpath:"{{LibcPath}}"` now for some reason?
+        // It was needed for linking against libc.
 
         var additionalLibs = string.Join(' ', AdditionalLibs.Split(' ').Select(x => $"-l{x}"));
         var arguments = $$"""
