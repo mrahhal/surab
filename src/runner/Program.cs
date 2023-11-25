@@ -20,7 +20,6 @@ var src = """
     fn f(x: Number, y: Number): Number {
         var e = x + y;
         return e + 1;
-        //return x + y;
     }
 
     fn fs(s1: S1, s2: S2) {
