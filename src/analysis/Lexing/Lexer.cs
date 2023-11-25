@@ -97,7 +97,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
             '|' => CreateTokenIfMatchesOrToken('|', TokenKind.ConditionalOr, TokenKind.InclusiveOr),
             '^' => CreateTokenIfMatchesOrToken('^', TokenKind.CaretCaret, TokenKind.ExclusiveOr),
 
-            '@' => Chars.IsIdentifierStart(P1()) ? ConsumeIntrinsicIdentifier() : MakeToken(TokenKind.At),
+            '@' => MakeToken(Chars.IsIdentifierStart(P1()) ? TokenKind.AtBeforeIdentifier : TokenKind.At),
 
             '\'' => ConsumeChar(),
             '"' => ConsumeString(),
@@ -358,18 +358,6 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
         return MakeToken(tokenKind);
     }
 
-    private Token ConsumeIntrinsicIdentifier()
-    {
-        Debug.Assert(_prev == '@' && Chars.IsIdentifierStart(P1()));
-
-        Advance();
-        EatIdentifier();
-        return MakeToken(TokenKind.IntrinsicIdentifier);
-    }
-
-    /// <summary>
-    ///
-    /// </summary>
     private void EatIdentifier()
     {
         Debug.Assert(Chars.IsIdentifierStart(_prev));

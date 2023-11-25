@@ -15,11 +15,6 @@
       "Base": "DeclNode",
       "Members": [
         {
-          "Name": "publicToken",
-          "Type": "SimpleToken",
-          "Optional": true
-        },
-        {
           "Name": "constToken",
           "Type": "SimpleToken"
         },
@@ -52,16 +47,6 @@
       "Base": "DeclNode",
       "Members": [
         {
-          "Name": "publicToken",
-          "Type": "SimpleToken",
-          "Optional": true
-        },
-        {
-          "Name": "externToken",
-          "Type": "SimpleToken",
-          "Optional": true
-        },
-        {
           "Name": "fnToken",
           "Type": "SimpleToken"
         },
@@ -86,16 +71,6 @@
       "Name": "StructDecl",
       "Base": "DeclNode",
       "Members": [
-        {
-          "Name": "publicToken",
-          "Type": "SimpleToken",
-          "Optional": true
-        },
-        {
-          "Name": "externToken",
-          "Type": "SimpleToken",
-          "Optional": true
-        },
         {
           "Name": "structToken",
           "Type": "SimpleToken"
@@ -124,11 +99,6 @@
       "Base": "DeclNode",
       "Members": [
         {
-          "Name": "publicToken",
-          "Type": "SimpleToken",
-          "Optional": true
-        },
-        {
           "Name": "classToken",
           "Type": "SimpleToken"
         },
@@ -156,11 +126,6 @@
       "Base": "DeclNode",
       "Members": [
         {
-          "Name": "publicToken",
-          "Type": "SimpleToken",
-          "Optional": true
-        },
-        {
           "Name": "identifier",
           "Type": "IdentifierToken"
         },
@@ -184,11 +149,6 @@
       "Name": "MethodDecl",
       "Base": "DeclNode",
       "Members": [
-        {
-          "Name": "publicToken",
-          "Type": "SimpleToken",
-          "Optional": true
-        },
         {
           "Name": "sig",
           "Type": "FnSigNode"
@@ -616,6 +576,34 @@
         {
           "Name": "expr",
           "Type": "ExprNode"
+        }
+      ]
+    },
+    {
+      "Name": "IntrinsicsList",
+      "Members": [
+        {
+          "Name": "intrinsics",
+          "Type": "IntrinsicNode",
+          "List": true
+        }
+      ]
+    },
+    {
+      "Name": "Intrinsic",
+      "Members": [
+        {
+          "Name": "atToken",
+          "Type": "SimpleToken"
+        },
+        {
+          "Name": "identifier",
+          "Type": "IdentifierToken"
+        },
+        {
+          "Name": "args",
+          "Type": "ArgsListNode",
+          "Optional": true
         }
       ]
     }

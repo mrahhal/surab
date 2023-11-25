@@ -120,22 +120,21 @@ public class LexerTests
     [InlineData("@foo1")]
     [InlineData("@_foo12")]
     [InlineData("@trueFoo")]
-    public void IntrinsicIdentifier(string src)
+    public void AtBeforeIdentifier(string src)
     {
         var tokens = Lexer.LexSkipTrivia(src).ToList();
-        tokens.Should().HaveCount(1);
-        tokens[0].Kind.Should().Be(TokenKind.IntrinsicIdentifier);
+        tokens.Should().HaveCount(2);
+        tokens[0].Kind.Should().Be(TokenKind.AtBeforeIdentifier);
+        tokens[1].Kind.Should().Be(TokenKind.Identifier);
     }
 
     [Theory]
     [InlineData("@+foo")]
-    public void AtTokenIdentifier(string src)
+    [InlineData("@ foo")]
+    public void At(string src)
     {
         var tokens = Lexer.LexSkipTrivia(src).ToList();
-        tokens.Should().HaveCount(3);
         tokens[0].Kind.Should().Be(TokenKind.At);
-        tokens[1].Kind.Should().Be(TokenKind.Plus);
-        tokens[2].Kind.Should().Be(TokenKind.Identifier);
     }
 
     [Theory]

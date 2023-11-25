@@ -176,4 +176,14 @@ public abstract partial class Visitor
     {
         Walk(node);
     }
+
+    public virtual void VisitIntrinsicsList(IntrinsicsListNode node)
+    {
+        Walk(node);
+    }
+
+    public virtual void VisitIntrinsic(IntrinsicNode node)
+    {
+        Walk(node);
+    }
 }

@@ -230,7 +230,7 @@ public class SemanticModelTests
     public void FnSymbol_IsExtern()
     {
         var src = """
-            extern fn f();
+            @extern fn f();
             """;
         var tree = Parser.ParseModule(src);
         var model = SemanticModel.Create(tree);

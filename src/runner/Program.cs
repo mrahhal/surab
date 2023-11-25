@@ -13,7 +13,7 @@ var src = """
         a: Number;
     }
 
-    extern fn print_from_rust(s2: S2);
+    @extern fn print_from_rust(s2: S2);
 
     fn noop() { }
 

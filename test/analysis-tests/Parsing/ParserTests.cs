@@ -24,7 +24,6 @@ public class ParserTests
     {
         var src = "fn f() {}";
         var node = ParseDecl(src).Should().BeOfType<FnDeclNode>().Subject;
-        node.PublicToken.Should().BeNull();
         node.Body.Should().NotBeNull();
         node.SemicolonToken.Should().BeNull();
     }
@@ -32,21 +31,28 @@ public class ParserTests
     [Fact]
     public void Decl_Fn_2()
     {
-        var src = "public fn f(number: Number): Number { 2 }";
+        var src = "fn f(number: Number): Number { 2 }";
         var node = ParseDecl(src).Should().BeOfType<FnDeclNode>().Subject;
-        node.PublicToken.Should().NotBeNull();
         node.Body.Should().NotBeNull();
         node.SemicolonToken.Should().BeNull();
     }
 
     [Fact]
-    public void Decl_Fn_Extern()
+    public void Decl_Intrinsics()
     {
-        var src = "extern fn f(number: Number);";
+        var src = """
+            @public @some(false)
+            fn f() { }
+            """;
         var node = ParseDecl(src).Should().BeOfType<FnDeclNode>().Subject;
-        node.Body.Should().BeNull();
-        node.ExternToken.Should().NotBeNull();
-        node.SemicolonToken.Should().NotBeNull();
+        node.Intrinsics.Should().NotBeNull();
+        var intrinsics = node.Intrinsics!.Intrinsics;
+        intrinsics.Should().HaveCount(2);
+        intrinsics.ElementAt(0).Identifier.Value.Should().Be("public");
+        intrinsics.ElementAt(0).Args.Should().BeNull();
+        intrinsics.ElementAt(1).Identifier.Value.Should().Be("some");
+        intrinsics.ElementAt(1).Args.Should().NotBeNull();
+        intrinsics.ElementAt(1).Args!.Args.ElementAt(0).Expr.Should().BeOfType<LiteralExprNode>();
     }
 
     [Fact]
@@ -54,8 +60,6 @@ public class ParserTests
     {
         var src = "struct S1 { a: Number = 2; f() {} }";
         var node = ParseDecl(src).Should().BeOfType<StructDeclNode>().Subject;
-        node.PublicToken.Should().BeNull();
-        node.ExternToken.Should().BeNull();
         node.Members.Should().HaveCount(2);
         node.Members.ElementAt(0).Should().BeOfType<FieldDeclNode>();
         node.Members.ElementAt(1).Should().BeOfType<MethodDeclNode>();
@@ -66,18 +70,6 @@ public class ParserTests
     {
         var src = "struct S1 { a: Number; f() {} }";
         var node = ParseDecl(src).Should().BeOfType<StructDeclNode>().Subject;
-        node.PublicToken.Should().BeNull();
-        node.ExternToken.Should().BeNull();
-        node.Members.Should().HaveCount(2);
-    }
-
-    [Fact]
-    public void Decl_ExternStruct()
-    {
-        var src = "extern struct S1 { a = 2; f() {} }";
-        var node = ParseDecl(src).Should().BeOfType<StructDeclNode>().Subject;
-        node.PublicToken.Should().BeNull();
-        node.ExternToken.Should().NotBeNull();
         node.Members.Should().HaveCount(2);
     }
 
@@ -86,7 +78,6 @@ public class ParserTests
     {
         var src = "class S1 { a = 2; f() {} }";
         var node = ParseDecl(src).Should().BeOfType<ClassDeclNode>().Subject;
-        node.PublicToken.Should().BeNull();
         node.Members.Should().HaveCount(2);
     }
 

@@ -35,7 +35,8 @@ public enum TokenKind
     InclusiveOr,
     ExclusiveOr,
     CaretCaret,
-    At,
+    At, // Isolated '@'
+    AtBeforeIdentifier, // '@' directly followed by what looks like an identifier
 
     Fn,
     Struct,
@@ -46,15 +47,12 @@ public enum TokenKind
     False,
     Var,
     Const,
-    Extern,
-    Public,
     Return,
 
     NumberLiteral,
     CharLiteral,
     StringLiteral,
     Identifier,
-    IntrinsicIdentifier, // An identifier preceded by '@'.
 
     Whitespace,
     LineComment,
@@ -116,6 +114,7 @@ public class Token(TokenKind kind, TextSpan span, object? data)
             ExclusiveOr => "^",
             CaretCaret => "^^",
             At => "@",
+            AtBeforeIdentifier => "@",
 
             Fn => "fn",
             Class => "class",
@@ -131,7 +130,6 @@ public class Token(TokenKind kind, TextSpan span, object? data)
             CharLiteral => "charlit",
             StringLiteral => "stringlit",
             Identifier => "ident",
-            IntrinsicIdentifier => "@ident",
 
             Whitespace => "ws",
             LineComment => "lc",
@@ -196,12 +194,15 @@ public static class TokenKindExtensions
         LineComment or
         BlockComment;
 
+    public static bool CanStartIntrinsic(this TokenKind kind) => kind is
+        AtBeforeIdentifier;
+
     public static bool CanStartDecl(this TokenKind kind) => kind is
         Const or
         Fn or
         Class or
-        Identifier or
-        Public;
+        Identifier ||
+        CanStartIntrinsic(kind); // While an intrinsic isn't a part of the decl in the structural sense, we need to account for it here.
 
     public static bool CanStartStmt(this TokenKind kind) =>
         kind.CanStartExpr() ||

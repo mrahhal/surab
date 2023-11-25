@@ -50,6 +50,8 @@ public enum SimpleTokenKind
     Colon,
     Question,
     Equal,
+    At,
+
     Fn,
     Struct,
     Class,
@@ -101,6 +103,9 @@ public sealed class SimpleToken : SyntaxToken
                 TokenKind.Colon => SimpleTokenKind.Colon,
                 TokenKind.Question => SimpleTokenKind.Question,
                 TokenKind.Equal => SimpleTokenKind.Equal,
+                TokenKind.At => SimpleTokenKind.At,
+                TokenKind.AtBeforeIdentifier => SimpleTokenKind.At,
+
                 TokenKind.Fn => SimpleTokenKind.Fn,
                 TokenKind.Struct => SimpleTokenKind.Struct,
                 TokenKind.Class => SimpleTokenKind.Class,
@@ -110,8 +115,6 @@ public sealed class SimpleToken : SyntaxToken
                 TokenKind.False => SimpleTokenKind.False,
                 TokenKind.Var => SimpleTokenKind.Var,
                 TokenKind.Const => SimpleTokenKind.Const,
-                TokenKind.Extern => SimpleTokenKind.Extern,
-                TokenKind.Public => SimpleTokenKind.Public,
                 TokenKind.Return => SimpleTokenKind.Return,
                 _ => throw new Exception($"TokenKind {tokenKind} not supported."),
             },
@@ -460,6 +463,7 @@ public abstract class SyntaxNode(SyntaxNodeKind kind) : SyntaxEntity
 
 public abstract class DeclNode(SyntaxNodeKind kind) : SyntaxNode(kind)
 {
+    public IntrinsicsListNode? Intrinsics { get; internal set; }
 }
 
 public abstract class StmtNode(SyntaxNodeKind kind) : SyntaxNode(kind)

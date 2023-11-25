@@ -314,9 +314,11 @@ internal class ParserImpl
         _current?.Span.ShrinkToEnd() ?? new();
 
     // TODO: Find usages of this to intern strings.
-    private ReadOnlySpan<char> GetLexeme(Token token)
+    private ReadOnlySpan<char> GetLexeme(Token token) => GetLexeme(token.Span);
+
+    private ReadOnlySpan<char> GetLexeme(TextSpan span)
     {
-        var (start, end) = token.Span.File;
+        var (start, end) = span.File;
         return _src.AsSpan()[start..end];
     }
 
@@ -328,38 +330,51 @@ internal class ParserImpl
     /// </summary>
     private DeclNode? ParseDecl_()
     {
-        var visibility = TryParseVisibility();
-        var @extern = TryParseExtern();
-        return _current?.Kind switch
+        var intrinsics = TryParseIntrinsicsList();
+
+        var decl = _current?.Kind switch
         {
-            TokenKind.Const => ParseConstDecl(visibility),
-            TokenKind.Fn => ParseFnDecl(visibility, @extern),
-            TokenKind.Struct => ParseStructDecl(visibility, @extern),
-            TokenKind.Class => ParseClassDecl(visibility),
+            TokenKind.Const => ParseConstDecl(),
+            TokenKind.Fn => ParseFnDecl(),
+            TokenKind.Struct => ParseStructDecl(),
+            TokenKind.Class => ParseClassDecl(),
 
             _ => null,
         };
+
+        if (decl != null)
+        {
+            decl.Intrinsics = intrinsics;
+        }
+        return decl;
     }
 
     private DeclNode? ParseInnerDecl()
     {
-        var visibility = TryParseVisibility();
-        return _current?.Kind switch
+        var intrinsics = TryParseIntrinsicsList();
+
+        var decl = _current?.Kind switch
         {
             // `identifier: Type = 2;` or `identifier = 2;`
-            TokenKind.Identifier when P1()?.Kind is TokenKind.Colon or TokenKind.Equal => ParseFieldDecl(visibility),
+            TokenKind.Identifier when P1()?.Kind is TokenKind.Colon or TokenKind.Equal => ParseFieldDecl(),
 
             // `identifier()`
-            TokenKind.Identifier when P1()?.Kind is TokenKind.LeftParen => ParseMethodDecl(visibility),
+            TokenKind.Identifier when P1()?.Kind is TokenKind.LeftParen => ParseMethodDecl(),
 
             _ => null,
         };
+
+        if (decl != null)
+        {
+            decl.Intrinsics = intrinsics;
+        }
+        return decl;
     }
 
     /// <summary>
     /// Parses `const identifier = expr;`
     /// </summary>
-    private DeclNode? ParseConstDecl(SimpleToken? visibility)
+    private DeclNode? ParseConstDecl()
     {
         var constToken = EatAssertedSimpleToken(TokenKind.Const);
         var identifier = ParseIdentifier();
@@ -371,15 +386,15 @@ internal class ParserImpl
         if (value == null) return null;
         var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
-        return new ConstDeclNode(visibility, constToken, identifier, type, equalToken, value, semicolonToken);
+        return new ConstDeclNode(constToken, identifier, type, equalToken, value, semicolonToken);
     }
 
     /// <summary>
     /// Parses:
     /// - `fn identifier(param1, param2) : Type { ... }`
-    /// - `extern fn identifier(param1, param2) : Type;`
+    /// - `fn identifier(param1, param2) : Type;`
     /// </summary>
-    private DeclNode? ParseFnDecl(SimpleToken? visibility, SimpleToken? externToken)
+    private DeclNode? ParseFnDecl()
     {
         var fnToken = EatAssertedSimpleToken(TokenKind.Fn);
         var sig = ParseFnSig();
@@ -395,13 +410,13 @@ internal class ParserImpl
             semicolonToken = TryEatSimpleToken(TokenKind.Semicolon);
         }
 
-        return new FnDeclNode(visibility, externToken, fnToken, sig, body, semicolonToken);
+        return new FnDeclNode(fnToken, sig, body, semicolonToken);
     }
 
     /// <summary>
     /// Parses `struct Name { ... }`
     /// </summary>
-    private DeclNode? ParseStructDecl(SimpleToken? visibility, SimpleToken? externToken)
+    private DeclNode? ParseStructDecl()
     {
         var structToken = EatAssertedSimpleToken(TokenKind.Struct);
         var identifier = ParseIdentifier();
@@ -417,13 +432,13 @@ internal class ParserImpl
         }
         var closedBraceToken = EatExpectedSimpleToken(TokenKind.RightBrace);
 
-        return new StructDeclNode(visibility, externToken, structToken, identifier, openBraceToken, members, closedBraceToken);
+        return new StructDeclNode(structToken, identifier, openBraceToken, members, closedBraceToken);
     }
 
     /// <summary>
     /// Parses `class Name { ... }`
     /// </summary>
-    private DeclNode? ParseClassDecl(SimpleToken? visibility)
+    private DeclNode? ParseClassDecl()
     {
         var classToken = EatAssertedSimpleToken(TokenKind.Class);
         var identifier = ParseIdentifier();
@@ -439,13 +454,13 @@ internal class ParserImpl
         }
         var closedBraceToken = EatExpectedSimpleToken(TokenKind.RightBrace);
 
-        return new ClassDeclNode(visibility, classToken, identifier, openBraceToken, members, closedBraceToken);
+        return new ClassDeclNode(classToken, identifier, openBraceToken, members, closedBraceToken);
     }
 
     /// <summary>
     /// Parses `identifier: Type = expr;`
     /// </summary>
-    private DeclNode? ParseFieldDecl(SimpleToken? visibility)
+    private DeclNode? ParseFieldDecl()
     {
         var identifier = ParseIdentifier();
         if (identifier == null) return null;
@@ -454,13 +469,13 @@ internal class ParserImpl
         var initializer = ParseEqualsValueClause();
         var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
-        return new FieldDeclNode(visibility, identifier, type, initializer, semicolonToken);
+        return new FieldDeclNode(identifier, type, initializer, semicolonToken);
     }
 
     /// <summary>
     /// Parses `identifier(param1, param2)`
     /// </summary>
-    private DeclNode? ParseMethodDecl(SimpleToken? visibility)
+    private DeclNode? ParseMethodDecl()
     {
         var sig = ParseFnSig();
         if (sig == null) return null;
@@ -468,7 +483,7 @@ internal class ParserImpl
         var body = ParseBlockExpr();
         if (body == null) return null;
 
-        return new MethodDeclNode(visibility, sig, body);
+        return new MethodDeclNode(sig, body);
     }
 
     // Stmts
@@ -783,8 +798,6 @@ internal class ParserImpl
     /// <summary>
     /// Parses `{ a = b, c = d }`
     /// Requirements: current is LeftParen.
-    /// </summary>
-    /// <returns></returns>
     private MapInitializerNode? ParseMapInitializer()
     {
         var openBraceToken = EatAssertedSimpleToken(TokenKind.LeftBrace);
@@ -989,9 +1002,51 @@ internal class ParserImpl
         return null;
     }
 
-    private SimpleToken? TryParseVisibility() =>
-        TryEatSimpleToken(TokenKind.Public);
+    /// <summary>
+    /// Parses `@intrinsic1 @intrinsic2(false) ...`
+    /// </summary>
+    private IntrinsicsListNode? TryParseIntrinsicsList()
+    {
+        var intrinsics = default(List<IntrinsicNode>?);
 
-    private SimpleToken? TryParseExtern() =>
-        TryEatSimpleToken(TokenKind.Extern);
+        while (true)
+        {
+            if (!CheckToken(TokenKind.AtBeforeIdentifier))
+            {
+                break;
+            }
+
+            var intrinsic = ParseIntrinsic();
+            if (intrinsic == null) return null;
+
+            intrinsics ??= [];
+            intrinsics.Add(intrinsic);
+        }
+
+        if (intrinsics == null)
+            return null;
+
+        return new IntrinsicsListNode(intrinsics);
+    }
+
+    /// <summary>
+    /// Parses `@intrinsic` or `@intrinsic(...)`
+    /// Requirements: current is AtBeforeIdentifier.
+    /// </summary>
+    private IntrinsicNode? ParseIntrinsic()
+    {
+        var atToken = EatAssertedSimpleToken(TokenKind.AtBeforeIdentifier);
+
+        var identifier = ParseIdentifier();
+        Debug.Assert(identifier != null);
+
+        var args = default(ArgsListNode?);
+        if (CheckToken(TokenKind.LeftParen))
+        {
+            args = ParseArgsList();
+            if (args == null) return null;
+        }
+
+        return new IntrinsicNode(atToken, identifier, args);
+    }
 }

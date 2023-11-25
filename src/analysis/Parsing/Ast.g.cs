@@ -85,6 +85,8 @@ public enum SyntaxNodeKind
     Type,
     FnSig,
     EqualsValueClause,
+    IntrinsicsList,
+    Intrinsic,
 }
 
 public partial class ModuleNode : SyntaxNode
@@ -109,26 +111,25 @@ public partial class ModuleNode : SyntaxNode
 
 public partial class ConstDeclNode : DeclNode
 {
-    public ConstDeclNode(SimpleToken? publicToken, SimpleToken constToken, IdentifierToken identifier, ColonTypeNode? type, SimpleToken equalToken, ExprNode value, SimpleToken semicolonToken)
+    public ConstDeclNode(SimpleToken constToken, IdentifierToken identifier, ColonTypeNode? type, SimpleToken equalToken, ExprNode value, SimpleToken semicolonToken)
         : base(SyntaxNodeKind.ConstDecl)
     {
-        ChildTokens = new() { publicToken, constToken, identifier, equalToken, semicolonToken, };
+        ChildTokens = new() { constToken, identifier, equalToken, semicolonToken, };
         ChildNodes = new() { type, value, };
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
     }
 
-    public SimpleToken? PublicToken => (SimpleToken?)ChildTokens[0]!;
-    public SimpleToken ConstToken => (SimpleToken)ChildTokens[1]!;
-    public IdentifierToken Identifier => (IdentifierToken)ChildTokens[2]!;
+    public SimpleToken ConstToken => (SimpleToken)ChildTokens[0]!;
+    public IdentifierToken Identifier => (IdentifierToken)ChildTokens[1]!;
     public ColonTypeNode? Type => (ColonTypeNode?)ChildNodes[0]!;
-    public SimpleToken EqualToken => (SimpleToken)ChildTokens[3]!;
+    public SimpleToken EqualToken => (SimpleToken)ChildTokens[2]!;
     /// <summary>
     /// Well formed: Literal
     /// </summary>
     public ExprNode Value => (ExprNode)ChildNodes[1]!;
-    public SimpleToken SemicolonToken => (SimpleToken)ChildTokens[4]!;
+    public SimpleToken SemicolonToken => (SimpleToken)ChildTokens[3]!;
 
     public override void Accept(Visitor visitor)
     {
@@ -138,25 +139,23 @@ public partial class ConstDeclNode : DeclNode
 
 public partial class FnDeclNode : DeclNode
 {
-    public FnDeclNode(SimpleToken? publicToken, SimpleToken? externToken, SimpleToken fnToken, FnSigNode sig, BlockExprNode? body, SimpleToken? semicolonToken)
+    public FnDeclNode(SimpleToken fnToken, FnSigNode sig, BlockExprNode? body, SimpleToken? semicolonToken)
         : base(SyntaxNodeKind.FnDecl)
     {
-        ChildTokens = new() { publicToken, externToken, fnToken, semicolonToken, };
+        ChildTokens = new() { fnToken, semicolonToken, };
         ChildNodes = new() { sig, body, };
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
     }
 
-    public SimpleToken? PublicToken => (SimpleToken?)ChildTokens[0]!;
-    public SimpleToken? ExternToken => (SimpleToken?)ChildTokens[1]!;
-    public SimpleToken FnToken => (SimpleToken)ChildTokens[2]!;
+    public SimpleToken FnToken => (SimpleToken)ChildTokens[0]!;
     public FnSigNode Sig => (FnSigNode)ChildNodes[0]!;
     public BlockExprNode? Body => (BlockExprNode?)ChildNodes[1]!;
     /// <summary>
     /// Exists when body is null.
     /// </summary>
-    public SimpleToken? SemicolonToken => (SimpleToken?)ChildTokens[3]!;
+    public SimpleToken? SemicolonToken => (SimpleToken?)ChildTokens[1]!;
 
     public override void Accept(Visitor visitor)
     {
@@ -166,23 +165,21 @@ public partial class FnDeclNode : DeclNode
 
 public partial class StructDeclNode : DeclNode
 {
-    public StructDeclNode(SimpleToken? publicToken, SimpleToken? externToken, SimpleToken structToken, IdentifierToken identifier, SimpleToken openBraceToken, IEnumerable<DeclNode> members, SimpleToken closedBraceToken)
+    public StructDeclNode(SimpleToken structToken, IdentifierToken identifier, SimpleToken openBraceToken, IEnumerable<DeclNode> members, SimpleToken closedBraceToken)
         : base(SyntaxNodeKind.StructDecl)
     {
-        ChildTokens = new() { publicToken, externToken, structToken, identifier, openBraceToken, closedBraceToken, };
+        ChildTokens = new() { structToken, identifier, openBraceToken, closedBraceToken, };
         ChildNodes = members.Cast<SyntaxNode?>().ToList();
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
     }
 
-    public SimpleToken? PublicToken => (SimpleToken?)ChildTokens[0]!;
-    public SimpleToken? ExternToken => (SimpleToken?)ChildTokens[1]!;
-    public SimpleToken StructToken => (SimpleToken)ChildTokens[2]!;
-    public IdentifierToken Identifier => (IdentifierToken)ChildTokens[3]!;
-    public SimpleToken OpenBraceToken => (SimpleToken)ChildTokens[4]!;
+    public SimpleToken StructToken => (SimpleToken)ChildTokens[0]!;
+    public IdentifierToken Identifier => (IdentifierToken)ChildTokens[1]!;
+    public SimpleToken OpenBraceToken => (SimpleToken)ChildTokens[2]!;
     public IEnumerable<DeclNode> Members => ChildNodes.Cast<DeclNode>();
-    public SimpleToken ClosedBraceToken => (SimpleToken)ChildTokens[5]!;
+    public SimpleToken ClosedBraceToken => (SimpleToken)ChildTokens[3]!;
 
     public override void Accept(Visitor visitor)
     {
@@ -192,22 +189,21 @@ public partial class StructDeclNode : DeclNode
 
 public partial class ClassDeclNode : DeclNode
 {
-    public ClassDeclNode(SimpleToken? publicToken, SimpleToken classToken, IdentifierToken identifier, SimpleToken openBraceToken, IEnumerable<DeclNode> members, SimpleToken closedBraceToken)
+    public ClassDeclNode(SimpleToken classToken, IdentifierToken identifier, SimpleToken openBraceToken, IEnumerable<DeclNode> members, SimpleToken closedBraceToken)
         : base(SyntaxNodeKind.ClassDecl)
     {
-        ChildTokens = new() { publicToken, classToken, identifier, openBraceToken, closedBraceToken, };
+        ChildTokens = new() { classToken, identifier, openBraceToken, closedBraceToken, };
         ChildNodes = members.Cast<SyntaxNode?>().ToList();
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
     }
 
-    public SimpleToken? PublicToken => (SimpleToken?)ChildTokens[0]!;
-    public SimpleToken ClassToken => (SimpleToken)ChildTokens[1]!;
-    public IdentifierToken Identifier => (IdentifierToken)ChildTokens[2]!;
-    public SimpleToken OpenBraceToken => (SimpleToken)ChildTokens[3]!;
+    public SimpleToken ClassToken => (SimpleToken)ChildTokens[0]!;
+    public IdentifierToken Identifier => (IdentifierToken)ChildTokens[1]!;
+    public SimpleToken OpenBraceToken => (SimpleToken)ChildTokens[2]!;
     public IEnumerable<DeclNode> Members => ChildNodes.Cast<DeclNode>();
-    public SimpleToken ClosedBraceToken => (SimpleToken)ChildTokens[4]!;
+    public SimpleToken ClosedBraceToken => (SimpleToken)ChildTokens[3]!;
 
     public override void Accept(Visitor visitor)
     {
@@ -217,21 +213,20 @@ public partial class ClassDeclNode : DeclNode
 
 public partial class FieldDeclNode : DeclNode
 {
-    public FieldDeclNode(SimpleToken? publicToken, IdentifierToken identifier, ColonTypeNode? type, EqualsValueClauseNode? initializer, SimpleToken semicolonToken)
+    public FieldDeclNode(IdentifierToken identifier, ColonTypeNode? type, EqualsValueClauseNode? initializer, SimpleToken semicolonToken)
         : base(SyntaxNodeKind.FieldDecl)
     {
-        ChildTokens = new() { publicToken, identifier, semicolonToken, };
+        ChildTokens = new() { identifier, semicolonToken, };
         ChildNodes = new() { type, initializer, };
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
     }
 
-    public SimpleToken? PublicToken => (SimpleToken?)ChildTokens[0]!;
-    public IdentifierToken Identifier => (IdentifierToken)ChildTokens[1]!;
+    public IdentifierToken Identifier => (IdentifierToken)ChildTokens[0]!;
     public ColonTypeNode? Type => (ColonTypeNode?)ChildNodes[0]!;
     public EqualsValueClauseNode? Initializer => (EqualsValueClauseNode?)ChildNodes[1]!;
-    public SimpleToken SemicolonToken => (SimpleToken)ChildTokens[2]!;
+    public SimpleToken SemicolonToken => (SimpleToken)ChildTokens[1]!;
 
     public override void Accept(Visitor visitor)
     {
@@ -241,17 +236,16 @@ public partial class FieldDeclNode : DeclNode
 
 public partial class MethodDeclNode : DeclNode
 {
-    public MethodDeclNode(SimpleToken? publicToken, FnSigNode sig, BlockExprNode body)
+    public MethodDeclNode(FnSigNode sig, BlockExprNode body)
         : base(SyntaxNodeKind.MethodDecl)
     {
-        ChildTokens = new() { publicToken, };
+        ChildTokens = new();
         ChildNodes = new() { sig, body, };
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
     }
 
-    public SimpleToken? PublicToken => (SimpleToken?)ChildTokens[0]!;
     public FnSigNode Sig => (FnSigNode)ChildNodes[0]!;
     public BlockExprNode Body => (BlockExprNode)ChildNodes[1]!;
 
@@ -850,5 +844,47 @@ public partial class EqualsValueClauseNode : SyntaxNode
     public override void Accept(Visitor visitor)
     {
         visitor.VisitEqualsValueClause(this);
+    }
+}
+
+public partial class IntrinsicsListNode : SyntaxNode
+{
+    public IntrinsicsListNode(IEnumerable<IntrinsicNode> intrinsics)
+        : base(SyntaxNodeKind.IntrinsicsList)
+    {
+        ChildTokens = new();
+        ChildNodes = intrinsics.Cast<SyntaxNode?>().ToList();
+
+        Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+        SetChildrenParent();
+    }
+
+    public IEnumerable<IntrinsicNode> Intrinsics => ChildNodes.Cast<IntrinsicNode>();
+
+    public override void Accept(Visitor visitor)
+    {
+        visitor.VisitIntrinsicsList(this);
+    }
+}
+
+public partial class IntrinsicNode : SyntaxNode
+{
+    public IntrinsicNode(SimpleToken atToken, IdentifierToken identifier, ArgsListNode? args)
+        : base(SyntaxNodeKind.Intrinsic)
+    {
+        ChildTokens = new() { atToken, identifier, };
+        ChildNodes = new() { args, };
+
+        Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+        SetChildrenParent();
+    }
+
+    public SimpleToken AtToken => (SimpleToken)ChildTokens[0]!;
+    public IdentifierToken Identifier => (IdentifierToken)ChildTokens[1]!;
+    public ArgsListNode? Args => (ArgsListNode?)ChildNodes[0]!;
+
+    public override void Accept(Visitor visitor)
+    {
+        visitor.VisitIntrinsic(this);
     }
 }
