@@ -27,7 +27,7 @@ public class AstGenerator(
         _sb.Append("""
             file static class Helper
             {
-                public static TextSpan ComputeSpanningSpan(List<SyntaxNode?> nodes, List<SyntaxToken?> tokens)
+                public static TextSpan ComputeSpanningSpan(IEnumerable<SyntaxNode?> nodes, IEnumerable<SyntaxToken?> tokens)
                 {
                     TextSpan? lo = null;
                     TextSpan? hi = null;

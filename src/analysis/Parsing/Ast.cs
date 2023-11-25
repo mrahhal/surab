@@ -382,21 +382,60 @@ public sealed class SkippedToken : SyntaxToken
 
 public abstract class SyntaxNode(SyntaxNodeKind kind) : SyntaxEntity
 {
+    protected List<SyntaxToken?> _childTokens = default!;
+    protected List<SyntaxNode?> _childNodes = default!;
+
     public SyntaxNodeKind Kind { get; init; } = kind;
 
-    public List<SyntaxNode?> ChildNodes { get; protected set; } = default!;
+    public IEnumerable<SyntaxToken> ChildTokens
+    {
+        get
+        {
+            foreach (var token in _childTokens)
+            {
+                if (token != null)
+                {
+                    yield return token;
+                }
+            }
+        }
+    }
 
-    public List<SyntaxToken?> ChildTokens { get; protected set; } = default!;
+    public IEnumerable<SyntaxNode> ChildNodes
+    {
+        get
+        {
+            // This is a list of node children that we setup manually for one reason or another instead of being generated.
+            // These need to be accounted for here so that references to ChildNodes will take these children into account too.
+            // Make sure to keep this list updated.
+            // - DeclNode.Attrs
+            //
+            // In addition to this here, SetParent should be called on these in their setters, as they won't be set during the ctor.
+
+            if (this is DeclNode declNode && declNode.Attrs != null)
+            {
+                yield return declNode.Attrs;
+            }
+
+            foreach (var node in _childNodes)
+            {
+                if (node != null)
+                {
+                    yield return node;
+                }
+            }
+        }
+    }
 
     protected void SetChildrenParent()
     {
         foreach (var c in ChildNodes)
         {
-            c?.SetParent(this);
+            c.SetParent(this);
         }
         foreach (var c in ChildTokens)
         {
-            c?.SetParent(this);
+            c.SetParent(this);
         }
     }
 
@@ -440,42 +479,20 @@ public abstract class SyntaxNode(SyntaxNodeKind kind) : SyntaxEntity
             yield return this;
         }
 
-        IEnumerable<SyntaxNode> declNodeAttrsCollection = this is DeclNode declNode && declNode.Attrs != null ? [declNode.Attrs] : [];
-
-        // Takes into account non generated child nodes such as DeclNode.Attrs.
-        IEnumerable<SyntaxNode> totalChildNodes =
-        [
-            .. declNodeAttrsCollection,
-            .. ChildNodes,
-        ];
-
-        foreach (var child in totalChildNodes)
+        foreach (var child in ChildNodes)
         {
-            if (child != null)
-            {
-                yield return child;
-            }
+            yield return child;
         }
 
-        foreach (var child in totalChildNodes)
+        foreach (var child in ChildNodes)
         {
-            if (child != null)
+            foreach (var item in child.DescendantNodes())
             {
-                foreach (var item in child.DescendantNodes())
-                {
-                    yield return item;
-                }
+                yield return item;
             }
         }
     }
 }
-
-// This is a list of node children that we setup manually for one reason or another instead of being generated.
-// These need to be accounted for in Visitor.Walk, SyntaxNode.DescendantNodesCore. In principal, any place that references ChildNodes.
-// Make sure to keep this list updated.
-// - DeclNode.Attrs
-//
-// REVIEW: Would it be better to somehow tell the generator to add this to ChildNodes (after changing it into an IEnumerable as we need a proper backing List for the standard children)?
 
 public abstract class DeclNode(SyntaxNodeKind kind) : SyntaxNode(kind)
 {

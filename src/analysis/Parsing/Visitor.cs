@@ -49,23 +49,12 @@ public abstract partial class Visitor
     {
         foreach (var child in node.ChildTokens)
         {
-            if (child != null)
-            {
-                Visit(child);
-            }
-        }
-
-        if (node is DeclNode declNode && declNode.Attrs != null)
-        {
-            Visit(declNode.Attrs);
+            Visit(child);
         }
 
         foreach (var child in node.ChildNodes)
         {
-            if (child != null)
-            {
-                Visit(child);
-            }
+            Visit(child);
         }
     }
 

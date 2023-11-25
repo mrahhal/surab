@@ -31,8 +31,8 @@ public record SyntaxNodeMemberStoredField(string Name, string TypeName);
 
 public static class SyntaxNodeMemberStoredFields
 {
-    public static readonly SyntaxNodeMemberStoredField Tokens = new("ChildTokens", "SyntaxToken");
-    public static readonly SyntaxNodeMemberStoredField Nodes = new("ChildNodes", "SyntaxNode");
+    public static readonly SyntaxNodeMemberStoredField Tokens = new("_childTokens", "SyntaxToken");
+    public static readonly SyntaxNodeMemberStoredField Nodes = new("_childNodes", "SyntaxNode");
 
     public static IEnumerable<SyntaxNodeMemberStoredField> All => new[] { Tokens, Nodes };
 }
