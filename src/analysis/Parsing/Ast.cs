@@ -440,7 +440,16 @@ public abstract class SyntaxNode(SyntaxNodeKind kind) : SyntaxEntity
             yield return this;
         }
 
-        foreach (var child in ChildNodes)
+        IEnumerable<SyntaxNode> declNodeAttrsCollection = this is DeclNode declNode && declNode.Attrs != null ? [declNode.Attrs] : [];
+
+        // Takes into account non generated child nodes such as DeclNode.Attrs.
+        IEnumerable<SyntaxNode> totalChildNodes =
+        [
+            .. declNodeAttrsCollection,
+            .. ChildNodes,
+        ];
+
+        foreach (var child in totalChildNodes)
         {
             if (child != null)
             {
@@ -448,7 +457,7 @@ public abstract class SyntaxNode(SyntaxNodeKind kind) : SyntaxEntity
             }
         }
 
-        foreach (var child in ChildNodes)
+        foreach (var child in totalChildNodes)
         {
             if (child != null)
             {
@@ -461,9 +470,28 @@ public abstract class SyntaxNode(SyntaxNodeKind kind) : SyntaxEntity
     }
 }
 
+// This is a list of node children that we setup manually for one reason or another instead of being generated.
+// These need to be accounted for in Visitor.Walk, SyntaxNode.DescendantNodesCore. In principal, any place that references ChildNodes.
+// Make sure to keep this list updated.
+// - DeclNode.Attrs
+//
+// REVIEW: Would it be better to somehow tell the generator to add this to ChildNodes (after changing it into an IEnumerable as we need a proper backing List for the standard children)?
+
 public abstract class DeclNode(SyntaxNodeKind kind) : SyntaxNode(kind)
 {
-    public AttrsListNode? Attrs { get; internal set; }
+    private AttrsListNode? _attrs;
+
+    public AttrsListNode? Attrs
+    {
+        get { return _attrs; }
+        internal set
+        {
+            _attrs = value;
+            // Standard children gets setup properly in the generated node's ctor. But since we deal with
+            // attrs a bit more manually, we have to do it here.
+            _attrs?.SetParent(this);
+        }
+    }
 
     public bool HasAttr(string attrName) => Attrs?.HasAttr(attrName) ?? false;
 

@@ -54,10 +54,12 @@ public abstract partial class Visitor
                 Visit(child);
             }
         }
+
         if (node is DeclNode declNode && declNode.Attrs != null)
         {
             Visit(declNode.Attrs);
         }
+
         foreach (var child in node.ChildNodes)
         {
             if (child != null)
