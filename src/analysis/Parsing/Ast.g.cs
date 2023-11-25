@@ -85,8 +85,8 @@ public enum SyntaxNodeKind
     Type,
     FnSig,
     EqualsValueClause,
-    IntrinsicsList,
-    Intrinsic,
+    AttrsList,
+    Attr,
 }
 
 public partial class ModuleNode : SyntaxNode
@@ -847,30 +847,30 @@ public partial class EqualsValueClauseNode : SyntaxNode
     }
 }
 
-public partial class IntrinsicsListNode : SyntaxNode
+public partial class AttrsListNode : SyntaxNode
 {
-    public IntrinsicsListNode(IEnumerable<IntrinsicNode> intrinsics)
-        : base(SyntaxNodeKind.IntrinsicsList)
+    public AttrsListNode(IEnumerable<AttrNode> attrs)
+        : base(SyntaxNodeKind.AttrsList)
     {
         ChildTokens = new();
-        ChildNodes = intrinsics.Cast<SyntaxNode?>().ToList();
+        ChildNodes = attrs.Cast<SyntaxNode?>().ToList();
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
     }
 
-    public IEnumerable<IntrinsicNode> Intrinsics => ChildNodes.Cast<IntrinsicNode>();
+    public IEnumerable<AttrNode> Attrs => ChildNodes.Cast<AttrNode>();
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitIntrinsicsList(this);
+        visitor.VisitAttrsList(this);
     }
 }
 
-public partial class IntrinsicNode : SyntaxNode
+public partial class AttrNode : SyntaxNode
 {
-    public IntrinsicNode(SimpleToken atToken, IdentifierToken identifier, ArgsListNode? args)
-        : base(SyntaxNodeKind.Intrinsic)
+    public AttrNode(SimpleToken atToken, IdentifierToken identifier, ArgsListNode? args)
+        : base(SyntaxNodeKind.Attr)
     {
         ChildTokens = new() { atToken, identifier, };
         ChildNodes = new() { args, };
@@ -885,6 +885,6 @@ public partial class IntrinsicNode : SyntaxNode
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitIntrinsic(this);
+        visitor.VisitAttr(this);
     }
 }

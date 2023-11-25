@@ -107,8 +107,9 @@ public sealed class FnSymbol : Symbol
 
     public override IdentifierToken? Identifier => _node.Identifier;
 
-    // TODO:
-    public bool IsExtern => _node.Parent is FnDeclNode fnDeclNode && (fnDeclNode.Intrinsics?.Intrinsics.Any(x => x.Identifier.Value == "extern") ?? false);
+    public bool IsPublic => _node.Parent is FnDeclNode fnDeclNode && fnDeclNode.HasPublicAttr;
+
+    public bool IsExtern => _node.Parent is FnDeclNode fnDeclNode && fnDeclNode.HasExternAttr;
 
     /// <summary>
     /// The return type of the function.
@@ -166,7 +167,12 @@ public abstract class FieldSymbol : Symbol, ISymbolHasType
     /// </summary>
     public abstract TypeSymbol EnclosingType { get; }
 
+    /// <summary>
+    /// The field index in the fields array of its containing type.
+    /// </summary>
     public abstract int FieldIndex { get; }
+
+    public abstract bool IsPublic { get; }
 }
 
 internal sealed class FieldSymbolImpl : FieldSymbol, ISymbolHasType
@@ -194,6 +200,8 @@ internal sealed class FieldSymbolImpl : FieldSymbol, ISymbolHasType
     public override TypeSymbol EnclosingType => EnsureResolveEnclosingType();
 
     public override int FieldIndex { get; }
+
+    public override bool IsPublic => _node.HasPublicAttr;
 
     private ResolvedType EnsureResolveType()
     {

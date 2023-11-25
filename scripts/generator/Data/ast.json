@@ -580,17 +580,17 @@
       ]
     },
     {
-      "Name": "IntrinsicsList",
+      "Name": "AttrsList",
       "Members": [
         {
-          "Name": "intrinsics",
-          "Type": "IntrinsicNode",
+          "Name": "attrs",
+          "Type": "AttrNode",
           "List": true
         }
       ]
     },
     {
-      "Name": "Intrinsic",
+      "Name": "Attr",
       "Members": [
         {
           "Name": "atToken",

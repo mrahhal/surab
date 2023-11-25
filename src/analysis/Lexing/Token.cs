@@ -194,7 +194,7 @@ public static class TokenKindExtensions
         LineComment or
         BlockComment;
 
-    public static bool CanStartIntrinsic(this TokenKind kind) => kind is
+    public static bool CanStartAttribute(this TokenKind kind) => kind is
         AtBeforeIdentifier;
 
     public static bool CanStartDecl(this TokenKind kind) => kind is
@@ -202,7 +202,7 @@ public static class TokenKindExtensions
         Fn or
         Class or
         Identifier ||
-        CanStartIntrinsic(kind); // While an intrinsic isn't a part of the decl in the structural sense, we need to account for it here.
+        CanStartAttribute(kind); // While an attribute isn't a part of the decl in the structural sense, we need to account for it here.
 
     public static bool CanStartStmt(this TokenKind kind) =>
         kind.CanStartExpr() ||

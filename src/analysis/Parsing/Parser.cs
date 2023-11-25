@@ -330,7 +330,7 @@ internal class ParserImpl
     /// </summary>
     private DeclNode? ParseDecl_()
     {
-        var intrinsics = TryParseIntrinsicsList();
+        var attrs = TryParseAttrsList();
 
         var decl = _current?.Kind switch
         {
@@ -344,14 +344,14 @@ internal class ParserImpl
 
         if (decl != null)
         {
-            decl.Intrinsics = intrinsics;
+            decl.Attrs = attrs;
         }
         return decl;
     }
 
     private DeclNode? ParseInnerDecl()
     {
-        var intrinsics = TryParseIntrinsicsList();
+        var attrs = TryParseAttrsList();
 
         var decl = _current?.Kind switch
         {
@@ -366,7 +366,7 @@ internal class ParserImpl
 
         if (decl != null)
         {
-            decl.Intrinsics = intrinsics;
+            decl.Attrs = attrs;
         }
         return decl;
     }
@@ -1003,11 +1003,11 @@ internal class ParserImpl
     }
 
     /// <summary>
-    /// Parses `@intrinsic1 @intrinsic2(false) ...`
+    /// Parses `@attr1 @attr2(false) ...`
     /// </summary>
-    private IntrinsicsListNode? TryParseIntrinsicsList()
+    private AttrsListNode? TryParseAttrsList()
     {
-        var intrinsics = default(List<IntrinsicNode>?);
+        var attrs = default(List<AttrNode>?);
 
         while (true)
         {
@@ -1016,24 +1016,24 @@ internal class ParserImpl
                 break;
             }
 
-            var intrinsic = ParseIntrinsic();
-            if (intrinsic == null) return null;
+            var attr = ParseAttr();
+            if (attr == null) return null;
 
-            intrinsics ??= [];
-            intrinsics.Add(intrinsic);
+            attrs ??= [];
+            attrs.Add(attr);
         }
 
-        if (intrinsics == null)
+        if (attrs == null)
             return null;
 
-        return new IntrinsicsListNode(intrinsics);
+        return new AttrsListNode(attrs);
     }
 
     /// <summary>
-    /// Parses `@intrinsic` or `@intrinsic(...)`
+    /// Parses `@attr` or `@attr(...)`
     /// Requirements: current is AtBeforeIdentifier.
     /// </summary>
-    private IntrinsicNode? ParseIntrinsic()
+    private AttrNode? ParseAttr()
     {
         var atToken = EatAssertedSimpleToken(TokenKind.AtBeforeIdentifier);
 
@@ -1047,6 +1047,6 @@ internal class ParserImpl
             if (args == null) return null;
         }
 
-        return new IntrinsicNode(atToken, identifier, args);
+        return new AttrNode(atToken, identifier, args);
     }
 }

@@ -177,12 +177,12 @@ public abstract partial class Visitor
         Walk(node);
     }
 
-    public virtual void VisitIntrinsicsList(IntrinsicsListNode node)
+    public virtual void VisitAttrsList(AttrsListNode node)
     {
         Walk(node);
     }
 
-    public virtual void VisitIntrinsic(IntrinsicNode node)
+    public virtual void VisitAttr(AttrNode node)
     {
         Walk(node);
     }

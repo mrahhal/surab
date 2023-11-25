@@ -38,21 +38,21 @@ public class ParserTests
     }
 
     [Fact]
-    public void Decl_Intrinsics()
+    public void Decl_Attrs()
     {
         var src = """
             @public @some(false)
             fn f() { }
             """;
         var node = ParseDecl(src).Should().BeOfType<FnDeclNode>().Subject;
-        node.Intrinsics.Should().NotBeNull();
-        var intrinsics = node.Intrinsics!.Intrinsics;
-        intrinsics.Should().HaveCount(2);
-        intrinsics.ElementAt(0).Identifier.Value.Should().Be("public");
-        intrinsics.ElementAt(0).Args.Should().BeNull();
-        intrinsics.ElementAt(1).Identifier.Value.Should().Be("some");
-        intrinsics.ElementAt(1).Args.Should().NotBeNull();
-        intrinsics.ElementAt(1).Args!.Args.ElementAt(0).Expr.Should().BeOfType<LiteralExprNode>();
+        node.Attrs.Should().NotBeNull();
+        var attrs = node.Attrs!.Attrs;
+        attrs.Should().HaveCount(2);
+        attrs.ElementAt(0).Identifier.Value.Should().Be("public");
+        attrs.ElementAt(0).Args.Should().BeNull();
+        attrs.ElementAt(1).Identifier.Value.Should().Be("some");
+        attrs.ElementAt(1).Args.Should().NotBeNull();
+        attrs.ElementAt(1).Args!.Args.ElementAt(0).Expr.Should().BeOfType<LiteralExprNode>();
     }
 
     [Fact]

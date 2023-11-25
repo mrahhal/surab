@@ -463,7 +463,13 @@ public abstract class SyntaxNode(SyntaxNodeKind kind) : SyntaxEntity
 
 public abstract class DeclNode(SyntaxNodeKind kind) : SyntaxNode(kind)
 {
-    public IntrinsicsListNode? Intrinsics { get; internal set; }
+    public AttrsListNode? Attrs { get; internal set; }
+
+    public bool HasAttr(string attrName) => Attrs?.HasAttr(attrName) ?? false;
+
+    public bool HasPublicAttr => HasAttr(KnownAttrs.Public);
+
+    public bool HasExternAttr => HasAttr(KnownAttrs.Extern);
 }
 
 public abstract class StmtNode(SyntaxNodeKind kind) : SyntaxNode(kind)
@@ -511,4 +517,12 @@ public partial class BlockExprNode
 public partial class MapInitializerNode
 {
     public IEnumerable<AssignmentExprNode> WellFormedExprs => Exprs.Cast<AssignmentExprNode>();
+}
+
+public partial class AttrsListNode
+{
+    public bool HasAttr(string attrName)
+    {
+        return Attrs.Any(x => x.Identifier.Value == attrName);
+    }
 }
