@@ -32,7 +32,10 @@ var src = """
         noop();
         var b: Number = 4;
         var c = f(a, b);
-        c = 999.2;
+        c = {
+            var c2 = 999;
+            c2 + 0.2
+        };
         print_n(c);
         print_n(41 + 1);
 
