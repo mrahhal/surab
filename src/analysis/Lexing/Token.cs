@@ -35,6 +35,7 @@ public enum TokenKind
     InclusiveOr,
     ExclusiveOr,
     CaretCaret,
+    At,
 
     Fn,
     Struct,
@@ -45,7 +46,6 @@ public enum TokenKind
     False,
     Var,
     Const,
-    Field,
     Extern,
     Public,
     Return,
@@ -54,6 +54,7 @@ public enum TokenKind
     CharLiteral,
     StringLiteral,
     Identifier,
+    IntrinsicIdentifier, // An identifier preceded by '@'.
 
     Whitespace,
     LineComment,
@@ -114,6 +115,8 @@ public class Token(TokenKind kind, TextSpan span, object? data)
             InclusiveOr => "|",
             ExclusiveOr => "^",
             CaretCaret => "^^",
+            At => "@",
+
             Fn => "fn",
             Class => "class",
             New => "new",
@@ -122,17 +125,18 @@ public class Token(TokenKind kind, TextSpan span, object? data)
             False => "false",
             Var => "let",
             Const => "const",
-            Field => "field",
-            Extern => "extern",
-            Public => "public",
             Return => "return",
+
             NumberLiteral => "numlit",
             CharLiteral => "charlit",
             StringLiteral => "stringlit",
             Identifier => "ident",
+            IntrinsicIdentifier => "@ident",
+
             Whitespace => "ws",
             LineComment => "lc",
             BlockComment => "bc",
+
             Unknown => "unknown",
 
             _ => throw new NotImplementedException(),

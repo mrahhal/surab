@@ -115,6 +115,30 @@ public class LexerTests
     }
 
     [Theory]
+    [InlineData("@foo")]
+    [InlineData("@_foo")]
+    [InlineData("@foo1")]
+    [InlineData("@_foo12")]
+    [InlineData("@trueFoo")]
+    public void IntrinsicIdentifier(string src)
+    {
+        var tokens = Lexer.LexSkipTrivia(src).ToList();
+        tokens.Should().HaveCount(1);
+        tokens[0].Kind.Should().Be(TokenKind.IntrinsicIdentifier);
+    }
+
+    [Theory]
+    [InlineData("@+foo")]
+    public void AtTokenIdentifier(string src)
+    {
+        var tokens = Lexer.LexSkipTrivia(src).ToList();
+        tokens.Should().HaveCount(3);
+        tokens[0].Kind.Should().Be(TokenKind.At);
+        tokens[1].Kind.Should().Be(TokenKind.Plus);
+        tokens[2].Kind.Should().Be(TokenKind.Identifier);
+    }
+
+    [Theory]
     [InlineData("№")]
     public void Unknown(string src)
     {

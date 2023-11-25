@@ -908,7 +908,7 @@ internal class ParserImpl
     /// </summary>
     private ParamNode? ParseParam()
     {
-        var fieldToken = TryEatSimpleToken(TokenKind.Field);
+        //var fieldToken = TryEatSimpleToken(TokenKind.Field);
         var identifier = ParseIdentifier();
         if (identifier == null) return null;
         var (type, elided) = ParseOptionalColonTy();
@@ -919,7 +919,7 @@ internal class ParserImpl
             _ => EatExpectedSimpleToken(TokenKind.Comma),
         };
 
-        return new ParamNode(fieldToken, identifier, type, commaToken);
+        return new ParamNode(identifier, type, commaToken);
     }
 
     /// <summary>

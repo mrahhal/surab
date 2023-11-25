@@ -702,23 +702,22 @@ public partial class ParamsListNode : SyntaxNode
 
 public partial class ParamNode : SyntaxNode
 {
-    public ParamNode(SimpleToken? fieldToken, IdentifierToken identifier, ColonTypeNode? type, SimpleToken? commaToken)
+    public ParamNode(IdentifierToken identifier, ColonTypeNode? type, SimpleToken? commaToken)
         : base(SyntaxNodeKind.Param)
     {
-        ChildTokens = new() { fieldToken, identifier, commaToken, };
+        ChildTokens = new() { identifier, commaToken, };
         ChildNodes = new() { type, };
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
     }
 
-    public SimpleToken? FieldToken => (SimpleToken?)ChildTokens[0]!;
-    public IdentifierToken Identifier => (IdentifierToken)ChildTokens[1]!;
+    public IdentifierToken Identifier => (IdentifierToken)ChildTokens[0]!;
     /// <summary>
     /// Well formed: Has value
     /// </summary>
     public ColonTypeNode? Type => (ColonTypeNode?)ChildNodes[0]!;
-    public SimpleToken? CommaToken => (SimpleToken?)ChildTokens[2]!;
+    public SimpleToken? CommaToken => (SimpleToken?)ChildTokens[1]!;
 
     public override void Accept(Visitor visitor)
     {

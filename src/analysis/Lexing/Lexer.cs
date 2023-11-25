@@ -26,19 +26,16 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 
     private static readonly Dictionary<string, TokenKind> KeywordsMap = new()
     {
-        { "fn" , TokenKind.Fn },
-        { "struct" , TokenKind.Struct },
-        { "class" , TokenKind.Class },
-        { "new" , TokenKind.New },
-        { "this" , TokenKind.This },
-        { "true" , TokenKind.True },
-        { "false" , TokenKind.False },
-        { "var" , TokenKind.Var },
-        { "const" , TokenKind.Const },
-        { "field" , TokenKind.Field },
-        { "extern" , TokenKind.Extern },
-        { "public" , TokenKind.Public },
-        { "return" , TokenKind.Return },
+        { "fn", TokenKind.Fn },
+        { "struct", TokenKind.Struct },
+        { "class", TokenKind.Class },
+        { "new", TokenKind.New },
+        { "this", TokenKind.This },
+        { "true", TokenKind.True },
+        { "false", TokenKind.False },
+        { "var", TokenKind.Var },
+        { "const", TokenKind.Const },
+        { "return", TokenKind.Return },
     };
 
     private readonly ReadOnlyMemory<char> _src;
@@ -62,7 +59,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 
     public bool MoveNext()
     {
-        IterStart();
+        MarkIterStart();
 
         if (IsAtEnd()) return false;
 
@@ -99,6 +96,8 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
             '&' => CreateTokenIfMatchesOrToken('&', TokenKind.ConditionalAnd, TokenKind.And),
             '|' => CreateTokenIfMatchesOrToken('|', TokenKind.ConditionalOr, TokenKind.InclusiveOr),
             '^' => CreateTokenIfMatchesOrToken('^', TokenKind.CaretCaret, TokenKind.ExclusiveOr),
+
+            '@' => Chars.IsIdentifierStart(P1()) ? ConsumeIntrinsicIdentifier() : MakeToken(TokenKind.At),
 
             '\'' => ConsumeChar(),
             '"' => ConsumeString(),
@@ -164,7 +163,11 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
         return Chars.EOF;
     }
 
-    private void EatWhile(Func<char, bool> predicate)
+    // ## Terminilogy used
+    // Consume*: Advances and consumes (creates a token out of the consumed lexeme).
+    // Advance*/Eat*: Advances the caret without consuming.
+
+    private void AdvanceWhile(Func<char, bool> predicate)
     {
         while (predicate(P1()) && !IsAtEnd())
         {
@@ -237,7 +240,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
     {
         Debug.Assert(_prev == '/' && P1() == '/');
 
-        EatWhile(ch => ch != '\n');
+        AdvanceWhile(ch => ch != '\n');
         return MakeToken(TokenKind.LineComment);
     }
 
@@ -276,7 +279,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
     {
         Debug.Assert(Chars.IsWhitespace(_prev));
 
-        EatWhile(Chars.IsWhitespace);
+        AdvanceWhile(Chars.IsWhitespace);
         return MakeToken(TokenKind.Whitespace);
     }
 
@@ -345,6 +348,32 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
     {
         Debug.Assert(Chars.IsIdentifierStart(_prev));
 
+        EatIdentifier();
+        var lexeme = SliceConsumed();
+        // TODO: Optimize this when dictionaries start supporting spans.
+        if (!KeywordsMap.TryGetValue(lexeme.ToString(), out var tokenKind))
+        {
+            tokenKind = TokenKind.Identifier;
+        }
+        return MakeToken(tokenKind);
+    }
+
+    private Token ConsumeIntrinsicIdentifier()
+    {
+        Debug.Assert(_prev == '@' && Chars.IsIdentifierStart(P1()));
+
+        Advance();
+        EatIdentifier();
+        return MakeToken(TokenKind.IntrinsicIdentifier);
+    }
+
+    /// <summary>
+    ///
+    /// </summary>
+    private void EatIdentifier()
+    {
+        Debug.Assert(Chars.IsIdentifierStart(_prev));
+
         while (true)
         {
             switch (P1())
@@ -354,13 +383,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
                     break;
 
                 default:
-                    var lexeme = SliceConsumed();
-                    // TODO: Optimize this when dictionaries start supporting spans.
-                    if (!KeywordsMap.TryGetValue(lexeme.ToString(), out var tokenKind))
-                    {
-                        tokenKind = TokenKind.Identifier;
-                    }
-                    return MakeToken(tokenKind);
+                    return;
             }
         }
     }
@@ -398,7 +421,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
         },
     };
 
-    private void IterStart()
+    private void MarkIterStart()
     {
         _posIterStart = _pos;
     }

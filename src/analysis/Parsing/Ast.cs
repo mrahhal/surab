@@ -110,7 +110,6 @@ public sealed class SimpleToken : SyntaxToken
                 TokenKind.False => SimpleTokenKind.False,
                 TokenKind.Var => SimpleTokenKind.Var,
                 TokenKind.Const => SimpleTokenKind.Const,
-                TokenKind.Field => SimpleTokenKind.Field,
                 TokenKind.Extern => SimpleTokenKind.Extern,
                 TokenKind.Public => SimpleTokenKind.Public,
                 TokenKind.Return => SimpleTokenKind.Return,
