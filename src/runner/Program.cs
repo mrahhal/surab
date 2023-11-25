@@ -13,7 +13,8 @@ var src = """
         a: Number;
     }
 
-    @extern fn print_from_rust(s2: S2);
+    @extern
+    fn print_from_rust(s2: S2);
 
     fn noop() { }
 
@@ -48,7 +49,7 @@ var src = """
         print_n(s1.a);
         print_b(s1.b);
 
-        var s2 = S2 { a = 42 };
+        var s2 = S2 { a = 42.3 };
 
         fs(s1, s2);
 
