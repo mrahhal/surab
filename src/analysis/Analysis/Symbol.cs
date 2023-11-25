@@ -107,9 +107,9 @@ public sealed class FnSymbol : Symbol
 
     public override IdentifierToken? Identifier => _node.Identifier;
 
-    public bool IsPublic => _node.Parent is FnDeclNode fnDeclNode && fnDeclNode.HasPublicAttr;
+    public bool IsPublic => _node.Parent is FnDeclNode fnDeclNode && fnDeclNode.Attrs.HasAttr(KnownAttrs.Public);
 
-    public bool IsExtern => _node.Parent is FnDeclNode fnDeclNode && fnDeclNode.HasExternAttr;
+    public bool IsExtern => _node.Parent is FnDeclNode fnDeclNode && fnDeclNode.Attrs.HasAttr(KnownAttrs.Extern);
 
     /// <summary>
     /// The return type of the function.
@@ -201,7 +201,7 @@ internal sealed class FieldSymbolImpl : FieldSymbol, ISymbolHasType
 
     public override int FieldIndex { get; }
 
-    public override bool IsPublic => _node.HasPublicAttr;
+    public override bool IsPublic => _node.Attrs.HasAttr(KnownAttrs.Public);
 
     private ResolvedType EnsureResolveType()
     {
@@ -357,7 +357,7 @@ public class StructTypeSymbol : NamedTypeSymbol
     protected override IEnumerable<SyntaxNode> EnumerateMembers()
     {
         Debug.Assert(DeclaringNode != null, "Unreachable in built in types.");
-        foreach (var member in DeclaringNode.Members)
+        foreach (var member in DeclaringNode.Members.Members)
         {
             yield return member;
         }
@@ -375,7 +375,7 @@ public class ClassTypeSymbol : NamedTypeSymbol
     protected override IEnumerable<SyntaxNode> EnumerateMembers()
     {
         Debug.Assert(DeclaringNode != null, "Unreachable in built in types.");
-        foreach (var member in DeclaringNode.Members)
+        foreach (var member in DeclaringNode.Members.Members)
         {
             yield return member;
         }

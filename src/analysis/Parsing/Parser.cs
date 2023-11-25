@@ -323,7 +323,7 @@ internal class ParserImpl
     }
 
     // Decls
-    // ------------
+    // -----
 
     /// <summary>
     /// Parses outer level decl.
@@ -332,49 +332,37 @@ internal class ParserImpl
     {
         var attrs = TryParseAttrsList();
 
-        var decl = _current?.Kind switch
+        return _current?.Kind switch
         {
-            TokenKind.Const => ParseConstDecl(),
-            TokenKind.Fn => ParseFnDecl(),
-            TokenKind.Struct => ParseStructDecl(),
-            TokenKind.Class => ParseClassDecl(),
+            TokenKind.Const => ParseConstDecl(attrs),
+            TokenKind.Fn => ParseFnDecl(attrs),
+            TokenKind.Struct => ParseStructDecl(attrs),
+            TokenKind.Class => ParseClassDecl(attrs),
 
             _ => null,
         };
-
-        if (decl != null)
-        {
-            decl.Attrs = attrs;
-        }
-        return decl;
     }
 
     private DeclNode? ParseInnerDecl()
     {
         var attrs = TryParseAttrsList();
 
-        var decl = _current?.Kind switch
+        return _current?.Kind switch
         {
             // `identifier: Type = 2;` or `identifier = 2;`
-            TokenKind.Identifier when P1()?.Kind is TokenKind.Colon or TokenKind.Equal => ParseFieldDecl(),
+            TokenKind.Identifier when P1()?.Kind is TokenKind.Colon or TokenKind.Equal => ParseFieldDecl(attrs),
 
             // `identifier()`
-            TokenKind.Identifier when P1()?.Kind is TokenKind.LeftParen => ParseMethodDecl(),
+            TokenKind.Identifier when P1()?.Kind is TokenKind.LeftParen => ParseMethodDecl(attrs),
 
             _ => null,
         };
-
-        if (decl != null)
-        {
-            decl.Attrs = attrs;
-        }
-        return decl;
     }
 
     /// <summary>
     /// Parses `const identifier = expr;`
     /// </summary>
-    private DeclNode? ParseConstDecl()
+    private DeclNode? ParseConstDecl(AttrsListNode? attrs)
     {
         var constToken = EatAssertedSimpleToken(TokenKind.Const);
         var identifier = ParseIdentifier();
@@ -386,7 +374,7 @@ internal class ParserImpl
         if (value == null) return null;
         var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
-        return new ConstDeclNode(constToken, identifier, type, equalToken, value, semicolonToken);
+        return new ConstDeclNode(attrs, constToken, identifier, type, equalToken, value, semicolonToken);
     }
 
     /// <summary>
@@ -394,7 +382,7 @@ internal class ParserImpl
     /// - `fn identifier(param1, param2) : Type { ... }`
     /// - `fn identifier(param1, param2) : Type;`
     /// </summary>
-    private DeclNode? ParseFnDecl()
+    private DeclNode? ParseFnDecl(AttrsListNode? attrs)
     {
         var fnToken = EatAssertedSimpleToken(TokenKind.Fn);
         var sig = ParseFnSig();
@@ -410,57 +398,61 @@ internal class ParserImpl
             semicolonToken = TryEatSimpleToken(TokenKind.Semicolon);
         }
 
-        return new FnDeclNode(fnToken, sig, body, semicolonToken);
+        return new FnDeclNode(attrs, fnToken, sig, body, semicolonToken);
+    }
+
+    private DeclMembersNode? ParseDeclMembers()
+    {
+        var members = new List<DeclNode>();
+
+        while (!CheckToken(TokenKind.RightBrace))
+        {
+            var decl = ParseInnerDecl();
+            if (decl == null) return null;
+            members.Add(decl);
+        }
+
+        return new(members);
     }
 
     /// <summary>
     /// Parses `struct Name { ... }`
     /// </summary>
-    private DeclNode? ParseStructDecl()
+    private DeclNode? ParseStructDecl(AttrsListNode? attrs)
     {
         var structToken = EatAssertedSimpleToken(TokenKind.Struct);
         var identifier = ParseIdentifier();
         if (identifier == null) return null;
-        var members = new List<DeclNode>();
 
         var openBraceToken = EatExpectedSimpleToken(TokenKind.LeftBrace);
-        while (!CheckToken(TokenKind.RightBrace))
-        {
-            var decl = ParseInnerDecl();
-            if (decl == null) return null;
-            members.Add(decl);
-        }
+        var members = ParseDeclMembers();
+        if (members == null) return null;
         var closedBraceToken = EatExpectedSimpleToken(TokenKind.RightBrace);
 
-        return new StructDeclNode(structToken, identifier, openBraceToken, members, closedBraceToken);
+        return new StructDeclNode(attrs, structToken, identifier, openBraceToken, members, closedBraceToken);
     }
 
     /// <summary>
     /// Parses `class Name { ... }`
     /// </summary>
-    private DeclNode? ParseClassDecl()
+    private DeclNode? ParseClassDecl(AttrsListNode? attrs)
     {
         var classToken = EatAssertedSimpleToken(TokenKind.Class);
         var identifier = ParseIdentifier();
         if (identifier == null) return null;
-        var members = new List<DeclNode>();
 
         var openBraceToken = EatExpectedSimpleToken(TokenKind.LeftBrace);
-        while (!CheckToken(TokenKind.RightBrace))
-        {
-            var decl = ParseInnerDecl();
-            if (decl == null) return null;
-            members.Add(decl);
-        }
+        var members = ParseDeclMembers();
+        if (members == null) return null;
         var closedBraceToken = EatExpectedSimpleToken(TokenKind.RightBrace);
 
-        return new ClassDeclNode(classToken, identifier, openBraceToken, members, closedBraceToken);
+        return new ClassDeclNode(attrs, classToken, identifier, openBraceToken, members, closedBraceToken);
     }
 
     /// <summary>
     /// Parses `identifier: Type = expr;`
     /// </summary>
-    private DeclNode? ParseFieldDecl()
+    private DeclNode? ParseFieldDecl(AttrsListNode? attrs)
     {
         var identifier = ParseIdentifier();
         if (identifier == null) return null;
@@ -469,13 +461,13 @@ internal class ParserImpl
         var initializer = ParseEqualsValueClause();
         var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
-        return new FieldDeclNode(identifier, type, initializer, semicolonToken);
+        return new FieldDeclNode(attrs, identifier, type, initializer, semicolonToken);
     }
 
     /// <summary>
     /// Parses `identifier(param1, param2)`
     /// </summary>
-    private DeclNode? ParseMethodDecl()
+    private DeclNode? ParseMethodDecl(AttrsListNode? attrs)
     {
         var sig = ParseFnSig();
         if (sig == null) return null;
@@ -483,11 +475,11 @@ internal class ParserImpl
         var body = ParseBlockExpr();
         if (body == null) return null;
 
-        return new MethodDeclNode(sig, body);
+        return new MethodDeclNode(attrs, sig, body);
     }
 
     // Stmts
-    // ----------
+    // -----
 
     private StmtNode? ParseStmt_()
     {
@@ -544,7 +536,7 @@ internal class ParserImpl
     }
 
     // Exprs
-    // -----------
+    // -----
 
     private ExprNode? ParseExpr_() => ParseExprForPrecedence(Precedence.None);
 

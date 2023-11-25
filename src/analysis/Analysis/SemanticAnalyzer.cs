@@ -57,7 +57,7 @@ internal class SemanticAnalyzer(SemanticModel model) : Visitor
 
     public override void VisitFieldDecl(FieldDeclNode node)
     {
-        if (node.Parent is not StructDeclNode or ClassDeclNode)
+        if (node.Parent is not DeclMembersNode declMembersNode || declMembersNode.Parent is not StructDeclNode or ClassDeclNode)
         {
             _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a field decl is not allowed in this context");
         }

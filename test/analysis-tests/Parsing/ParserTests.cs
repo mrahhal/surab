@@ -60,9 +60,9 @@ public class ParserTests
     {
         var src = "struct S1 { a: Number = 2; f() {} }";
         var node = ParseDecl(src).Should().BeOfType<StructDeclNode>().Subject;
-        node.Members.Should().HaveCount(2);
-        node.Members.ElementAt(0).Should().BeOfType<FieldDeclNode>();
-        node.Members.ElementAt(1).Should().BeOfType<MethodDeclNode>();
+        node.Members.Members.Should().HaveCount(2);
+        node.Members.Members.ElementAt(0).Should().BeOfType<FieldDeclNode>();
+        node.Members.Members.ElementAt(1).Should().BeOfType<MethodDeclNode>();
     }
 
     [Fact]
@@ -70,7 +70,7 @@ public class ParserTests
     {
         var src = "struct S1 { a: Number; f() {} }";
         var node = ParseDecl(src).Should().BeOfType<StructDeclNode>().Subject;
-        node.Members.Should().HaveCount(2);
+        node.Members.Members.Should().HaveCount(2);
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public class ParserTests
     {
         var src = "class S1 { a = 2; f() {} }";
         var node = ParseDecl(src).Should().BeOfType<ClassDeclNode>().Subject;
-        node.Members.Should().HaveCount(2);
+        node.Members.Members.Should().HaveCount(2);
     }
 
     [Fact]

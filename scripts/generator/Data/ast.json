@@ -15,6 +15,11 @@
       "Base": "DeclNode",
       "Members": [
         {
+          "Name": "attrs",
+          "Type": "AttrsListNode",
+          "Optional": true
+        },
+        {
           "Name": "constToken",
           "Type": "SimpleToken"
         },
@@ -47,6 +52,11 @@
       "Base": "DeclNode",
       "Members": [
         {
+          "Name": "attrs",
+          "Type": "AttrsListNode",
+          "Optional": true
+        },
+        {
           "Name": "fnToken",
           "Type": "SimpleToken"
         },
@@ -68,9 +78,24 @@
       ]
     },
     {
+      "Name": "DeclMembers",
+      "Members": [
+        {
+          "Name": "members",
+          "Type": "DeclNode",
+          "List": true
+        }
+      ]
+    },
+    {
       "Name": "StructDecl",
       "Base": "DeclNode",
       "Members": [
+        {
+          "Name": "attrs",
+          "Type": "AttrsListNode",
+          "Optional": true
+        },
         {
           "Name": "structToken",
           "Type": "SimpleToken"
@@ -85,8 +110,7 @@
         },
         {
           "Name": "members",
-          "Type": "DeclNode",
-          "List": true
+          "Type": "DeclMembersNode"
         },
         {
           "Name": "closedBraceToken",
@@ -98,6 +122,11 @@
       "Name": "ClassDecl",
       "Base": "DeclNode",
       "Members": [
+        {
+          "Name": "attrs",
+          "Type": "AttrsListNode",
+          "Optional": true
+        },
         {
           "Name": "classToken",
           "Type": "SimpleToken"
@@ -112,8 +141,7 @@
         },
         {
           "Name": "members",
-          "Type": "DeclNode",
-          "List": true
+          "Type": "DeclMembersNode"
         },
         {
           "Name": "closedBraceToken",
@@ -125,6 +153,11 @@
       "Name": "FieldDecl",
       "Base": "DeclNode",
       "Members": [
+        {
+          "Name": "attrs",
+          "Type": "AttrsListNode",
+          "Optional": true
+        },
         {
           "Name": "identifier",
           "Type": "IdentifierToken"
@@ -149,6 +182,11 @@
       "Name": "MethodDecl",
       "Base": "DeclNode",
       "Members": [
+        {
+          "Name": "attrs",
+          "Type": "AttrsListNode",
+          "Optional": true
+        },
         {
           "Name": "sig",
           "Type": "FnSigNode"

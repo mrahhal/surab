@@ -382,6 +382,7 @@ public sealed class SkippedToken : SyntaxToken
 
 public abstract class SyntaxNode(SyntaxNodeKind kind) : SyntaxEntity
 {
+    // Set by the generated nodes.
     protected List<SyntaxToken?> _childTokens = default!;
     protected List<SyntaxNode?> _childNodes = default!;
 
@@ -405,18 +406,6 @@ public abstract class SyntaxNode(SyntaxNodeKind kind) : SyntaxEntity
     {
         get
         {
-            // This is a list of node children that we setup manually for one reason or another instead of being generated.
-            // These need to be accounted for here so that references to ChildNodes will take these children into account too.
-            // Make sure to keep this list updated.
-            // - DeclNode.Attrs
-            //
-            // In addition to this here, SetParent should be called on these in their setters, as they won't be set during the ctor.
-
-            if (this is DeclNode declNode && declNode.Attrs != null)
-            {
-                yield return declNode.Attrs;
-            }
-
             foreach (var node in _childNodes)
             {
                 if (node != null)
@@ -496,25 +485,6 @@ public abstract class SyntaxNode(SyntaxNodeKind kind) : SyntaxEntity
 
 public abstract class DeclNode(SyntaxNodeKind kind) : SyntaxNode(kind)
 {
-    private AttrsListNode? _attrs;
-
-    public AttrsListNode? Attrs
-    {
-        get { return _attrs; }
-        internal set
-        {
-            _attrs = value;
-            // Standard children gets setup properly in the generated node's ctor. But since we deal with
-            // attrs a bit more manually, we have to do it here.
-            _attrs?.SetParent(this);
-        }
-    }
-
-    public bool HasAttr(string attrName) => Attrs?.HasAttr(attrName) ?? false;
-
-    public bool HasPublicAttr => HasAttr(KnownAttrs.Public);
-
-    public bool HasExternAttr => HasAttr(KnownAttrs.Extern);
 }
 
 public abstract class StmtNode(SyntaxNodeKind kind) : SyntaxNode(kind)
@@ -564,10 +534,11 @@ public partial class MapInitializerNode
     public IEnumerable<AssignmentExprNode> WellFormedExprs => Exprs.Cast<AssignmentExprNode>();
 }
 
-public partial class AttrsListNode
+public static class AttrsListNodeExtensions
 {
-    public bool HasAttr(string attrName)
+    // Extension instead of a method in a partial to be able to accept a nullable AttrsListNode.
+    public static bool HasAttr(this AttrsListNode? @this, string attrName)
     {
-        return Attrs.Any(x => x.Identifier.Value == attrName);
+        return @this?.Attrs.Any(x => x.Identifier.Value == attrName) ?? false;
     }
 }

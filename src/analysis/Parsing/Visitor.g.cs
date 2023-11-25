@@ -22,6 +22,11 @@ public abstract partial class Visitor
         Walk(node);
     }
 
+    public virtual void VisitDeclMembers(DeclMembersNode node)
+    {
+        Walk(node);
+    }
+
     public virtual void VisitStructDecl(StructDeclNode node)
     {
         Walk(node);
