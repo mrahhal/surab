@@ -1,23 +1,23 @@
 // This preclude is included in all surab compilations.
 
-//@public
+@public
 struct None { }
 
-//@public
+@public
 struct Number { }
 
-//@public
+@public
 struct Char { }
 
-//@public
+@public
 struct Bool { }
 
-//@public
+@public
 fn print_n(value: Number) {
     // Compiler intrinsic
 }
 
-//@public
+@public
 fn print_b(value: Bool) {
     // Compiler intrinsic
 }
