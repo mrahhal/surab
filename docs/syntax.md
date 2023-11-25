@@ -8,7 +8,7 @@ To fix:
 General:
 
 ```cs
-@import "another_file.surab";
+@import("another_file.surab")
 
 const SOME_CONSTANT = 2;
 
@@ -18,6 +18,10 @@ static SOME_RESULT = {
 
 // Functions can exist out of classes, in which case they simply live in the namespace.
 fn main() {
+    var size = BitSize {
+        bits = 24,
+    };
+
     var greeter = Greeter.new("mrahhal");
     greeter.greet();
 
@@ -28,18 +32,26 @@ fn main() {
     };
 }
 
+@public
+struct BitSize {
+  bits: Number;
+}
+
 class Greeter {
     anotherField: Number = 1;
     foo: Foo;
 
     // `new` is not a special name, it's just a convention for the ctor.
-    public static new(field name: String) { }
+    @public @static
+    new(field name: String) { }
 
-    public greet() {
+    @public
+    greet() {
         Print("Greet " + this.name);
     }
 
-    public get_name(): String { // Return type will be inferred if omitted
+    @public
+    get_name(): String { // Return type will be inferred if omitted
         foreach (a in b) {
             @last
         }
@@ -47,7 +59,8 @@ class Greeter {
         return this.name;
     }
 
-    public mutable change_name(newName: String) {
+    @public @mutable
+    change_name(newName: String) {
         this.name = newName;
     }
 }
@@ -75,8 +88,7 @@ Flow analysis/typing:
 
 ```cs
 var version = GetVersion(httpContext);
-if (version.IsSome())
-{
+if (version.IsSome()) {
     // version is now known to not be null...
 }
 ```

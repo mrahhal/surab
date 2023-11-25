@@ -1,6 +1,6 @@
 # Conventions
 
-Braces on new lines.
+Braces on same lines.
 
 Indentation uses 4 spaces.
 
