@@ -326,7 +326,7 @@ internal sealed class FnCompiler : LoweredVisitor
         }
 
         var returnValue = LLVM.Builder.BuildCall2(fnType, fnValue, [.. args]);
-        attrs.Apply((index, attr) => fnValue.AddCallSiteAttributeAtIndex(index, attr));
+        attrs.Apply((index, attr) => returnValue.AddCallSiteAttributeAtIndex(index, attr));
 
         // Always push a value, even if void, since this gets popped in VisitExprStmt.
         _stack.Push(LLVMUnit.Unwrapped(fnType.ReturnType, returnValue));
