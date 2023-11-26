@@ -3,6 +3,21 @@ using Surab;
 using Surab.Analysis;
 using Surab.Compilation;
 
+ConsoleHelper.WriteInfo($"Building runtime lib...".NL());
+
+var runtimeSrcFolderPath = PathHelper.GetRuntimeSrcFolderPath();
+var p = new Process
+{
+    StartInfo =
+    {
+        FileName = "cargo",
+        Arguments = "build",
+    },
+};
+
+p.Start();
+p.WaitForExit();
+
 var src = """
     struct S1 {
         a: Number;
@@ -72,13 +87,13 @@ var exe = Compiler.Compile(model, "");
 ConsoleHelper.WriteInfo($"Running compiled exe '{Path.GetFileName(exe)}'...".NL());
 ConsoleHelper.WriteInfo("===".NL());
 
-var p = new Process
+p = new Process
 {
     StartInfo =
     {
         FileName = exe,
         Arguments = "",
-    }
+    },
 };
 
 p.Start();

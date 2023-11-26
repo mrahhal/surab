@@ -14,6 +14,11 @@ internal static class PathHelper
         return Path.Combine(GetRepoRootFolderPath(), "src");
     }
 
+    public static string GetRuntimeSrcFolderPath()
+    {
+        return Path.Combine(GetRepoRootFolderPath(), "src/runtime");
+    }
+
     public static string GetRuntimeTargetFolderPath()
     {
         return Path.Combine(GetRepoRootFolderPath(), "target");
