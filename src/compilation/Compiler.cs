@@ -554,6 +554,11 @@ internal sealed class FnCompiler : LoweredVisitor
         var fnType = LLVMTypeRef.CreateFunction(sret ? LLVMTypeRef.Void : returnType, @params.ToArray(), false);
         var fnValue = LLVM.Module.AddFunction(fnSymbol.Identifier!.Value, fnType);
 
+        if (!fnSymbol.IsExport && !fnSymbol.IsExtern && !fnSymbol.IsMain)
+        {
+            fnValue.Linkage = LLVMLinkage.LLVMInternalLinkage;
+        }
+
         // TODO: switch (cc)
         fnValue.SetFunctionCallConv(CallConv.C);
 

@@ -24,6 +24,7 @@ var src = """
         b: Bool;
     }
 
+    @extern
     struct S2 {
         a: Number;
     }
@@ -33,6 +34,7 @@ var src = """
 
     fn noop() { }
 
+    @export
     fn f(x: Number, y: Number): Number {
         var e = x + y;
         return e + 1;

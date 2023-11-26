@@ -112,7 +112,11 @@ public sealed class FnSymbol : Symbol
     /// </summary>
     public bool IsOuterFn => Parent == null;
 
+    public bool IsMain => Parent == null && Name == "main";
+
     public bool IsPublic => _node.Parent is FnDeclNode fnDeclNode && fnDeclNode.Attrs.HasAttr(KnownAttrs.Public);
+
+    public bool IsExport => _node.Parent is FnDeclNode fnDeclNode && fnDeclNode.Attrs.HasAttr(KnownAttrs.Export);
 
     public bool IsExtern => _node.Parent is FnDeclNode fnDeclNode && fnDeclNode.Attrs.HasAttr(KnownAttrs.Extern);
 
