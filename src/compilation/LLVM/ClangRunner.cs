@@ -4,9 +4,9 @@ namespace Surab.Compilation.LLVM;
 
 internal static class ClangRunner
 {
-    // Required native libs by Rust, minus msvcrt.lib as that creates the printf not found symbol error for some reason.
+    // Required native libs by Rust.
     // The order and any duplication can be significant on some platforms.
-    private static readonly string AdditionalLibs = @"kernel32.lib advapi32.lib bcrypt.lib kernel32.lib ntdll.lib userenv.lib ws2_32.lib kernel32.lib ws2_32.lib kernel32.lib ntdll.lib kernel32.lib";
+    private static readonly string AdditionalLibs = @"kernel32.lib advapi32.lib bcrypt.lib kernel32.lib ntdll.lib userenv.lib ws2_32.lib kernel32.lib ws2_32.lib kernel32.lib ntdll.lib kernel32.lib msvcrt.lib";
 
     public static string Run(IEnumerable<string> llFiles, string? outputFileNameWithoutExtension = null)
     {
