@@ -365,4 +365,5 @@ internal class SemanticAnalyzer(SemanticModel model) : Visitor
     //   - Initializer should always be given a value as a start
     // - TypeSymbol being the ErrorType
     // - BlockExpr can't appear as an l-value
+    // - Binary/Unary
 }

@@ -332,6 +332,20 @@ internal sealed class FnCompiler : LoweredVisitor
         _stack.Push(LLVMUnit.Unwrapped(fnType.ReturnType, returnValue));
     }
 
+    public override void VisitUnaryExpr(LoweredUnaryExpr node)
+    {
+        Visit(node.Expr);
+        var (_, value) = _stack.Pop().Unwrap(LLVM);
+
+        var newValue = node.Op switch
+        {
+            UnaryOperatorTokenKind.Neg => LLVM.Builder.BuildFNeg(value),
+            UnaryOperatorTokenKind.Not => LLVM.Builder.BuildICmp(LLVMIntPredicate.LLVMIntEQ, value, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, 0)),
+            _ => throw new NotImplementedException(),
+        };
+        _stack.Push(LLVMUnit.Unwrapped(LLVMTypeRef.Double, newValue));
+    }
+
     public override void VisitBinaryExpr(LoweredBinaryExpr node)
     {
         Visit(node.Left);
@@ -340,15 +354,14 @@ internal sealed class FnCompiler : LoweredVisitor
         Visit(node.Right);
         var (_, rightValue) = _stack.Pop().Unwrap(LLVM);
 
-        var value = node.Op switch
+        var newValue = node.Op switch
         {
             BinaryOperatorTokenKind.Add => LLVM.Builder.BuildFAdd(leftValue, rightValue),
             BinaryOperatorTokenKind.Sub => LLVM.Builder.BuildFSub(leftValue, rightValue),
             // TODO: Missing
             _ => throw new NotImplementedException(),
         };
-
-        _stack.Push(LLVMUnit.Unwrapped(LLVMTypeRef.Double, value));
+        _stack.Push(LLVMUnit.Unwrapped(LLVMTypeRef.Double, newValue));
     }
 
     public override void VisitVariableLoadExpr(LoweredVariableLoadExpr node)
