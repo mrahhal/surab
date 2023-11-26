@@ -107,6 +107,11 @@ public sealed class FnSymbol : Symbol
 
     public override IdentifierToken? Identifier => _node.Identifier;
 
+    /// <summary>
+    /// Gets whether a function is an outer function. i.e. not a member of another symbol but directly under the module.
+    /// </summary>
+    public bool IsOuterFn => Parent == null;
+
     public bool IsPublic => _node.Parent is FnDeclNode fnDeclNode && fnDeclNode.Attrs.HasAttr(KnownAttrs.Public);
 
     public bool IsExtern => _node.Parent is FnDeclNode fnDeclNode && fnDeclNode.Attrs.HasAttr(KnownAttrs.Extern);

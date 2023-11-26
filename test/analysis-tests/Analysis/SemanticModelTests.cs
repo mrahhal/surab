@@ -240,4 +240,20 @@ public class SemanticModelTests
         var fnSymbol = symbol.Should().BeOfType<FnSymbol>().Subject;
         fnSymbol.IsExtern.Should().BeTrue();
     }
+
+    [Fact]
+    public void FnSymbol_OuterFn()
+    {
+        var src = """
+            struct S1 { }
+            fn f() { }
+            """;
+        var tree = Parser.ParseModule(src);
+        var model = SemanticModel.Create(tree);
+
+        var fnDecl = tree.Root.DescendantNodes().OfType<FnDeclNode>().Single();
+        model.TryGetDeclaredSymbol(fnDecl, out var symbol).Should().BeTrue();
+        var fnSymbol = symbol.Should().BeOfType<FnSymbol>().Subject;
+        fnSymbol.IsOuterFn.Should().BeTrue();
+    }
 }

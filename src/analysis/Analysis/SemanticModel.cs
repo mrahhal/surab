@@ -378,18 +378,9 @@ public class SemanticModel
 
             Walk(node);
 
-            if (prevParentSymbol != null)
-            {
-                _parentSymbol = prevParentSymbol;
-            }
-            if (scope != null)
-            {
-                _parentScope = prevParentScope;
-            }
-            if (typeContext != null)
-            {
-                _typeContext = prevTypeContext;
-            }
+            _parentSymbol = prevParentSymbol;
+            _parentScope = prevParentScope;
+            _typeContext = prevTypeContext;
         }
 
         private Symbol? CreateSymbol(SyntaxNode node)
