@@ -1,4 +1,5 @@
-//! This preclude is included in all surab compilations.
+//! The preclude for Surab which is implicitly imported in all Surab modules.
+//! It contains fundemantal and built in types and functions.
 
 @public
 struct None { }
