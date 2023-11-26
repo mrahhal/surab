@@ -436,7 +436,7 @@ public class SemanticModel
             {
                 // Temporarily give non prelude modules the prelude model to lookup exported symbols.
                 // Later, this should be given as part of the imported modules.
-                ModuleNode n => new ModuleScope(n, isPrelude ? null : Prelude.GetPreludeSemanticModel()),
+                ModuleNode n => new ModuleScope(n, isPrelude ? null : Prelude.GetSemanticModel()),
                 StructDeclNode n => new StructDeclScope(n, (StructTypeSymbol)symbol!),
                 ClassDeclNode n => new ClassDeclScope(n, (NamedTypeSymbol)symbol!),
                 FnDeclNode n => new FnScope(n.Sig, (FnSymbol)symbol!),

@@ -16,7 +16,7 @@ public sealed class Compiler
     {
         var llvm = LLVMCompilationContext.Create();
         // Need to compile the prelude too.
-        var models = new List<SemanticModel> { Prelude.GetPreludeSemanticModel(), model };
+        var models = new List<SemanticModel> { Prelude.GetSemanticModel(), model };
 
         _context = new CompilationContext(models, target, llvm, options);
     }

@@ -3,27 +3,27 @@
 internal static class Prelude
 {
     // TODO: Find a better way to do this (so as not to use static?).
-    private static SemanticModel? _preludeSemanticModel = null;
+    private static SemanticModel? _semanticModel = null;
     private static readonly object _lock = new();
 
-    public static void EnsurePreludeLoaded()
+    public static void EnsureLoaded()
     {
-        GetPreludeSemanticModel();
+        GetSemanticModel();
     }
 
-    public static SemanticModel GetPreludeSemanticModel()
+    public static SemanticModel GetSemanticModel()
     {
-        if (_preludeSemanticModel != null) return _preludeSemanticModel;
+        if (_semanticModel != null) return _semanticModel;
         // Need a lock to avoid concurrency issues when running parallel tests.
         lock (_lock)
         {
             // Double lock test.
-            if (_preludeSemanticModel != null) return _preludeSemanticModel;
-            return _preludeSemanticModel ??= CreatePreludeSemanticModel();
+            if (_semanticModel != null) return _semanticModel;
+            return _semanticModel ??= CreateSemanticModel();
         }
     }
 
-    private static SemanticModel CreatePreludeSemanticModel()
+    private static SemanticModel CreateSemanticModel()
     {
         var preludeFile = Path.GetFullPath(Path.Combine(PathHelper.GetSrcFolderPath(), "lib/prelude.surab"));
         var prelude = File.ReadAllText(preludeFile);
