@@ -14,7 +14,45 @@ public class GeneralTests
             }
             """);
 
-        var expectedOutput = "42" + Environment.NewLine;
+        var expectedOutput = "42".NL();
+
+        output.Should().Be(expectedOutput);
+    }
+
+    [Fact]
+    public void General_Neg()
+    {
+        var output = IntegrationRunner.Run($$"""
+            fn main() {
+                print_n(-42);
+                print_n(42 + -2);
+                print_n(-42 + -2);
+                print_n(-42 + 2);
+            }
+            """);
+
+        var expectedOutput =
+            "-42".NL() +
+            "40".NL() +
+            "-44".NL() +
+            "-40".NL();
+
+        output.Should().Be(expectedOutput);
+    }
+
+    [Fact]
+    public void General_Not()
+    {
+        var output = IntegrationRunner.Run($$"""
+            fn main() {
+                print_b(!true);
+                print_b(!false);
+            }
+            """);
+
+        var expectedOutput =
+            "false".NL() +
+            "true".NL();
 
         output.Should().Be(expectedOutput);
     }

@@ -5,3 +5,4 @@
 [assembly: InternalsVisibleTo("runner")]
 [assembly: InternalsVisibleTo("analysis-tests")]
 [assembly: InternalsVisibleTo("compilation-tests")]
+[assembly: InternalsVisibleTo("integration-tests")]

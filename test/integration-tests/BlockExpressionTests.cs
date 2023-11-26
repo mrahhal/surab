@@ -17,7 +17,7 @@ public class BlockExprTests
             }
             """);
 
-        var expectedOutput = "2" + Environment.NewLine;
+        var expectedOutput = "2".NL();
 
         output.Should().Be(expectedOutput);
     }
@@ -45,7 +45,7 @@ public class BlockExprTests
             }
             """);
 
-        var expectedOutput = "2" + Environment.NewLine;
+        var expectedOutput = "2".NL();
 
         output.Should().Be(expectedOutput);
     }
@@ -65,7 +65,7 @@ public class BlockExprTests
             }
             """);
 
-        var expectedOutput = "2" + Environment.NewLine;
+        var expectedOutput = "2".NL();
 
         output.Should().Be(expectedOutput);
     }

@@ -13,7 +13,7 @@ public class StructTests
             }
             """);
 
-        var expectedOutput = "42" + Environment.NewLine;
+        var expectedOutput = "42".NL();
 
         output.Should().Be(expectedOutput);
     }

@@ -132,21 +132,17 @@ internal sealed class FnCompiler : LoweredVisitor
         SetupParams(_fnDecl.FnSymbol.Params);
         SetupLocals();
 
-        if (_fnDecl.FnSymbol.Identifier?.Value.StartsWith("print_") ?? false)
-        {
-            CompileSpecialPrint();
-        }
-        else
-        {
-            if (_fnDecl.Body != null)
-            {
-                Visit(_fnDecl.Body);
-            }
+        // This is where we could check for intrinsic fns to generate bodies for if we need to.
+        // ---
 
-            if (!_returnSeen)
-            {
-                LLVM.Builder.BuildRetVoid();
-            }
+        if (_fnDecl.Body != null)
+        {
+            Visit(_fnDecl.Body);
+        }
+
+        if (!_returnSeen)
+        {
+            LLVM.Builder.BuildRetVoid();
         }
 
         _llvmFn.Value.VerifyFunction(LLVMVerifierFailureAction.LLVMPrintMessageAction);
@@ -204,29 +200,6 @@ internal sealed class FnCompiler : LoweredVisitor
         {
             CreateLocal(variableStmt.Symbol);
         }
-    }
-
-    private void CompileSpecialPrint()
-    {
-        var specifier = _fnDecl.FnSymbol.Identifier?.Value switch
-        {
-            "print_n" => "%g", // number
-            "print_b" => "%d", // bool
-            _ => throw new UnreachableException(),
-        };
-
-        var printfType = LLVMTypeRef.CreateFunction(LLVMTypeRef.Int32, new[] { LLVMTypeRef.CreatePointer(LLVMTypeRef.Int8, 0) }, true);
-        var printf = LLVM.Module.GetNamedFunction("printf");
-        if (printf == default)
-        {
-            printf = LLVM.Module.AddFunction("printf", printfType);
-        }
-
-        var value = _llvmFn.Value.GetParam(0);
-
-        var strF = LLVM.Builder.BuildGlobalStringPtr($"{specifier}\n", "strF");
-        LLVM.Builder.BuildCall2(printfType, printf, [strF, value]);
-        LLVM.Builder.BuildRetVoid();
     }
 
     public override void VisitExprStmt(LoweredExprStmt node)
@@ -572,6 +545,8 @@ internal sealed class FnCompiler : LoweredVisitor
                     }
                     break;
             }
+
+            // TODO: attrs?
 
             llvmIndex++;
         }

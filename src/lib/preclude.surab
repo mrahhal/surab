@@ -14,10 +14,16 @@ struct Bool { }
 
 @public
 fn print_n(value: Number) {
-    // Compiler intrinsic
+    surabrt_print_n(value);
 }
+
+@public @extern
+fn surabrt_print_n(value: Number);
 
 @public
 fn print_b(value: Bool) {
-    // Compiler intrinsic
+    surabrt_print_b(value);
 }
+
+@public @extern
+fn surabrt_print_b(value: Bool);

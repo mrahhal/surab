@@ -38,7 +38,7 @@ public static class IntegrationRunner
         p.Start();
         p.WaitForExit();
 
-        var output = p.StandardOutput.ReadToEnd();
+        var output = p.StandardOutput.ReadToEnd().ReplaceLineEndings();
         return output;
     }
 }
