@@ -9,7 +9,7 @@ public static class BuiltinTypeSystem
 {
     static BuiltinTypeSystem()
     {
-        Preclude.EnsurePrecludeLoaded();
+        Prelude.EnsurePreludeLoaded();
     }
 
     public static StructTypeSymbol None { get; private set; } = null!;

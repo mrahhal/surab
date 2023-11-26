@@ -134,13 +134,13 @@ internal interface IScopeHasLocals
     ImmutableArray<LocalSymbol> Locals { get; }
 }
 
-// TODO: precludeSemanticModel should become an array of models from imported modules.
-internal class ModuleScope(ModuleNode module, SemanticModel? precludeSemanticModel) : Scope
+// TODO: preludeSemanticModel should become an array of models from imported modules.
+internal class ModuleScope(ModuleNode module, SemanticModel? preludeSemanticModel) : Scope
 {
     private ImmutableArray<Symbol> _decls;
 
     private readonly ModuleNode _module = module;
-    private readonly SemanticModel? _precludeSemanticModel = precludeSemanticModel;
+    private readonly SemanticModel? _preludeSemanticModel = preludeSemanticModel;
 
     public ImmutableArray<Symbol> Decls
     {
@@ -159,7 +159,7 @@ internal class ModuleScope(ModuleNode module, SemanticModel? precludeSemanticMod
     {
         return
             LookupIdentifierIn(Decls, identifier) ??
-            _precludeSemanticModel?.LookupExportedSymbolByName(identifier);
+            _preludeSemanticModel?.LookupExportedSymbolByName(identifier);
     }
 
     public override Symbol? LookupExportedIdentifier(string identifier)

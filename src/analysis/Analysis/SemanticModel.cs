@@ -16,9 +16,9 @@ public class SemanticModel
     public SyntaxTree Tree { get; }
 
     // TODO: internal?
-    public static SemanticModel Create(SyntaxTree tree, bool isPreclude = false)
+    public static SemanticModel Create(SyntaxTree tree, bool isPrelude = false)
     {
-        return Builder.Build(tree, isPreclude);
+        return Builder.Build(tree, isPrelude);
     }
 
     /// <summary>
@@ -328,7 +328,7 @@ public class SemanticModel
         };
     }
 
-    private class Builder(SyntaxTree tree, bool isPreclude) : Visitor
+    private class Builder(SyntaxTree tree, bool isPrelude) : Visitor
     {
         private class TempTypeContext
         {
@@ -340,9 +340,9 @@ public class SemanticModel
         private Symbol? _parentSymbol;
         private TempTypeContext? _typeContext;
 
-        public static SemanticModel Build(SyntaxTree tree, bool isPreclude)
+        public static SemanticModel Build(SyntaxTree tree, bool isPrelude)
         {
-            var builder = new Builder(tree, isPreclude);
+            var builder = new Builder(tree, isPrelude);
             builder.Visit(tree.Root);
             return builder._model;
         }
@@ -391,7 +391,7 @@ public class SemanticModel
                 symbol.SetParent(_parentSymbol);
                 _model._nodeToSymbolMap[node] = symbol;
 
-                if (isPreclude && symbol is TypeSymbol typeSymbol)
+                if (isPrelude && symbol is TypeSymbol typeSymbol)
                 {
                     BuiltinTypeSystem.TryRegisterBuiltinSymbol(typeSymbol);
                 }
@@ -434,9 +434,9 @@ public class SemanticModel
         {
             return node switch
             {
-                // Temporarily give non preclude modules the preclude model to lookup exported symbols.
+                // Temporarily give non prelude modules the prelude model to lookup exported symbols.
                 // Later, this should be given as part of the imported modules.
-                ModuleNode n => new ModuleScope(n, isPreclude ? null : Preclude.GetPrecludeSemanticModel()),
+                ModuleNode n => new ModuleScope(n, isPrelude ? null : Prelude.GetPreludeSemanticModel()),
                 StructDeclNode n => new StructDeclScope(n, (StructTypeSymbol)symbol!),
                 ClassDeclNode n => new ClassDeclScope(n, (NamedTypeSymbol)symbol!),
                 FnDeclNode n => new FnScope(n.Sig, (FnSymbol)symbol!),

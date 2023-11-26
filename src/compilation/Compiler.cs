@@ -15,8 +15,8 @@ public sealed class Compiler
         CompilationOptions options)
     {
         var llvm = LLVMCompilationContext.Create();
-        // Need to compile the preclude too.
-        var models = new List<SemanticModel> { Preclude.GetPrecludeSemanticModel(), model };
+        // Need to compile the prelude too.
+        var models = new List<SemanticModel> { Prelude.GetPreludeSemanticModel(), model };
 
         _context = new CompilationContext(models, target, llvm, options);
     }

@@ -1,4 +1,4 @@
-//! The preclude for Surab which is implicitly imported in all Surab modules.
+//! The prelude for Surab which is implicitly imported in all Surab modules.
 //! It contains fundemantal and built in types and functions.
 
 @public
