@@ -1,14 +1,39 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
+//! The runtime for Surab.
+//!
+//! This lib includes infrastructure called from Surab.
+//! All properly exported symbols will have "surabrt_" as a prefix.
+
+use std::io::Write;
+
+#[no_mangle]
+pub extern fn surabrt_print_n(v: f64) {
+    println!("{}", v);
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+#[no_mangle]
+pub extern fn surabrt_print_b(b: bool) {
+    println!("{}", b);
+}
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+// For print! to flush.
+#[allow(dead_code)]
+fn flush_io() {
+    std::io::stdout().flush().unwrap();
+}
+
+// ---
+// Temporary for testing purposes
+// ---
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct S2 {
+    pub a: f64,
+}
+
+#[no_mangle]
+pub extern fn print_from_rust(s2: S2) {
+    println!("==========");
+    println!("From rust: ");
+    println!("{:?}", s2);
 }

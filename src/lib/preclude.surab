@@ -1,4 +1,4 @@
-// This preclude is included in all surab compilations.
+//! This preclude is included in all surab compilations.
 
 @public
 struct None { }
@@ -17,13 +17,17 @@ fn print_n(value: Number) {
     surabrt_print_n(value);
 }
 
-@public @extern
-fn surabrt_print_n(value: Number);
-
 @public
 fn print_b(value: Bool) {
     surabrt_print_b(value);
 }
+
+// ---
+// To be moved once we can import modules.
+// ---
+
+@public @extern
+fn surabrt_print_n(value: Number);
 
 @public @extern
 fn surabrt_print_b(value: Bool);
