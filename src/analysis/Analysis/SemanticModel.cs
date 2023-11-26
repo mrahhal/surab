@@ -256,10 +256,10 @@ public class SemanticModel
     {
         return node.Literal.LiteralTokenKind switch
         {
-            LiteralTokenKind.Number => BuiltInTypeSystem.Number,
-            LiteralTokenKind.Char => BuiltInTypeSystem.Char,
+            LiteralTokenKind.Number => BuiltinTypeSystem.Number,
+            LiteralTokenKind.Char => BuiltinTypeSystem.Char,
             //LiteralTokenKind.String => BuiltInTypeSystem.String,
-            LiteralTokenKind.Bool => BuiltInTypeSystem.Bool,
+            LiteralTokenKind.Bool => BuiltinTypeSystem.Bool,
 
             _ => null,
         };
@@ -400,9 +400,9 @@ public class SemanticModel
                 symbol.SetParent(_parentSymbol);
                 _model._nodeToSymbolMap[node] = symbol;
 
-                if (symbol is TypeSymbol typeSymbol)
+                if (isPreclude && symbol is TypeSymbol typeSymbol)
                 {
-                    BuiltInTypeSystem.TryRegisterBuiltInType(typeSymbol);
+                    BuiltinTypeSystem.TryRegisterBuiltinSymbol(typeSymbol);
                 }
             }
             return symbol;

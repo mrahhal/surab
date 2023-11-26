@@ -119,7 +119,7 @@ public sealed class FnSymbol : Symbol
         get
         {
             return _returnType ??= _node.ReturnTy?.Type == null ?
-                BuiltInTypeSystem.None :
+                BuiltinTypeSystem.None :
                 Scope.ResolveType(_node, _node.ReturnTy).Type; // Will never be inferred.
         }
     }
@@ -281,13 +281,13 @@ public abstract class TypeSymbol : Symbol
 {
     private ImmutableArray<Symbol> _members;
 
-    public bool IsBuiltIn => BuiltInTypeSystem.IsBuiltIn(this);
+    public bool IsBuiltin => BuiltinTypeSystem.IsBuiltin(this);
 
     public bool IsScalar =>
-        this == BuiltInTypeSystem.None ||
-        this == BuiltInTypeSystem.Number ||
-        this == BuiltInTypeSystem.Char ||
-        this == BuiltInTypeSystem.Bool;
+        this == BuiltinTypeSystem.None ||
+        this == BuiltinTypeSystem.Number ||
+        this == BuiltinTypeSystem.Char ||
+        this == BuiltinTypeSystem.Bool;
 
     public virtual ImmutableArray<Symbol> Members
     {

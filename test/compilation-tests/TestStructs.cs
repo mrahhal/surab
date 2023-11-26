@@ -13,17 +13,17 @@ public static class TestStructs
     // a|      -      |b                    |
     public static readonly StructTypeSymbol Struct1 = CreateStruct(
         [
-            new("a", BuiltInTypeSystem.Char),
-            new("b", BuiltInTypeSystem.Number),
+            new("a", BuiltinTypeSystem.Char),
+            new("b", BuiltinTypeSystem.Number),
         ]);
 
     // 0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23|
     // a|      -      |b                    |c |         -          |
     public static readonly StructTypeSymbol Struct2 = CreateStruct(
         [
-            new("a", BuiltInTypeSystem.Char),
-            new("b", BuiltInTypeSystem.Number),
-            new("c", BuiltInTypeSystem.Char),
+            new("a", BuiltinTypeSystem.Char),
+            new("b", BuiltinTypeSystem.Number),
+            new("c", BuiltinTypeSystem.Char),
         ]);
 
     public static StructTypeSymbol CreateStruct(IEnumerable<FieldSymbolTestsImpl> fields)

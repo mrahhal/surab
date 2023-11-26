@@ -35,11 +35,11 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
     {
         ArgumentNullException.ThrowIfNull(type);
 
-        if (type == BuiltInTypeSystem.None)
+        if (type == BuiltinTypeSystem.None)
             return new(0.AsBytes(), 0.AsBytes());
-        if (type == BuiltInTypeSystem.Char || type == BuiltInTypeSystem.Bool)
+        if (type == BuiltinTypeSystem.Char || type == BuiltinTypeSystem.Bool)
             return new(1.AsBytes(), 1.AsBytes());
-        if (type == BuiltInTypeSystem.Number)
+        if (type == BuiltinTypeSystem.Number)
             return new(8.AsBytes(), 8.AsBytes());
 
         if (type is StructTypeSymbol structType)
@@ -60,7 +60,7 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
     {
         ArgumentNullException.ThrowIfNull(structType);
 
-        if (structType.IsBuiltIn)
+        if (structType.IsBuiltin)
         {
             return new StructLayout(GetLayout(structType), []);
         }
@@ -121,11 +121,11 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 
     public LLVMTypeRef LowerType(TypeSymbol type)
     {
-        if (type == BuiltInTypeSystem.None)
+        if (type == BuiltinTypeSystem.None)
             return LLVMTypeRef.Void;
-        if (type == BuiltInTypeSystem.Char || type == BuiltInTypeSystem.Bool)
+        if (type == BuiltinTypeSystem.Char || type == BuiltinTypeSystem.Bool)
             return LLVMTypeRef.Int1;
-        if (type == BuiltInTypeSystem.Number)
+        if (type == BuiltinTypeSystem.Number)
             return LLVMTypeRef.Double;
 
         if (type is StructTypeSymbol structType)

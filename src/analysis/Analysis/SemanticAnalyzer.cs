@@ -169,13 +169,13 @@ internal class SemanticAnalyzer(SemanticModel model) : Visitor
         {
             case UnaryOperatorTokenKind.Pos:
             case UnaryOperatorTokenKind.Neg:
-                if (exprType != BuiltInTypeSystem.Number)
+                if (exprType != BuiltinTypeSystem.Number)
                 {
                     _diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a number type");
                 }
                 break;
             case UnaryOperatorTokenKind.Not:
-                if (exprType != BuiltInTypeSystem.Bool)
+                if (exprType != BuiltinTypeSystem.Bool)
                 {
                     _diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a bool type");
                 }
@@ -211,14 +211,14 @@ internal class SemanticAnalyzer(SemanticModel model) : Visitor
                 case BinaryOperatorTokenKind.BitAnd:
                 case BinaryOperatorTokenKind.BitOr:
                 case BinaryOperatorTokenKind.BitXor:
-                    if (exprType != BuiltInTypeSystem.Number)
+                    if (exprType != BuiltinTypeSystem.Number)
                     {
                         _diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a number type");
                     }
                     break;
                 case BinaryOperatorTokenKind.And:
                 case BinaryOperatorTokenKind.Or:
-                    if (exprType != BuiltInTypeSystem.Bool)
+                    if (exprType != BuiltinTypeSystem.Bool)
                     {
                         _diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a bool type");
                     }
@@ -231,7 +231,7 @@ internal class SemanticAnalyzer(SemanticModel model) : Visitor
                 case BinaryOperatorTokenKind.Le:
                 case BinaryOperatorTokenKind.Gt:
                 case BinaryOperatorTokenKind.Ge:
-                    if (exprType != BuiltInTypeSystem.Number)
+                    if (exprType != BuiltinTypeSystem.Number)
                     {
                         _diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a number type");
                     }
