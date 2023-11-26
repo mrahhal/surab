@@ -16,9 +16,9 @@ public class SemanticModel
     public SyntaxTree Tree { get; }
 
     // TODO: internal?
-    public static SemanticModel Create(SyntaxTree tree, bool usePreclude = true)
+    public static SemanticModel Create(SyntaxTree tree, bool isPreclude = false)
     {
-        return Builder.Build(tree, usePreclude);
+        return Builder.Build(tree, isPreclude);
     }
 
     /// <summary>
@@ -328,7 +328,7 @@ public class SemanticModel
         };
     }
 
-    private class Builder(SyntaxTree tree, bool usePreclude) : Visitor
+    private class Builder(SyntaxTree tree, bool isPreclude) : Visitor
     {
         private class TempTypeContext
         {
@@ -340,9 +340,9 @@ public class SemanticModel
         private Symbol? _parentSymbol;
         private TempTypeContext? _typeContext;
 
-        public static SemanticModel Build(SyntaxTree tree, bool usePreclude)
+        public static SemanticModel Build(SyntaxTree tree, bool isPreclude)
         {
-            var builder = new Builder(tree, usePreclude);
+            var builder = new Builder(tree, isPreclude);
             builder.Visit(tree.Root);
             return builder._model;
         }
@@ -443,7 +443,9 @@ public class SemanticModel
         {
             return node switch
             {
-                ModuleNode n => new ModuleScope(n, usePreclude ? Preclude.GetPrecludeSemanticModel() : null),
+                // Temporarily give non preclude modules the preclude model to lookup exported symbols.
+                // Later, this should be given as part of the imported modules.
+                ModuleNode n => new ModuleScope(n, isPreclude ? null : Preclude.GetPrecludeSemanticModel()),
                 StructDeclNode n => new StructDeclScope(n, (StructTypeSymbol)symbol!),
                 ClassDeclNode n => new ClassDeclScope(n, (NamedTypeSymbol)symbol!),
                 FnDeclNode n => new FnScope(n.Sig, (FnSymbol)symbol!),

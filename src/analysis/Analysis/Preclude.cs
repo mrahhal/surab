@@ -29,7 +29,7 @@ internal static class Preclude
         var preclude = File.ReadAllText(precludeFile);
         var tree = Parser.ParseModule(preclude);
 
-        var model = SemanticModel.Create(tree, usePreclude: false);
+        var model = SemanticModel.Create(tree, isPreclude: true);
         var diags = model.GetAllDiagnostics();
 
         if (diags.Any(x => x.Level >= DiagnosticLevel.Error))
