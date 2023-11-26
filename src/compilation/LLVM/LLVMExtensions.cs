@@ -4,7 +4,7 @@ using LLVMInterop = LLVMSharp.Interop.LLVM;
 namespace Surab.Compilation.LLVM;
 
 /// <summary>
-/// Temporary extensions that cover implementations missing in LLVM's api.
+/// Temporary extensions that cover implementations missing in LLVMSharp's api.
 /// </summary>
 internal static class LLVMExtensions
 {
