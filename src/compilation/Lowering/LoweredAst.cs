@@ -300,9 +300,12 @@ internal sealed class LoweredCallExpr(
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
 internal sealed class LoweredLiteralExpr(
     SyntaxNode parsedNode,
-    LiteralToken literal) : LoweredExpr(parsedNode)
+    LiteralToken literal,
+    TypeSymbol typeSymbol) : LoweredExpr(parsedNode)
 {
     public LiteralToken Literal { get; } = literal;
+
+    public TypeSymbol TypeSymbol { get; set; } = typeSymbol;
 
     public override IEnumerable<LoweredNode> EnumerateChildren() => [];
 

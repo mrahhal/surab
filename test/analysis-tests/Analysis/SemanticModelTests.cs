@@ -51,7 +51,7 @@ public class SemanticModelTests
     public void LookupSymbol_Field()
     {
         var src = """
-            struct S1 { a: Number = 42; }
+            struct S1 { a: i32 = 42; }
             fn f() { var s = S1 { }; var a = s.a; }
             """;
         var tree = Parser.ParseModule(src);
@@ -68,7 +68,7 @@ public class SemanticModelTests
     public void LookupSymbol_LookupType_Field_InsideMapInitializer()
     {
         var src = """
-            struct S1 { a: Number; }
+            struct S1 { a: i32; }
             fn f() { var s = S1 { a = 42 }; }
             """;
         var tree = Parser.ParseModule(src);
@@ -82,7 +82,7 @@ public class SemanticModelTests
         var fieldType = model.LookupType(mapInitializer.WellFormedExprs.ElementAt(0).Lhs);
 
         fieldSymbol.Should().NotBeNull().And.BeAssignableTo<FieldSymbol>();
-        fieldType.Should().NotBeNull().And.Be(BuiltinTypeSystem.Number);
+        fieldType.Should().NotBeNull().And.Be(BuiltinTypeSystem.i32);
     }
 
     [Fact]
@@ -102,10 +102,10 @@ public class SemanticModelTests
         //var decl3 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().Skip(2).First();
         var decl4 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().Skip(2).Single();
 
-        model.LookupType(decl1.Value).Should().Be(BuiltinTypeSystem.Number);
-        model.LookupType(decl2.Value).Should().Be(BuiltinTypeSystem.Char);
+        model.LookupType(decl1.Value).Should().Be(BuiltinTypeSystem.i32);
+        model.LookupType(decl2.Value).Should().Be(BuiltinTypeSystem.@char);
         //model.LookupType(decl3.Value).Should().Be(BuiltInTypeSystem.String);
-        model.LookupType(decl4.Value).Should().Be(BuiltinTypeSystem.Bool);
+        model.LookupType(decl4.Value).Should().Be(BuiltinTypeSystem.@bool);
     }
 
     [Fact]
@@ -121,14 +121,14 @@ public class SemanticModelTests
 
         var letStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Single();
         var initializerSymbol = model.LookupType(letStmt.Initializer!);
-        initializerSymbol.Should().Be(BuiltinTypeSystem.Number);
+        initializerSymbol.Should().Be(BuiltinTypeSystem.i32);
     }
 
     [Fact]
     public void LookupType_Field()
     {
         var src = """
-            struct S1 { a: Number = 42; }
+            struct S1 { a: i32 = 42; }
             fn f() { var s = S1 { }; var a = s.a; }
             """;
         var tree = Parser.ParseModule(src);
@@ -137,7 +137,7 @@ public class SemanticModelTests
         var varStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Skip(1).Single();
         var accessExpr = varStmt.Initializer!.Expr;
         var fieldType = model.LookupType(accessExpr);
-        fieldType.Should().NotBeNull().And.Be(BuiltinTypeSystem.Number);
+        fieldType.Should().NotBeNull().And.Be(BuiltinTypeSystem.i32);
     }
 
     [Fact]
@@ -172,7 +172,7 @@ public class SemanticModelTests
         var letStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Single();
         model.TryGetDeclaredSymbol(letStmt, out var symbol).Should().BeTrue();
         var localSymbol = (LocalSymbol)symbol!;
-        localSymbol.Type.Should().Be(BuiltinTypeSystem.Number);
+        localSymbol.Type.Should().Be(BuiltinTypeSystem.i32);
         localSymbol.IsTypeInferred.Should().BeTrue();
     }
 
@@ -190,7 +190,7 @@ public class SemanticModelTests
         var letStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Single();
         model.TryGetDeclaredSymbol(letStmt, out var symbol).Should().BeTrue();
         var localSymbol = symbol.Should().BeOfType<LocalSymbol>().Subject;
-        localSymbol.Type.Should().Be(BuiltinTypeSystem.Number);
+        localSymbol.Type.Should().Be(BuiltinTypeSystem.i32);
     }
 
     [Fact]
@@ -207,7 +207,7 @@ public class SemanticModelTests
         var fieldDecl = tree.Root.DescendantNodes().OfType<FieldDeclNode>().Single();
         model.TryGetDeclaredSymbol(fieldDecl, out var symbol).Should().BeTrue();
         var fieldSymbol = (FieldSymbol)symbol!;
-        fieldSymbol.Type.Should().Be(BuiltinTypeSystem.Bool);
+        fieldSymbol.Type.Should().Be(BuiltinTypeSystem.@bool);
         fieldSymbol.IsTypeInferred.Should().BeTrue();
     }
 

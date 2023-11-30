@@ -275,7 +275,14 @@ public sealed class IdentifierToken : SyntaxToken
 
 public enum LiteralTokenKind
 {
-    Number,
+    /// <summary>
+    /// Token's Data stored as ulong. Covers: i32, i64, u32, u64.
+    /// </summary>
+    NumberInteger,
+    /// <summary>
+    /// Token's Data stored as double. Covers: f32, f64.
+    /// </summary>
+    NumberFloat,
     Char,
     String,
     Bool,
@@ -298,8 +305,11 @@ public sealed class LiteralToken : SyntaxToken
     public static LiteralToken FromBool(Token token, bool value) =>
         new(token.Span, LiteralTokenKind.Bool, value);
 
-    public static LiteralToken FromNumber(Token token, double value) =>
-        new(token.Span, LiteralTokenKind.Number, value);
+    public static LiteralToken FromNumberInteger(Token token, ulong value) =>
+        new(token.Span, LiteralTokenKind.NumberInteger, value);
+
+    public static LiteralToken FromNumberFloat(Token token, double value) =>
+        new(token.Span, LiteralTokenKind.NumberFloat, value);
 
     public static LiteralToken FromChar(Token token, char? value) =>
         new(token.Span, LiteralTokenKind.Char, value);
@@ -307,10 +317,21 @@ public sealed class LiteralToken : SyntaxToken
     public static LiteralToken FromString(Token token, string? value) =>
         new(token.Span, LiteralTokenKind.String, value);
 
-    public bool TryGetNumberValue(out double value)
+    public bool TryGetNumberIntegerValue(out ulong value)
     {
-        value = default;
-        if (LiteralTokenKind != LiteralTokenKind.Number)
+        value = default!;
+        if (LiteralTokenKind != LiteralTokenKind.NumberInteger)
+        {
+            return false;
+        }
+        value = (ulong)Data!;
+        return true;
+    }
+
+    public bool TryGetNumberFloatValue(out double value)
+    {
+        value = default!;
+        if (LiteralTokenKind != LiteralTokenKind.NumberFloat)
         {
             return false;
         }

@@ -187,7 +187,7 @@ public class SemanticModel
         {
             BlockExprNode n => LookupType(n),
             AssignmentExprNode n => LookupType(n.Lhs),
-            UnaryExprNode n => LookupType(n.Expr),
+            UnaryExprNode n => LookupType(n),
             BinaryExprNode n => LookupType(n),
             GroupingExprNode n => LookupType(n.Expr),
             CallExprNode n => LookupType(n),
@@ -210,6 +210,12 @@ public class SemanticModel
         }
 
         return LookupType(lastStmt);
+    }
+
+    private TypeSymbol? LookupType(UnaryExprNode node)
+    {
+        var exprType = LookupType(node.Expr);
+        return exprType;
     }
 
     private TypeSymbol? LookupType(BinaryExprNode node)
@@ -256,13 +262,33 @@ public class SemanticModel
     {
         return node.Literal.LiteralTokenKind switch
         {
-            LiteralTokenKind.Number => BuiltinTypeSystem.Number,
-            LiteralTokenKind.Char => BuiltinTypeSystem.Char,
+            LiteralTokenKind.NumberInteger => LookupNumberInteger(),
+            LiteralTokenKind.NumberFloat => LookupNumberFloat(),
+            LiteralTokenKind.Char => BuiltinTypeSystem.@char,
             //LiteralTokenKind.String => BuiltInTypeSystem.String,
-            LiteralTokenKind.Bool => BuiltinTypeSystem.Bool,
+            LiteralTokenKind.Bool => BuiltinTypeSystem.@bool,
 
             _ => null,
         };
+
+        TypeSymbol LookupNumberInteger()
+        {
+            // TODO: How to account for integers that might end up being signed?
+            Debug.Assert(node.Literal.TryGetNumberIntegerValue(out var value));
+            if (value <= int.MaxValue)
+                return BuiltinTypeSystem.i32;
+            else
+                return BuiltinTypeSystem.i64;
+        }
+
+        TypeSymbol LookupNumberFloat()
+        {
+            Debug.Assert(node.Literal.TryGetNumberFloatValue(out var value));
+            if (value <= float.MaxValue)
+                return BuiltinTypeSystem.f32;
+            else
+                return BuiltinTypeSystem.f64;
+        }
     }
 
     private TypeSymbol? LookupType(IdentifierExprNode node)

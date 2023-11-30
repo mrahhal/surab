@@ -659,7 +659,18 @@ internal class ParserImpl
         Advance();
         var token = AssertedPrev();
         var lexeme = GetLexeme(token);
-        return LiteralToken.FromNumber(token, double.Parse(lexeme));
+        if (ulong.TryParse(lexeme, out var ulongValue))
+        {
+            return LiteralToken.FromNumberInteger(token, ulongValue);
+        }
+        else if (double.TryParse(lexeme, out var doubleValue))
+        {
+            return LiteralToken.FromNumberFloat(token, doubleValue);
+        }
+        else
+        {
+            throw new UnreachableException();
+        }
     }
 
     private LiteralToken ParseLiteralChar()

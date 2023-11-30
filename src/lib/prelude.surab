@@ -5,22 +5,42 @@
 struct None { }
 
 @public
-struct Number { }
+struct i32 { }
 
 @public
-struct Char { }
+struct i64 { }
 
 @public
-struct Bool { }
+struct u32 { }
 
 @public
-fn print_n(value: Number) {
-    surabrt_print_n(value);
+struct u64 { }
+
+@public
+struct f32 { }
+
+@public
+struct f64 { }
+
+@public
+struct char { }
+
+@public
+struct bool { }
+
+@public
+fn print_i32(value: i32) {
+    surabrt_print_i32(value);
 }
 
 @public
-fn print_b(value: Bool) {
-    surabrt_print_b(value);
+fn print_f64(value: f64) {
+    surabrt_print_f64(value);
+}
+
+@public
+fn print_bool(value: bool) {
+    surabrt_print_bool(value);
 }
 
 // ---
@@ -28,7 +48,10 @@ fn print_b(value: Bool) {
 // ---
 
 @public @extern
-fn surabrt_print_n(value: Number);
+fn surabrt_print_i32(value: i32);
 
 @public @extern
-fn surabrt_print_b(value: Bool);
+fn surabrt_print_f64(value: f64);
+
+@public @extern
+fn surabrt_print_bool(value: bool);

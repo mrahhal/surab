@@ -419,13 +419,23 @@ internal sealed class FnCompiler : LoweredVisitor
 
     public override void VisitLiteralExpr(LoweredLiteralExpr node)
     {
-        // Similar to CompilationContext.GetForType?
         switch (node.Literal.LiteralTokenKind)
         {
-            case LiteralTokenKind.Number:
+            case LiteralTokenKind.NumberInteger:
                 {
-                    Debug.Assert(node.Literal.TryGetNumberValue(out var v));
-                    var llvmType = LLVMTypeRef.Double;
+                    Debug.Assert(node.Literal.TryGetNumberIntegerValue(out var v));
+                    var llvmType = Target.LowerType(node.TypeSymbol);
+                    // TODO: Do sign and zero extension more properly?
+                    var signExtend = Target.GetIntegerSign(node.TypeSymbol) == IntegerSign.Signed;
+                    var llvmValue = LLVMValueRef.CreateConstInt(llvmType, v, signExtend);
+                    _stack.Push(LLVMUnit.Unwrapped(llvmType, llvmValue));
+                }
+                break;
+
+            case LiteralTokenKind.NumberFloat:
+                {
+                    Debug.Assert(node.Literal.TryGetNumberFloatValue(out var v));
+                    var llvmType = Target.LowerType(node.TypeSymbol);
                     var llvmValue = LLVMValueRef.CreateConstReal(llvmType, v);
                     _stack.Push(LLVMUnit.Unwrapped(llvmType, llvmValue));
                 }

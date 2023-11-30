@@ -169,13 +169,13 @@ internal class SemanticAnalyzer(SemanticModel model) : Visitor
         {
             case UnaryOperatorTokenKind.Pos:
             case UnaryOperatorTokenKind.Neg:
-                if (exprType != BuiltinTypeSystem.Number)
+                if (!BuiltinTypeSystem.IsNumber(exprType))
                 {
                     _diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a number type");
                 }
                 break;
             case UnaryOperatorTokenKind.Not:
-                if (exprType != BuiltinTypeSystem.Bool)
+                if (exprType != BuiltinTypeSystem.@bool)
                 {
                     _diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a bool type");
                 }
@@ -211,14 +211,14 @@ internal class SemanticAnalyzer(SemanticModel model) : Visitor
                 case BinaryOperatorTokenKind.BitAnd:
                 case BinaryOperatorTokenKind.BitOr:
                 case BinaryOperatorTokenKind.BitXor:
-                    if (exprType != BuiltinTypeSystem.Number)
+                    if (!BuiltinTypeSystem.IsNumber(exprType))
                     {
                         _diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a number type");
                     }
                     break;
                 case BinaryOperatorTokenKind.And:
                 case BinaryOperatorTokenKind.Or:
-                    if (exprType != BuiltinTypeSystem.Bool)
+                    if (exprType != BuiltinTypeSystem.@bool)
                     {
                         _diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a bool type");
                     }
@@ -231,7 +231,7 @@ internal class SemanticAnalyzer(SemanticModel model) : Visitor
                 case BinaryOperatorTokenKind.Le:
                 case BinaryOperatorTokenKind.Gt:
                 case BinaryOperatorTokenKind.Ge:
-                    if (exprType != BuiltinTypeSystem.Number)
+                    if (!BuiltinTypeSystem.IsNumber(exprType))
                     {
                         _diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a number type");
                     }
@@ -366,4 +366,5 @@ internal class SemanticAnalyzer(SemanticModel model) : Visitor
     // - TypeSymbol being the ErrorType
     // - BlockExpr can't appear as an l-value
     // - Binary/Unary
+    // - Number assignment problems (u32 = u64 literal)
 }

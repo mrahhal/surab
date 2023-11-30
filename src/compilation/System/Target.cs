@@ -20,6 +20,12 @@ public enum TargetEnv
     MSVC,
 }
 
+public enum IntegerSign
+{
+    Signed,
+    Unsigned,
+}
+
 public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 {
     public TargetArch Arch { get; } = arch;
@@ -37,9 +43,15 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 
         if (type == BuiltinTypeSystem.None)
             return new(0.AsBytes(), 0.AsBytes());
-        if (type == BuiltinTypeSystem.Char || type == BuiltinTypeSystem.Bool)
+        if (type == BuiltinTypeSystem.@char || type == BuiltinTypeSystem.@bool)
             return new(1.AsBytes(), 1.AsBytes());
-        if (type == BuiltinTypeSystem.Number)
+        if (type == BuiltinTypeSystem.i32 || type == BuiltinTypeSystem.u32)
+            return new(4.AsBytes(), 4.AsBytes());
+        if (type == BuiltinTypeSystem.i64 || type == BuiltinTypeSystem.u64)
+            return new(8.AsBytes(), 8.AsBytes());
+        if (type == BuiltinTypeSystem.f32)
+            return new(4.AsBytes(), 4.AsBytes());
+        if (type == BuiltinTypeSystem.f64)
             return new(8.AsBytes(), 8.AsBytes());
 
         if (type is StructTypeSymbol structType)
@@ -123,9 +135,16 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
     {
         if (type == BuiltinTypeSystem.None)
             return LLVMTypeRef.Void;
-        if (type == BuiltinTypeSystem.Char || type == BuiltinTypeSystem.Bool)
+        if (type == BuiltinTypeSystem.@char || type == BuiltinTypeSystem.@bool)
             return LLVMTypeRef.Int1;
-        if (type == BuiltinTypeSystem.Number)
+
+        if (type == BuiltinTypeSystem.i32 || type == BuiltinTypeSystem.u32)
+            return LLVMTypeRef.Int32;
+        if (type == BuiltinTypeSystem.i64 || type == BuiltinTypeSystem.u64)
+            return LLVMTypeRef.Int64;
+        if (type == BuiltinTypeSystem.f32)
+            return LLVMTypeRef.Float;
+        if (type == BuiltinTypeSystem.f64)
             return LLVMTypeRef.Double;
 
         if (type is StructTypeSymbol structType)
@@ -147,6 +166,16 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
         // Class
         // FnPtr
         // ...
+
+        throw new UnreachableException();
+    }
+
+    public IntegerSign GetIntegerSign(TypeSymbol type)
+    {
+        if (type == BuiltinTypeSystem.i32 || type == BuiltinTypeSystem.i64)
+            return IntegerSign.Signed;
+        if (type == BuiltinTypeSystem.u32 || type == BuiltinTypeSystem.u64)
+            return IntegerSign.Unsigned;
 
         throw new UnreachableException();
     }

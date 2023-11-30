@@ -20,13 +20,13 @@ p.WaitForExit();
 
 var src = """
     struct S1 {
-        a: Number;
-        b: Bool;
+        a: f64;
+        b: bool;
     }
 
     @extern
     struct S2 {
-        a: Number;
+        a: f64;
     }
 
     @extern
@@ -35,36 +35,36 @@ var src = """
     fn noop() { }
 
     @export
-    fn f(x: Number, y: Number): Number {
+    fn f(x: f64, y: f64): f64 {
         var e = x + y;
         return e + 1;
     }
 
     fn fs(s1: S1, s2: S2) {
-        print_n(s1.a);
-        print_n(s2.a);
+        print_f64(s1.a);
+        print_f64(s2.a);
     }
 
     fn main() {
         var a = 2;
         noop();
-        var b: Number = 4;
+        var b: f64 = 4;
         var c = f(a, b);
         c = {
             var c2 = 999;
             c2 + 0.2
         };
-        print_n(c);
-        print_n(41 + 1);
+        print_f64(c);
+        print_f64(41 + 1);
 
         var s1 = S1 {
             a = 82,
             b = true,
         };
-        print_n(s1.a);
+        print_f64(s1.a);
         s1.a = 83;
-        print_n(s1.a);
-        print_b(s1.b);
+        print_f64(s1.a);
+        print_bool(s1.b);
 
         var s2 = S2 { a = 42.3 };
 

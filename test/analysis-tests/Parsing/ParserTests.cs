@@ -31,7 +31,7 @@ public class ParserTests
     [Fact]
     public void Decl_Fn_2()
     {
-        var src = "fn f(number: Number): Number { 2 }";
+        var src = "fn f(number: u32): u32 { 2 }";
         var node = ParseDecl(src).Should().BeOfType<FnDeclNode>().Subject;
         node.Body.Should().NotBeNull();
         node.SemicolonToken.Should().BeNull();
@@ -58,7 +58,7 @@ public class ParserTests
     [Fact]
     public void Decl_Struct()
     {
-        var src = "struct S1 { a: Number = 2; f() {} }";
+        var src = "struct S1 { a: u32 = 2; f() {} }";
         var node = ParseDecl(src).Should().BeOfType<StructDeclNode>().Subject;
         node.Members.Members.Should().HaveCount(2);
         node.Members.Members.ElementAt(0).Should().BeOfType<FieldDeclNode>();
@@ -68,7 +68,7 @@ public class ParserTests
     [Fact]
     public void Decl_Struct_2()
     {
-        var src = "struct S1 { a: Number; f() {} }";
+        var src = "struct S1 { a: u32; f() {} }";
         var node = ParseDecl(src).Should().BeOfType<StructDeclNode>().Subject;
         node.Members.Members.Should().HaveCount(2);
     }
@@ -92,7 +92,7 @@ public class ParserTests
     [Fact]
     public void Stmt_Var_2()
     {
-        var src = "var a: Number = 2;";
+        var src = "var a: u32 = 2;";
         var node = ParseStmt(src).Should().BeOfType<VarStmtNode>().Subject;
         node.Type.Should().NotBeNull();
     }
@@ -100,7 +100,7 @@ public class ParserTests
     [Fact]
     public void Stmt_Var_MissingInitializer()
     {
-        var src = "var a: Number;";
+        var src = "var a: u32;";
         var node = ParseStmt(src).Should().BeOfType<VarStmtNode>().Subject;
         node.Type.Should().NotBeNull();
         node.Initializer.Should().BeNull();
@@ -140,15 +140,27 @@ public class ParserTests
     }
 
     [Theory]
-    [InlineData("12", 12.0)]
+    [InlineData("0", 0)]
+    [InlineData("12", 12)]
+    [InlineData("49999", 49999)]
+    public void Expr_NumberInteger(string src, ulong expected)
+    {
+        var node = ParseExpr(src).Should().BeOfType<LiteralExprNode>().Subject;
+        node.Literal.LiteralTokenKind.Should().Be(LiteralTokenKind.NumberInteger);
+        node.Literal.TryGetNumberIntegerValue(out var value).Should().BeTrue();
+        value.Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData("12.0", 12.0)]
     [InlineData("12.0", 12.0)]
     [InlineData("12.1", 12.1)]
     [InlineData("0.01", 0.01)]
-    public void Expr_Number(string src, double expected)
+    public void Expr_NumberFloat(string src, double expected)
     {
         var node = ParseExpr(src).Should().BeOfType<LiteralExprNode>().Subject;
-        node.Literal.LiteralTokenKind.Should().Be(LiteralTokenKind.Number);
-        node.Literal.TryGetNumberValue(out var value).Should().BeTrue();
+        node.Literal.LiteralTokenKind.Should().Be(LiteralTokenKind.NumberFloat);
+        node.Literal.TryGetNumberFloatValue(out var value).Should().BeTrue();
         value.Should().Be(expected);
     }
 
@@ -260,7 +272,7 @@ public class ParserTests
         structCreationExprNode.MapInitializer.WellFormedExprs.ElementAt(0).Lhs.Should().BeOfType<IdentifierExprNode>()
             .Which.Identifier.Value.Should().Be("a");
         structCreationExprNode.MapInitializer.WellFormedExprs.ElementAt(0).Rhs.Should().BeOfType<LiteralExprNode>()
-            .Which.Literal.LiteralTokenKind.Should().Be(LiteralTokenKind.Number);
+            .Which.Literal.LiteralTokenKind.Should().Be(LiteralTokenKind.NumberInteger);
         structCreationExprNode.MapInitializer.WellFormedExprs.ElementAt(1).Lhs.Should().BeOfType<IdentifierExprNode>()
             .Which.Identifier.Value.Should().Be("b");
         structCreationExprNode.MapInitializer.WellFormedExprs.ElementAt(1).Rhs.Should().BeOfType<LiteralExprNode>()
@@ -408,7 +420,7 @@ public class ParserTests
     public void BlockAsStmt_2()
     {
         var src = """
-            fn f(): Number {
+            fn f(): u32 {
                 { 1 }
                 { 2; }
             }

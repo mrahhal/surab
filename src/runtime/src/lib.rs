@@ -6,12 +6,17 @@
 use std::io::Write;
 
 #[no_mangle]
-pub extern fn surabrt_print_n(v: f64) {
+pub extern fn surabrt_print_i32(v: i32) {
     println!("{}", v);
 }
 
 #[no_mangle]
-pub extern fn surabrt_print_b(b: bool) {
+pub extern fn surabrt_print_f64(v: f64) {
+    println!("{}", v);
+}
+
+#[no_mangle]
+pub extern fn surabrt_print_bool(b: bool) {
     println!("{}", b);
 }
 

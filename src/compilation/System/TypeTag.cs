@@ -15,9 +15,9 @@ public static class TypeTagExtensions
 {
     public static TypeTag GetTag(this TypeSymbol type)
     {
-        if (type == BuiltinTypeSystem.Char) return TypeTag.Char;
-        if (type == BuiltinTypeSystem.Number) return TypeTag.Number;
-        if (type == BuiltinTypeSystem.Bool) return TypeTag.Bool;
+        if (type == BuiltinTypeSystem.@char) return TypeTag.Char;
+        if (BuiltinTypeSystem.IsNumber(type)) return TypeTag.Number;
+        if (type == BuiltinTypeSystem.@bool) return TypeTag.Bool;
         if (type is StructTypeSymbol) return TypeTag.Struct;
 
         throw new UnreachableException();
