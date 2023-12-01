@@ -8,7 +8,7 @@ public class LowererTests
     public void BareExprStmtToReturnStmt()
     {
         var src = """
-            fn f(): Number {
+            fn f(): i32 {
                 2
             }
             """;
@@ -52,7 +52,7 @@ public class LowererTests
     {
         var src = """
             fn f() {
-                var b: Number;
+                var b: i32;
                 var a = b = 2;
             }
             """;
@@ -112,7 +112,7 @@ public class LowererTests
     {
         var src = """
             fn f() {
-                var a: Number;
+                var a: i32;
                 a = 2;
             }
             """;
@@ -142,7 +142,7 @@ public class LowererTests
     public void StructCreationExpr()
     {
         var src = """
-            struct S1 { a: Number; }
+            struct S1 { a: i32; }
             fn f() {
                 var s = S1 { a = 42 };
             }
@@ -159,7 +159,7 @@ public class LowererTests
     public void StructFieldLoad()
     {
         var src = """
-            struct S1 { a: Number; }
+            struct S1 { a: i32; }
             fn f() {
                 var s = S1 { a = 42 };
                 var a = s.a;
@@ -177,7 +177,7 @@ public class LowererTests
     public void StructFieldStore()
     {
         var src = """
-            struct S1 { a: Number; }
+            struct S1 { a: i32; }
             fn f() {
                 var s = S1 { a = 42 };
                 s.a = 43;

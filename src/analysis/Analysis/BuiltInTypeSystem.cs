@@ -9,7 +9,7 @@ public static class BuiltinTypeSystem
 {
     private static readonly HashSet<TypeSymbol> _builtinTypes = [];
     // TODO: Overkill. Do this better.
-    private static readonly HashSet<StructTypeSymbol> _numberTypes = [];
+    private static readonly HashSet<StructTypeSymbol> _numericTypes = [];
 
     public static StructTypeSymbol None { get; private set; } = null!;
 
@@ -38,32 +38,32 @@ public static class BuiltinTypeSystem
                 case "i32":
                     i32 = structTypeSymbol;
                     _builtinTypes.Add(structTypeSymbol);
-                    _numberTypes.Add(structTypeSymbol);
+                    _numericTypes.Add(structTypeSymbol);
                     break;
                 case "i64":
                     i64 = structTypeSymbol;
                     _builtinTypes.Add(structTypeSymbol);
-                    _numberTypes.Add(structTypeSymbol);
+                    _numericTypes.Add(structTypeSymbol);
                     break;
                 case "u32":
                     u32 = structTypeSymbol;
                     _builtinTypes.Add(structTypeSymbol);
-                    _numberTypes.Add(structTypeSymbol);
+                    _numericTypes.Add(structTypeSymbol);
                     break;
                 case "u64":
                     u64 = structTypeSymbol;
                     _builtinTypes.Add(structTypeSymbol);
-                    _numberTypes.Add(structTypeSymbol);
+                    _numericTypes.Add(structTypeSymbol);
                     break;
                 case "f32":
                     f32 = structTypeSymbol;
                     _builtinTypes.Add(structTypeSymbol);
-                    _numberTypes.Add(structTypeSymbol);
+                    _numericTypes.Add(structTypeSymbol);
                     break;
                 case "f64":
                     f64 = structTypeSymbol;
                     _builtinTypes.Add(structTypeSymbol);
-                    _numberTypes.Add(structTypeSymbol);
+                    _numericTypes.Add(structTypeSymbol);
                     break;
 
                 case "char":
@@ -82,16 +82,16 @@ public static class BuiltinTypeSystem
         }
     }
 
-    public static bool IsNumber(TypeSymbol? type)
+    public static bool IsNumeric(TypeSymbol? type)
     {
         if (type == null) return false;
-        return _numberTypes.Contains(type);
+        return _numericTypes.Contains(type);
     }
 
     public static StructTypeSymbol? GetNumericTypeFromString(string? str)
     {
         if (str == null) return null;
-        return _numberTypes.FirstOrDefault(t => t.Identifier?.Value == str);
+        return _numericTypes.FirstOrDefault(t => t.Identifier?.Value == str);
     }
 
     public static bool IsBuiltin(TypeSymbol? type)

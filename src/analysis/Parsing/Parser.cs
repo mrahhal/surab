@@ -635,7 +635,7 @@ internal class ParserImpl
         return AssertedCurrent().Kind switch
         {
             TokenKind.False or TokenKind.True => ParseLiteralBool(),
-            TokenKind.NumberLiteral => ParseLiteralNumber(),
+            TokenKind.NumericLiteral => ParseLiteralNumeric(),
             TokenKind.CharLiteral => ParseLiteralChar(),
             TokenKind.StringLiteral => ParseLiteralString(),
             _ => throw new Exception("unexpected literal"),
@@ -654,14 +654,14 @@ internal class ParserImpl
         };
     }
 
-    private LiteralToken ParseLiteralNumber()
+    private LiteralToken ParseLiteralNumeric()
     {
         Advance();
         var token = AssertedPrev();
         var lexeme = GetLexeme(token);
 
         var type = default(string?);
-        if (_current?.Kind == TokenKind.NumberLiteralType)
+        if (_current?.Kind == TokenKind.NumericLiteralType)
         {
             Advance();
             type = GetLexeme(AssertedPrev()).ToString();
@@ -670,11 +670,11 @@ internal class ParserImpl
         LiteralToken literalToken;
         if (ulong.TryParse(lexeme, out var ulongValue))
         {
-            literalToken = LiteralToken.FromNumberInteger(token, ulongValue);
+            literalToken = LiteralToken.FromNumericInteger(token, ulongValue);
         }
         else if (double.TryParse(lexeme, out var doubleValue))
         {
-            literalToken = LiteralToken.FromNumberFloat(token, doubleValue);
+            literalToken = LiteralToken.FromNumericFloat(token, doubleValue);
         }
         else
         {

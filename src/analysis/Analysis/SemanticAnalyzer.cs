@@ -169,9 +169,9 @@ internal class SemanticAnalyzer(SemanticModel model) : Visitor
         {
             case UnaryOperatorTokenKind.Pos:
             case UnaryOperatorTokenKind.Neg:
-                if (!BuiltinTypeSystem.IsNumber(exprType))
+                if (!BuiltinTypeSystem.IsNumeric(exprType))
                 {
-                    _diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a number type");
+                    _diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a numeric type");
                 }
                 break;
             case UnaryOperatorTokenKind.Not:
@@ -211,9 +211,9 @@ internal class SemanticAnalyzer(SemanticModel model) : Visitor
                 case BinaryOperatorTokenKind.BitAnd:
                 case BinaryOperatorTokenKind.BitOr:
                 case BinaryOperatorTokenKind.BitXor:
-                    if (!BuiltinTypeSystem.IsNumber(exprType))
+                    if (!BuiltinTypeSystem.IsNumeric(exprType))
                     {
-                        _diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a number type");
+                        _diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a numeric type");
                     }
                     break;
                 case BinaryOperatorTokenKind.And:
@@ -231,9 +231,9 @@ internal class SemanticAnalyzer(SemanticModel model) : Visitor
                 case BinaryOperatorTokenKind.Le:
                 case BinaryOperatorTokenKind.Gt:
                 case BinaryOperatorTokenKind.Ge:
-                    if (!BuiltinTypeSystem.IsNumber(exprType))
+                    if (!BuiltinTypeSystem.IsNumeric(exprType))
                     {
-                        _diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a number type");
+                        _diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a numeric type");
                     }
                     break;
 

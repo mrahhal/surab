@@ -5,7 +5,7 @@ namespace Surab.Compilation;
 
 public enum TypeTag
 {
-    Number,
+    Numeric,
     Char,
     Bool,
     Struct,
@@ -16,7 +16,7 @@ public static class TypeTagExtensions
     public static TypeTag GetTag(this TypeSymbol type)
     {
         if (type == BuiltinTypeSystem.@char) return TypeTag.Char;
-        if (BuiltinTypeSystem.IsNumber(type)) return TypeTag.Number;
+        if (BuiltinTypeSystem.IsNumeric(type)) return TypeTag.Numeric;
         if (type == BuiltinTypeSystem.@bool) return TypeTag.Bool;
         if (type is StructTypeSymbol) return TypeTag.Struct;
 

@@ -49,8 +49,8 @@ public enum TokenKind
     Const,
     Return,
 
-    NumberLiteral,
-    NumberLiteralType,
+    NumericLiteral,
+    NumericLiteralType,
     CharLiteral,
     StringLiteral,
     Identifier,
@@ -127,8 +127,8 @@ public class Token(TokenKind kind, TextSpan span, object? data)
             Const => "const",
             Return => "return",
 
-            NumberLiteral => "numlit",
-            NumberLiteralType => "numlit_type",
+            NumericLiteral => "numlit",
+            NumericLiteralType => "numlit_type",
             CharLiteral => "charlit",
             StringLiteral => "stringlit",
             Identifier => "ident",
@@ -187,7 +187,7 @@ public static class TokenKindExtensions
     public static bool IsLiteral(this TokenKind kind) => kind is
         False or
         True or
-        NumberLiteral or
+        NumericLiteral or
         CharLiteral or
         StringLiteral;
 

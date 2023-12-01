@@ -421,9 +421,9 @@ internal sealed class FnCompiler : LoweredVisitor
     {
         switch (node.Literal.LiteralTokenKind)
         {
-            case LiteralTokenKind.NumberInteger:
+            case LiteralTokenKind.NumericInteger:
                 {
-                    Debug.Assert(node.Literal.TryGetNumberIntegerValue(out var v));
+                    Debug.Assert(node.Literal.TryGetNumericIntegerValue(out var v));
                     var llvmType = Target.LowerType(node.TypeSymbol);
                     // TODO: Do sign and zero extension more properly?
                     var signExtend = Target.GetIntegerSign(node.TypeSymbol) == IntegerSign.Signed;
@@ -432,9 +432,9 @@ internal sealed class FnCompiler : LoweredVisitor
                 }
                 break;
 
-            case LiteralTokenKind.NumberFloat:
+            case LiteralTokenKind.NumericFloat:
                 {
-                    Debug.Assert(node.Literal.TryGetNumberFloatValue(out var v));
+                    Debug.Assert(node.Literal.TryGetNumericFloatValue(out var v));
                     var llvmType = Target.LowerType(node.TypeSymbol);
                     var llvmValue = LLVMValueRef.CreateConstReal(llvmType, v);
                     _stack.Push(LLVMUnit.Unwrapped(llvmType, llvmValue));

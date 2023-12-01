@@ -278,11 +278,11 @@ public enum LiteralTokenKind
     /// <summary>
     /// Token's Data stored as ulong. Covers: i32, i64, u32, u64.
     /// </summary>
-    NumberInteger,
+    NumericInteger,
     /// <summary>
     /// Token's Data stored as double. Covers: f32, f64.
     /// </summary>
-    NumberFloat,
+    NumericFloat,
     Char,
     String,
     Bool,
@@ -307,11 +307,11 @@ public sealed class LiteralToken : SyntaxToken
     public static LiteralToken FromBool(Token token, bool value) =>
         new(token.Span, LiteralTokenKind.Bool, value);
 
-    public static LiteralToken FromNumberInteger(Token token, ulong value) =>
-        new(token.Span, LiteralTokenKind.NumberInteger, value);
+    public static LiteralToken FromNumericInteger(Token token, ulong value) =>
+        new(token.Span, LiteralTokenKind.NumericInteger, value);
 
-    public static LiteralToken FromNumberFloat(Token token, double value) =>
-        new(token.Span, LiteralTokenKind.NumberFloat, value);
+    public static LiteralToken FromNumericFloat(Token token, double value) =>
+        new(token.Span, LiteralTokenKind.NumericFloat, value);
 
     public static LiteralToken FromChar(Token token, char? value) =>
         new(token.Span, LiteralTokenKind.Char, value);
@@ -319,10 +319,10 @@ public sealed class LiteralToken : SyntaxToken
     public static LiteralToken FromString(Token token, string? value) =>
         new(token.Span, LiteralTokenKind.String, value);
 
-    public bool TryGetNumberIntegerValue(out ulong value)
+    public bool TryGetNumericIntegerValue(out ulong value)
     {
         value = default!;
-        if (LiteralTokenKind != LiteralTokenKind.NumberInteger)
+        if (LiteralTokenKind != LiteralTokenKind.NumericInteger)
         {
             return false;
         }
@@ -330,10 +330,10 @@ public sealed class LiteralToken : SyntaxToken
         return true;
     }
 
-    public bool TryGetNumberFloatValue(out double value)
+    public bool TryGetNumericFloatValue(out double value)
     {
         value = default!;
-        if (LiteralTokenKind != LiteralTokenKind.NumberFloat)
+        if (LiteralTokenKind != LiteralTokenKind.NumericFloat)
         {
             return false;
         }

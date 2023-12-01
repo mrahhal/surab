@@ -143,11 +143,11 @@ public class ParserTests
     [InlineData("0", 0)]
     [InlineData("12", 12)]
     [InlineData("49999", 49999)]
-    public void Expr_NumberInteger(string src, ulong expected)
+    public void Expr_NumericInteger(string src, ulong expected)
     {
         var node = ParseExpr(src).Should().BeOfType<LiteralExprNode>().Subject;
-        node.Literal.LiteralTokenKind.Should().Be(LiteralTokenKind.NumberInteger);
-        node.Literal.TryGetNumberIntegerValue(out var value).Should().BeTrue();
+        node.Literal.LiteralTokenKind.Should().Be(LiteralTokenKind.NumericInteger);
+        node.Literal.TryGetNumericIntegerValue(out var value).Should().BeTrue();
         value.Should().Be(expected);
         node.Literal.NumericType.Should().BeNull();
     }
@@ -156,11 +156,11 @@ public class ParserTests
     [InlineData("12.0", 12.0)]
     [InlineData("12.1", 12.1)]
     [InlineData("0.01", 0.01)]
-    public void Expr_NumberFloat(string src, double expected)
+    public void Expr_NumericFloat(string src, double expected)
     {
         var node = ParseExpr(src).Should().BeOfType<LiteralExprNode>().Subject;
-        node.Literal.LiteralTokenKind.Should().Be(LiteralTokenKind.NumberFloat);
-        node.Literal.TryGetNumberFloatValue(out var value).Should().BeTrue();
+        node.Literal.LiteralTokenKind.Should().Be(LiteralTokenKind.NumericFloat);
+        node.Literal.TryGetNumericFloatValue(out var value).Should().BeTrue();
         value.Should().Be(expected);
         node.Literal.NumericType.Should().BeNull();
     }
@@ -168,11 +168,11 @@ public class ParserTests
     [Theory]
     [InlineData("12u64", 12, "u64")]
     [InlineData("42f32", 42, "f32")]
-    public void Expr_NumberIntegerWithType(string src, ulong expected, string expectedType)
+    public void Expr_NumericIntegerWithType(string src, ulong expected, string expectedType)
     {
         var node = ParseExpr(src).Should().BeOfType<LiteralExprNode>().Subject;
-        node.Literal.LiteralTokenKind.Should().Be(LiteralTokenKind.NumberInteger);
-        node.Literal.TryGetNumberIntegerValue(out var value).Should().BeTrue();
+        node.Literal.LiteralTokenKind.Should().Be(LiteralTokenKind.NumericInteger);
+        node.Literal.TryGetNumericIntegerValue(out var value).Should().BeTrue();
         value.Should().Be(expected);
         node.Literal.NumericType.Should().Be(expectedType);
     }
@@ -180,11 +180,11 @@ public class ParserTests
     [Theory]
     [InlineData("12.0u64", 12.0, "u64")]
     [InlineData("12.1f32", 12.1, "f32")]
-    public void Expr_NumberFloatWithType(string src, double expected, string expectedType)
+    public void Expr_NumericFloatWithType(string src, double expected, string expectedType)
     {
         var node = ParseExpr(src).Should().BeOfType<LiteralExprNode>().Subject;
-        node.Literal.LiteralTokenKind.Should().Be(LiteralTokenKind.NumberFloat);
-        node.Literal.TryGetNumberFloatValue(out var value).Should().BeTrue();
+        node.Literal.LiteralTokenKind.Should().Be(LiteralTokenKind.NumericFloat);
+        node.Literal.TryGetNumericFloatValue(out var value).Should().BeTrue();
         value.Should().Be(expected);
         node.Literal.NumericType.Should().Be(expectedType);
     }
@@ -297,7 +297,7 @@ public class ParserTests
         structCreationExprNode.MapInitializer.WellFormedExprs.ElementAt(0).Lhs.Should().BeOfType<IdentifierExprNode>()
             .Which.Identifier.Value.Should().Be("a");
         structCreationExprNode.MapInitializer.WellFormedExprs.ElementAt(0).Rhs.Should().BeOfType<LiteralExprNode>()
-            .Which.Literal.LiteralTokenKind.Should().Be(LiteralTokenKind.NumberInteger);
+            .Which.Literal.LiteralTokenKind.Should().Be(LiteralTokenKind.NumericInteger);
         structCreationExprNode.MapInitializer.WellFormedExprs.ElementAt(1).Lhs.Should().BeOfType<IdentifierExprNode>()
             .Which.Identifier.Value.Should().Be("b");
         structCreationExprNode.MapInitializer.WellFormedExprs.ElementAt(1).Rhs.Should().BeOfType<LiteralExprNode>()

@@ -294,7 +294,7 @@ public abstract class TypeSymbol : Symbol
 
     public bool IsScalar =>
         this == BuiltinTypeSystem.None ||
-        BuiltinTypeSystem.IsNumber(this) ||
+        BuiltinTypeSystem.IsNumeric(this) ||
         this == BuiltinTypeSystem.@char ||
         this == BuiltinTypeSystem.@bool;
 

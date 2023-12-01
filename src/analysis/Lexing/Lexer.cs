@@ -101,8 +101,8 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 
             '\'' => ConsumeChar(),
             '"' => ConsumeString(),
-            _ when char.IsAsciiDigit(ch) => ConsumeNumber(),
-            _ when Chars.IsIdentifierStart(ch) => _current?.Kind == TokenKind.NumberLiteral ? ConsumeNumberLiteralType() : ConsumeKeywordOrIdentifier(),
+            _ when char.IsAsciiDigit(ch) => ConsumeNumeric(),
+            _ when Chars.IsIdentifierStart(ch) => _current?.Kind == TokenKind.NumericLiteral ? ConsumeNumericLiteralType() : ConsumeKeywordOrIdentifier(),
 
             _ => MakeToken(TokenKind.Unknown),
 
@@ -329,7 +329,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
         return hasDigits;
     }
 
-    private Token ConsumeNumber()
+    private Token ConsumeNumeric()
     {
         Debug.Assert(char.IsAsciiDigit(_prev));
 
@@ -341,15 +341,15 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
             EatDecimalDigits();
         }
 
-        return MakeToken(TokenKind.NumberLiteral);
+        return MakeToken(TokenKind.NumericLiteral);
     }
 
-    private Token ConsumeNumberLiteralType()
+    private Token ConsumeNumericLiteralType()
     {
-        Debug.Assert(Chars.IsIdentifierStart(_prev) && Current.Kind == TokenKind.NumberLiteral);
+        Debug.Assert(Chars.IsIdentifierStart(_prev) && Current.Kind == TokenKind.NumericLiteral);
 
         EatIdentifier();
-        return MakeToken(TokenKind.NumberLiteralType);
+        return MakeToken(TokenKind.NumericLiteralType);
     }
 
     private Token ConsumeKeywordOrIdentifier()

@@ -268,8 +268,8 @@ public class SemanticModel
     {
         return node.Literal.LiteralTokenKind switch
         {
-            LiteralTokenKind.NumberInteger => LookupNumberInteger(),
-            LiteralTokenKind.NumberFloat => LookupNumberFloat(),
+            LiteralTokenKind.NumericInteger => LookupNumericInteger(),
+            LiteralTokenKind.NumericFloat => LookupNumericFloat(),
             LiteralTokenKind.Char => BuiltinTypeSystem.@char,
             //LiteralTokenKind.String => BuiltInTypeSystem.String,
             LiteralTokenKind.Bool => BuiltinTypeSystem.@bool,
@@ -277,21 +277,21 @@ public class SemanticModel
             _ => null,
         };
 
-        TypeSymbol LookupNumberInteger()
+        TypeSymbol LookupNumericInteger()
         {
             var explicitType = BuiltinTypeSystem.GetNumericTypeFromString(node.Literal.NumericType);
             if (explicitType != null)
                 return explicitType;
 
             // TODO: How to account for integers that might end up being signed?
-            Debug.Assert(node.Literal.TryGetNumberIntegerValue(out var value));
+            Debug.Assert(node.Literal.TryGetNumericIntegerValue(out var value));
             if (value <= int.MaxValue)
                 return BuiltinTypeSystem.i32;
             else
                 return BuiltinTypeSystem.i64;
         }
 
-        TypeSymbol LookupNumberFloat()
+        TypeSymbol LookupNumericFloat()
         {
             var explicitType = BuiltinTypeSystem.GetNumericTypeFromString(node.Literal.NumericType);
             if (explicitType != null)

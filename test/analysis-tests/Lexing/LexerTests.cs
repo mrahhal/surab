@@ -27,11 +27,11 @@ public class LexerTests
     [InlineData("12.0")]
     [InlineData("12.1")]
     [InlineData("0.01")]
-    public void Number(string src)
+    public void Numeric(string src)
     {
         var tokens = Lexer.LexSkipTrivia(src).ToList();
         tokens.Should().HaveCount(1);
-        tokens[0].Kind.Should().Be(TokenKind.NumberLiteral);
+        tokens[0].Kind.Should().Be(TokenKind.NumericLiteral);
     }
 
     [Fact]
@@ -149,33 +149,33 @@ public class LexerTests
     [Theory]
     [InlineData("12.")]
     [InlineData("0.")]
-    public void NumberDot(string src)
+    public void NumericDot(string src)
     {
         var tokens = Lexer.LexSkipTrivia(src).ToList();
         tokens.Should().HaveCount(2);
-        tokens[0].Kind.Should().Be(TokenKind.NumberLiteral);
+        tokens[0].Kind.Should().Be(TokenKind.NumericLiteral);
         tokens[1].Kind.Should().Be(TokenKind.Dot);
     }
 
     [Theory]
     [InlineData("12u64")]
     [InlineData("0.2f32")]
-    public void NumberLiteralWithType(string src)
+    public void NumericLiteralWithType(string src)
     {
         var tokens = Lexer.LexSkipTrivia(src).ToList();
         tokens.Should().HaveCount(2);
-        tokens[0].Kind.Should().Be(TokenKind.NumberLiteral);
-        tokens[1].Kind.Should().Be(TokenKind.NumberLiteralType);
+        tokens[0].Kind.Should().Be(TokenKind.NumericLiteral);
+        tokens[1].Kind.Should().Be(TokenKind.NumericLiteralType);
     }
 
     [Theory]
     [InlineData("12 u64")]
     [InlineData("12\tu64")]
-    public void NumberLiteralWithTypeButWhitespaceInBetween(string src)
+    public void NumericLiteralWithTypeButWhitespaceInBetween(string src)
     {
         var tokens = Lexer.LexSkipTrivia(src).ToList();
         tokens.Should().HaveCount(2);
-        tokens[0].Kind.Should().Be(TokenKind.NumberLiteral);
+        tokens[0].Kind.Should().Be(TokenKind.NumericLiteral);
         tokens[1].Kind.Should().Be(TokenKind.Identifier);
     }
 

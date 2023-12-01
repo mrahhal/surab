@@ -36,7 +36,7 @@ internal static class Abi
                     _ => Classification.Memory,
                 },
 
-                TypeTag.Number
+                TypeTag.Numeric
                 => Classification.SSE,
 
                 _ => throw new UnreachableException(),

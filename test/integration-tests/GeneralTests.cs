@@ -6,7 +6,7 @@ public class GeneralTests
     public void General_1()
     {
         var output = IntegrationRunner.Run($$"""
-            fn f(x: Number, y: Number) { print_n(x); }
+            fn f(x: i32, y: i32) { print_n(x); }
             fn main() {
                 var a = 42;
                 var b = 43;
