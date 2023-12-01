@@ -297,11 +297,8 @@ public class SemanticModel
             if (explicitType != null)
                 return explicitType;
 
-            Debug.Assert(node.Literal.TryGetNumberFloatValue(out var value));
-            if (value <= float.MaxValue)
-                return BuiltinTypeSystem.f32;
-            else
-                return BuiltinTypeSystem.f64;
+            // Floats are inferred as f64 by default.
+            return BuiltinTypeSystem.f64;
         }
     }
 
