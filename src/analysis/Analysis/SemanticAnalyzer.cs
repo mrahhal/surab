@@ -271,7 +271,7 @@ internal class SemanticAnalyzer(SemanticModel model) : Visitor
                     var argType = _model.LookupType(arg);
                     if (param.Type != argType)
                     {
-                        _diagnostics.Add(arg.Span, DiagnosticLevel.Error, $"incompatible types");
+                        _diagnostics.Add(arg.Span, DiagnosticLevel.Error, $"incompatible type for arg, expected {param.Type.Name} but received {argType?.Name}");
                     }
                 }
             }
