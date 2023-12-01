@@ -9,7 +9,7 @@ public static class BuiltinTypeSystem
 {
     private static readonly HashSet<TypeSymbol> _builtinTypes = [];
     // TODO: Overkill. Do this better.
-    private static readonly HashSet<TypeSymbol> _numberTypes = [];
+    private static readonly HashSet<StructTypeSymbol> _numberTypes = [];
 
     static BuiltinTypeSystem()
     {
@@ -91,6 +91,12 @@ public static class BuiltinTypeSystem
     {
         if (type == null) return false;
         return _numberTypes.Contains(type);
+    }
+
+    public static StructTypeSymbol? GetNumericTypeFromString(string? str)
+    {
+        if (str == null) return null;
+        return _numberTypes.FirstOrDefault(t => t.Identifier?.Value == str);
     }
 
     public static bool IsBuiltin(TypeSymbol? type)

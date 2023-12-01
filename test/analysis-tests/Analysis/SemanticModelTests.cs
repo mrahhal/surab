@@ -141,6 +141,21 @@ public class SemanticModelTests
     }
 
     [Fact]
+    public void LookupType_NumericExplicitType()
+    {
+        var src = """
+            fn f() { var n = 32f32; }
+            """;
+        var tree = Parser.ParseModule(src);
+        var model = SemanticModel.Create(tree);
+
+        var varStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Single();
+        var literalExpr = varStmt.Initializer!.Expr;
+        var numericType = model.LookupType(literalExpr);
+        numericType.Should().Be(BuiltinTypeSystem.f32);
+    }
+
+    [Fact]
     public void Symbol_ErrorType()
     {
         var src = """
@@ -159,38 +174,43 @@ public class SemanticModelTests
     }
 
     [Fact]
-    public void Symbol_InferType()
+    public void Symbol_InferType_NumericInteger_i32()
     {
-        var src = """
-            fn f() {
-                var a = 2;
-            }
-            """;
-        var tree = Parser.ParseModule(src);
-        var model = SemanticModel.Create(tree);
-
-        var letStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Single();
-        model.TryGetDeclaredSymbol(letStmt, out var symbol).Should().BeTrue();
-        var localSymbol = (LocalSymbol)symbol!;
-        localSymbol.Type.Should().Be(BuiltinTypeSystem.i32);
-        localSymbol.IsTypeInferred.Should().BeTrue();
+        ExpectLocalInferredTypeFromExpr("2", BuiltinTypeSystem.i32);
     }
 
     [Fact]
-    public void Symbol_InferType_2()
+    public void Symbol_InferType_NumericFloat_f64()
     {
-        var src = """
+        ExpectLocalInferredTypeFromExpr("2.0", BuiltinTypeSystem.f64);
+    }
+
+    [Fact]
+    public void Symbol_InferType_Block()
+    {
+        ExpectLocalInferredTypeFromExpr("{ 2 }", BuiltinTypeSystem.i32);
+    }
+
+    private void ExpectLocalInferredTypeFromExpr(string expr, TypeSymbol expectedType)
+    {
+        var src = $$"""
             fn f() {
-                var a = { 2 };
+                var a = {{expr}};
             }
             """;
+        ExpectLocalInferredType(src, expectedType);
+    }
+
+    private void ExpectLocalInferredType(string src, TypeSymbol expectedType)
+    {
         var tree = Parser.ParseModule(src);
         var model = SemanticModel.Create(tree);
 
         var letStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Single();
         model.TryGetDeclaredSymbol(letStmt, out var symbol).Should().BeTrue();
         var localSymbol = symbol.Should().BeOfType<LocalSymbol>().Subject;
-        localSymbol.Type.Should().Be(BuiltinTypeSystem.i32);
+        localSymbol.Type.Should().Be(expectedType);
+        localSymbol.IsTypeInferred.Should().BeTrue();
     }
 
     [Fact]

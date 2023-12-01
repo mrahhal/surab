@@ -273,6 +273,10 @@ public class SemanticModel
 
         TypeSymbol LookupNumberInteger()
         {
+            var explicitType = BuiltinTypeSystem.GetNumericTypeFromString(node.Literal.NumericType);
+            if (explicitType != null)
+                return explicitType;
+
             // TODO: How to account for integers that might end up being signed?
             Debug.Assert(node.Literal.TryGetNumberIntegerValue(out var value));
             if (value <= int.MaxValue)
@@ -283,6 +287,10 @@ public class SemanticModel
 
         TypeSymbol LookupNumberFloat()
         {
+            var explicitType = BuiltinTypeSystem.GetNumericTypeFromString(node.Literal.NumericType);
+            if (explicitType != null)
+                return explicitType;
+
             Debug.Assert(node.Literal.TryGetNumberFloatValue(out var value));
             if (value <= float.MaxValue)
                 return BuiltinTypeSystem.f32;
