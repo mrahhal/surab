@@ -50,6 +50,7 @@ public enum TokenKind
     Return,
 
     NumberLiteral,
+    NumberLiteralType,
     CharLiteral,
     StringLiteral,
     Identifier,
@@ -127,6 +128,7 @@ public class Token(TokenKind kind, TextSpan span, object? data)
             Return => "return",
 
             NumberLiteral => "numlit",
+            NumberLiteralType => "numlit_type",
             CharLiteral => "charlit",
             StringLiteral => "stringlit",
             Identifier => "ident",

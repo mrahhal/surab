@@ -157,6 +157,28 @@ public class LexerTests
         tokens[1].Kind.Should().Be(TokenKind.Dot);
     }
 
+    [Theory]
+    [InlineData("12u64")]
+    [InlineData("0.2f32")]
+    public void NumberLiteralWithType(string src)
+    {
+        var tokens = Lexer.LexSkipTrivia(src).ToList();
+        tokens.Should().HaveCount(2);
+        tokens[0].Kind.Should().Be(TokenKind.NumberLiteral);
+        tokens[1].Kind.Should().Be(TokenKind.NumberLiteralType);
+    }
+
+    [Theory]
+    [InlineData("12 u64")]
+    [InlineData("12\tu64")]
+    public void NumberLiteralWithTypeButWhitespaceInBetween(string src)
+    {
+        var tokens = Lexer.LexSkipTrivia(src).ToList();
+        tokens.Should().HaveCount(2);
+        tokens[0].Kind.Should().Be(TokenKind.NumberLiteral);
+        tokens[1].Kind.Should().Be(TokenKind.Identifier);
+    }
+
     [Fact]
     public void Span()
     {

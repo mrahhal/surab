@@ -102,7 +102,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
             '\'' => ConsumeChar(),
             '"' => ConsumeString(),
             _ when char.IsAsciiDigit(ch) => ConsumeNumber(),
-            _ when Chars.IsIdentifierStart(ch) => ConsumeKeywordOrIdentifier(),
+            _ when Chars.IsIdentifierStart(ch) => _current?.Kind == TokenKind.NumberLiteral ? ConsumeNumberLiteralType() : ConsumeKeywordOrIdentifier(),
 
             _ => MakeToken(TokenKind.Unknown),
 
@@ -342,6 +342,14 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
         }
 
         return MakeToken(TokenKind.NumberLiteral);
+    }
+
+    private Token ConsumeNumberLiteralType()
+    {
+        Debug.Assert(Chars.IsIdentifierStart(_prev) && Current.Kind == TokenKind.NumberLiteral);
+
+        EatIdentifier();
+        return MakeToken(TokenKind.NumberLiteralType);
     }
 
     private Token ConsumeKeywordOrIdentifier()

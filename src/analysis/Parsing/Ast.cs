@@ -302,6 +302,8 @@ public sealed class LiteralToken : SyntaxToken
 
     public object? Data { get; init; }
 
+    public string? NumericType { get; internal set; }
+
     public static LiteralToken FromBool(Token token, bool value) =>
         new(token.Span, LiteralTokenKind.Bool, value);
 

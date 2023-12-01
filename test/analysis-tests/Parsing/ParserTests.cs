@@ -149,10 +149,10 @@ public class ParserTests
         node.Literal.LiteralTokenKind.Should().Be(LiteralTokenKind.NumberInteger);
         node.Literal.TryGetNumberIntegerValue(out var value).Should().BeTrue();
         value.Should().Be(expected);
+        node.Literal.NumericType.Should().BeNull();
     }
 
     [Theory]
-    [InlineData("12.0", 12.0)]
     [InlineData("12.0", 12.0)]
     [InlineData("12.1", 12.1)]
     [InlineData("0.01", 0.01)]
@@ -162,6 +162,31 @@ public class ParserTests
         node.Literal.LiteralTokenKind.Should().Be(LiteralTokenKind.NumberFloat);
         node.Literal.TryGetNumberFloatValue(out var value).Should().BeTrue();
         value.Should().Be(expected);
+        node.Literal.NumericType.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("12u64", 12, "u64")]
+    [InlineData("42f32", 42, "f32")]
+    public void Expr_NumberIntegerWithType(string src, ulong expected, string expectedType)
+    {
+        var node = ParseExpr(src).Should().BeOfType<LiteralExprNode>().Subject;
+        node.Literal.LiteralTokenKind.Should().Be(LiteralTokenKind.NumberInteger);
+        node.Literal.TryGetNumberIntegerValue(out var value).Should().BeTrue();
+        value.Should().Be(expected);
+        node.Literal.NumericType.Should().Be(expectedType);
+    }
+
+    [Theory]
+    [InlineData("12.0u64", 12.0, "u64")]
+    [InlineData("12.1f32", 12.1, "f32")]
+    public void Expr_NumberFloatWithType(string src, double expected, string expectedType)
+    {
+        var node = ParseExpr(src).Should().BeOfType<LiteralExprNode>().Subject;
+        node.Literal.LiteralTokenKind.Should().Be(LiteralTokenKind.NumberFloat);
+        node.Literal.TryGetNumberFloatValue(out var value).Should().BeTrue();
+        value.Should().Be(expected);
+        node.Literal.NumericType.Should().Be(expectedType);
     }
 
     [Theory]

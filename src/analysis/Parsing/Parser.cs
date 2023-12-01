@@ -659,18 +659,30 @@ internal class ParserImpl
         Advance();
         var token = AssertedPrev();
         var lexeme = GetLexeme(token);
+
+        var type = default(string?);
+        if (_current?.Kind == TokenKind.NumberLiteralType)
+        {
+            Advance();
+            type = GetLexeme(AssertedPrev()).ToString();
+        }
+
+        LiteralToken literalToken;
         if (ulong.TryParse(lexeme, out var ulongValue))
         {
-            return LiteralToken.FromNumberInteger(token, ulongValue);
+            literalToken = LiteralToken.FromNumberInteger(token, ulongValue);
         }
         else if (double.TryParse(lexeme, out var doubleValue))
         {
-            return LiteralToken.FromNumberFloat(token, doubleValue);
+            literalToken = LiteralToken.FromNumberFloat(token, doubleValue);
         }
         else
         {
             throw new UnreachableException();
         }
+
+        literalToken.NumericType = type;
+        return literalToken;
     }
 
     private LiteralToken ParseLiteralChar()
