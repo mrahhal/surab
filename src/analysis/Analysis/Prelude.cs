@@ -1,26 +1,21 @@
-﻿namespace Surab.Analysis;
+﻿using System.Diagnostics;
+
+namespace Surab.Analysis;
 
 internal static class Prelude
 {
-    // TODO: Find a better way to do this (so as not to use static?).
     private static SemanticModel? _semanticModel = null;
-    private static readonly object _lock = new();
 
-    public static void EnsureLoaded()
+    // Should only be called from SemanticModel's static ctor so that it's created only once.
+    public static void Load()
     {
-        GetSemanticModel();
+        _semanticModel = CreateSemanticModel();
     }
 
     public static SemanticModel GetSemanticModel()
     {
-        if (_semanticModel != null) return _semanticModel;
-        // Need a lock to avoid concurrency issues when running parallel tests.
-        lock (_lock)
-        {
-            // Double lock test.
-            if (_semanticModel != null) return _semanticModel;
-            return _semanticModel ??= CreateSemanticModel();
-        }
+        Debug.Assert(_semanticModel != null);
+        return _semanticModel;
     }
 
     private static SemanticModel CreateSemanticModel()

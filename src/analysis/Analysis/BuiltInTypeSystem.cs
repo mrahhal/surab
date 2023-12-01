@@ -1,20 +1,15 @@
 ﻿namespace Surab.Analysis;
 
-// TODO: Shouldn't have a static type system here. We should have some kind of static type tag we can match on the symbol somehow.
+// TODO: Shouldn't have a static type system here? We should have some kind of static type tag we can match on the symbol somehow?
 
 /// <summary>
-/// Contains built in type system symbols.
+/// Contains builtin type system symbols.
 /// </summary>
 public static class BuiltinTypeSystem
 {
     private static readonly HashSet<TypeSymbol> _builtinTypes = [];
     // TODO: Overkill. Do this better.
     private static readonly HashSet<StructTypeSymbol> _numberTypes = [];
-
-    static BuiltinTypeSystem()
-    {
-        Prelude.EnsureLoaded();
-    }
 
     public static StructTypeSymbol None { get; private set; } = null!;
 

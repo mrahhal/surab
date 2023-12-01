@@ -13,6 +13,12 @@ public class SemanticModel
         Tree = tree;
     }
 
+    static SemanticModel()
+    {
+        // The first moment we touch SemanticModel in any way, we'll need to load the prelude.
+        Prelude.Load();
+    }
+
     public SyntaxTree Tree { get; }
 
     // TODO: internal?
@@ -370,6 +376,7 @@ public class SemanticModel
         }
 
         private readonly SemanticModel _model = new(tree);
+        private readonly Dictionary<SyntaxNode, Symbol> _nodeToSymbolMap = [];
         private Scope? _parentScope;
         private Symbol? _parentSymbol;
         private TempTypeContext? _typeContext;
@@ -377,8 +384,28 @@ public class SemanticModel
         public static SemanticModel Build(SyntaxTree tree, bool isPrelude)
         {
             var builder = new Builder(tree, isPrelude);
-            builder.Visit(tree.Root);
+            builder.Build();
             return builder._model;
+        }
+
+        private void Build()
+        {
+            if (isPrelude)
+            {
+                // For the prelude, we'll especially go over the top level decls first to fill in BuiltinTypeSystem first thing before doing anything else.
+                // Lots of other processes here depends on BuiltinTypeSystem being initialized.
+
+                Debug.Assert(tree.Root is ModuleNode);
+                var moduleNode = (ModuleNode)tree.Root;
+                foreach (var decl in moduleNode.Decls)
+                {
+                    var symbol = GetOrCreateSymbolOnNode(decl);
+                    Debug.Assert(symbol != null);
+                    BuiltinTypeSystem.TryRegisterBuiltinSymbol(symbol);
+                }
+            }
+
+            Visit(tree.Root);
         }
 
         public override void Visit(SyntaxNode node)
@@ -419,23 +446,21 @@ public class SemanticModel
 
         private Symbol? CreateSymbol(SyntaxNode node)
         {
-            var symbol = CreateSymbolOnNode(node);
+            var symbol = GetOrCreateSymbolOnNode(node);
             if (symbol != null)
             {
                 symbol.SetParent(_parentSymbol);
                 _model._nodeToSymbolMap[node] = symbol;
-
-                if (isPrelude && symbol is TypeSymbol typeSymbol)
-                {
-                    BuiltinTypeSystem.TryRegisterBuiltinSymbol(typeSymbol);
-                }
             }
             return symbol;
         }
 
-        private Symbol? CreateSymbolOnNode(SyntaxNode node)
+        private Symbol? GetOrCreateSymbolOnNode(SyntaxNode node)
         {
-            return node switch
+            if (_nodeToSymbolMap.TryGetValue(node, out var symbol))
+                return symbol;
+
+            symbol = node switch
             {
                 ConstDeclNode n => new ConstSymbol(n),
                 FnDeclNode n => new FnSymbol(n.Sig),
@@ -450,6 +475,13 @@ public class SemanticModel
 
                 _ => null,
             };
+
+            if (symbol != null)
+            {
+                _nodeToSymbolMap[node] = symbol;
+            }
+
+            return symbol;
         }
 
         private Scope? CreateScope(SyntaxNode node, Symbol? symbol)
