@@ -76,7 +76,7 @@ public static class BuiltinTypeSystem
                     _builtinTypes.Add(structTypeSymbol);
                     break;
 
-                case "Bool":
+                case "bool":
                     @bool = structTypeSymbol;
                     _builtinTypes.Add(structTypeSymbol);
                     break;
