@@ -164,14 +164,16 @@ internal sealed class LoweredStmtList(
     }
 }
 
-internal abstract class LoweredExpr(SyntaxNode parsedNode) : LoweredNode(parsedNode)
+internal abstract class LoweredExpr(SyntaxNode parsedNode, TypeSymbol type) : LoweredNode(parsedNode)
 {
+    public TypeSymbol Type { get; } = type;
 }
 
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
 internal sealed class LoweredVariableLoadExpr(
     SyntaxNode parsedNode,
-    Symbol variable) : LoweredExpr(parsedNode)
+    TypeSymbol type,
+    Symbol variable) : LoweredExpr(parsedNode, type)
 {
     public Symbol Variable { get; } = variable;
 
@@ -202,7 +204,7 @@ internal sealed class LoweredVariableStoreStmt(
 internal sealed class LoweredFieldLoadExpr(
     SyntaxNode parsedNode,
     LoweredExpr target,
-    FieldSymbol field) : LoweredExpr(parsedNode)
+    FieldSymbol field) : LoweredExpr(parsedNode, target.Type)
 {
     public LoweredExpr Target { get; } = target;
 
@@ -237,7 +239,8 @@ internal sealed class LoweredFieldStoreStmt(
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
 internal sealed class LoweredUnaryExpr(
     SyntaxNode parsedNode,
-    LoweredExpr expr) : LoweredExpr(parsedNode)
+    TypeSymbol type,
+    LoweredExpr expr) : LoweredExpr(parsedNode, type)
 {
     public new UnaryExprNode ParsedNode => (UnaryExprNode)base.ParsedNode;
 
@@ -256,8 +259,9 @@ internal sealed class LoweredUnaryExpr(
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
 internal sealed class LoweredBinaryExpr(
     SyntaxNode parsedNode,
+    TypeSymbol type,
     LoweredExpr left,
-    LoweredExpr right) : LoweredExpr(parsedNode)
+    LoweredExpr right) : LoweredExpr(parsedNode, type)
 {
     public new BinaryExprNode ParsedNode => (BinaryExprNode)base.ParsedNode;
 
@@ -280,7 +284,7 @@ internal sealed class LoweredBinaryExpr(
 internal sealed class LoweredCallExpr(
     SyntaxNode parsedNode,
     FnSymbol callee,
-    IEnumerable<LoweredExpr> args) : LoweredExpr(parsedNode)
+    IEnumerable<LoweredExpr> args) : LoweredExpr(parsedNode, callee.ReturnType)
 {
     public FnSymbol Callee { get; set; } = callee;
 
@@ -300,12 +304,10 @@ internal sealed class LoweredCallExpr(
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
 internal sealed class LoweredLiteralExpr(
     SyntaxNode parsedNode,
-    LiteralToken literal,
-    TypeSymbol typeSymbol) : LoweredExpr(parsedNode)
+    TypeSymbol type,
+    LiteralToken literal) : LoweredExpr(parsedNode, type)
 {
     public LiteralToken Literal { get; } = literal;
-
-    public TypeSymbol TypeSymbol { get; set; } = typeSymbol;
 
     public override IEnumerable<LoweredNode> EnumerateChildren() => [];
 
@@ -316,7 +318,7 @@ internal sealed class LoweredLiteralExpr(
 internal sealed class LoweredStructCreationExpr(
     SyntaxNode parsedNode,
     StructTypeSymbol symbol,
-    LoweredMapInitializer mapInitializer) : LoweredExpr(parsedNode)
+    LoweredMapInitializer mapInitializer) : LoweredExpr(parsedNode, symbol)
 {
     public StructTypeSymbol Symbol { get; } = symbol;
 

@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using LLVMSharp;
 using LLVMSharp.Interop;
 using Surab.Analysis;
 using Surab.Compilation.LLVM;
@@ -312,11 +313,23 @@ internal sealed class FnCompiler : LoweredVisitor
 
         var newValue = node.Op switch
         {
-            UnaryOperatorTokenKind.Neg => LLVM.Builder.BuildFNeg(value),
+            UnaryOperatorTokenKind.Neg => BuildNeg(),
             UnaryOperatorTokenKind.Not => LLVM.Builder.BuildICmp(LLVMIntPredicate.LLVMIntEQ, value, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, 0)),
             _ => throw new NotImplementedException(),
         };
         _stack.Push(LLVMUnit.Unwrapped(LLVMTypeRef.Double, newValue));
+
+        LLVMValueRef BuildNeg()
+        {
+            if (BuiltinTypeSystem.IsNumericInteger(node.Type))
+            {
+                return LLVM.Builder.BuildNeg(value);
+            }
+            else
+            {
+                return LLVM.Builder.BuildFNeg(value);
+            }
+        }
     }
 
     public override void VisitBinaryExpr(LoweredBinaryExpr node)
@@ -329,12 +342,36 @@ internal sealed class FnCompiler : LoweredVisitor
 
         var newValue = node.Op switch
         {
-            BinaryOperatorTokenKind.Add => LLVM.Builder.BuildFAdd(leftValue, rightValue),
-            BinaryOperatorTokenKind.Sub => LLVM.Builder.BuildFSub(leftValue, rightValue),
+            BinaryOperatorTokenKind.Add => BuildAdd(),
+            BinaryOperatorTokenKind.Sub => BuildSub(),
             // TODO: Missing
             _ => throw new NotImplementedException(),
         };
         _stack.Push(LLVMUnit.Unwrapped(LLVMTypeRef.Double, newValue));
+
+        LLVMValueRef BuildAdd()
+        {
+            if (BuiltinTypeSystem.IsNumericInteger(node.Type))
+            {
+                return LLVM.Builder.BuildAdd(leftValue, rightValue);
+            }
+            else
+            {
+                return LLVM.Builder.BuildFAdd(leftValue, rightValue);
+            }
+        }
+
+        LLVMValueRef BuildSub()
+        {
+            if (BuiltinTypeSystem.IsNumericInteger(node.Type))
+            {
+                return LLVM.Builder.BuildSub(leftValue, rightValue);
+            }
+            else
+            {
+                return LLVM.Builder.BuildFSub(leftValue, rightValue);
+            }
+        }
     }
 
     public override void VisitVariableLoadExpr(LoweredVariableLoadExpr node)
@@ -424,9 +461,9 @@ internal sealed class FnCompiler : LoweredVisitor
             case LiteralTokenKind.NumericInteger:
                 {
                     Debug.Assert(node.Literal.TryGetNumericIntegerValue(out var v));
-                    var llvmType = Target.LowerType(node.TypeSymbol);
+                    var llvmType = Target.LowerType(node.Type);
                     // TODO: Do sign and zero extension more properly?
-                    var signExtend = Target.GetIntegerSign(node.TypeSymbol) == IntegerSign.Signed;
+                    var signExtend = Target.GetIntegerSign(node.Type) == IntegerSign.Signed;
                     var llvmValue = LLVMValueRef.CreateConstInt(llvmType, v, signExtend);
                     _stack.Push(LLVMUnit.Unwrapped(llvmType, llvmValue));
                 }
@@ -435,7 +472,7 @@ internal sealed class FnCompiler : LoweredVisitor
             case LiteralTokenKind.NumericFloat:
                 {
                     Debug.Assert(node.Literal.TryGetNumericFloatValue(out var v));
-                    var llvmType = Target.LowerType(node.TypeSymbol);
+                    var llvmType = Target.LowerType(node.Type);
                     var llvmValue = LLVMValueRef.CreateConstReal(llvmType, v);
                     _stack.Push(LLVMUnit.Unwrapped(llvmType, llvmValue));
                 }

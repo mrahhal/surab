@@ -1,4 +1,5 @@
 ﻿using LLVMSharp.Interop;
+using Surab.Analysis;
 
 namespace Surab.Compilation;
 
@@ -36,6 +37,7 @@ public partial class TargetTests
 
     private static Target CreateTarget()
     {
+        SemanticModel.EnsurePreludeLoaded();
         return new x86_64WindowsMSVCTarget();
     }
 }

@@ -19,6 +19,14 @@ public class SemanticModel
         Prelude.Load();
     }
 
+    /// <summary>
+    /// Can be called from test environments to ensure prelude is loaded.
+    /// </summary>
+    internal static void EnsurePreludeLoaded()
+    {
+        // noop, just to ensure run the static ctor.
+    }
+
     public SyntaxTree Tree { get; }
 
     // TODO: internal?
@@ -220,21 +228,12 @@ public class SemanticModel
 
     private TypeSymbol? LookupType(UnaryExprNode node)
     {
-        var exprType = LookupType(node.Expr);
-        return exprType;
+        return LookupType(node.Expr);
     }
 
     private TypeSymbol? LookupType(BinaryExprNode node)
     {
-        var leftType = LookupType(node.Left);
-        var rightType = LookupType(node.Right);
-
-        if (leftType != null && rightType != null && leftType != rightType)
-        {
-            // TODO: ?
-        }
-
-        return leftType;
+        return LookupType(node.Left);
     }
 
     private TypeSymbol? LookupType(CallExprNode node)

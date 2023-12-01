@@ -37,7 +37,7 @@ var src = """
     @export
     fn f(x: f64, y: f64): f64 {
         var e = x + y;
-        return e + 1;
+        return e + 1.0;
     }
 
     fn fs(s1: S1, s2: S2) {
@@ -46,23 +46,23 @@ var src = """
     }
 
     fn main() {
-        var a = 2;
+        var a = 2.0;
         noop();
-        var b: f64 = 4;
+        var b: f64 = 4.0;
         var c = f(a, b);
         c = {
-            var c2 = 999;
+            var c2 = 999.0;
             c2 + 0.2
         };
         print_f64(c);
-        print_f64(41 + 1);
+        print_i32(41 + 1);
 
         var s1 = S1 {
-            a = 82,
+            a = 82.0,
             b = true,
         };
         print_f64(s1.a);
-        s1.a = 83;
+        s1.a = 83.0;
         print_f64(s1.a);
         print_bool(s1.b);
 

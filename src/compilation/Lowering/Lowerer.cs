@@ -235,6 +235,7 @@ internal class Lowerer
 
             var finalApply = rewrite(new LoweredVariableLoadExpr(
                 node,
+                ((ISymbolHasType)symbol).Type,
                 symbol));
 
             return new LoweredStmtList(
@@ -302,6 +303,7 @@ internal class Lowerer
     {
         return new LoweredUnaryExpr(
             node,
+            _model.LookupType(node)!,
             LowerWithCast(node.Expr));
     }
 
@@ -309,6 +311,7 @@ internal class Lowerer
     {
         return new LoweredBinaryExpr(
             node,
+            _model.LookupType(node)!,
             LowerWithCast(node.Left),
             LowerWithCast(node.Right));
     }
@@ -328,16 +331,19 @@ internal class Lowerer
         var type = _model.LookupType(node)!;
         return new LoweredLiteralExpr(
             node,
-            node.Literal,
-            type);
+            type,
+            node.Literal);
     }
 
     private LoweredNode Lower(IdentifierExprNode node)
     {
         // Should only be here if we're loading a variable?
         var symbol = _model.LookupSymbol(node)!;
+        Debug.Assert(symbol is ISymbolHasType);
+        var symbolHasType = (ISymbolHasType)symbol;
         return new LoweredVariableLoadExpr(
             node,
+            symbolHasType.Type,
             symbol);
     }
 

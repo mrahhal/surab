@@ -94,6 +94,18 @@ public static class BuiltinTypeSystem
         return _numericTypes.FirstOrDefault(t => t.Identifier?.Value == str);
     }
 
+    public static bool IsNumericInteger(TypeSymbol? type)
+    {
+        if (type == null) return false;
+        return type == i32 || type == i64 || type == u32 || type == u64;
+    }
+
+    public static bool IsNumericFloat(TypeSymbol? type)
+    {
+        if (type == null) return false;
+        return type == f32 || type == f64;
+    }
+
     public static bool IsBuiltin(TypeSymbol? type)
     {
         if (type == null) return false;
