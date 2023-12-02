@@ -833,7 +833,7 @@ public partial class TypeNode : SyntaxNode
 
 public partial class FnSigNode : SyntaxNode
 {
-    public FnSigNode(IdentifierToken identifier, ParamsListNode @params, ColonTypeNode? returnTy)
+    public FnSigNode(IdentifierToken identifier, ParamsListNode @params, TypeNode? returnTy)
         : base(SyntaxNodeKind.FnSig)
     {
         _childTokens = new() { identifier, };
@@ -845,7 +845,7 @@ public partial class FnSigNode : SyntaxNode
 
     public IdentifierToken Identifier => (IdentifierToken)_childTokens[0]!;
     public ParamsListNode @Params => (ParamsListNode)_childNodes[0]!;
-    public ColonTypeNode? ReturnTy => (ColonTypeNode?)_childNodes[1]!;
+    public TypeNode? ReturnTy => (TypeNode?)_childNodes[1]!;
 
     public override void Accept(Visitor visitor)
     {

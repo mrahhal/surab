@@ -599,7 +599,7 @@
         },
         {
           "Name": "returnTy",
-          "Type": "ColonTypeNode",
+          "Type": "TypeNode",
           "Optional": true
         }
       ]

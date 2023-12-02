@@ -127,7 +127,7 @@ public sealed class FnSymbol : Symbol
     {
         get
         {
-            return _returnType ??= _node.ReturnTy?.Type == null ?
+            return _returnType ??= _node.ReturnTy == null ?
                 BuiltinTypeSystem.None :
                 Scope.ResolveType(_node, _node.ReturnTy).Type; // Will never be inferred.
         }

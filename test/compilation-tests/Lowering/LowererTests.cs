@@ -8,7 +8,7 @@ public class LowererTests
     public void BareExprStmtToReturnStmt()
     {
         var src = """
-            fn f(): i32 {
+            fn f() i32 {
                 2
             }
             """;

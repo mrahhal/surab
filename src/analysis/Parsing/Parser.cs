@@ -999,8 +999,7 @@ internal class ParserImpl
         if (identifier == null) return null;
         var @params = ParseParamsList();
         if (@params == null) return null;
-        var (returnTy, elided) = ParseOptionalColonTy();
-        if (!elided && returnTy == null) return null;
+        var returnTy = ParseTy();
 
         return new FnSigNode(identifier, @params, returnTy);
     }

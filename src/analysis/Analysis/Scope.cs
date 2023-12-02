@@ -102,10 +102,8 @@ internal abstract class Scope
     /// Resolves a type, binding the type node to its type symbol.
     /// This method never returns `null`. If resolving fails a special <see cref="ErrorTypeSymbol"/> will be returned.
     /// </summary>
-    public ResolvedType ResolveType(SyntaxNode parentNode, ColonTypeNode? colonType)
+    public ResolvedType ResolveType(SyntaxNode parentNode, TypeNode? type)
     {
-        var type = colonType?.Type;
-
         ResolvedType? resolvedType = null;
         if (type != null)
         {
@@ -121,6 +119,8 @@ internal abstract class Scope
 
         return resolvedType ?? ResolvedType.Typed(new ErrorTypeSymbol(type?.Identifier));
     }
+
+    public ResolvedType ResolveType(SyntaxNode parentNode, ColonTypeNode? colonType) => ResolveType(parentNode, colonType?.Type);
 }
 
 /// <summary>
