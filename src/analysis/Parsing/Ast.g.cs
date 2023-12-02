@@ -80,10 +80,13 @@ public enum SyntaxNodeKind
     SkippedTokensExpr,
     ParamsList,
     Param,
+    ParamTypesList,
+    ParamType,
     ArgsList,
     Arg,
     ColonType,
-    Type,
+    NamedType,
+    FnType,
     FnSig,
     EqualsValueClause,
     AttrsList,
@@ -746,6 +749,49 @@ public partial class ParamNode : SyntaxNode
     }
 }
 
+public partial class ParamTypesListNode : SyntaxNode
+{
+    public ParamTypesListNode(SimpleToken openParenToken, IEnumerable<ParamTypeNode> paramTypes, SimpleToken closedParenToken)
+        : base(SyntaxNodeKind.ParamTypesList)
+    {
+        _childTokens = new() { openParenToken, closedParenToken, };
+        _childNodes = paramTypes.Cast<SyntaxNode?>().ToList();
+
+        Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+        SetChildrenParent();
+    }
+
+    public SimpleToken OpenParenToken => (SimpleToken)_childTokens[0]!;
+    public IEnumerable<ParamTypeNode> ParamTypes => _childNodes.Cast<ParamTypeNode>();
+    public SimpleToken ClosedParenToken => (SimpleToken)_childTokens[1]!;
+
+    public override void Accept(Visitor visitor)
+    {
+        visitor.VisitParamTypesList(this);
+    }
+}
+
+public partial class ParamTypeNode : SyntaxNode
+{
+    public ParamTypeNode(TypeNode type, SimpleToken? commaToken)
+        : base(SyntaxNodeKind.ParamType)
+    {
+        _childTokens = new() { commaToken, };
+        _childNodes = new() { type, };
+
+        Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+        SetChildrenParent();
+    }
+
+    public TypeNode Type => (TypeNode)_childNodes[0]!;
+    public SimpleToken? CommaToken => (SimpleToken?)_childTokens[0]!;
+
+    public override void Accept(Visitor visitor)
+    {
+        visitor.VisitParamType(this);
+    }
+}
+
 public partial class ArgsListNode : SyntaxNode
 {
     public ArgsListNode(SimpleToken openParenToken, IEnumerable<ArgNode> args, SimpleToken closedParenToken)
@@ -810,12 +856,12 @@ public partial class ColonTypeNode : SyntaxNode
     }
 }
 
-public partial class TypeNode : SyntaxNode
+public partial class NamedTypeNode : TypeNode
 {
-    public TypeNode(IdentifierToken identifier, SimpleToken? nullableToken)
-        : base(SyntaxNodeKind.Type)
+    public NamedTypeNode(IdentifierToken identifier)
+        : base(SyntaxNodeKind.NamedType)
     {
-        _childTokens = new() { identifier, nullableToken, };
+        _childTokens = new() { identifier, };
         _childNodes = new();
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
@@ -823,11 +869,32 @@ public partial class TypeNode : SyntaxNode
     }
 
     public IdentifierToken Identifier => (IdentifierToken)_childTokens[0]!;
-    public SimpleToken? NullableToken => (SimpleToken?)_childTokens[1]!;
 
     public override void Accept(Visitor visitor)
     {
-        visitor.VisitType(this);
+        visitor.VisitNamedType(this);
+    }
+}
+
+public partial class FnTypeNode : TypeNode
+{
+    public FnTypeNode(SimpleToken fnToken, ParamTypesListNode paramTypes, TypeNode? returnType)
+        : base(SyntaxNodeKind.FnType)
+    {
+        _childTokens = new() { fnToken, };
+        _childNodes = new() { paramTypes, returnType, };
+
+        Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+        SetChildrenParent();
+    }
+
+    public SimpleToken FnToken => (SimpleToken)_childTokens[0]!;
+    public ParamTypesListNode ParamTypes => (ParamTypesListNode)_childNodes[0]!;
+    public TypeNode? ReturnType => (TypeNode?)_childNodes[1]!;
+
+    public override void Accept(Visitor visitor)
+    {
+        visitor.VisitFnType(this);
     }
 }
 

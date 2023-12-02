@@ -56,4 +56,32 @@ public class GeneralTests
 
         output.Should().Be(expectedOutput);
     }
+
+    [Fact]
+    public void General_FnType()
+    {
+        var output = IntegrationRunner.Run($$"""
+            fn foo1(number: i32) i32 {
+                print_i32(number + 2);
+            }
+
+            fn foo2(number: i32) i32 {
+                print_i32(number + 3);
+            }
+
+            fn main() {
+                var number = 40;
+                var f = foo1;
+                f(number);
+                f = foo2;
+                f(number);
+            }
+            """);
+
+        var expectedOutput =
+            "42".NL() +
+            "43".NL();
+
+        output.Should().Be(expectedOutput);
+    }
 }

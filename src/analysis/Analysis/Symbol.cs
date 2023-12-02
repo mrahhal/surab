@@ -1,5 +1,7 @@
-﻿using System.Collections.Immutable;
+﻿using System;
+using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Reflection.Metadata.Ecma335;
 
 namespace Surab.Analysis;
 
@@ -11,10 +13,16 @@ public enum SymbolKind
     Param,
     Local,
 
-    NamedType, // Class, Struct
-    ArrayType, // [Type]
+    NamedType,
+    FnType,
 }
 
+/// <summary>
+/// Represents a symbol.
+/// </summary>
+/// <remarks>
+/// <see cref="object.Equals(object?)"/> should be used instead of referential equality as some symbols will override equality.
+/// </remarks>
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
 public abstract class Symbol
 {
@@ -89,10 +97,10 @@ public sealed class ConstSymbol : Symbol, ISymbolHasType
     }
 }
 
-public sealed class FnSymbol : Symbol
+public sealed class FnSymbol : Symbol, ISymbolHasType
 {
     private readonly FnSigNode _node;
-    private TypeSymbol? _returnType;
+    private FnTypeSymbol? _type;
     private ImmutableArray<ParamSymbol> _params;
 
     internal FnSymbol(FnSigNode node)
@@ -120,18 +128,25 @@ public sealed class FnSymbol : Symbol
 
     public bool IsExtern => _node.Parent is FnDeclNode fnDeclNode && fnDeclNode.Attrs.HasAttr(KnownAttrs.Extern);
 
+    TypeSymbol ISymbolHasType.Type => Type;
+
     /// <summary>
-    /// The return type of the function.
+    /// The type symbol of the function.
     /// </summary>
-    public TypeSymbol ReturnType
+    public FnTypeSymbol Type
     {
         get
         {
-            return _returnType ??= _node.ReturnTy == null ?
-                BuiltinTypeSystem.None :
-                Scope.ResolveType(_node, _node.ReturnTy).Type; // Will never be inferred.
+            return _type ??= Scope.SemanticModel.GetFnType(_node.Parent!);
         }
     }
+
+    public bool IsTypeInferred => false;
+
+    /// <summary>
+    /// The return type of the function.
+    /// </summary>
+    public TypeSymbol ReturnType => Type.ReturnType;
 
     public ImmutableArray<ParamSymbol> Params
     {
@@ -332,6 +347,97 @@ public abstract class TypeSymbol : Symbol
     protected abstract IEnumerable<SyntaxNode> EnumerateMembers();
 }
 
+internal readonly struct InternalFnType(
+    TypeSymbol returnType,
+    IEnumerable<TypeSymbol> paramTypes) : IEquatable<InternalFnType>
+{
+    public readonly TypeSymbol ReturnType { get; } = returnType;
+    public readonly ImmutableArray<TypeSymbol> ParamTypes { get; } = paramTypes.ToImmutableArray();
+
+    public override bool Equals(object? obj) => obj is InternalFnType other && Equals(other);
+
+    public bool Equals(InternalFnType other)
+    {
+        return
+            Equals(ReturnType, other.ReturnType) &&
+            ParamTypesEqual(this, other);
+    }
+
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            var hash = 92821;
+            hash = hash * 29 + ReturnType.GetHashCode();
+            foreach (var p in ParamTypes)
+            {
+                hash = hash * 29 + p.GetHashCode();
+            }
+            return hash;
+        }
+    }
+
+    private static bool ParamTypesEqual(InternalFnType x, InternalFnType y)
+    {
+        if (x.ParamTypes.Length != y.ParamTypes.Length)
+            return false;
+        for (var i = 0; i < x.ParamTypes.Length; i++)
+        {
+            if (!Equals(x.ParamTypes[i], y.ParamTypes[i]))
+                return false;
+        }
+        return true;
+    }
+}
+
+/// <summary>
+/// Represents an fn type symbol.
+/// A symbol will be created for each custom named fn type. Another shared symbol will be created for untyped fn types.
+/// This symbol overrides equality so that comparison is structural instead of referential.
+/// i.e. A named fn's fn type symbol and a method's fn type symbol and an alias' fn type symbol are equal if they're structurally compatible (signatures match).
+/// </summary>
+public class FnTypeSymbol : TypeSymbol, IEquatable<FnTypeSymbol>
+{
+    // AliasDeclNode (node is null for FnDeclNode, MethodDeclNode because these create shared fn type symbols)
+    private readonly DeclNode? _node;
+    private readonly InternalFnType _internalFnType;
+
+    // node will be null for untyped fn types (fns and methods).
+    internal FnTypeSymbol(DeclNode? node, InternalFnType internalFnType)
+    {
+        _node = node;
+        _internalFnType = internalFnType;
+    }
+
+    public override SymbolKind Kind => SymbolKind.FnType;
+
+    //public new StructDeclNode? DeclaringNode => (StructDeclNode?)base.DeclaringNode;
+
+    protected override IEnumerable<SyntaxNode> EnumerateMembers()
+    {
+        yield break;
+    }
+
+    internal InternalFnType InternalFnType => _internalFnType;
+
+    public TypeSymbol ReturnType => InternalFnType.ReturnType;
+
+    public ImmutableArray<TypeSymbol> ParamTypes => InternalFnType.ParamTypes;
+
+    public override bool Equals(object? obj) => Equals(obj as FnTypeSymbol);
+
+    public bool Equals(FnTypeSymbol? other)
+    {
+        if (other == null) return false;
+        return Equals(_internalFnType, other._internalFnType);
+    }
+
+    public override int GetHashCode()
+    {
+        return _internalFnType.GetHashCode();
+    }
+}
+
 public abstract class NamedTypeSymbol : TypeSymbol
 {
     private readonly DeclNode? _node;
@@ -410,21 +516,6 @@ public sealed class ErrorTypeSymbol : NamedTypeSymbol
         yield break;
     }
 }
-
-//public sealed class ArrayTypeSymbol : TypeSymbol
-//{
-//    public ArrayTypeSymbol(TypeSymbol elementType)
-//    {
-//        ElementType = elementType;
-//    }
-
-//    public override SymbolKind Kind => SymbolKind.ArrayType;
-
-//    /// <summary>
-//    /// The type symbol representing the element of the array. (i.e the `T` in `[T]`)
-//    /// </summary>
-//    public ResolvedType ElementType { get; }
-//}
 
 public static class SymbolCollectionExtensions
 {
