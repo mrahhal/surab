@@ -25,22 +25,20 @@ public sealed class CompilationContext
 
     public CompilationOptions Options { get; }
 
+    // TODO: Some of these might need to be moved to a semantic model context so that we can bust them.
+
     internal Dictionary<Symbol, LLVMUnit> SymbolToLLVMUnit { get; } = [];
 
-    internal Dictionary<FnSymbol, LLVMFn> FnSymbolToLLVMFn { get; } = [];
-
-    internal Dictionary<FnSymbol, LLVMFnAttrsDef> FnToAttrs { get; } = [];
-
-    internal Dictionary<Symbol, LLVMType> TypeToLLVMType { get; } = [];
+    internal Dictionary<TypeSymbol, LLVMType> TypeSymbolToLLVMType { get; } = [];
 
     internal LLVMType GetOrCreateType(TypeSymbol typeSymbol)
     {
         // Cache LLVM lowered types.
-        if (!TypeToLLVMType.TryGetValue(typeSymbol, out var llvmTypeUnit))
+        if (!TypeSymbolToLLVMType.TryGetValue(typeSymbol, out var llvmTypeUnit))
         {
             var llvmType = Target.LowerType(typeSymbol);
             llvmTypeUnit = new LLVMType(llvmType);
-            TypeToLLVMType[typeSymbol] = llvmTypeUnit;
+            TypeSymbolToLLVMType[typeSymbol] = llvmTypeUnit;
         }
 
         return llvmTypeUnit;

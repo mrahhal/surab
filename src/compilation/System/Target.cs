@@ -163,6 +163,13 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
             return LLVMTypeRef.CreateStruct(elements, Packed: false);
         }
 
+        if (type is FnTypeSymbol fnType)
+        {
+            return LLVMTypeRef.CreateFunction(
+                LowerType(fnType.ReturnType),
+                fnType.ParamTypes.Select(LowerType).ToArray());
+        }
+
         // Class
         // FnPtr
         // ...

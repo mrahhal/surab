@@ -59,23 +59,30 @@ internal class LLVMUnit(LLVMTypeRef type, LLVMValueRef value, bool isWrapped)
 /// <summary>
 /// Represents a created LLVM function.
 /// </summary>
-internal class LLVMFn(LLVMUnit unit, LLVMTypeRef? sret)
+internal class LLVMFn(LLVMTypeRef type, LLVMValueRef value, bool isWrapped, LLVMTypeRef? sret, LLVMFnAttrsDef attrs) : LLVMUnit(type, value, isWrapped)
 {
-    public LLVMUnit Unit { get; } = unit;
-
-    public LLVMTypeRef Type => Unit.Type;
-
-    public LLVMValueRef Value => Unit.Value;
-
     /// <summary>
     /// The type of the sret param if it exists, null otherwise.
     /// </summary>
     public LLVMTypeRef? SRet { get; } = sret;
 
-    public void Deconstruct(out LLVMTypeRef type, out LLVMValueRef value, out LLVMTypeRef? sret)
+    public LLVMFnAttrsDef Attrs => attrs;
+
+    public static LLVMFn Wrapped(LLVMTypeRef type, LLVMValueRef value, LLVMTypeRef? sret, LLVMFnAttrsDef attrs)
     {
-        Unit.Deconstruct(out type, out value);
+        return new LLVMFn(type, value, true, sret, attrs);
+    }
+
+    public static LLVMFn Unwrapped(LLVMTypeRef type, LLVMValueRef value, LLVMTypeRef? sret, LLVMFnAttrsDef attrs)
+    {
+        return new LLVMFn(type, value, false, sret, attrs);
+    }
+
+    public void Deconstruct(out LLVMTypeRef type, out LLVMValueRef value, out LLVMTypeRef? sret, out LLVMFnAttrsDef attrs)
+    {
+        Deconstruct(out type, out value);
         sret = SRet;
+        attrs = Attrs;
     }
 }
 
