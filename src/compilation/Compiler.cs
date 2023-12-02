@@ -145,7 +145,10 @@ internal sealed class FnCompiler : LoweredVisitor
             LLVM.Builder.BuildRetVoid();
         }
 
-        _llvmFn.Value.VerifyFunction(LLVMVerifierFailureAction.LLVMPrintMessageAction);
+        if (!_llvmFn.Value.VerifyFunction(LLVMVerifierFailureAction.LLVMPrintMessageAction))
+        {
+            throw new Exception("LLVM function verification failed.");
+        }
         //LLVM.PassManager.RunFunctionPassManager(_llvmFn.Value);
     }
 
