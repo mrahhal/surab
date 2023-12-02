@@ -61,11 +61,11 @@ public class GeneralTests
     public void General_FnType()
     {
         var output = IntegrationRunner.Run($$"""
-            fn foo1(number: i32) i32 {
+            fn foo1(number: i32) {
                 print_i32(number + 2);
             }
 
-            fn foo2(number: i32) i32 {
+            fn foo2(number: i32) {
                 print_i32(number + 3);
             }
 

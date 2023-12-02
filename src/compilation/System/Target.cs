@@ -116,15 +116,15 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 
     public BitSize GetAbiAlignment(TypeSymbol type) => GetLayout(type).Alignment;
 
-    public bool IsReturnSRet(FnSymbol fn)
+    public bool IsReturnSRet(FnTypeSymbol fnType)
     {
-        if (GetAbiSize(fn.ReturnType).IsZeroSized)
+        if (GetAbiSize(fnType.ReturnType).IsZeroSized)
             return false;
 
-        return IsReturnSRetCore(fn);
+        return IsReturnSRetCore(fnType);
     }
 
-    public abstract bool IsReturnSRetCore(FnSymbol fn);
+    public abstract bool IsReturnSRetCore(FnTypeSymbol fnType);
 
     // Consider moving LLVM related stuff to some other place.
 
@@ -204,9 +204,9 @@ internal abstract class x86_64WindowsTarget : Target
     {
     }
 
-    public override bool IsReturnSRetCore(FnSymbol fn)
+    public override bool IsReturnSRetCore(FnTypeSymbol fnType)
     {
-        return Classify(fn.ReturnType) == Classification.Memory;
+        return Classify(fnType.ReturnType) == Classification.Memory;
     }
 
     public override LLVMTypeRef LowerFnReturnType(FnSymbol fn)

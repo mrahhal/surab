@@ -372,4 +372,5 @@ internal class SemanticAnalyzer(SemanticModel model) : Visitor
     // - BlockExpr can't appear as an l-value
     // - Binary/Unary
     // - Number assignment problems (u32 = u64 literal)
+    // - Function: not all code paths return a value `fn f() i32 { }`
 }

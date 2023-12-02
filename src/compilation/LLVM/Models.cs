@@ -1,4 +1,5 @@
-﻿using LLVMSharp.Interop;
+﻿using LLVMSharp;
+using LLVMSharp.Interop;
 using Surab.Analysis;
 
 namespace Surab.Compilation.LLVM;
@@ -8,7 +9,7 @@ namespace Surab.Compilation.LLVM;
 /// <summary>
 /// Represents an LLVM type and value pair that is optionally wrapped in a ptr.
 /// </summary>
-internal class LLVMUnit(LLVMTypeRef type, LLVMValueRef value, bool isWrapped)
+internal sealed class LLVMUnit(LLVMTypeRef type, LLVMValueRef value, bool isWrapped)
 {
     /// <summary>
     /// The LLVM type of the unit.
@@ -50,16 +51,16 @@ internal class LLVMUnit(LLVMTypeRef type, LLVMValueRef value, bool isWrapped)
         return WithUnwrapped(context.Builder.BuildLoad2(Type, Value));
     }
 
-    protected virtual LLVMUnit WithUnwrapped(LLVMValueRef unwrappedValue)
+    private LLVMUnit WithUnwrapped(LLVMValueRef unwrappedValue)
     {
         return Unwrapped(Type, unwrappedValue);
     }
 }
 
 /// <summary>
-/// Represents a created LLVM function.
+/// Contains fn related info.
 /// </summary>
-internal class LLVMFn(LLVMTypeRef type, LLVMValueRef value, bool isWrapped, LLVMTypeRef? sret, LLVMFnAttrsDef attrs) : LLVMUnit(type, value, isWrapped)
+internal class LLVMFn(LLVMTypeRef? sret, LLVMFnAttrsDef attrs)
 {
     /// <summary>
     /// The type of the sret param if it exists, null otherwise.
@@ -68,19 +69,8 @@ internal class LLVMFn(LLVMTypeRef type, LLVMValueRef value, bool isWrapped, LLVM
 
     public LLVMFnAttrsDef Attrs => attrs;
 
-    public static LLVMFn Wrapped(LLVMTypeRef type, LLVMValueRef value, LLVMTypeRef? sret, LLVMFnAttrsDef attrs)
+    public void Deconstruct(out LLVMTypeRef? sret, out LLVMFnAttrsDef attrs)
     {
-        return new LLVMFn(type, value, true, sret, attrs);
-    }
-
-    public static LLVMFn Unwrapped(LLVMTypeRef type, LLVMValueRef value, LLVMTypeRef? sret, LLVMFnAttrsDef attrs)
-    {
-        return new LLVMFn(type, value, false, sret, attrs);
-    }
-
-    public void Deconstruct(out LLVMTypeRef type, out LLVMValueRef value, out LLVMTypeRef? sret, out LLVMFnAttrsDef attrs)
-    {
-        Deconstruct(out type, out value);
         sret = SRet;
         attrs = Attrs;
     }
@@ -89,7 +79,7 @@ internal class LLVMFn(LLVMTypeRef type, LLVMValueRef value, bool isWrapped, LLVM
 /// <summary>
 /// Represents a created LLVM type lowered from a <see cref="TypeSymbol"/>.
 /// </summary>
-internal class LLVMType(LLVMTypeRef type)
+internal sealed class LLVMType(LLVMTypeRef type)
 {
     /// <summary>
     /// The LLVM lowered type of the <see cref="TypeSymbol"/>.
