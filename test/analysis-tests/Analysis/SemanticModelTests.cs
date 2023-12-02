@@ -247,6 +247,53 @@ public class SemanticModelTests
     }
 
     [Fact]
+    public void FnTypesForCompatibleFnSigsAreEqual()
+    {
+        var src = """
+            fn f1(a: i32, b: i32) i64 { return 1.0; }
+            fn f2(a: i32, b: i32) i64 { return 2.0; }
+            fn f3(a: i32, b: i32) { }
+            """;
+        var tree = Parser.ParseModule(src);
+        var model = SemanticModel.Create(tree);
+
+        var f1Node = tree.Root.DescendantNodes().OfType<FnDeclNode>().ElementAt(0);
+        var f1Symbol = (FnSymbol)model.GetDeclaredSymbol(f1Node)!;
+        var f2Node = tree.Root.DescendantNodes().OfType<FnDeclNode>().ElementAt(1);
+        var f2Symbol = (FnSymbol)model.GetDeclaredSymbol(f2Node)!;
+        var f3Node = tree.Root.DescendantNodes().OfType<FnDeclNode>().ElementAt(2);
+        var f3Symbol = (FnSymbol)model.GetDeclaredSymbol(f3Node)!;
+
+        f1Symbol.Type.Equals(f2Symbol.Type).Should().BeTrue();
+        f1Symbol.Type.Equals(f3Symbol.Type).Should().BeFalse();
+    }
+
+    [Fact]
+    public void FnTypesForCompatibleFnTypesAreEqual()
+    {
+        var src = """
+            fn f() {
+                var f1: fn (i32, i32) i64;
+                var f2: fn (i32, i32) i64;
+                var f3: fn (i32, i32);
+            }
+            """;
+        var tree = Parser.ParseModule(src);
+        var model = SemanticModel.Create(tree);
+
+        var f1Node = tree.Root.DescendantNodes().OfType<VarStmtNode>().ElementAt(0);
+        var f1Symbol = (LocalSymbol)model.GetDeclaredSymbol(f1Node)!;
+        var f2Node = tree.Root.DescendantNodes().OfType<VarStmtNode>().ElementAt(1);
+        var f2Symbol = (LocalSymbol)model.GetDeclaredSymbol(f2Node)!;
+        var f3Node = tree.Root.DescendantNodes().OfType<VarStmtNode>().ElementAt(2);
+        var f3Symbol = (LocalSymbol)model.GetDeclaredSymbol(f3Node)!;
+
+        f1Symbol.Type.Should().BeOfType<FnTypeSymbol>();
+        f1Symbol.Type.Equals(f2Symbol.Type).Should().BeTrue();
+        f1Symbol.Type.Equals(f3Symbol.Type).Should().BeFalse();
+    }
+
+    [Fact]
     public void FnSymbol_IsExtern()
     {
         var src = """

@@ -420,6 +420,8 @@ public class SemanticModel
 
     private InternalFnType CreateInternalFnType(FnSigNode sig)
     {
+        // TODO: Return something else in case of error diags? (p.Type below could be null)
+
         return new InternalFnType(
             sig.ReturnTy == null ? BuiltinTypeSystem.None : (TypeSymbol)LookupSymbol(sig.ReturnTy)!,
             sig.Params.Params.Select(p => (TypeSymbol)LookupSymbol(p.Type!.Type)!));
