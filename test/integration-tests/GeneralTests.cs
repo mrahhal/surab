@@ -6,7 +6,7 @@ public class GeneralTests
     public void General_1()
     {
         var output = IntegrationRunner.Run($$"""
-            fn f(x: i32, y: i32) { surabrt_print_i32(x); }
+            fn f(x: i32, y: i32) { print_i32(x); }
             fn main() {
                 var a = 42;
                 var b = 43;
@@ -24,10 +24,10 @@ public class GeneralTests
     {
         var output = IntegrationRunner.Run($$"""
             fn main() {
-                surabrt_print_i32(-42);
-                surabrt_print_i32(42 + -2);
-                surabrt_print_i32(-42 + -2);
-                            surabrt_print_i32(-42 + 2);
+                print_i32(-42);
+                print_i32(42 + -2);
+                print_i32(-42 + -2);
+                print_i32(-42 + 2);
             }
             """);
 

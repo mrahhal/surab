@@ -338,7 +338,7 @@ public class SemanticModel
 
     /// <summary>
     /// Resolves the correct <see cref="Scope"/> to resolve identifier symbol/type.
-    /// Resolves to either the containing scope, a type, etc, depending on what the identifier really means (i.e. local identifier vs identifier inside MapInitializer).
+    /// Resolves to either the containing scope, a type, etc, depending on what the identifier really means (e.g. local identifier vs identifier inside MapInitializer).
     /// </summary>
     private Scope? ResolveScopeForIdentifier(IdentifierExprNode identifierExpr)
     {
