@@ -15,11 +15,15 @@ public sealed class CompilationContext
         Target = target;
         LLVM = llvmCompilationContext;
         Options = options;
+
+        LLVMTarget = LLVMTarget.Create(this);
     }
 
     public List<SemanticModel> SemanticModels { get; }
 
     public Target Target { get; }
+
+    internal LLVMTarget LLVMTarget { get; }
 
     internal LLVMCompilationContext LLVM { get; }
 
@@ -36,7 +40,7 @@ public sealed class CompilationContext
         // Cache LLVM lowered types.
         if (!TypeSymbolToLLVMType.TryGetValue(typeSymbol, out var llvmTypeUnit))
         {
-            var llvmType = Target.LowerType(typeSymbol);
+            var llvmType = LLVMTarget.LowerType(typeSymbol);
             llvmTypeUnit = new LLVMType(llvmType);
             TypeSymbolToLLVMType[typeSymbol] = llvmTypeUnit;
         }

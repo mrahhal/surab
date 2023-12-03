@@ -9,6 +9,7 @@ public enum TypeTag
     Char,
     Bool,
     Struct,
+    Ptr,
 }
 
 public static class TypeTagExtensions
@@ -19,6 +20,7 @@ public static class TypeTagExtensions
         if (BuiltinTypeSystem.IsNumeric(type)) return TypeTag.Numeric;
         if (type == BuiltinTypeSystem.@bool) return TypeTag.Bool;
         if (type is StructTypeSymbol) return TypeTag.Struct;
+        if (type is FnTypeSymbol) return TypeTag.Ptr;
 
         throw new UnreachableException();
     }
