@@ -253,8 +253,8 @@ public class SemanticModel
 
     private TypeSymbol? LookupType(CallExprNode node)
     {
-        var calleeSymbol = LookupSymbol(node.Callee);
-        return calleeSymbol is FnSymbol fnSymbol ? fnSymbol.ReturnType : null;
+        var fnType = LookupType(node.Callee) as FnTypeSymbol;
+        return fnType?.ReturnType;
     }
 
     private TypeSymbol? LookupType(AccessExprNode node)

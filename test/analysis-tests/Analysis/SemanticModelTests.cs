@@ -125,6 +125,43 @@ public class SemanticModelTests
     }
 
     [Fact]
+    public void LookupType_Call()
+    {
+        var src = """
+            fn f1() i32 { return 2; }
+
+            fn f2() {
+                f1();
+            }
+            """;
+        var tree = Parser.ParseModule(src);
+        var model = SemanticModel.Create(tree);
+
+        var callExpr = tree.Root.DescendantNodes().OfType<CallExprNode>().Single();
+        var callType = model.LookupType(callExpr);
+        callType.Should().Be(BuiltinTypeSystem.i32);
+    }
+
+    [Fact]
+    public void LookupType_Call_FnPtr()
+    {
+        var src = """
+            fn f1() i32 { return 2; }
+
+            fn f2() {
+                var f = f1;
+                f();
+            }
+            """;
+        var tree = Parser.ParseModule(src);
+        var model = SemanticModel.Create(tree);
+
+        var callExpr = tree.Root.DescendantNodes().OfType<CallExprNode>().Single();
+        var callType = model.LookupType(callExpr);
+        callType.Should().Be(BuiltinTypeSystem.i32);
+    }
+
+    [Fact]
     public void LookupType_Field()
     {
         var src = """
