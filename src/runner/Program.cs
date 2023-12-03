@@ -63,3 +63,8 @@ p = new Process
 
 p.Start();
 p.WaitForExit();
+
+if (p.ExitCode != 0)
+{
+    ConsoleHelper.WriteWarning($"Program exited with non zero exit code ({p.ExitCode})".NL());
+}
