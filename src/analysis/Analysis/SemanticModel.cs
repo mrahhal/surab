@@ -151,14 +151,7 @@ public class SemanticModel
 
     internal FnTypeSymbol? LookupSymbol(FnTypeNode node)
     {
-        var key = CreateFnTypeKey(node);
-        if (_unnamedFnTypeMap.TryGetValue(key, out var symbol))
-        {
-            return symbol;
-        }
-
-        symbol = new FnTypeSymbol(null, key);
-        return _unnamedFnTypeMap[key] = symbol;
+        return GetUnnamedFnTypeSymbol(node);
     }
 
     private Symbol? LookupSymbol(AccessExprNode node)
@@ -386,36 +379,46 @@ public class SemanticModel
     // - AliasNode: `alias Delegate fn (i32) i32;`
     public FnTypeSymbol GetFnType(SyntaxNode node)
     {
-        switch (node)
+        return node switch
         {
-            // Create an fn type symbol that is shared structurally between any non named type.
-
-            case FnDeclNode fnDecl:
-                {
-                    var key = CreateFnTypeKey(fnDecl.Sig);
-                    return new FnTypeSymbol(null, key);
-                }
-
-            case MethodDeclNode methodDecl:
-                {
-                    var key = CreateFnTypeKey(methodDecl.Sig);
-                    return new FnTypeSymbol(null, key);
-                }
-
-            // TODO: From type.
-            case FnTypeNode fnType:
-                {
-                    return LookupSymbol(fnType)!;
-                }
+            FnDeclNode fnDecl => GetUnnamedFnTypeSymbol(fnDecl.Sig),
+            MethodDeclNode methodDecl => GetUnnamedFnTypeSymbol(methodDecl.Sig),
+            FnTypeNode fnType => GetUnnamedFnTypeSymbol(fnType),
 
             // Create an fn type symbol that is for this named alias type.
-
             // TODO: From alias. Will use _nodeToSymbolMap, symbol should already be created from builder.
             //case AliasDeclNode aliasDecl:
 
-            default:
-                throw new UnreachableException();
+            _ => throw new UnreachableException(),
+        };
+    }
+
+    private FnTypeSymbol GetUnnamedFnTypeSymbol(FnSigNode sig)
+    {
+        var key = CreateFnTypeKey(sig);
+        return GetOrCreateUnnamedFnType(key);
+    }
+
+    private FnTypeSymbol GetUnnamedFnTypeSymbol(FnTypeNode fnType)
+    {
+        var key = CreateFnTypeKey(fnType);
+        return GetOrCreateUnnamedFnType(key);
+    }
+
+    private FnTypeSymbol CreateUnnamedFnTypeSymbol(FnTypeKey key)
+    {
+        return new FnTypeSymbol(null, key);
+    }
+
+    private FnTypeSymbol GetOrCreateUnnamedFnType(FnTypeKey key)
+    {
+        if (_unnamedFnTypeMap.TryGetValue(key, out var symbol))
+        {
+            return symbol;
         }
+
+        symbol = CreateUnnamedFnTypeSymbol(key);
+        return _unnamedFnTypeMap[key] = symbol;
     }
 
     private FnTypeKey CreateFnTypeKey(FnSigNode sig)
