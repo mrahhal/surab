@@ -8,7 +8,7 @@ public class SemanticModel
     private readonly Dictionary<SyntaxNode, Scope> _nodeToScopeMap = [];
     private readonly Dictionary<SyntaxNode, Symbol> _nodeToSymbolMap = [];
     // TODO: Should be moved to some place above a semantic model so they're shared between different models?
-    private readonly Dictionary<InternalFnType, FnTypeSymbol> _unnamedFnTypeMap = [];
+    private readonly Dictionary<FnTypeKey, FnTypeSymbol> _unnamedFnTypeMap = [];
 
     private SemanticModel(SyntaxTree tree)
     {
@@ -151,14 +151,14 @@ public class SemanticModel
 
     internal FnTypeSymbol? LookupSymbol(FnTypeNode node)
     {
-        var internalFnType = CreateInternalFnType(node);
-        if (_unnamedFnTypeMap.TryGetValue(internalFnType, out var symbol))
+        var key = CreateFnTypeKey(node);
+        if (_unnamedFnTypeMap.TryGetValue(key, out var symbol))
         {
             return symbol;
         }
 
-        symbol = new FnTypeSymbol(null, internalFnType);
-        return _unnamedFnTypeMap[internalFnType] = symbol;
+        symbol = new FnTypeSymbol(null, key);
+        return _unnamedFnTypeMap[key] = symbol;
     }
 
     private Symbol? LookupSymbol(AccessExprNode node)
@@ -392,14 +392,14 @@ public class SemanticModel
 
             case FnDeclNode fnDecl:
                 {
-                    var internalFnType = CreateInternalFnType(fnDecl.Sig);
-                    return new FnTypeSymbol(null, internalFnType);
+                    var key = CreateFnTypeKey(fnDecl.Sig);
+                    return new FnTypeSymbol(null, key);
                 }
 
             case MethodDeclNode methodDecl:
                 {
-                    var internalFnType = CreateInternalFnType(methodDecl.Sig);
-                    return new FnTypeSymbol(null, internalFnType);
+                    var key = CreateFnTypeKey(methodDecl.Sig);
+                    return new FnTypeSymbol(null, key);
                 }
 
             // TODO: From type.
@@ -418,18 +418,18 @@ public class SemanticModel
         }
     }
 
-    private InternalFnType CreateInternalFnType(FnSigNode sig)
+    private FnTypeKey CreateFnTypeKey(FnSigNode sig)
     {
         // TODO: Return something else in case of error diags? (p.Type below could be null)
 
-        return new InternalFnType(
+        return new FnTypeKey(
             sig.ReturnTy == null ? BuiltinTypeSystem.None : (TypeSymbol)LookupSymbol(sig.ReturnTy)!,
             sig.Params.Params.Select(p => (TypeSymbol)LookupSymbol(p.Type!.Type)!));
     }
 
-    private InternalFnType CreateInternalFnType(FnTypeNode fnType)
+    private FnTypeKey CreateFnTypeKey(FnTypeNode fnType)
     {
-        return new InternalFnType(
+        return new FnTypeKey(
             fnType.ReturnType == null ? BuiltinTypeSystem.None : (TypeSymbol)LookupSymbol(fnType.ReturnType)!,
             fnType.ParamTypes.ParamTypes.Select(p => (TypeSymbol)LookupSymbol(p.Type)!));
     }

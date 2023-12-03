@@ -347,16 +347,20 @@ public abstract class TypeSymbol : Symbol
     protected abstract IEnumerable<SyntaxNode> EnumerateMembers();
 }
 
-internal readonly struct InternalFnType(
+/// <summary>
+/// Represents a key that is used to structurally compare fn types.
+/// Any two fn types with the same signature will have equal keys.
+/// </summary>
+internal readonly struct FnTypeKey(
     TypeSymbol returnType,
-    IEnumerable<TypeSymbol> paramTypes) : IEquatable<InternalFnType>
+    IEnumerable<TypeSymbol> paramTypes) : IEquatable<FnTypeKey>
 {
     public readonly TypeSymbol ReturnType { get; } = returnType;
     public readonly ImmutableArray<TypeSymbol> ParamTypes { get; } = paramTypes.ToImmutableArray();
 
-    public override bool Equals(object? obj) => obj is InternalFnType other && Equals(other);
+    public override bool Equals(object? obj) => obj is FnTypeKey other && Equals(other);
 
-    public bool Equals(InternalFnType other)
+    public bool Equals(FnTypeKey other)
     {
         return
             Equals(ReturnType, other.ReturnType) &&
@@ -377,7 +381,7 @@ internal readonly struct InternalFnType(
         }
     }
 
-    private static bool ParamTypesEqual(InternalFnType x, InternalFnType y)
+    private static bool ParamTypesEqual(FnTypeKey x, FnTypeKey y)
     {
         if (x.ParamTypes.Length != y.ParamTypes.Length)
             return false;
@@ -400,13 +404,13 @@ public class FnTypeSymbol : TypeSymbol, IEquatable<FnTypeSymbol>
 {
     // AliasDeclNode (node is null for FnDeclNode, MethodDeclNode because these create shared fn type symbols)
     private readonly DeclNode? _node;
-    private readonly InternalFnType _internalFnType;
+    private readonly FnTypeKey _key;
 
     // node will be null for untyped fn types (fns and methods).
-    internal FnTypeSymbol(DeclNode? node, InternalFnType internalFnType)
+    internal FnTypeSymbol(DeclNode? node, FnTypeKey key)
     {
         _node = node;
-        _internalFnType = internalFnType;
+        _key = key;
     }
 
     public override SymbolKind Kind => SymbolKind.FnType;
@@ -418,23 +422,23 @@ public class FnTypeSymbol : TypeSymbol, IEquatable<FnTypeSymbol>
         yield break;
     }
 
-    internal InternalFnType InternalFnType => _internalFnType;
+    internal FnTypeKey Key => _key;
 
-    public TypeSymbol ReturnType => InternalFnType.ReturnType;
+    public TypeSymbol ReturnType => Key.ReturnType;
 
-    public ImmutableArray<TypeSymbol> ParamTypes => InternalFnType.ParamTypes;
+    public ImmutableArray<TypeSymbol> ParamTypes => Key.ParamTypes;
 
     public override bool Equals(object? obj) => Equals(obj as FnTypeSymbol);
 
     public bool Equals(FnTypeSymbol? other)
     {
         if (other == null) return false;
-        return Equals(_internalFnType, other._internalFnType);
+        return Equals(_key, other._key);
     }
 
     public override int GetHashCode()
     {
-        return _internalFnType.GetHashCode();
+        return _key.GetHashCode();
     }
 }
 
