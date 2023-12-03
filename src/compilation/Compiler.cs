@@ -123,8 +123,7 @@ internal sealed class FnCompiler : LoweredVisitor
 
     private void Compile()
     {
-        // TODO: Is extern fns always without body or will the same keyword be used to export our fns to C?
-        if (FnSymbol.IsExtern)
+        if (FnSymbol.IsExtern && !FnSymbol.HasBody)
         {
             return;
         }

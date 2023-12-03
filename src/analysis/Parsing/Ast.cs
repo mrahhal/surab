@@ -558,18 +558,19 @@ public partial class BlockExprNode
 
 public partial class FnSigNode
 {
-    public AttrsListNode? Attrs
+    public AttrsListNode? Attrs => Parent switch
     {
-        get
-        {
-            return Parent switch
-            {
-                FnDeclNode fnDecl => fnDecl.Attrs,
-                MethodDeclNode fnDecl => fnDecl.Attrs,
-                _ => null,
-            };
-        }
-    }
+        FnDeclNode fnDecl => fnDecl.Attrs,
+        MethodDeclNode fnDecl => fnDecl.Attrs,
+        _ => throw new UnreachableException(),
+    };
+
+    public bool FnHasBody => Parent switch
+    {
+        FnDeclNode fnDecl => fnDecl.Body != null,
+        MethodDeclNode fnDecl => fnDecl.Body != null,
+        _ => throw new UnreachableException(),
+    };
 }
 
 public partial class MapInitializerNode

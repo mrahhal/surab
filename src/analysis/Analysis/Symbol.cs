@@ -115,6 +115,8 @@ public sealed class FnSymbol : Symbol, ISymbolHasType
 
     public override IdentifierToken? Identifier => _node.Identifier;
 
+    public bool HasBody => _node.FnHasBody;
+
     /// <summary>
     /// Gets whether a function is an outer function. i.e. not a member of another symbol but directly under the module.
     /// </summary>
