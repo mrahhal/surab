@@ -322,8 +322,6 @@ internal class SemanticAnalyzer(SemanticModel model) : Visitor
 
     public override void VisitFnSig(FnSigNode node)
     {
-        // TODO: Should ReturnTy.Type be optional, so we could parse it but raise diag here?
-
         base.VisitFnSig(node);
     }
 

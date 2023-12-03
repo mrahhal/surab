@@ -655,7 +655,7 @@
           "Type": "ParamsListNode"
         },
         {
-          "Name": "returnTy",
+          "Name": "returnType",
           "Type": "TypeNode",
           "Optional": true
         }

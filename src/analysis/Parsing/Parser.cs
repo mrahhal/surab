@@ -1077,9 +1077,9 @@ internal class ParserImpl
         if (identifier == null) return null;
         var @params = ParseParamsList();
         if (@params == null) return null;
-        var returnTy = ParseType();
+        var returnType = ParseType();
 
-        return new FnSigNode(identifier, @params, returnTy);
+        return new FnSigNode(identifier, @params, returnType);
     }
 
     private IdentifierToken? ParseIdentifier()

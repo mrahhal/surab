@@ -428,7 +428,7 @@ public class SemanticModel
         var isExtern = sig.Attrs.HasAttr(KnownAttrs.Extern);
         return new FnTypeKey(
             isExtern,
-            sig.ReturnTy == null ? BuiltinTypeSystem.None : (TypeSymbol)LookupSymbol(sig.ReturnTy)!,
+            sig.ReturnType == null ? BuiltinTypeSystem.None : (TypeSymbol)LookupSymbol(sig.ReturnType)!,
             sig.Params.Params.Select(p => (TypeSymbol)LookupSymbol(p.Type!.Type)!));
     }
 

@@ -902,11 +902,11 @@ public partial class FnTypeNode : TypeNode
 
 public partial class FnSigNode : SyntaxNode
 {
-    public FnSigNode(IdentifierToken identifier, ParamsListNode @params, TypeNode? returnTy)
+    public FnSigNode(IdentifierToken identifier, ParamsListNode @params, TypeNode? returnType)
         : base(SyntaxNodeKind.FnSig)
     {
         _childTokens = new() { identifier, };
-        _childNodes = new() { @params, returnTy, };
+        _childNodes = new() { @params, returnType, };
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -914,7 +914,7 @@ public partial class FnSigNode : SyntaxNode
 
     public IdentifierToken Identifier => (IdentifierToken)_childTokens[0]!;
     public ParamsListNode @Params => (ParamsListNode)_childNodes[0]!;
-    public TypeNode? ReturnTy => (TypeNode?)_childNodes[1]!;
+    public TypeNode? ReturnType => (TypeNode?)_childNodes[1]!;
 
     public override void Accept(Visitor visitor)
     {

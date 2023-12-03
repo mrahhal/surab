@@ -24,7 +24,7 @@ public class ParserTests
     {
         var src = "fn f() {}";
         var node = ParseDecl(src).Should().BeOfType<FnDeclNode>().Subject;
-        node.Sig.ReturnTy.Should().BeNull();
+        node.Sig.ReturnType.Should().BeNull();
         node.Body.Should().NotBeNull();
         node.SemicolonToken.Should().BeNull();
     }
@@ -34,7 +34,7 @@ public class ParserTests
     {
         var src = "fn f(number: u32) u32 { 2 }";
         var node = ParseDecl(src).Should().BeOfType<FnDeclNode>().Subject;
-        node.Sig.ReturnTy.Should().NotBeNull();
+        node.Sig.ReturnType.Should().NotBeNull();
         node.Body.Should().NotBeNull();
         node.SemicolonToken.Should().BeNull();
     }
