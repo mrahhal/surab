@@ -19,21 +19,62 @@ p.Start();
 p.WaitForExit();
 
 var src = """
-    fn foo1(number: i32) {
-        print_i32(number);
+    struct S1 {
+        a: f64;
+        b: bool;
     }
 
-    //fn foo2(number: i32) {
-    //    print_i32(number + 3);
-    //}
+    @extern
+    struct S2 {
+        a: f64;
+    }
+
+    @extern
+    fn print_from_rust(s2: S2);
+
+    fn noop() { }
+
+    @export
+    fn f(x: f64, y: f64) f64 {
+        var e = x + y;
+        return e + 1.0;
+    }
+
+    fn fs(s1: S1, s2: S2) {
+        print_f64(s1.a);
+        print_f64(s2.a);
+    }
 
     fn main() {
-        var f: fn (i32) = foo1;
-        //var number = 40;
-        f(40);
-        //f = foo2;
-        //f(number);
-        foo1(3222);
+        var a = 2.0;
+        noop();
+        var b: f64 = 4.0;
+        var c = f(a, b);
+        c = {
+            var c2 = 999.0;
+            c2 + 0.2
+        };
+        print_f64(c);
+        print_i32(41 + 1);
+
+        var s1 = S1 {
+            a = 82.0,
+            b = true,
+        };
+        print_f64(s1.a);
+        s1.a = 83.0;
+        print_f64(s1.a);
+        print_bool(s1.b);
+
+        var s2 = S2 { a = 42.3 };
+
+        fs(s1, s2);
+
+        print_from_rust(s2);
+
+        // Fn pointers
+        var fnptr: fn (f64, f64) f64 = f;
+        print_f64(fnptr(2.0, 3.0));
     }
     """;
 var tree = Parser.ParseModule(src);

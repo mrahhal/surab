@@ -84,4 +84,44 @@ public class GeneralTests
 
         output.Should().Be(expectedOutput);
     }
+
+    [Fact]
+    public void General_2_1()
+    {
+        IntegrationRunner.Run($$"""
+            fn f() i32 { return 2; }
+
+            fn main() {
+                f();
+            }
+            """);
+    }
+
+    [Fact]
+    public void General_2_2()
+    {
+        IntegrationRunner.Run($$"""
+            fn f() i32 { return 2; }
+
+            fn main() {
+                print_i32(f());
+            }
+            """);
+    }
+
+    [Fact]
+    public void General_MainWithNoReturn()
+    {
+        IntegrationRunner.Run($$"""
+            fn main() { }
+            """);
+    }
+
+    [Fact]
+    public void General_MainWithReturn()
+    {
+        IntegrationRunner.Run($$"""
+            fn main() i32 { return 0; }
+            """);
+    }
 }

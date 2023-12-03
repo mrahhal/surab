@@ -41,4 +41,5 @@ pub extern fn print_from_rust(s2: S2) {
     println!("==========");
     println!("From rust: ");
     println!("{:?}", s2);
+    println!("==========");
 }

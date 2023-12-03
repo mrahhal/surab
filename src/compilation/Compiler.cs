@@ -146,7 +146,14 @@ internal sealed class FnCompiler : LoweredVisitor
 
         if (!_returnSeen)
         {
-            LLVM.Builder.BuildRetVoid();
+            if (FnSymbol.IsMain && FnSymbol.ReturnType == BuiltinTypeSystem.None)
+            {
+                LLVM.Builder.BuildRet(LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, 0));
+            }
+            else
+            {
+                LLVM.Builder.BuildRetVoid();
+            }
         }
 
         if (!_llvmUnit.Value.VerifyFunction(LLVMVerifierFailureAction.LLVMPrintMessageAction))
@@ -616,6 +623,13 @@ internal sealed class FnCompiler : LoweredVisitor
         var (sret, attrs) = LLVMTarget.GetFnInfoFromFnType(fnSymbol.Type);
         var (llvmPtrType, llvmFnType) = LLVMTarget.LowerType(fnSymbol.Type);
 
+        if (fnSymbol.IsMain && llvmFnType.ReturnType == LLVMTypeRef.Void)
+        {
+            // Rewrite to return i32.
+            llvmFnType = LLVMTypeRef.CreateFunction(LLVMTypeRef.Int32, llvmFnType.ParamTypes);
+            // Do we need to rewrite llvmPtrType? It's an opaque ptr, so maybe not.
+        }
+
         var llvmFnValue = LLVM.Module.AddFunction(fnSymbol.Identifier!.Value, llvmFnType);
 
         if (!fnSymbol.IsExport && !fnSymbol.IsExtern && !fnSymbol.IsMain)
@@ -623,7 +637,7 @@ internal sealed class FnCompiler : LoweredVisitor
             llvmFnValue.Linkage = LLVMLinkage.LLVMInternalLinkage;
         }
 
-        // TODO: switch (cc)
+        // TODO: switch (cc) (C this is already the LLVM default if not set)
         llvmFnValue.SetFunctionCallConv(CallConv.C);
 
         attrs.Apply((index, attr) => llvmFnValue.AddAttributeAtIndex(index, attr));
