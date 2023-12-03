@@ -873,7 +873,7 @@ internal class ParserImpl
         }
 
         var colonToken = EatExpectedSimpleToken(TokenKind.Colon);
-        var type = ParseTy();
+        var type = ParseType();
         if (type == null) return (null, false);
 
         return (new ColonTypeNode(colonToken, type), false);
@@ -890,15 +890,45 @@ internal class ParserImpl
     }
 
     /// <summary>
-    /// Parses `Type?`
+    /// Parses the various Type syntax.
+    /// - `NamedType`
+    /// - `fn (i32) i32`
     /// </summary>
-    private TypeNode? ParseTy()
+    private TypeNode? ParseType()
+    {
+        var token = AssertedCurrent();
+        return token.Kind switch
+        {
+            TokenKind.Identifier => ParseNamedType(),
+            TokenKind.Fn => ParseFnType(),
+            _ => null,
+        };
+    }
+
+    /// <summary>
+    /// Parses `NamedType`
+    /// </summary>
+    private NamedTypeNode? ParseNamedType()
     {
         var identifier = ParseIdentifier();
         if (identifier == null) return null;
-        var nullableToken = TryEatSimpleToken(TokenKind.Question);
+        //var nullableToken = TryEatSimpleToken(TokenKind.Question);
 
-        return new TypeNode(identifier, nullableToken);
+        return new NamedTypeNode(identifier);
+    }
+
+    /// <summary>
+    /// Parses `fn (Type1, Type2) Type3`
+    /// Requirements: current is Fn.
+    /// </summary>
+    private FnTypeNode? ParseFnType()
+    {
+        var fnToken = EatAssertedSimpleToken(TokenKind.Fn);
+        var paramTypes = ParseParamTypesList();
+        if (paramTypes == null) return null;
+        var returnType = ParseType();
+
+        return new FnTypeNode(fnToken, paramTypes, returnType);
     }
 
     /// <summary>
@@ -951,6 +981,52 @@ internal class ParserImpl
     }
 
     /// <summary>
+    /// Parses `(Type, Type)`
+    /// Requirements: current is LeftParen.
+    /// </summary>
+    private ParamTypesListNode? ParseParamTypesList()
+    {
+        var openParenToken = EatAssertedSimpleToken(TokenKind.LeftParen);
+
+        var paramTypes = new List<ParamTypeNode>();
+
+        while (true)
+        {
+            if (IsAtEnd()) return null;
+
+            if (CheckToken(TokenKind.RightParen))
+            {
+                break;
+            }
+
+            var paramType = ParseParamType();
+            if (paramType == null) return null;
+
+            paramTypes.Add(paramType);
+        }
+
+        var closedParenToken = EatExpectedSimpleToken(TokenKind.RightParen);
+
+        return new ParamTypesListNode(openParenToken, paramTypes, closedParenToken);
+    }
+
+    /// <summary>
+    /// Parses `Type,`
+    /// </summary>
+    private ParamTypeNode? ParseParamType()
+    {
+        var type = ParseType();
+        if (type == null) return null;
+        var commaToken = _current?.Kind switch
+        {
+            TokenKind.RightParen => null,
+            _ => EatExpectedSimpleToken(TokenKind.Comma),
+        };
+
+        return new ParamTypeNode(type, commaToken);
+    }
+
+    /// <summary>
     /// Parses `(expr1, expr2)`
     /// Requirements: current is LeftParen.
     /// </summary>
@@ -999,8 +1075,7 @@ internal class ParserImpl
         if (identifier == null) return null;
         var @params = ParseParamsList();
         if (@params == null) return null;
-        var (returnTy, elided) = ParseOptionalColonTy();
-        if (!elided && returnTy == null) return null;
+        var returnTy = ParseType();
 
         return new FnSigNode(identifier, @params, returnTy);
     }

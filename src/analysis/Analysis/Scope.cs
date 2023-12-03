@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Diagnostics;
 
 namespace Surab.Analysis;
 
@@ -102,25 +103,31 @@ internal abstract class Scope
     /// Resolves a type, binding the type node to its type symbol.
     /// This method never returns `null`. If resolving fails a special <see cref="ErrorTypeSymbol"/> will be returned.
     /// </summary>
-    public ResolvedType ResolveType(SyntaxNode parentNode, ColonTypeNode? colonType)
+    public ResolvedType ResolveType(SyntaxNode node, TypeNode? type)
     {
-        var type = colonType?.Type;
-
-        ResolvedType? resolvedType = null;
         if (type != null)
         {
-            if (LookupIdentifier(type.Identifier) is TypeSymbol boundType)
-                resolvedType = ResolvedType.Typed(boundType);
+            var identifier = type switch
+            {
+                NamedTypeNode namedTypeNode => namedTypeNode.Identifier,
+                _ => null,
+            };
+            var resolvedType = type switch
+            {
+                NamedTypeNode namedTypeNode => LookupIdentifier(namedTypeNode.Identifier),
+                FnTypeNode fnTypeNode => SemanticModel.LookupSymbol(fnTypeNode),
+                _ => throw new UnreachableException(),
+            };
+            return ResolvedType.Typed(resolvedType as TypeSymbol ?? new ErrorTypeSymbol(identifier));
         }
         else
         {
-            var boundType = SemanticModel.InferTypeOfDeclaringNode(parentNode);
-            if (boundType != null)
-                resolvedType = ResolvedType.Inferred(boundType);
+            var boundType = SemanticModel.InferTypeOfDeclaringNode(node);
+            return ResolvedType.Inferred(boundType ?? new ErrorTypeSymbol(null));
         }
-
-        return resolvedType ?? ResolvedType.Typed(new ErrorTypeSymbol(type?.Identifier));
     }
+
+    public ResolvedType ResolveType(SyntaxNode node, ColonTypeNode? colonType) => ResolveType(node, colonType?.Type);
 }
 
 /// <summary>

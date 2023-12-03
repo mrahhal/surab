@@ -1,4 +1,5 @@
-﻿using LLVMSharp.Interop;
+﻿using LLVMSharp;
+using LLVMSharp.Interop;
 using Surab.Analysis;
 
 namespace Surab.Compilation.LLVM;
@@ -8,7 +9,7 @@ namespace Surab.Compilation.LLVM;
 /// <summary>
 /// Represents an LLVM type and value pair that is optionally wrapped in a ptr.
 /// </summary>
-internal class LLVMUnit(LLVMTypeRef type, LLVMValueRef value, bool isWrapped)
+internal sealed class LLVMUnit(LLVMTypeRef type, LLVMValueRef value, bool isWrapped)
 {
     /// <summary>
     /// The LLVM type of the unit.
@@ -50,39 +51,35 @@ internal class LLVMUnit(LLVMTypeRef type, LLVMValueRef value, bool isWrapped)
         return WithUnwrapped(context.Builder.BuildLoad2(Type, Value));
     }
 
-    protected virtual LLVMUnit WithUnwrapped(LLVMValueRef unwrappedValue)
+    private LLVMUnit WithUnwrapped(LLVMValueRef unwrappedValue)
     {
         return Unwrapped(Type, unwrappedValue);
     }
 }
 
 /// <summary>
-/// Represents a created LLVM function.
+/// Contains fn related info.
 /// </summary>
-internal class LLVMFn(LLVMUnit unit, LLVMTypeRef? sret)
+internal class LLVMFn(LLVMTypeRef? sret, LLVMFnAttrsDef attrs)
 {
-    public LLVMUnit Unit { get; } = unit;
-
-    public LLVMTypeRef Type => Unit.Type;
-
-    public LLVMValueRef Value => Unit.Value;
-
     /// <summary>
     /// The type of the sret param if it exists, null otherwise.
     /// </summary>
     public LLVMTypeRef? SRet { get; } = sret;
 
-    public void Deconstruct(out LLVMTypeRef type, out LLVMValueRef value, out LLVMTypeRef? sret)
+    public LLVMFnAttrsDef Attrs => attrs;
+
+    public void Deconstruct(out LLVMTypeRef? sret, out LLVMFnAttrsDef attrs)
     {
-        Unit.Deconstruct(out type, out value);
         sret = SRet;
+        attrs = Attrs;
     }
 }
 
 /// <summary>
 /// Represents a created LLVM type lowered from a <see cref="TypeSymbol"/>.
 /// </summary>
-internal class LLVMType(LLVMTypeRef type)
+internal sealed class LLVMType(LLVMTypeRef type)
 {
     /// <summary>
     /// The LLVM lowered type of the <see cref="TypeSymbol"/>.

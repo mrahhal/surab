@@ -10,6 +10,9 @@ General:
 ```cs
 @import("another_file.surab")
 
+alias Integer i32;
+alias SomeDelegate fn (i32) i32;
+
 const SOME_CONSTANT = 2;
 
 static SOME_RESULT = {

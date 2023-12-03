@@ -518,6 +518,10 @@ public abstract class ExprNode(SyntaxNodeKind kind) : SyntaxNode(kind)
 {
 }
 
+public abstract class TypeNode(SyntaxNodeKind kind) : SyntaxNode(kind)
+{
+}
+
 public partial class BareExprStmtNode
 {
     private bool? _isTreatedAsStmt;

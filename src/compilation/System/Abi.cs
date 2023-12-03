@@ -29,6 +29,7 @@ internal static class Abi
             {
                 TypeTag.Bool or
                 TypeTag.Char or
+                TypeTag.Ptr or
                 TypeTag.Struct
                 => size.Bytes switch
                 {

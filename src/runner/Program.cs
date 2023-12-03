@@ -35,7 +35,7 @@ var src = """
     fn noop() { }
 
     @export
-    fn f(x: f64, y: f64): f64 {
+    fn f(x: f64, y: f64) f64 {
         var e = x + y;
         return e + 1.0;
     }
@@ -71,6 +71,10 @@ var src = """
         fs(s1, s2);
 
         print_from_rust(s2);
+
+        // Fn pointers
+        var fnptr: fn (f64, f64) f64 = f;
+        print_f64(fnptr(2.0, 3.0));
     }
     """;
 var tree = Parser.ParseModule(src);
@@ -100,3 +104,8 @@ p = new Process
 
 p.Start();
 p.WaitForExit();
+
+if (p.ExitCode != 0)
+{
+    ConsoleHelper.WriteWarning($"Program exited with non zero exit code ({p.ExitCode})".NL());
+}

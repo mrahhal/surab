@@ -38,6 +38,15 @@ public static class IntegrationRunner
         p.Start();
         p.WaitForExit();
 
+        if (!fails)
+        {
+            p.ExitCode.Should().Be(0);
+        }
+        else
+        {
+            p.ExitCode.Should().NotBe(0);
+        }
+
         var output = p.StandardOutput.ReadToEnd().ReplaceLineEndings();
         return output;
     }

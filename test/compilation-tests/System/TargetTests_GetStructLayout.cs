@@ -5,9 +5,10 @@ public partial class TargetTests
     [Fact]
     public void GetStructLayout_1()
     {
-        var target = CreateTarget();
+        var testContext = CompilationTestContext.Create();
+        var context = testContext.Context;
 
-        var structLayout = target.GetStructLayout(TestStructs.Struct1);
+        var structLayout = context.Target.GetStructLayout(testContext.Struct1);
 
         structLayout.Layout.Size.Should().Be(16.AsBytes());
         structLayout.Layout.Alignment.Should().Be(8.AsBytes());
@@ -32,9 +33,10 @@ public partial class TargetTests
     [Fact]
     public void GetStructLayout_2()
     {
-        var target = CreateTarget();
+        var testContext = CompilationTestContext.Create();
+        var context = testContext.Context;
 
-        var structLayout = target.GetStructLayout(TestStructs.Struct2);
+        var structLayout = context.Target.GetStructLayout(testContext.Struct2);
 
         structLayout.Layout.Size.Should().Be(24.AsBytes());
         structLayout.Layout.Alignment.Should().Be(8.AsBytes());

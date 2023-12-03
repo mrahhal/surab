@@ -61,6 +61,11 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 
         // if ptr return ptr bit width
 
+        if (type is FnTypeSymbol)
+        {
+            return new(PtrWidth, PtrWidth);
+        }
+
         //if (type == BuiltInTypeSystem.String)
         //    return target.PtrWidth;
 
@@ -116,60 +121,6 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 
     public BitSize GetAbiAlignment(TypeSymbol type) => GetLayout(type).Alignment;
 
-    public bool IsReturnSRet(FnSymbol fn)
-    {
-        if (GetAbiSize(fn.ReturnType).IsZeroSized)
-            return false;
-
-        return IsReturnSRetCore(fn);
-    }
-
-    public abstract bool IsReturnSRetCore(FnSymbol fn);
-
-    // Consider moving LLVM related stuff to some other place.
-
-    // TODO: Support different calling conventions. Right now it's always Win64 cc.
-    public abstract LLVMTypeRef LowerFnReturnType(FnSymbol fn);
-
-    public LLVMTypeRef LowerType(TypeSymbol type)
-    {
-        if (type == BuiltinTypeSystem.None)
-            return LLVMTypeRef.Void;
-        if (type == BuiltinTypeSystem.@char || type == BuiltinTypeSystem.@bool)
-            return LLVMTypeRef.Int1;
-
-        if (type == BuiltinTypeSystem.i32 || type == BuiltinTypeSystem.u32)
-            return LLVMTypeRef.Int32;
-        if (type == BuiltinTypeSystem.i64 || type == BuiltinTypeSystem.u64)
-            return LLVMTypeRef.Int64;
-        if (type == BuiltinTypeSystem.f32)
-            return LLVMTypeRef.Float;
-        if (type == BuiltinTypeSystem.f64)
-            return LLVMTypeRef.Double;
-
-        if (type is StructTypeSymbol structType)
-        {
-            var fields = structType.Members.Fields().ToList();
-            var structLayout = GetStructLayout(structType);
-            var elements = structLayout.Sections.Select(m =>
-            {
-                return m.Kind switch
-                {
-                    StructLayoutSectionKind.Padding => LLVMTypeRef.CreateArray(LLVMTypeRef.Int1, (uint)m.Size.Bytes),
-                    StructLayoutSectionKind.Data => LowerType(fields[m.FieldIndex].Type),
-                    _ => throw new UnreachableException(),
-                };
-            }).ToArray();
-            return LLVMTypeRef.CreateStruct(elements, Packed: false);
-        }
-
-        // Class
-        // FnPtr
-        // ...
-
-        throw new UnreachableException();
-    }
-
     public IntegerSign GetIntegerSign(TypeSymbol type)
     {
         if (type == BuiltinTypeSystem.i32 || type == BuiltinTypeSystem.i64)
@@ -179,16 +130,6 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 
         throw new UnreachableException();
     }
-
-    internal LLVMTypeLowering GetLLVMLowering(TypeSymbol type)
-    {
-        if (GetAbiSize(type).IsZeroSized)
-            return LLVMTypeLowering.ZeroSized;
-
-        return GetLLVMLoweringCore(type);
-    }
-
-    internal abstract LLVMTypeLowering GetLLVMLoweringCore(TypeSymbol type);
 }
 
 internal abstract class x86_64WindowsTarget : Target
@@ -197,42 +138,9 @@ internal abstract class x86_64WindowsTarget : Target
     {
     }
 
-    public override bool IsReturnSRetCore(FnSymbol fn)
-    {
-        return Classify(fn.ReturnType) == Classification.Memory;
-    }
-
-    public override LLVMTypeRef LowerFnReturnType(FnSymbol fn)
-    {
-        var returnType = fn.ReturnType;
-        var classification = Classify(returnType);
-        return classification switch
-        {
-            Classification.Integer => returnType.IsScalar ? LowerType(returnType) : LLVMTypeRef.CreateInt((uint)GetAbiSize(returnType).Bits),
-            //win_i128 =>
-            Classification.Memory => LLVMTypeRef.Void,
-            Classification.SSE => LowerType(returnType),
-            _ => throw new UnreachableException(),
-        };
-    }
-
-    protected Classification Classify(TypeSymbol type)
+    public Classification Classify(TypeSymbol type)
     {
         return Abi.x86_64.ClassifyTypeForWindows(type, this);
-    }
-
-    internal override LLVMTypeLowering GetLLVMLoweringCore(TypeSymbol type)
-    {
-        Debug.Assert(!GetAbiSize(type).IsZeroSized);
-
-        return Classify(type) switch
-        {
-            Classification.Integer => type.IsScalar ? LLVMTypeLowering.ByValue : LLVMTypeLowering.AbiInt,
-            //win_i128 =>
-            Classification.Memory => LLVMTypeLowering.ByMutRef,
-            Classification.SSE => LLVMTypeLowering.ByValue,
-            _ => throw new UnreachableException(),
-        };
     }
 }
 

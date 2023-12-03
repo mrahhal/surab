@@ -152,6 +152,16 @@ public abstract partial class Visitor
         Walk(node);
     }
 
+    public virtual void VisitParamTypesList(ParamTypesListNode node)
+    {
+        Walk(node);
+    }
+
+    public virtual void VisitParamType(ParamTypeNode node)
+    {
+        Walk(node);
+    }
+
     public virtual void VisitArgsList(ArgsListNode node)
     {
         Walk(node);
@@ -167,7 +177,12 @@ public abstract partial class Visitor
         Walk(node);
     }
 
-    public virtual void VisitType(TypeNode node)
+    public virtual void VisitNamedType(NamedTypeNode node)
+    {
+        Walk(node);
+    }
+
+    public virtual void VisitFnType(FnTypeNode node)
     {
         Walk(node);
     }

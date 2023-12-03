@@ -7,6 +7,8 @@ public class SemanticModel
 {
     private readonly Dictionary<SyntaxNode, Scope> _nodeToScopeMap = [];
     private readonly Dictionary<SyntaxNode, Symbol> _nodeToSymbolMap = [];
+    // TODO: Should be moved to some place above a semantic model so they're shared between different models?
+    private readonly Dictionary<InternalFnType, FnTypeSymbol> _unnamedFnTypeMap = [];
 
     private SemanticModel(SyntaxTree tree)
     {
@@ -117,7 +119,8 @@ public class SemanticModel
         var result = node switch
         {
             IdentifierExprNode n => LookupSymbol(n),
-            TypeNode n => LookupSymbol(n.Identifier, n),
+            NamedTypeNode n => LookupSymbol(n.Identifier, n),
+            FnTypeNode n => LookupSymbol(n),
             ArgNode n => LookupSymbol(n.Expr),
             //CallExprNode n => LookupSymbol(n.Callee),
             AccessExprNode n => LookupSymbol(n),
@@ -144,6 +147,18 @@ public class SemanticModel
     private Symbol? LookupSymbol(IdentifierToken identifier, Scope? scope)
     {
         return scope?.LookupIdentifier(identifier);
+    }
+
+    internal FnTypeSymbol? LookupSymbol(FnTypeNode node)
+    {
+        var internalFnType = CreateInternalFnType(node);
+        if (_unnamedFnTypeMap.TryGetValue(internalFnType, out var symbol))
+        {
+            return symbol;
+        }
+
+        symbol = new FnTypeSymbol(null, internalFnType);
+        return _unnamedFnTypeMap[internalFnType] = symbol;
     }
 
     private Symbol? LookupSymbol(AccessExprNode node)
@@ -238,8 +253,8 @@ public class SemanticModel
 
     private TypeSymbol? LookupType(CallExprNode node)
     {
-        var calleeSymbol = LookupSymbol(node.Callee);
-        return calleeSymbol is FnSymbol fnSymbol ? fnSymbol.ReturnType : null;
+        var fnType = LookupType(node.Callee) as FnTypeSymbol;
+        return fnType?.ReturnType;
     }
 
     private TypeSymbol? LookupType(AccessExprNode node)
@@ -338,7 +353,7 @@ public class SemanticModel
 
     /// <summary>
     /// Resolves the correct <see cref="Scope"/> to resolve identifier symbol/type.
-    /// Resolves to either the containing scope, a type, etc, depending on what the identifier really means (i.e. local identifier vs identifier inside MapInitializer).
+    /// Resolves to either the containing scope, a type, etc, depending on what the identifier really means (e.g. local identifier vs identifier inside MapInitializer).
     /// </summary>
     private Scope? ResolveScopeForIdentifier(IdentifierExprNode identifierExpr)
     {
@@ -362,6 +377,61 @@ public class SemanticModel
             FieldDeclNode fieldDecl => LookupType(fieldDecl.Initializer),
             _ => null,
         };
+    }
+
+    // Supported:
+    // - FnDeclNode: From `fn foo(v: i32) i32 { ... }`
+    // - MethodDeclNode: ^ but method
+    // - TypeNode: e.g. From the type in `var f: fn (i32) i32;`
+    // - AliasNode: `alias Delegate fn (i32) i32;`
+    public FnTypeSymbol GetFnType(SyntaxNode node)
+    {
+        switch (node)
+        {
+            // Create an fn type symbol that is shared structurally between any non named type.
+
+            case FnDeclNode fnDecl:
+                {
+                    var internalFnType = CreateInternalFnType(fnDecl.Sig);
+                    return new FnTypeSymbol(null, internalFnType);
+                }
+
+            case MethodDeclNode methodDecl:
+                {
+                    var internalFnType = CreateInternalFnType(methodDecl.Sig);
+                    return new FnTypeSymbol(null, internalFnType);
+                }
+
+            // TODO: From type.
+            case FnTypeNode fnType:
+                {
+                    return LookupSymbol(fnType)!;
+                }
+
+            // Create an fn type symbol that is for this named alias type.
+
+            // TODO: From alias. Will use _nodeToSymbolMap, symbol should already be created from builder.
+            //case AliasDeclNode aliasDecl:
+
+            default:
+                throw new UnreachableException();
+        }
+    }
+
+    private InternalFnType CreateInternalFnType(FnSigNode sig)
+    {
+        // TODO: Return something else in case of error diags? (p.Type below could be null)
+
+        return new InternalFnType(
+            sig.ReturnTy == null ? BuiltinTypeSystem.None : (TypeSymbol)LookupSymbol(sig.ReturnTy)!,
+            sig.Params.Params.Select(p => (TypeSymbol)LookupSymbol(p.Type!.Type)!));
+    }
+
+    private InternalFnType CreateInternalFnType(FnTypeNode fnType)
+    {
+        return new InternalFnType(
+            fnType.ReturnType == null ? BuiltinTypeSystem.None : (TypeSymbol)LookupSymbol(fnType.ReturnType)!,
+            fnType.ParamTypes.ParamTypes.Select(p => (TypeSymbol)LookupSymbol(p.Type)!));
     }
 
     private class Builder(SyntaxTree tree, bool isPrelude) : Visitor

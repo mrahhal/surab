@@ -283,10 +283,13 @@ internal sealed class LoweredBinaryExpr(
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
 internal sealed class LoweredCallExpr(
     SyntaxNode parsedNode,
-    FnSymbol callee,
-    IEnumerable<LoweredExpr> args) : LoweredExpr(parsedNode, callee.ReturnType)
+    FnTypeSymbol fnType,
+    Symbol callee,
+    IEnumerable<LoweredExpr> args) : LoweredExpr(parsedNode, fnType.ReturnType)
 {
-    public FnSymbol Callee { get; set; } = callee;
+    public Symbol Callee { get; set; } = callee;
+
+    public FnTypeSymbol FnType { get; set; } = fnType;
 
     public ImmutableArray<LoweredExpr> Args { get; } = args.ToImmutableArray();
 

@@ -318,11 +318,12 @@ internal class Lowerer
 
     private LoweredNode Lower(CallExprNode node)
     {
-        // TODO: Not always an identifier?
-        var fnSymbol = (FnSymbol)_model.LookupSymbol(node.Callee)!;
+        var symbol = _model.LookupSymbol(node.Callee)!;
+        var fnType = (FnTypeSymbol)_model.LookupType(node.Callee)!;
         return new LoweredCallExpr(
             node,
-            fnSymbol,
+            fnType,
+            symbol,
             LowerWithCast(node.Args.Args.Select(arg => arg.Expr)));
     }
 

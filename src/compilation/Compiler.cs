@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using LLVMSharp;
 using LLVMSharp.Interop;
 using Surab.Analysis;
 using Surab.Compilation.LLVM;
@@ -88,6 +87,7 @@ internal sealed class FnCompiler : LoweredVisitor
 {
     private readonly CompilationContext _context;
     private readonly LoweredFnDecl _fnDecl;
+    private readonly LLVMUnit _llvmUnit;
     private readonly LLVMFn _llvmFn;
 
     private readonly Stack<LLVMUnit> _stack = new();
@@ -100,11 +100,14 @@ internal sealed class FnCompiler : LoweredVisitor
         _context = context;
         _fnDecl = fnDecl;
 
-        _llvmFn = GetOrCreateFn(fnDecl.FnSymbol);
-        Debug.Assert(_llvmFn.Value.BasicBlocksCount == 0);
+        _llvmUnit = GetOrCreateFn(fnDecl.FnSymbol);
+        _llvmFn = LLVMTarget.GetFnInfoFromFnType(fnDecl.FnSymbol.Type);
+        Debug.Assert(_llvmUnit.Value.BasicBlocksCount == 0);
     }
 
     private Target Target => _context.Target;
+
+    private LLVMTarget LLVMTarget => _context.LLVMTarget;
 
     private LLVMCompilationContext LLVM => _context.LLVM;
 
@@ -127,7 +130,7 @@ internal sealed class FnCompiler : LoweredVisitor
         }
 
         // Entry has to exist before visiting the params in the signature.
-        var entry = _llvmFn.Value.AppendBasicBlock("entry");
+        var entry = _llvmUnit.Value.AppendBasicBlock("entry");
         LLVM.Builder.PositionAtEnd(entry);
 
         SetupParams(_fnDecl.FnSymbol.Params);
@@ -143,10 +146,20 @@ internal sealed class FnCompiler : LoweredVisitor
 
         if (!_returnSeen)
         {
-            LLVM.Builder.BuildRetVoid();
+            if (FnSymbol.IsMain && FnSymbol.ReturnType == BuiltinTypeSystem.None)
+            {
+                LLVM.Builder.BuildRet(LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, 0));
+            }
+            else
+            {
+                LLVM.Builder.BuildRetVoid();
+            }
         }
 
-        _llvmFn.Value.VerifyFunction(LLVMVerifierFailureAction.LLVMPrintMessageAction);
+        if (!_llvmUnit.Value.VerifyFunction(LLVMVerifierFailureAction.LLVMPrintMessageAction))
+        {
+            throw new Exception("LLVM function verification failed.");
+        }
         //LLVM.PassManager.RunFunctionPassManager(_llvmFn.Value);
     }
 
@@ -161,7 +174,10 @@ internal sealed class FnCompiler : LoweredVisitor
 
         foreach (var param in @params)
         {
-            var paramValue = _llvmFn.Value.GetParam((uint)llvmParamOffset);
+            var paramValue = _llvmUnit.Value.GetParam((uint)llvmParamOffset);
+
+            // Adaptations of params inside fn body
+            // ---
 
             var lowering = GetLLVMLowering(param.Type);
             switch (lowering.Kind)
@@ -234,25 +250,25 @@ internal sealed class FnCompiler : LoweredVisitor
 
     public override void VisitCallExpr(LoweredCallExpr node)
     {
-        var (fnType, fnValue, sret) = GetOrCreateFn(node.Callee);
+        var fnType = node.FnType;
 
-        // TODO: node.Callee is not always an IdentifierExprNode.
-        // After desugaring this will always be the identifier (or what's equivalent)?
+        var fnUnit = GetOrCreateFn(node.Callee);
+        // Unwrapping loads the actual fn ptr for indirect calls (direct calls won't be wrapped in the first place).
+        var (llvmFnPtrType, llvmFnValue) = fnUnit.Unwrap(LLVM);
+        var (_, llvmFnType) = LLVMTarget.LowerType(fnType);
+        var (sret, attrs) = LLVMTarget.GetFnInfoFromFnType(fnType);
 
         // Process in reverse args order because values are pushed to a LIFO stack.
         VisitList(node.Args.Reverse());
 
-        var fnSymbol = node.Callee;
-
         var argOffset = 0;
         var llvmIndex = 0;
-        var llvmArgCount = (int)fnType.ParamTypesCount;
+        var llvmArgCount = (int)llvmFnType.ParamTypesCount;
         var args = new List<LLVMValueRef>(llvmArgCount);
-        var attrs = _context.FnToAttrs[fnSymbol];
 
         if (sret.HasValue)
         {
-            var size = Target.GetAbiSize(fnSymbol.ReturnType);
+            var size = Target.GetAbiSize(fnType.ReturnType);
 
             var sretAlloc = LLVM.Builder.BuildAlloca(sret.Value);
             sretAlloc.SetAlignment((uint)size.Bytes);
@@ -265,8 +281,11 @@ internal sealed class FnCompiler : LoweredVisitor
         {
             var unit = _stack.Pop();
 
-            var param = fnSymbol.Params[argOffset];
-            var lowering = GetLLVMLowering(param.Type);
+            // Adaptations of args before fn call
+            // ---
+
+            var paramType = fnType.ParamTypes[argOffset];
+            var lowering = GetLLVMLowering(paramType);
             switch (lowering.Kind)
             {
                 case LLVMTypeLoweringKind.ByValue:
@@ -277,7 +296,7 @@ internal sealed class FnCompiler : LoweredVisitor
                     break;
                 case LLVMTypeLoweringKind.ByMutRef:
                     {
-                        var llvmType = Target.LowerType(param.Type);
+                        var llvmParamType = LLVMTarget.LowerType(paramType);
                         var (_, argValuePtr) = unit;
                         // TODO: This might be wrong. This is giving the same ptr to the fn (should be in ByRef), we might want to give a copy here in ByMutRef?
                         args.Add(argValuePtr);
@@ -286,7 +305,7 @@ internal sealed class FnCompiler : LoweredVisitor
                 case LLVMTypeLoweringKind.AbiInt:
                     {
                         var (_, argValuePtr) = unit;
-                        var layout = Target.GetLayout(param.Type);
+                        var layout = Target.GetLayout(paramType);
                         var llvmIntType = LLVMTypeRef.CreateInt((uint)layout.Size.Bits);
                         var loaded = LLVM.Builder.BuildLoad2(llvmIntType, argValuePtr);
                         loaded.SetAlignment((uint)layout.Alignment.Bytes);
@@ -299,11 +318,11 @@ internal sealed class FnCompiler : LoweredVisitor
             llvmIndex++;
         }
 
-        var returnValue = LLVM.Builder.BuildCall2(fnType, fnValue, [.. args]);
+        var returnValue = LLVM.Builder.BuildCall2(llvmFnType, llvmFnValue, [.. args]);
         attrs.Apply((index, attr) => returnValue.AddCallSiteAttributeAtIndex(index, attr));
 
         // Always push a value, even if void, since this gets popped in VisitExprStmt.
-        _stack.Push(LLVMUnit.Unwrapped(fnType.ReturnType, returnValue));
+        _stack.Push(LLVMUnit.Unwrapped(llvmFnType.ReturnType, returnValue));
     }
 
     public override void VisitUnaryExpr(LoweredUnaryExpr node)
@@ -401,7 +420,7 @@ internal sealed class FnCompiler : LoweredVisitor
         var fieldSection = structLayout.Sections.First(s => s.FieldIndex == node.Field.FieldIndex);
 
         var ptrToField = LLVM.Builder.BuildStructGEP2(targetType, targetPtr, (uint)fieldSection.SectionIndex);
-        var fieldLLVMType = Target.LowerType(node.Field.Type);
+        var fieldLLVMType = LLVMTarget.LowerType(node.Field.Type);
         // We don't load it, for the same reason outlined in VisitVariableLoadExpr.
         _stack.Push(LLVMUnit.Wrapped(fieldLLVMType, ptrToField));
     }
@@ -417,7 +436,7 @@ internal sealed class FnCompiler : LoweredVisitor
         // TODO: Optimize somehow to remove the need to compute the struct layout again here.
         var structLayout = Target.GetStructLayout((StructTypeSymbol)node.Field.Parent!);
         var fieldSection = structLayout.Sections.First(s => s.FieldIndex == node.Field.FieldIndex);
-        var fieldLLVMType = Target.LowerType(node.Field.Type);
+        var fieldLLVMType = LLVMTarget.LowerType(node.Field.Type);
 
         var ptrToField = LLVM.Builder.BuildStructGEP2(targetType, targetPtr, (uint)fieldSection.SectionIndex);
         LLVM.Builder.BuildStore(rhs, ptrToField);
@@ -461,7 +480,7 @@ internal sealed class FnCompiler : LoweredVisitor
             case LiteralTokenKind.NumericInteger:
                 {
                     Debug.Assert(node.Literal.TryGetNumericIntegerValue(out var v));
-                    var llvmType = Target.LowerType(node.Type);
+                    var llvmType = LLVMTarget.LowerType(node.Type);
                     // TODO: Do sign and zero extension more properly?
                     var signExtend = Target.GetIntegerSign(node.Type) == IntegerSign.Signed;
                     var llvmValue = LLVMValueRef.CreateConstInt(llvmType, v, signExtend);
@@ -472,7 +491,7 @@ internal sealed class FnCompiler : LoweredVisitor
             case LiteralTokenKind.NumericFloat:
                 {
                     Debug.Assert(node.Literal.TryGetNumericFloatValue(out var v));
-                    var llvmType = Target.LowerType(node.Type);
+                    var llvmType = LLVMTarget.LowerType(node.Type);
                     var llvmValue = LLVMValueRef.CreateConstReal(llvmType, v);
                     _stack.Push(LLVMUnit.Unwrapped(llvmType, llvmValue));
                 }
@@ -493,15 +512,22 @@ internal sealed class FnCompiler : LoweredVisitor
         }
     }
 
-    private LLVMFn GetOrCreateFn(FnSymbol fnSymbol)
+    private LLVMUnit GetOrCreateFn(Symbol symbol)
     {
-        if (_context.FnSymbolToLLVMFn.TryGetValue(fnSymbol, out var llvmFn))
+        if (symbol is FnSymbol fnSymbol)
         {
-            return llvmFn;
+            if (_context.SymbolToLLVMUnit.TryGetValue(fnSymbol, out var llvmUnit))
+            {
+                return llvmUnit;
+            }
+            llvmUnit = CreateFn(fnSymbol);
+            _context.SymbolToLLVMUnit[fnSymbol] = llvmUnit;
+            return llvmUnit;
         }
-        llvmFn = CreateFn(fnSymbol);
-        _context.FnSymbolToLLVMFn[fnSymbol] = llvmFn;
-        return llvmFn;
+        else
+        {
+            return Get(symbol);
+        }
     }
 
     private LLVMUnit Get(Symbol symbol)
@@ -516,7 +542,7 @@ internal sealed class FnCompiler : LoweredVisitor
 
     private LLVMUnit CreateParam(ParamSymbol paramSymbol, LLVMValueRef paramValue, BitSize alignment, bool createWrapperPtr = true)
     {
-        var llvmType = Target.LowerType(paramSymbol.Type);
+        var llvmType = LLVMTarget.LowerType(paramSymbol.Type);
 
         LLVMUnit unit;
         if (createWrapperPtr)
@@ -538,8 +564,7 @@ internal sealed class FnCompiler : LoweredVisitor
 
     private LLVMUnit CreateLocal(LocalSymbol localSymbol)
     {
-        var typeRef = Target.LowerType(localSymbol.Type);
-
+        var typeRef = LLVMTarget.LowerType(localSymbol.Type);
         var ptr = LLVM.Builder.BuildAlloca(typeRef, localSymbol.Identifier?.Value ?? string.Empty);
         var unit = LLVMUnit.Wrapped(typeRef, ptr);
 
@@ -547,75 +572,327 @@ internal sealed class FnCompiler : LoweredVisitor
         return unit;
     }
 
-    private LLVMFn CreateFn(FnSymbol fnSymbol)
+    //private LLVMFn GetFnInfoFromFnType(FnTypeSymbol fnType)
+    //{
+    //    return LLVMTarget.GetFnInfoFromFnType(fnType);
+    //    //var returnType = Target.LowerType(fnType.ReturnType);
+
+    //    //// TODO: Better way?
+    //    //var llvmIndex = 0;
+    //    //var attrs = new LLVMFnAttrsDef();
+
+    //    //var sret = Target.IsReturnSRet(fnType);
+    //    //if (sret)
+    //    //{
+    //    //    attrs.AddParam(llvmIndex, LLVM.Context.CreateEnumAttribute(AttributeKind.StructRet, default));
+    //    //    llvmIndex++;
+    //    //}
+
+    //    //foreach (var paramType in fnType.ParamTypes)
+    //    //{
+    //    //    // Add attrs
+    //    //    // ---
+
+    //    //    var lowering = GetLLVMLowering(paramType);
+    //    //    //var llvmType = Target.LowerType(paramType);
+    //    //    switch (lowering.Kind)
+    //    //    {
+    //    //        case LLVMTypeLoweringKind.ByValue:
+    //    //            {
+    //    //            }
+    //    //            break;
+    //    //        case LLVMTypeLoweringKind.ByMutRef:
+    //    //            {
+    //    //            }
+    //    //            break;
+    //    //        case LLVMTypeLoweringKind.AbiInt:
+    //    //            {
+    //    //            }
+    //    //            break;
+    //    //    }
+
+    //    //    llvmIndex++;
+    //    //}
+
+    //    //return new LLVMFn(sret ? returnType : (LLVMTypeRef?)null, attrs);
+    //}
+
+    private LLVMUnit CreateFn(FnSymbol fnSymbol)
     {
-        var returnType = Target.LowerType(fnSymbol.ReturnType);
+        // TODO: Optimize? This is being called multiple times in sequence when we compile an fn.
+        var (sret, attrs) = LLVMTarget.GetFnInfoFromFnType(fnSymbol.Type);
+        var (llvmPtrType, llvmFnType) = LLVMTarget.LowerType(fnSymbol.Type);
+
+        if (fnSymbol.IsMain && llvmFnType.ReturnType == LLVMTypeRef.Void)
+        {
+            // Rewrite to return i32.
+            llvmFnType = LLVMTypeRef.CreateFunction(LLVMTypeRef.Int32, llvmFnType.ParamTypes);
+            // Do we need to rewrite llvmPtrType? It's an opaque ptr, so maybe not.
+        }
+
+        var llvmFnValue = LLVM.Module.AddFunction(fnSymbol.Identifier!.Value, llvmFnType);
+
+        if (!fnSymbol.IsExport && !fnSymbol.IsExtern && !fnSymbol.IsMain)
+        {
+            llvmFnValue.Linkage = LLVMLinkage.LLVMInternalLinkage;
+        }
+
+        // TODO: switch (cc) (C this is already the LLVM default if not set)
+        llvmFnValue.SetFunctionCallConv(CallConv.C);
+
+        attrs.Apply((index, attr) => llvmFnValue.AddAttributeAtIndex(index, attr));
+
+        // Create an unwrapped unit out of direct fn values. This means direct calls to this fn value won't be loaded (in VisitCallExpr).
+        return LLVMUnit.Unwrapped(llvmPtrType, llvmFnValue);
+    }
+
+    public LLVMTypeLowering GetLLVMLowering(TypeSymbol type)
+    {
+        return LLVMTarget.GetLLVMLowering(type);
+    }
+}
+
+/// <summary>
+/// LLVM compilation related logic that changes with target.
+/// </summary>
+internal abstract class LLVMTarget
+{
+    protected LLVMTarget(CompilationContext context)
+    {
+        Context = context;
+    }
+
+    protected CompilationContext Context { get; }
+
+    protected LLVMCompilationContext LLVM => Context.LLVM;
+
+    protected Target Target => Context.Target;
+
+    public static LLVMTarget Create(CompilationContext context)
+    {
+        var target = context.Target;
+
+        return target switch
+        {
+            x86_64WindowsMSVCTarget => new x86_64WindowsMSVCLLVMTarget(context),
+            _ => throw new UnreachableException(),
+        };
+    }
+
+    public bool IsReturnSRet(FnTypeSymbol fnType)
+    {
+        if (Target.GetAbiSize(fnType.ReturnType).IsZeroSized)
+            return false;
+
+        return IsReturnSRetCore(fnType);
+    }
+
+    public abstract bool IsReturnSRetCore(FnTypeSymbol fnType);
+
+    // TODO: Support different calling conventions. Right now it's always Win64 cc.
+    public abstract LLVMTypeRef LowerFnReturnType(FnSymbol fn);
+
+    /// <summary>
+    /// Lowers a type from Surab to LLVM.
+    /// </summary>
+    /// <param name="type">The Surab type to lower.</param>
+    /// <returns>The lowered LLVM type.</returns>
+    public LLVMTypeRef LowerType(TypeSymbol type)
+    {
+        if (type == BuiltinTypeSystem.None)
+            return LLVMTypeRef.Void;
+        if (type == BuiltinTypeSystem.@char || type == BuiltinTypeSystem.@bool)
+            return LLVMTypeRef.Int1;
+
+        if (type == BuiltinTypeSystem.i32 || type == BuiltinTypeSystem.u32)
+            return LLVMTypeRef.Int32;
+        if (type == BuiltinTypeSystem.i64 || type == BuiltinTypeSystem.u64)
+            return LLVMTypeRef.Int64;
+        if (type == BuiltinTypeSystem.f32)
+            return LLVMTypeRef.Float;
+        if (type == BuiltinTypeSystem.f64)
+            return LLVMTypeRef.Double;
+
+        if (type is StructTypeSymbol structType)
+        {
+            var fields = structType.Members.Fields().ToList();
+            var structLayout = Target.GetStructLayout(structType);
+            var elements = structLayout.Sections.Select(m =>
+            {
+                return m.Kind switch
+                {
+                    StructLayoutSectionKind.Padding => LLVMTypeRef.CreateArray(LLVMTypeRef.Int1, (uint)m.Size.Bytes),
+                    StructLayoutSectionKind.Data => LowerType(fields[m.FieldIndex].Type),
+                    _ => throw new UnreachableException(),
+                };
+            }).ToArray();
+            return LLVMTypeRef.CreateStruct(elements, Packed: false);
+        }
+
+        if (type is FnTypeSymbol fnType)
+        {
+            var (llvmType, _) = LowerType(fnType);
+            return llvmType;
+        }
+
+        throw new UnreachableException();
+    }
+
+    /// <summary>
+    /// Lowers a type from Surab to LLVM.
+    /// </summary>
+    /// <param name="type">The Surab type to lower.</param>
+    /// <param name="llvmActualType">An out variable that contains the actual LLVM type of in certain cases (such as <paramref name="type"/> being <see cref="FnTypeSymbol"/>). This is helpful in cases the returned LLVM type is an opaque ptr.</param>
+    /// <returns>The lowered LLVM type.</returns>
+    public (LLVMTypeRef llvmType, LLVMTypeRef llvmActualType) LowerType(FnTypeSymbol fnType)
+    {
+        // TODO: Optimize? This is being called multiple times in sequence when we compile an fn.
+        var (sret, attrs) = GetFnInfoFromFnType(fnType);
+        var returnType = LowerType(fnType.ReturnType);
 
         // TODO: Better way?
         var llvmIndex = 0;
-        var capacity = fnSymbol.Params.Length + 1; // Max length of llvm params.
+        var capacity = fnType.ParamTypes.Length + 1; // Max length of llvm params.
         var @params = new List<LLVMTypeRef>(capacity);
-        var attrs = new LLVMFnAttrsDef();
-        _context.FnToAttrs[fnSymbol] = attrs;
 
-        var sret = Target.IsReturnSRet(fnSymbol);
-        if (sret)
+        if (sret.HasValue)
         {
             @params.Add(returnType);
-            attrs.AddParam(llvmIndex, LLVM.Context.CreateEnumAttribute(AttributeKind.StructRet, default));
             llvmIndex++;
         }
 
-        foreach (var param in fnSymbol.Params)
+        foreach (var paramType in fnType.ParamTypes)
         {
-            // TODO: if (isExtern) ?
+            // Create fn param types
+            // ---
 
-            var lowering = GetLLVMLowering(param.Type);
-            var llvmType = Target.LowerType(param.Type);
+            var lowering = GetLLVMLowering(paramType);
+            var paramLLVMType = LowerType(paramType);
             switch (lowering.Kind)
             {
                 case LLVMTypeLoweringKind.ByValue:
                     {
-                        @params.Add(llvmType);
+                        @params.Add(paramLLVMType);
                     }
                     break;
                 case LLVMTypeLoweringKind.ByMutRef:
                     {
-                        @params.Add(LLVMTypeRef.CreatePointer(llvmType, 0));
+                        @params.Add(LLVMTypeRef.CreatePointer(paramLLVMType, 0));
                     }
                     break;
                 case LLVMTypeLoweringKind.AbiInt:
                     {
-                        var layout = Target.GetLayout(param.Type);
+                        var layout = Target.GetLayout(paramType);
                         var llvmIntType = LLVMTypeRef.CreateInt((uint)layout.Size.Bits);
                         @params.Add(llvmIntType);
                     }
                     break;
             }
 
-            // TODO: attrs?
+            llvmIndex++;
+        }
+
+        var llvmFnType = LLVMTypeRef.CreateFunction(sret.HasValue ? LLVMTypeRef.Void : returnType, @params.ToArray(), false);
+
+        // TODO: AddressSpace?
+        return (LLVMTypeRef.CreatePointer(llvmFnType, 0), llvmFnType);
+    }
+
+    // TODO: Optimize calls to this method? This is being called multiple times in sequence when we compile an fn. We could cache the result.
+    public LLVMFn GetFnInfoFromFnType(FnTypeSymbol fnType)
+    {
+        var returnType = LowerType(fnType.ReturnType);
+
+        // TODO: Better way?
+        var llvmIndex = 0;
+        var attrs = new LLVMFnAttrsDef();
+
+        var sret = IsReturnSRet(fnType);
+        if (sret)
+        {
+            attrs.AddParam(llvmIndex, LLVM.Context.CreateEnumAttribute(AttributeKind.StructRet, default));
+            llvmIndex++;
+        }
+
+        foreach (var paramType in fnType.ParamTypes)
+        {
+            // Add attrs
+            // ---
+
+            var lowering = GetLLVMLowering(paramType);
+            //var llvmType = Target.LowerType(paramType);
+            switch (lowering.Kind)
+            {
+                case LLVMTypeLoweringKind.ByValue:
+                    {
+                    }
+                    break;
+                case LLVMTypeLoweringKind.ByMutRef:
+                    {
+                    }
+                    break;
+                case LLVMTypeLoweringKind.AbiInt:
+                    {
+                    }
+                    break;
+            }
 
             llvmIndex++;
         }
 
-        var fnType = LLVMTypeRef.CreateFunction(sret ? LLVMTypeRef.Void : returnType, @params.ToArray(), false);
-        var fnValue = LLVM.Module.AddFunction(fnSymbol.Identifier!.Value, fnType);
-
-        if (!fnSymbol.IsExport && !fnSymbol.IsExtern && !fnSymbol.IsMain)
-        {
-            fnValue.Linkage = LLVMLinkage.LLVMInternalLinkage;
-        }
-
-        // TODO: switch (cc)
-        fnValue.SetFunctionCallConv(CallConv.C);
-
-        attrs.Apply((index, attr) => fnValue.AddAttributeAtIndex(index, attr));
-
-        return new LLVMFn(LLVMUnit.Wrapped(fnType, fnValue), sret ? returnType : (LLVMTypeRef?)null);
+        return new LLVMFn(sret ? returnType : (LLVMTypeRef?)null, attrs);
     }
 
     public LLVMTypeLowering GetLLVMLowering(TypeSymbol type)
     {
-        return Target.GetLLVMLowering(type);
+        if (Target.GetAbiSize(type).IsZeroSized)
+            return LLVMTypeLowering.ZeroSized;
+
+        return GetLLVMLoweringCore(type);
     }
+
+    protected abstract LLVMTypeLowering GetLLVMLoweringCore(TypeSymbol type);
+}
+
+internal class x86_64WindowsLLVMTarget(CompilationContext context) : LLVMTarget(context)
+{
+    protected new x86_64WindowsTarget Target => (x86_64WindowsTarget)Context.Target;
+
+    public override bool IsReturnSRetCore(FnTypeSymbol fnType)
+    {
+        return Target.Classify(fnType.ReturnType) == Classification.Memory;
+    }
+
+    public override LLVMTypeRef LowerFnReturnType(FnSymbol fn)
+    {
+        var returnType = fn.ReturnType;
+        var classification = Target.Classify(returnType);
+        return classification switch
+        {
+            Classification.Integer => returnType.IsScalar ? LowerType(returnType) : LLVMTypeRef.CreateInt((uint)Target.GetAbiSize(returnType).Bits),
+            //win_i128 =>
+            Classification.Memory => LLVMTypeRef.Void,
+            Classification.SSE => LowerType(returnType),
+            _ => throw new UnreachableException(),
+        };
+    }
+
+    protected override LLVMTypeLowering GetLLVMLoweringCore(TypeSymbol type)
+    {
+        Debug.Assert(!Target.GetAbiSize(type).IsZeroSized);
+
+        return Target.Classify(type) switch
+        {
+            Classification.Integer => type.IsScalar ? LLVMTypeLowering.ByValue : LLVMTypeLowering.AbiInt,
+            //win_i128 =>
+            Classification.Memory => LLVMTypeLowering.ByMutRef,
+            Classification.SSE => LLVMTypeLowering.ByValue,
+            _ => throw new UnreachableException(),
+        };
+    }
+}
+
+internal sealed class x86_64WindowsMSVCLLVMTarget(CompilationContext context) : x86_64WindowsLLVMTarget(context)
+{
+    private new x86_64WindowsMSVCTarget Target => (x86_64WindowsMSVCTarget)Context.Target;
 }

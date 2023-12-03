@@ -24,6 +24,7 @@ public class ParserTests
     {
         var src = "fn f() {}";
         var node = ParseDecl(src).Should().BeOfType<FnDeclNode>().Subject;
+        node.Sig.ReturnTy.Should().BeNull();
         node.Body.Should().NotBeNull();
         node.SemicolonToken.Should().BeNull();
     }
@@ -31,10 +32,25 @@ public class ParserTests
     [Fact]
     public void Decl_Fn_2()
     {
-        var src = "fn f(number: u32): u32 { 2 }";
+        var src = "fn f(number: u32) u32 { 2 }";
         var node = ParseDecl(src).Should().BeOfType<FnDeclNode>().Subject;
+        node.Sig.ReturnTy.Should().NotBeNull();
         node.Body.Should().NotBeNull();
         node.SemicolonToken.Should().BeNull();
+    }
+
+    [Fact]
+    public void FnType()
+    {
+        var src = "var f: fn (i32, i32) i64;";
+        var node = ParseStmt(src).Should().BeOfType<VarStmtNode>().Subject;
+        var fnTypeNode = node.Type!.Type.Should().BeOfType<FnTypeNode>().Subject;
+        fnTypeNode.ParamTypes.ParamTypes.Should().HaveCount(2);
+        fnTypeNode.ParamTypes.ParamTypes.ElementAt(0).Type.Should().BeOfType<NamedTypeNode>();
+        fnTypeNode.ParamTypes.ParamTypes.ElementAt(0).CommaToken.Should().NotBeNull();
+        fnTypeNode.ParamTypes.ParamTypes.ElementAt(1).Type.Should().BeOfType<NamedTypeNode>();
+        fnTypeNode.ParamTypes.ParamTypes.ElementAt(1).CommaToken.Should().BeNull();
+        fnTypeNode.ReturnType.Should().BeOfType<NamedTypeNode>();
     }
 
     [Fact]
@@ -445,7 +461,7 @@ public class ParserTests
     public void BlockAsStmt_2()
     {
         var src = """
-            fn f(): u32 {
+            fn f() u32 {
                 { 1 }
                 { 2; }
             }

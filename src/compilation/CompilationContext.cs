@@ -15,32 +15,34 @@ public sealed class CompilationContext
         Target = target;
         LLVM = llvmCompilationContext;
         Options = options;
+
+        LLVMTarget = LLVMTarget.Create(this);
     }
 
     public List<SemanticModel> SemanticModels { get; }
 
     public Target Target { get; }
 
+    internal LLVMTarget LLVMTarget { get; }
+
     internal LLVMCompilationContext LLVM { get; }
 
     public CompilationOptions Options { get; }
 
+    // TODO: Some of these might need to be moved to a semantic model context so that we can bust them.
+
     internal Dictionary<Symbol, LLVMUnit> SymbolToLLVMUnit { get; } = [];
 
-    internal Dictionary<FnSymbol, LLVMFn> FnSymbolToLLVMFn { get; } = [];
-
-    internal Dictionary<FnSymbol, LLVMFnAttrsDef> FnToAttrs { get; } = [];
-
-    internal Dictionary<Symbol, LLVMType> TypeToLLVMType { get; } = [];
+    internal Dictionary<TypeSymbol, LLVMType> TypeSymbolToLLVMType { get; } = [];
 
     internal LLVMType GetOrCreateType(TypeSymbol typeSymbol)
     {
         // Cache LLVM lowered types.
-        if (!TypeToLLVMType.TryGetValue(typeSymbol, out var llvmTypeUnit))
+        if (!TypeSymbolToLLVMType.TryGetValue(typeSymbol, out var llvmTypeUnit))
         {
-            var llvmType = Target.LowerType(typeSymbol);
+            var llvmType = LLVMTarget.LowerType(typeSymbol);
             llvmTypeUnit = new LLVMType(llvmType);
-            TypeToLLVMType[typeSymbol] = llvmTypeUnit;
+            TypeSymbolToLLVMType[typeSymbol] = llvmTypeUnit;
         }
 
         return llvmTypeUnit;

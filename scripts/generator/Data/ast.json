@@ -528,6 +528,38 @@
       ]
     },
     {
+      "Name": "ParamTypesList",
+      "Members": [
+        {
+          "Name": "openParenToken",
+          "Type": "SimpleToken"
+        },
+        {
+          "Name": "paramTypes",
+          "Type": "ParamTypeNode",
+          "List": true
+        },
+        {
+          "Name": "closedParenToken",
+          "Type": "SimpleToken"
+        }
+      ]
+    },
+    {
+      "Name": "ParamType",
+      "Members": [
+        {
+          "Name": "type",
+          "Type": "TypeNode"
+        },
+        {
+          "Name": "commaToken",
+          "Type": "SimpleToken",
+          "Optional": true
+        }
+      ]
+    },
+    {
       "Name": "ArgsList",
       "Members": [
         {
@@ -573,15 +605,30 @@
       ]
     },
     {
-      "Name": "Type",
+      "Name": "NamedType",
+      "Base": "TypeNode",
       "Members": [
         {
           "Name": "identifier",
           "Type": "IdentifierToken"
+        }
+      ]
+    },
+    {
+      "Name": "FnType",
+      "Base": "TypeNode",
+      "Members": [
+        {
+          "Name": "fnToken",
+          "Type": "SimpleToken"
         },
         {
-          "Name": "nullableToken",
-          "Type": "SimpleToken",
+          "Name": "paramTypes",
+          "Type": "ParamTypesListNode"
+        },
+        {
+          "Name": "returnType",
+          "Type": "TypeNode",
           "Optional": true
         }
       ]
@@ -599,7 +646,7 @@
         },
         {
           "Name": "returnTy",
-          "Type": "ColonTypeNode",
+          "Type": "TypeNode",
           "Optional": true
         }
       ]

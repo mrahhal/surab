@@ -137,7 +137,7 @@ internal class SemanticAnalyzer(SemanticModel model) : Visitor
         {
             // Shouldn't report. Will be reported elsewhere.
         }
-        else if (lhsType == null || rhsType == null || lhsType != rhsType)
+        else if (lhsType == null || rhsType == null || !lhsType.Equals(rhsType))
         {
             // Incompatible types.
             _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"invalid assignment because of incompatible types");
@@ -194,7 +194,7 @@ internal class SemanticAnalyzer(SemanticModel model) : Visitor
         {
             // Shouldn't report. Will be reported elsewhere.
         }
-        else if (leftType != rightType)
+        else if (!leftType.Equals(rightType))
         {
             _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"incompatible types");
         }
@@ -247,10 +247,10 @@ internal class SemanticAnalyzer(SemanticModel model) : Visitor
 
     public override void VisitCallExpr(CallExprNode node)
     {
-        var calleeSymbol = _model.LookupSymbol(node.Callee);
+        var calleeType = _model.LookupType(node.Callee);
 
         // Ensure callee is a function and validate args.
-        if (calleeSymbol is not FnSymbol fnSymbol)
+        if (calleeType is not FnTypeSymbol fnSymbol)
         {
             // TODO: Shouldn't raise this when invoking a function that doesn't exist. Should say "unknown symbol" or something.
             _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"invocation on a non function");
@@ -258,7 +258,7 @@ internal class SemanticAnalyzer(SemanticModel model) : Visitor
         else
         {
             var args = node.Args.Args.ToList();
-            if (fnSymbol.Params.Length != args.Count)
+            if (fnSymbol.ParamTypes.Length != args.Count)
             {
                 _diagnostics.Add(node.Args.Span, DiagnosticLevel.Error, $"invalid invocation: wrong number of arguments");
             }
@@ -267,11 +267,11 @@ internal class SemanticAnalyzer(SemanticModel model) : Visitor
                 for (var i = 0; i < args.Count; i++)
                 {
                     var arg = args[i];
-                    var param = fnSymbol.Params[i];
+                    var paramType = fnSymbol.ParamTypes[i];
                     var argType = _model.LookupType(arg);
-                    if (param.Type != argType)
+                    if (!paramType.Equals(argType))
                     {
-                        _diagnostics.Add(arg.Span, DiagnosticLevel.Error, $"incompatible type for arg, expected {param.Type.Name} but received {argType?.Name}");
+                        _diagnostics.Add(arg.Span, DiagnosticLevel.Error, $"incompatible type for arg, expected {paramType.Name} but received {argType?.Name}");
                     }
                 }
             }
@@ -338,7 +338,7 @@ internal class SemanticAnalyzer(SemanticModel model) : Visitor
         base.VisitIdentifierExpr(node);
     }
 
-    public override void VisitType(TypeNode node)
+    public override void VisitNamedType(NamedTypeNode node)
     {
         var symbol = _model.LookupSymbol(node);
         if (symbol == null)
@@ -350,7 +350,12 @@ internal class SemanticAnalyzer(SemanticModel model) : Visitor
             _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"not a type");
         }
 
-        base.VisitType(node);
+        base.VisitNamedType(node);
+    }
+
+    public override void VisitFnType(FnTypeNode node)
+    {
+        base.VisitFnType(node);
     }
 
     public override void VisitSkippedToken(SkippedToken skippedToken)
@@ -367,4 +372,5 @@ internal class SemanticAnalyzer(SemanticModel model) : Visitor
     // - BlockExpr can't appear as an l-value
     // - Binary/Unary
     // - Number assignment problems (u32 = u64 literal)
+    // - Function: not all code paths return a value `fn f() i32 { }`
 }
