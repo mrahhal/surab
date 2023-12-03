@@ -609,6 +609,11 @@
       "Base": "TypeNode",
       "Members": [
         {
+          "Name": "attrs",
+          "Type": "AttrsListNode",
+          "Optional": true
+        },
+        {
           "Name": "identifier",
           "Type": "IdentifierToken"
         }

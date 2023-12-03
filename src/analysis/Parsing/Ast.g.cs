@@ -858,16 +858,17 @@ public partial class ColonTypeNode : SyntaxNode
 
 public partial class NamedTypeNode : TypeNode
 {
-    public NamedTypeNode(IdentifierToken identifier)
+    public NamedTypeNode(AttrsListNode? attrs, IdentifierToken identifier)
         : base(SyntaxNodeKind.NamedType)
     {
         _childTokens = new() { identifier, };
-        _childNodes = new();
+        _childNodes = new() { attrs, };
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
     }
 
+    public AttrsListNode? Attrs => (AttrsListNode?)_childNodes[0]!;
     public IdentifierToken Identifier => (IdentifierToken)_childTokens[0]!;
 
     public override void Accept(Visitor visitor)

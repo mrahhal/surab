@@ -896,11 +896,13 @@ internal class ParserImpl
     /// </summary>
     private TypeNode? ParseType()
     {
+        var attrs = TryParseAttrsList();
+
         var token = AssertedCurrent();
         return token.Kind switch
         {
-            TokenKind.Identifier => ParseNamedType(),
-            TokenKind.AtBeforeIdentifier or TokenKind.Fn => ParseFnType(),
+            TokenKind.Identifier => ParseNamedType(attrs),
+            TokenKind.AtBeforeIdentifier or TokenKind.Fn => ParseFnType(attrs),
             _ => null,
         };
     }
@@ -908,23 +910,21 @@ internal class ParserImpl
     /// <summary>
     /// Parses `NamedType`
     /// </summary>
-    private NamedTypeNode? ParseNamedType()
+    private NamedTypeNode? ParseNamedType(AttrsListNode? attrs)
     {
         var identifier = ParseIdentifier();
         if (identifier == null) return null;
         //var nullableToken = TryEatSimpleToken(TokenKind.Question);
 
-        return new NamedTypeNode(identifier);
+        return new NamedTypeNode(attrs, identifier);
     }
 
     /// <summary>
     /// Parses `@extern fn (Type1, Type2) Type3`
     /// Requirements: current is Fn.
     /// </summary>
-    private FnTypeNode? ParseFnType()
+    private FnTypeNode? ParseFnType(AttrsListNode? attrs)
     {
-        var attrs = TryParseAttrsList();
-
         var fnToken = EatAssertedSimpleToken(TokenKind.Fn);
         var paramTypes = ParseParamTypesList();
         if (paramTypes == null) return null;
