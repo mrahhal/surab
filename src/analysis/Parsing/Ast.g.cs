@@ -878,19 +878,20 @@ public partial class NamedTypeNode : TypeNode
 
 public partial class FnTypeNode : TypeNode
 {
-    public FnTypeNode(SimpleToken fnToken, ParamTypesListNode paramTypes, TypeNode? returnType)
+    public FnTypeNode(AttrsListNode? attrs, SimpleToken fnToken, ParamTypesListNode paramTypes, TypeNode? returnType)
         : base(SyntaxNodeKind.FnType)
     {
         _childTokens = new() { fnToken, };
-        _childNodes = new() { paramTypes, returnType, };
+        _childNodes = new() { attrs, paramTypes, returnType, };
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
     }
 
+    public AttrsListNode? Attrs => (AttrsListNode?)_childNodes[0]!;
     public SimpleToken FnToken => (SimpleToken)_childTokens[0]!;
-    public ParamTypesListNode ParamTypes => (ParamTypesListNode)_childNodes[0]!;
-    public TypeNode? ReturnType => (TypeNode?)_childNodes[1]!;
+    public ParamTypesListNode ParamTypes => (ParamTypesListNode)_childNodes[1]!;
+    public TypeNode? ReturnType => (TypeNode?)_childNodes[2]!;
 
     public override void Accept(Visitor visitor)
     {

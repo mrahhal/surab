@@ -892,7 +892,7 @@ internal class ParserImpl
     /// <summary>
     /// Parses the various Type syntax.
     /// - `NamedType`
-    /// - `fn (i32) i32`
+    /// - `@extern fn (i32) i32`
     /// </summary>
     private TypeNode? ParseType()
     {
@@ -900,7 +900,7 @@ internal class ParserImpl
         return token.Kind switch
         {
             TokenKind.Identifier => ParseNamedType(),
-            TokenKind.Fn => ParseFnType(),
+            TokenKind.AtBeforeIdentifier or TokenKind.Fn => ParseFnType(),
             _ => null,
         };
     }
@@ -918,17 +918,19 @@ internal class ParserImpl
     }
 
     /// <summary>
-    /// Parses `fn (Type1, Type2) Type3`
+    /// Parses `@extern fn (Type1, Type2) Type3`
     /// Requirements: current is Fn.
     /// </summary>
     private FnTypeNode? ParseFnType()
     {
+        var attrs = TryParseAttrsList();
+
         var fnToken = EatAssertedSimpleToken(TokenKind.Fn);
         var paramTypes = ParseParamTypesList();
         if (paramTypes == null) return null;
         var returnType = ParseType();
 
-        return new FnTypeNode(fnToken, paramTypes, returnType);
+        return new FnTypeNode(attrs, fnToken, paramTypes, returnType);
     }
 
     /// <summary>

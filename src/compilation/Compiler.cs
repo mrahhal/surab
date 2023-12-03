@@ -587,7 +587,7 @@ internal sealed class FnCompiler : LoweredVisitor
 
         var llvmFnValue = LLVM.Module.AddFunction(fnSymbol.Identifier!.Value, llvmFnType);
 
-        if (!fnSymbol.IsExport && !fnSymbol.IsExtern && !fnSymbol.IsMain)
+        if (!fnSymbol.IsExtern && !fnSymbol.IsMain)
         {
             llvmFnValue.Linkage = LLVMLinkage.LLVMInternalLinkage;
         }

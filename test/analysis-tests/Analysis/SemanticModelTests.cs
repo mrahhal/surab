@@ -306,6 +306,28 @@ public class SemanticModelTests
     }
 
     [Fact]
+    public void FnTypesWithDifferringExternAreNotEqual()
+    {
+        var src = """
+            @extern fn f1(a: i32, b: i32) i64 { return 1.0; }
+            @extern fn f2(a: i32, b: i32) i64 { return 2.0; }
+            fn f3(a: i32, b: i32) i64 { return 3.0; }
+            """;
+        var tree = Parser.ParseModule(src);
+        var model = SemanticModel.Create(tree);
+
+        var f1Node = tree.Root.DescendantNodes().OfType<FnDeclNode>().ElementAt(0);
+        var f1Symbol = (FnSymbol)model.GetDeclaredSymbol(f1Node)!;
+        var f2Node = tree.Root.DescendantNodes().OfType<FnDeclNode>().ElementAt(1);
+        var f2Symbol = (FnSymbol)model.GetDeclaredSymbol(f2Node)!;
+        var f3Node = tree.Root.DescendantNodes().OfType<FnDeclNode>().ElementAt(2);
+        var f3Symbol = (FnSymbol)model.GetDeclaredSymbol(f3Node)!;
+
+        f1Symbol.Type.Equals(f2Symbol.Type).Should().BeTrue();
+        f1Symbol.Type.Equals(f3Symbol.Type).Should().BeFalse();
+    }
+
+    [Fact]
     public void FnTypesForCompatibleFnTypesAreEqual()
     {
         var src = """

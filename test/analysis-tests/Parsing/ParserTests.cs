@@ -54,6 +54,17 @@ public class ParserTests
     }
 
     [Fact]
+    public void FnTypeWithAttrs()
+    {
+        var src = "var f: @extern fn (i32, i32) i64;";
+        var node = ParseStmt(src).Should().BeOfType<VarStmtNode>().Subject;
+        var fnTypeNode = node.Type!.Type.Should().BeOfType<FnTypeNode>().Subject;
+        fnTypeNode.ParamTypes.ParamTypes.Should().HaveCount(2);
+        fnTypeNode.Attrs.Should().NotBeNull();
+        fnTypeNode.Attrs!.Attrs.Should().HaveCount(1);
+    }
+
+    [Fact]
     public void Decl_Attrs()
     {
         var src = """

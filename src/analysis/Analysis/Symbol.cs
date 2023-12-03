@@ -122,11 +122,9 @@ public sealed class FnSymbol : Symbol, ISymbolHasType
 
     public bool IsMain => IsOuterFn && Name == "main";
 
-    public bool IsPublic => _node.Parent is FnDeclNode fnDeclNode && fnDeclNode.Attrs.HasAttr(KnownAttrs.Public);
+    public bool IsPublic => _node.Attrs.HasAttr(KnownAttrs.Public);
 
-    public bool IsExport => _node.Parent is FnDeclNode fnDeclNode && fnDeclNode.Attrs.HasAttr(KnownAttrs.Export);
-
-    public bool IsExtern => _node.Parent is FnDeclNode fnDeclNode && fnDeclNode.Attrs.HasAttr(KnownAttrs.Extern);
+    public bool IsExtern => _node.Attrs.HasAttr(KnownAttrs.Extern);
 
     TypeSymbol ISymbolHasType.Type => Type;
 
@@ -352,9 +350,11 @@ public abstract class TypeSymbol : Symbol
 /// Any two fn types with the same signature will have equal keys.
 /// </summary>
 internal readonly struct FnTypeKey(
+    bool isExtern,
     TypeSymbol returnType,
     IEnumerable<TypeSymbol> paramTypes) : IEquatable<FnTypeKey>
 {
+    public readonly bool IsExtern { get; } = isExtern;
     public readonly TypeSymbol ReturnType { get; } = returnType;
     public readonly ImmutableArray<TypeSymbol> ParamTypes { get; } = paramTypes.ToImmutableArray();
 
@@ -363,22 +363,9 @@ internal readonly struct FnTypeKey(
     public bool Equals(FnTypeKey other)
     {
         return
+            IsExtern == other.IsExtern &&
             Equals(ReturnType, other.ReturnType) &&
             ParamTypesEqual(this, other);
-    }
-
-    public override int GetHashCode()
-    {
-        unchecked
-        {
-            var hash = 92821;
-            hash = hash * 29 + ReturnType.GetHashCode();
-            foreach (var p in ParamTypes)
-            {
-                hash = hash * 29 + p.GetHashCode();
-            }
-            return hash;
-        }
     }
 
     private static bool ParamTypesEqual(FnTypeKey x, FnTypeKey y)
@@ -391,6 +378,21 @@ internal readonly struct FnTypeKey(
                 return false;
         }
         return true;
+    }
+
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            var hash = 92821;
+            hash = hash * 29 + IsExtern.GetHashCode();
+            hash = hash * 29 + ReturnType.GetHashCode();
+            foreach (var p in ParamTypes)
+            {
+                hash = hash * 29 + p.GetHashCode();
+            }
+            return hash;
+        }
     }
 }
 
@@ -423,6 +425,8 @@ public class FnTypeSymbol : TypeSymbol, IEquatable<FnTypeSymbol>
     }
 
     internal FnTypeKey Key => _key;
+
+    public bool IsExtern => Key.IsExtern;
 
     public TypeSymbol ReturnType => Key.ReturnType;
 

@@ -556,6 +556,22 @@ public partial class BlockExprNode
     }
 }
 
+public partial class FnSigNode
+{
+    public AttrsListNode? Attrs
+    {
+        get
+        {
+            return Parent switch
+            {
+                FnDeclNode fnDecl => fnDecl.Attrs,
+                MethodDeclNode fnDecl => fnDecl.Attrs,
+                _ => null,
+            };
+        }
+    }
+}
+
 public partial class MapInitializerNode
 {
     public IEnumerable<AssignmentExprNode> WellFormedExprs => Exprs.Cast<AssignmentExprNode>();

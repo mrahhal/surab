@@ -19,6 +19,9 @@ static SOME_RESULT = {
     // Do some computation.
 };
 
+@extern
+fn do_from_external_fn();
+
 // Functions can exist out of classes, in which case they simply live in the namespace.
 fn main() {
     var size = BitSize {

@@ -34,7 +34,7 @@ var src = """
 
     fn noop() { }
 
-    @export
+    @extern
     fn f(x: f64, y: f64) f64 {
         var e = x + y;
         return e + 1.0;

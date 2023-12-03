@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Xml.Linq;
 
 namespace Surab.Analysis;
 
@@ -424,15 +425,18 @@ public class SemanticModel
     private FnTypeKey CreateFnTypeKey(FnSigNode sig)
     {
         // TODO: Return something else in case of error diags? (p.Type below could be null)
-
+        var isExtern = sig.Attrs.HasAttr(KnownAttrs.Extern);
         return new FnTypeKey(
+            isExtern,
             sig.ReturnTy == null ? BuiltinTypeSystem.None : (TypeSymbol)LookupSymbol(sig.ReturnTy)!,
             sig.Params.Params.Select(p => (TypeSymbol)LookupSymbol(p.Type!.Type)!));
     }
 
     private FnTypeKey CreateFnTypeKey(FnTypeNode fnType)
     {
+        var isExtern = fnType.Attrs.HasAttr(KnownAttrs.Extern);
         return new FnTypeKey(
+            isExtern,
             fnType.ReturnType == null ? BuiltinTypeSystem.None : (TypeSymbol)LookupSymbol(fnType.ReturnType)!,
             fnType.ParamTypes.ParamTypes.Select(p => (TypeSymbol)LookupSymbol(p.Type)!));
     }

@@ -619,6 +619,11 @@
       "Base": "TypeNode",
       "Members": [
         {
+          "Name": "attrs",
+          "Type": "AttrsListNode",
+          "Optional": true
+        },
+        {
           "Name": "fnToken",
           "Type": "SimpleToken"
         },
