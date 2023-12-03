@@ -572,51 +572,6 @@ internal sealed class FnCompiler : LoweredVisitor
         return unit;
     }
 
-    //private LLVMFn GetFnInfoFromFnType(FnTypeSymbol fnType)
-    //{
-    //    return LLVMTarget.GetFnInfoFromFnType(fnType);
-    //    //var returnType = Target.LowerType(fnType.ReturnType);
-
-    //    //// TODO: Better way?
-    //    //var llvmIndex = 0;
-    //    //var attrs = new LLVMFnAttrsDef();
-
-    //    //var sret = Target.IsReturnSRet(fnType);
-    //    //if (sret)
-    //    //{
-    //    //    attrs.AddParam(llvmIndex, LLVM.Context.CreateEnumAttribute(AttributeKind.StructRet, default));
-    //    //    llvmIndex++;
-    //    //}
-
-    //    //foreach (var paramType in fnType.ParamTypes)
-    //    //{
-    //    //    // Add attrs
-    //    //    // ---
-
-    //    //    var lowering = GetLLVMLowering(paramType);
-    //    //    //var llvmType = Target.LowerType(paramType);
-    //    //    switch (lowering.Kind)
-    //    //    {
-    //    //        case LLVMTypeLoweringKind.ByValue:
-    //    //            {
-    //    //            }
-    //    //            break;
-    //    //        case LLVMTypeLoweringKind.ByMutRef:
-    //    //            {
-    //    //            }
-    //    //            break;
-    //    //        case LLVMTypeLoweringKind.AbiInt:
-    //    //            {
-    //    //            }
-    //    //            break;
-    //    //    }
-
-    //    //    llvmIndex++;
-    //    //}
-
-    //    //return new LLVMFn(sret ? returnType : (LLVMTypeRef?)null, attrs);
-    //}
-
     private LLVMUnit CreateFn(FnSymbol fnSymbol)
     {
         // TODO: Optimize? This is being called multiple times in sequence when we compile an fn.
@@ -747,7 +702,7 @@ internal abstract class LLVMTarget
     public (LLVMTypeRef llvmType, LLVMTypeRef llvmActualType) LowerType(FnTypeSymbol fnType)
     {
         // TODO: Optimize? This is being called multiple times in sequence when we compile an fn.
-        var (sret, attrs) = GetFnInfoFromFnType(fnType);
+        var (sret, _) = GetFnInfoFromFnType(fnType);
         var returnType = LowerType(fnType.ReturnType);
 
         // TODO: Better way?
