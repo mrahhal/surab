@@ -20,19 +20,20 @@ p.WaitForExit();
 
 var src = """
     fn foo1(number: i32) {
-        print_i32(number + 2);
+        print_i32(number);
     }
 
-    fn foo2(number: i32) {
-        print_i32(number + 3);
-    }
+    //fn foo2(number: i32) {
+    //    print_i32(number + 3);
+    //}
 
     fn main() {
-        var number = 40;
         var f: fn (i32) = foo1;
-        f(number);
-        f = foo2;
-        f(number);
+        //var number = 40;
+        f(40);
+        //f = foo2;
+        //f(number);
+        foo1(3222);
     }
     """;
 var tree = Parser.ParseModule(src);

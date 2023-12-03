@@ -245,7 +245,8 @@ internal sealed class FnCompiler : LoweredVisitor
     {
         var fnType = node.FnType;
 
-        var (llvmFnType, llvmFnValue) = GetOrCreateFn(node.Callee);
+        var (llvmFnPtrType, llvmFnValue) = GetOrCreateFn(node.Callee);
+        var (_, llvmFnType) = LLVMTarget.LowerType(fnType);
         var (sret, attrs) = LLVMTarget.GetFnInfoFromFnType(fnType);
 
         // Process in reverse args order because values are pushed to a LIFO stack.
