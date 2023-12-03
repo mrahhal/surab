@@ -245,7 +245,9 @@ internal sealed class FnCompiler : LoweredVisitor
     {
         var fnType = node.FnType;
 
-        var (llvmFnPtrType, llvmFnValue) = GetOrCreateFn(node.Callee);
+        var fnUnit = GetOrCreateFn(node.Callee);
+        // Unwrapping loads the actual fn ptr for indirect calls (direct calls won't be wrapped in the first place).
+        var (llvmFnPtrType, llvmFnValue) = fnUnit.Unwrap(LLVM);
         var (_, llvmFnType) = LLVMTarget.LowerType(fnType);
         var (sret, attrs) = LLVMTarget.GetFnInfoFromFnType(fnType);
 
@@ -626,7 +628,8 @@ internal sealed class FnCompiler : LoweredVisitor
 
         attrs.Apply((index, attr) => llvmFnValue.AddAttributeAtIndex(index, attr));
 
-        return LLVMUnit.Wrapped(llvmPtrType, llvmFnValue);
+        // Create an unwrapped unit out of direct fn values. This means direct calls to this fn value won't be loaded (in VisitCallExpr).
+        return LLVMUnit.Unwrapped(llvmPtrType, llvmFnValue);
     }
 
     public LLVMTypeLowering GetLLVMLowering(TypeSymbol type)
