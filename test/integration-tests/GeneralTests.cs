@@ -149,4 +149,23 @@ public class GeneralTests
             fn main() i32 { return 0; }
             """);
     }
+
+    [Fact(Skip = "Not implemented yet")]
+    public void General_DifferentSymbolsForRedeclaredLocals()
+    {
+        var output = IntegrationRunner.Run($$"""
+            fn main() {
+                var a: i32 = 4;
+                print_i32(a);
+                var a: bool = true;
+                print_bool(a);
+            }
+            """);
+
+        var expectedOutput =
+            "4".NL() +
+            "true".NL();
+
+        output.Should().Be(expectedOutput);
+    }
 }
