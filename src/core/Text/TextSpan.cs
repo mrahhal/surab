@@ -1,8 +1,8 @@
 ﻿namespace Surab;
 
 /// <summary>
-/// Represents a span of text in source code.
-/// Included are both the absolute file span (file offset) and the line span (line + line offset).
+/// A span of text in a source file. All offsets use UTF-16 encoding.
+/// Included are both the absolute offset based file span (file offset) and the line based span (line + char offset).
 /// </summary>
 public readonly record struct TextSpan(
     FileSpan File,
@@ -44,8 +44,7 @@ public readonly record struct TextSpan(
 }
 
 /// <summary>
-/// A file span.
-/// [Start..End)
+/// An offset based file span. [Start..End)
 /// </summary>
 public readonly record struct FileSpan(
     int Start,
@@ -77,10 +76,20 @@ public readonly record struct FileSpan(
     public override string ToString() => $"[{Start}..{End})";
 }
 
+/// <summary>
+/// A line based span. [Start..End)
+/// </summary>
+/// <param name="Start">The span's start position.</param>
+/// <param name="End">The span's end position.</param>
 public readonly record struct LineSpan(
     LinePosition Start,
     LinePosition End);
 
+/// <summary>
+/// A line based position.
+/// </summary>
+/// <param name="Line">Line position (zero-based).</param>
+/// <param name="Char">Char position (zer-based).</param>
 public readonly record struct LinePosition(
     int Line,
     int Char);
