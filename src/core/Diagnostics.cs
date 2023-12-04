@@ -1,4 +1,4 @@
-﻿namespace Surab.Analysis;
+﻿namespace Surab;
 
 public enum DiagnosticLevel
 {

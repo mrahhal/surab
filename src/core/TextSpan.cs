@@ -1,4 +1,4 @@
-﻿namespace Surab.Analysis;
+﻿namespace Surab;
 
 /// <summary>
 /// Represents a span of text in source code.
