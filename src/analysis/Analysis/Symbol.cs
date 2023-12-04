@@ -40,7 +40,7 @@ public abstract class Symbol
 
     public virtual IdentifierToken? Identifier => null;
 
-    public string? Name => Identifier?.Value;
+    public virtual string? Name => Identifier?.Value;
 
     internal void SetParent(Symbol? parent)
     {
@@ -396,6 +396,11 @@ internal readonly struct FnTypeKey(
             return hash;
         }
     }
+
+    public override string ToString()
+    {
+        return $"{(IsExtern ? "@extern() " : "")}fn ({string.Join(", ", ParamTypes.Select(p => p.Name))}) {ReturnType.Name}";
+    }
 }
 
 /// <summary>
@@ -433,6 +438,9 @@ public class FnTypeSymbol : TypeSymbol, IEquatable<FnTypeSymbol>
     public TypeSymbol ReturnType => Key.ReturnType;
 
     public ImmutableArray<TypeSymbol> ParamTypes => Key.ParamTypes;
+
+    // TODO: If it's a named fn type (alias), display that instead?
+    public override string? Name => _key.ToString();
 
     public override bool Equals(object? obj) => Equals(obj as FnTypeSymbol);
 
