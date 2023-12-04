@@ -73,8 +73,11 @@ var src = """
         print_from_rust(s2);
 
         // Fn pointers
-        var fnptr: fn (f64, f64) f64 = f;
+        var fnptr /* : @extern fn (f64, f64) f64 */ = f;
         print_f64(fnptr(2.0, 3.0));
+
+        var fnptr2: @extern() fn (S2) = print_from_rust;
+        fnptr2(s2);
     }
     """;
 var tree = Parser.ParseModule(src);
