@@ -124,26 +124,34 @@ internal class SemanticAnalyzer(SemanticModel model) : Visitor
         base.VisitBareExprStmt(node);
     }
 
+    public override void VisitVarStmt(VarStmtNode node)
+    {
+        var lhsSymbol = (LocalSymbol)_model.GetDeclaredSymbol(node)!;
+        var lhsType = lhsSymbol.Type;
+
+        if (node.Initializer != null)
+        {
+            var rhsType = _model.LookupType(node.Initializer.Expr);
+
+            AnalyzeAssignment(node, lhsType, rhsType);
+        }
+
+        base.VisitVarStmt(node);
+    }
+
     public override void VisitAssignmentExpr(AssignmentExprNode node)
     {
         // Compatibility
-        var lhsSymbol = _model.LookupSymbol(node.Lhs);
+        //var lhsSymbol = _model.LookupSymbol(node.Lhs);
+        // TODO: Use lhsSymbol.Type if lhsSymbol has a Type?
         var lhsType = _model.LookupType(node.Lhs);
 
-        var rhsSymbol = _model.LookupSymbol(node.Rhs);
+        //var rhsSymbol = _model.LookupSymbol(node.Rhs);
         var rhsType = _model.LookupType(node.Rhs);
 
-        if (lhsSymbol == null || rhsSymbol == null)
-        {
-            // Shouldn't report. Will be reported elsewhere.
-        }
-        else if (lhsType == null || rhsType == null || !lhsType.Equals(rhsType))
-        {
-            // Incompatible types.
-            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"invalid assignment because of incompatible types");
-        }
+        AnalyzeAssignment(node, lhsType, rhsType);
 
-        // TODO: Add to SemanticAnalyzer: Invalid target of assignment.
+        // TODO (SemanticAnalyzer): Invalid target of assignment.
         /*switch (node.Lhs)
         {
             //case AccessExprNode accessExprNode:
@@ -157,6 +165,15 @@ internal class SemanticAnalyzer(SemanticModel model) : Visitor
         }*/
 
         base.VisitAssignmentExpr(node);
+    }
+
+    private void AnalyzeAssignment(SyntaxNode node, TypeSymbol? lhsType, TypeSymbol? rhsType)
+    {
+        if (lhsType == null || rhsType == null || !lhsType.Equals(rhsType))
+        {
+            // Incompatible types
+            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"invalid assignment because of incompatible types, expected `{lhsType?.Name}` but received `{rhsType?.Name}`");
+        }
     }
 
     public override void VisitUnaryExpr(UnaryExprNode node)
@@ -271,7 +288,7 @@ internal class SemanticAnalyzer(SemanticModel model) : Visitor
                     var argType = _model.LookupType(arg);
                     if (!paramType.Equals(argType))
                     {
-                        _diagnostics.Add(arg.Span, DiagnosticLevel.Error, $"incompatible type for arg, expected {paramType.Name} but received {argType?.Name}");
+                        _diagnostics.Add(arg.Span, DiagnosticLevel.Error, $"incompatible type for arg, expected `{paramType.Name}` but received `{argType?.Name}`");
                     }
                 }
             }
