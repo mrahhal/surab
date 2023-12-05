@@ -111,6 +111,29 @@ public class GeneralTests
     }
 
     [Fact]
+    public void General_FnType_3()
+    {
+        var output = IntegrationRunner.Run($$"""
+            fn foo1(number: i32) {
+                print_i32(number + 2);
+            }
+
+            fn foo2(number: i32, fn_ptr: fn (i32)) {
+                fn_ptr(number);
+            }
+
+            fn main() {
+                foo2(40, foo1);
+            }
+            """);
+
+        var expectedOutput =
+            "42".NL();
+
+        output.Should().Be(expectedOutput);
+    }
+
+    [Fact]
     public void General_2_1()
     {
         IntegrationRunner.Run($$"""

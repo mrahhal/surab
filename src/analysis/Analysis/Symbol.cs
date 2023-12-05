@@ -301,17 +301,41 @@ public sealed class LocalSymbol : Symbol, ISymbolHasType
     }
 }
 
+public enum TypeTag
+{
+    Invalid,
+    ZeroSized,
+    Numeric,
+    Char,
+    Bool,
+    Struct,
+    Ptr,
+}
+
 public abstract class TypeSymbol : Symbol
 {
     private ImmutableArray<Symbol> _members;
 
     public bool IsBuiltin => BuiltinTypeSystem.IsBuiltin(this);
 
-    public bool IsScalar =>
-        this == BuiltinTypeSystem.None ||
-        BuiltinTypeSystem.IsNumeric(this) ||
-        this == BuiltinTypeSystem.@char ||
-        this == BuiltinTypeSystem.@bool;
+    public bool IsScalar => GetTag() switch
+    {
+        TypeTag.Numeric or TypeTag.Char or TypeTag.Bool or TypeTag.Ptr => true,
+        _ => false,
+    };
+
+    public TypeTag GetTag()
+    {
+        var type = this;
+        if (type == BuiltinTypeSystem.None) return TypeTag.ZeroSized;
+        if (type == BuiltinTypeSystem.@char) return TypeTag.Char;
+        if (BuiltinTypeSystem.IsNumeric(type)) return TypeTag.Numeric;
+        if (type == BuiltinTypeSystem.@bool) return TypeTag.Bool;
+        if (type is StructTypeSymbol) return TypeTag.Struct;
+        if (type is FnTypeSymbol) return TypeTag.Ptr;
+
+        throw new UnreachableException();
+    }
 
     public virtual ImmutableArray<Symbol> Members
     {
