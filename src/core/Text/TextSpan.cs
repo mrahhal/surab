@@ -10,6 +10,11 @@ public readonly record struct TextSpan(
 {
     public static TextSpan Empty { get; } = new();
 
+    /// <summary>
+    /// The size of the text span.
+    /// </summary>
+    public int Size => File.End - File.Start;
+
     public static TextSpan FromTo(TextSpan from, TextSpan to) => new()
     {
         File = new()
