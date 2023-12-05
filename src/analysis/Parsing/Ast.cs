@@ -2,8 +2,10 @@
 
 namespace Surab.Analysis;
 
-public class SyntaxTree(SyntaxNode root, DiagnosticBag diagnostics)
+public class SyntaxTree(SourceFile sourceFile, SyntaxNode root, DiagnosticBag diagnostics)
 {
+    public SourceFile SourceFile { get; } = sourceFile;
+
     public SyntaxNode Root { get; } = root;
 
     public DiagnosticBag Diagnostics { get; } = diagnostics;
@@ -14,6 +16,8 @@ public abstract class SyntaxEntity : IVisitable
     public SyntaxNode? Parent { get; private set; }
 
     public TextSpan Span { get; init; }
+
+    public SyntaxTree Tree { get; internal set; } = null!;
 
     internal void SetParent(SyntaxNode? parent)
     {

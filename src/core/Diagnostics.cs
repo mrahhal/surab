@@ -1,4 +1,6 @@
-﻿namespace Surab;
+﻿using System.Collections.Immutable;
+
+namespace Surab;
 
 public enum DiagnosticLevel
 {
@@ -67,4 +69,11 @@ public class DiagnosticBag
         Diagnostics.Add(diagnostic);
         return diagnostic;
     }
+}
+
+public class FileDiagnostics(SourceFile sourceFile, ImmutableArray<Diagnostic> diagnostics)
+{
+    public SourceFile SourceFile { get; } = sourceFile;
+
+    public ImmutableArray<Diagnostic> Diagnostics { get; } = diagnostics;
 }

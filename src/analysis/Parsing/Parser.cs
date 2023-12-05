@@ -8,40 +8,60 @@ public static class Parser
     /// <summary>
     /// Parses the src into a module.
     /// </summary>
-    public static SyntaxTree ParseModule(string src)
+    public static SyntaxTree ParseModule(string src) => ParseModule(SourceFile.FromText(src));
+
+    /// <summary>
+    /// Parses the src into a module.
+    /// </summary>
+    public static SyntaxTree ParseModule(SourceFile sourceFile)
     {
-        var tokens = Lexer.LexSkipTrivia(src);
-        var parser = new ParserImpl(src, tokens);
+        var tokens = Lexer.LexSkipTrivia(sourceFile.Text);
+        var parser = new ParserImpl(sourceFile, tokens);
         return parser.ParseAsModule();
     }
 
     /// <summary>
     /// Parses the src into a declaration.
     /// </summary>
-    public static SyntaxTree ParseDecl(string src)
+    public static SyntaxTree ParseDecl(string src) => ParseDecl(SourceFile.FromText(src));
+
+    /// <summary>
+    /// Parses the src into a declaration.
+    /// </summary>
+    public static SyntaxTree ParseDecl(SourceFile sourceFile)
     {
-        var tokens = Lexer.LexSkipTrivia(src);
-        var parser = new ParserImpl(src, tokens);
+        var tokens = Lexer.LexSkipTrivia(sourceFile.Text);
+        var parser = new ParserImpl(sourceFile, tokens);
         return parser.ParseAsDecl();
     }
 
     /// <summary>
     /// Parses the src into a statement.
     /// </summary>
-    public static SyntaxTree ParseStmt(string src)
+    public static SyntaxTree ParseStmt(string src) => ParseStmt(SourceFile.FromText(src));
+
+    /// <summary>
+    /// Parses the src into a statement.
+    /// </summary>
+    public static SyntaxTree ParseStmt(SourceFile sourceFile)
     {
-        var tokens = Lexer.LexSkipTrivia(src);
-        var parser = new ParserImpl(src, tokens);
+        var tokens = Lexer.LexSkipTrivia(sourceFile.Text);
+        var parser = new ParserImpl(sourceFile, tokens);
         return parser.ParseAsStmt();
     }
 
     /// <summary>
+    /// Parses the src into a expression.
+    /// </summary>
+    public static SyntaxTree ParseExpr(string src) => ParseExpr(SourceFile.FromText(src));
+
+    /// <summary>
     /// Parses the src into an expression.
     /// </summary>
-    public static SyntaxTree ParseExpr(string src)
+    public static SyntaxTree ParseExpr(SourceFile sourceFile)
     {
-        var tokens = Lexer.LexSkipTrivia(src);
-        var parser = new ParserImpl(src, tokens);
+        var tokens = Lexer.LexSkipTrivia(sourceFile.Text);
+        var parser = new ParserImpl(sourceFile, tokens);
         return parser.ParseAsExpr();
     }
 }
@@ -49,6 +69,7 @@ public static class Parser
 internal class ParserImpl
 {
     private readonly string _src;
+    private readonly SourceFile _sourceFile;
     private readonly Peeker<Token> _tokens;
     private Token? _current;
     private Token? _prev;
@@ -56,10 +77,11 @@ internal class ParserImpl
     private DiagnosticBag _diagnostics = new();
 
     public ParserImpl(
-        string src,
+        SourceFile sourceFile,
         IEnumerable<Token> tokens)
     {
-        _src = src;
+        _src = sourceFile.Text;
+        _sourceFile = sourceFile;
         _tokens = new(tokens);
 
         // So that the parser starts with the first token in current.
@@ -71,7 +93,9 @@ internal class ParserImpl
         var diagnostics = _diagnostics;
         _diagnostics = new();
 
-        return new(root, diagnostics);
+        var tree = new SyntaxTree(_sourceFile, root, diagnostics);
+        SyntaxTreeSetter.Apply(tree);
+        return tree;
     }
 
     /// <summary>
@@ -1140,5 +1164,25 @@ internal class ParserImpl
         }
 
         return new AttrNode(atToken, identifier, args);
+    }
+}
+
+file class SyntaxTreeSetter(SyntaxTree tree) : Visitor
+{
+    public static void Apply(SyntaxTree tree)
+    {
+        var setter = new SyntaxTreeSetter(tree);
+        setter.Visit(tree.Root);
+    }
+
+    public override void Visit(SyntaxNode node)
+    {
+        node.Tree = tree;
+        Walk(node);
+    }
+
+    public override void Visit(SyntaxToken token)
+    {
+        token.Tree = tree;
     }
 }

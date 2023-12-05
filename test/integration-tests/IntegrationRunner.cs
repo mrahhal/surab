@@ -8,9 +8,11 @@ public static class IntegrationRunner
 {
     public static string Run(string src, bool fails = false)
     {
-        var tree = Parser.ParseModule(src);
+        var sourceFile = SourceFile.FromText(src);
 
-        var model = SemanticModel.Create(tree);
+        var project = Project.Create([sourceFile]);
+        var model = project.GetSemanticModel(sourceFile);
+
         var diags = model.GetAllDiagnostics();
         var errors = diags.Where(x => x.Level >= DiagnosticLevel.Error);
         if (!fails)
@@ -23,7 +25,7 @@ public static class IntegrationRunner
             return string.Empty;
         }
 
-        var exe = Compiler.Compile(model, "");
+        var exe = Compiler.Compile(project, "");
 
         var p = new Process
         {

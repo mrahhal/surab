@@ -23,11 +23,6 @@ public class SourceFile
 
     public string? Description { get; init; }
 
-    /// <summary>
-    /// If `false`, means the file wasn't analyzed since the last time it was updated.
-    /// </summary>
-    internal bool IsAnalyzed { get; private set; }
-
     public static SourceFile Create(Uri uri, string text)
     {
         return new(uri, text);
@@ -38,14 +33,8 @@ public class SourceFile
         return new(null, text);
     }
 
-    public void UpdateText(string newText)
+    internal void UpdateText(string newText)
     {
         Text = newText;
-        IsAnalyzed = false;
-    }
-
-    internal void MarkAnalyzed()
-    {
-        IsAnalyzed = true;
     }
 }

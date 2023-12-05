@@ -26,10 +26,12 @@ public class SemanticModel
     /// </summary>
     internal static void EnsurePreludeLoaded()
     {
-        // noop, just to ensure run the static ctor.
+        // noop, just to ensure the static ctor runs.
     }
 
     public SyntaxTree Tree { get; }
+
+    public SourceFile SourceFile => Tree.SourceFile;
 
     // TODO: internal?
     public static SemanticModel Create(SyntaxTree tree, bool isPrelude = false)
