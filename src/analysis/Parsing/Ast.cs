@@ -407,6 +407,7 @@ public sealed class SkippedToken : SyntaxToken
     }
 }
 
+[DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
 public abstract class SyntaxNode(SyntaxNodeKind kind) : SyntaxEntity
 {
     // Set by the generated nodes.
@@ -507,6 +508,11 @@ public abstract class SyntaxNode(SyntaxNodeKind kind) : SyntaxEntity
                 yield return item;
             }
         }
+    }
+
+    public override string ToString()
+    {
+        return Tree.SourceFile.Text[Span.File.Start..Span.File.End];
     }
 }
 
