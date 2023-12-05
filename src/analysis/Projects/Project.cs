@@ -6,7 +6,8 @@ namespace Surab.Analysis;
 /// Everything that makes up a Surab project.
 /// </summary>
 /// <remarks>
-/// This isn't thread safe. Updates/Queries should be processed sequentially through a pipeline.
+/// This isn't thread safe in general.
+/// Initial plan is for concurrent queries to be thread safe, but updates can't occur at the same time (will need to use a reader/writer lock).
 /// </remarks>
 public class Project
 {
