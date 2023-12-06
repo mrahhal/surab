@@ -118,12 +118,12 @@ internal abstract class Scope
                 FnTypeNode fnTypeNode => SemanticModel.LookupSymbol(fnTypeNode),
                 _ => throw new UnreachableException(),
             };
-            return ResolvedType.Typed(resolvedType as TypeSymbol ?? new ErrorTypeSymbol(identifier));
+            return ResolvedType.Typed(resolvedType as TypeSymbol ?? ErrorTypeSymbol.General);
         }
         else
         {
             var boundType = SemanticModel.InferTypeOfDeclaringNode(node);
-            return ResolvedType.Inferred(boundType ?? new ErrorTypeSymbol(null));
+            return ResolvedType.Inferred(boundType ?? ErrorTypeSymbol.General);
         }
     }
 

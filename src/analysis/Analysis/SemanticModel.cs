@@ -114,11 +114,12 @@ public class SemanticModel
     }
 
     /// <summary>
-    /// Looks up the <see cref="Symbol"/>, if any, that is referred to in the given node.
+    /// Looks up the <see cref="Symbol"/> that is referred to in the given node.
+    /// If a symbol can't be found, `null` is returned.
     /// </summary>
     public Symbol? LookupSymbol(SyntaxNode node)
     {
-        var result = node switch
+        return node switch
         {
             IdentifierExprNode n => LookupSymbol(n),
             NamedTypeNode n => LookupSymbol(n.Identifier, n),
@@ -130,8 +131,6 @@ public class SemanticModel
 
             _ => null,
         };
-
-        return result ?? LookupType(node);
     }
 
     public Symbol? LookupSymbol(IdentifierExprNode node)
@@ -182,12 +181,11 @@ public class SemanticModel
     }
 
     /// <summary>
-    /// Looks up the <see cref="TypeSymbol"/>, if any, that represents the given node.
+    /// Looks up the <see cref="TypeSymbol"/> that represents the given node.
+    /// The result is never null. If type resolving fails then an <see cref="ErrorTypeSymbol"/> is returned.
     /// </summary>
-    public TypeSymbol? LookupType(SyntaxNode? node)
+    public TypeSymbol LookupType(SyntaxNode? node)
     {
-        if (node == null) return null;
-
         return node switch
         {
             BareExprStmtNode n => LookupType(n),
@@ -197,16 +195,16 @@ public class SemanticModel
             // For convenience.
             EqualsValueClauseNode n => LookupType(n.Expr),
 
-            _ => null,
+            _ => ErrorTypeSymbol.General,
         };
     }
 
-    private TypeSymbol? LookupType(BareExprStmtNode node)
+    private TypeSymbol LookupType(BareExprStmtNode node)
     {
         return LookupType(node.Expr);
     }
 
-    private TypeSymbol? LookupType(ExprNode node)
+    private TypeSymbol LookupType(ExprNode node)
     {
         return node switch
         {
@@ -222,49 +220,52 @@ public class SemanticModel
             ThisExprNode n => LookupType(n),
             StructCreationExprNode n => LookupType(n),
 
-            _ => null,
+            _ => ErrorTypeSymbol.General,
         };
     }
 
-    private TypeSymbol? LookupType(BlockExprNode node)
+    private TypeSymbol LookupType(BlockExprNode node)
     {
         var lastStmt = node.Stmts.LastOrDefault();
         if (lastStmt == null)
         {
-            return null;
+            return ErrorTypeSymbol.General;
         }
 
         return LookupType(lastStmt);
     }
 
-    private TypeSymbol? LookupType(UnaryExprNode node)
+    private TypeSymbol LookupType(UnaryExprNode node)
     {
         return LookupType(node.Expr);
     }
 
-    private TypeSymbol? LookupType(BinaryExprNode node)
+    private TypeSymbol LookupType(BinaryExprNode node)
     {
         return LookupType(node.Left);
     }
 
-    private TypeSymbol? LookupType(CallExprNode node)
+    private TypeSymbol LookupType(CallExprNode node)
     {
         var fnType = LookupType(node.Callee) as FnTypeSymbol;
-        return fnType?.ReturnType;
+        return fnType?.ReturnType ?? ErrorTypeSymbol.General;
     }
 
-    private TypeSymbol? LookupType(AccessExprNode node)
+    private TypeSymbol LookupType(AccessExprNode node)
     {
         var targetSymbol = LookupSymbol(node.Target);
-        return targetSymbol switch
+        var result = targetSymbol switch
         {
             TypeSymbol s => GetMemberTypeSymbol(s), // Static access
             ISymbolHasType s => GetMemberTypeSymbol(s.Type), // Instance access
             _ => null,
         };
+        return result ?? ErrorTypeSymbol.General;
 
         TypeSymbol? GetMemberTypeSymbol(TypeSymbol typeSymbol)
         {
+            if (typeSymbol.IsError) return ErrorTypeSymbol.General;
+
             var member = typeSymbol.Scope.LookupIdentifierHere(node.Identifier);
             return member switch
             {
@@ -274,7 +275,7 @@ public class SemanticModel
         }
     }
 
-    private static TypeSymbol? LookupType(LiteralExprNode node)
+    private static TypeSymbol LookupType(LiteralExprNode node)
     {
         return node.Literal.LiteralTokenKind switch
         {
@@ -284,7 +285,7 @@ public class SemanticModel
             //LiteralTokenKind.String => BuiltInTypeSystem.String,
             LiteralTokenKind.Bool => BuiltinTypeSystem.@bool,
 
-            _ => null,
+            _ => throw new UnreachableException(),
         };
 
         TypeSymbol LookupNumericInteger()
@@ -312,19 +313,19 @@ public class SemanticModel
         }
     }
 
-    private TypeSymbol? LookupType(IdentifierExprNode node)
+    private TypeSymbol LookupType(IdentifierExprNode node)
     {
         var scope = ResolveScopeForIdentifier(node);
         return LookupType(node.Identifier, scope);
     }
 
-    private TypeSymbol? LookupType(IdentifierToken identifier, SyntaxNode node)
+    private TypeSymbol LookupType(IdentifierToken identifier, SyntaxNode node)
     {
         var scope = GetEnclosingScope(node);
         return LookupType(identifier, scope);
     }
 
-    private TypeSymbol? LookupType(IdentifierToken identifier, Scope? scope)
+    private TypeSymbol LookupType(IdentifierToken identifier, Scope? scope)
     {
         var symbol = scope?.LookupIdentifier(identifier);
 
@@ -332,17 +333,17 @@ public class SemanticModel
         {
             TypeSymbol s => s,
             ISymbolHasType s => s.Type,
-            _ => null,
+            _ => ErrorTypeSymbol.General,
         };
     }
 
-    private TypeSymbol? LookupType(ThisExprNode node)
+    private TypeSymbol LookupType(ThisExprNode node)
     {
         var scope = GetEnclosingScope(node);
-        return scope?.LookupThis();
+        return scope?.LookupThis() ?? ErrorTypeSymbol.General;
     }
 
-    private TypeSymbol? LookupType(StructCreationExprNode node)
+    private TypeSymbol LookupType(StructCreationExprNode node)
     {
         return LookupType(node.Identifier, node);
     }

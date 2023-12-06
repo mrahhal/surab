@@ -239,7 +239,7 @@ internal sealed class FieldSymbolImpl : FieldSymbol, ISymbolHasType
         TypeSymbol ResolveEnclosingType()
         {
             var enclosingType = Scope.LookupTypeDecl();
-            return enclosingType ?? new ErrorTypeSymbol(null);
+            return enclosingType ?? ErrorTypeSymbol.General;
         }
     }
 }
@@ -365,7 +365,7 @@ public abstract class TypeSymbol : Symbol
         return builder.ToImmutable();
     }
 
-    public Symbol? GetMember(string name)
+    public virtual Symbol? GetMember(string name)
     {
         return Scope.LookupIdentifierHere(name);
     }
@@ -542,20 +542,37 @@ public class ClassTypeSymbol : NamedTypeSymbol
 /// <summary>
 /// Represents a type symbol that failed to bind.
 /// </summary>
-public sealed class ErrorTypeSymbol : NamedTypeSymbol
+public sealed class ErrorTypeSymbol : NamedTypeSymbol, IEquatable<ErrorTypeSymbol>
 {
-    private readonly IdentifierToken? _identifier;
-
-    internal ErrorTypeSymbol(IdentifierToken? identifier) : base(null)
+    private ErrorTypeSymbol() : base(null)
     {
-        _identifier = identifier;
     }
 
-    public override IdentifierToken? Identifier => _identifier;
+    // Do we need an error type taking an identifier?
+
+    internal static readonly ErrorTypeSymbol General = new();
+
+    public override Symbol? GetMember(string name)
+    {
+        return null;
+    }
 
     protected override IEnumerable<SyntaxNode> EnumerateMembers()
     {
         yield break;
+    }
+
+    public override bool Equals(object? obj) => Equals(obj as ErrorTypeSymbol);
+
+    public bool Equals(ErrorTypeSymbol? other)
+    {
+        // No two error type symbols are equal.
+        return false;
+    }
+
+    public override int GetHashCode()
+    {
+        throw new UnreachableException();
     }
 }
 
