@@ -167,9 +167,13 @@ internal class SemanticAnalyzer(SemanticModel model) : SyntaxTreeVisitor
         base.VisitAssignmentExpr(node);
     }
 
-    private void AnalyzeAssignment(SyntaxNode node, TypeSymbol? lhsType, TypeSymbol? rhsType)
+    private void AnalyzeAssignment(SyntaxNode node, TypeSymbol lhsType, TypeSymbol rhsType)
     {
-        if (lhsType == null || rhsType == null || !lhsType.Equals(rhsType))
+        if (lhsType.IsError || rhsType.IsError)
+        {
+            // Reported somewhere else.
+        }
+        else if (!lhsType.Equals(rhsType))
         {
             // Incompatible types
             _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"invalid assignment because of incompatible types, expected `{lhsType?.Name}` but received `{rhsType?.Name}`");
@@ -267,12 +271,16 @@ internal class SemanticAnalyzer(SemanticModel model) : SyntaxTreeVisitor
         var calleeType = _model.LookupType(node.Callee);
 
         // Ensure callee is a function and validate args.
-        if (calleeType is not FnTypeSymbol fnSymbol)
+
+        if (calleeType.IsError)
         {
-            // TODO: Shouldn't raise this when invoking a function that doesn't exist. Should say "unknown symbol" or something.
-            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"invocation on a non function");
+            // Reported somewhere else.
         }
-        else
+        else if (calleeType is not FnTypeSymbol)
+        {
+            _diagnostics.Add(node.Callee.Span, DiagnosticLevel.Error, $"invocation on a non function");
+        }
+        else if (calleeType is FnTypeSymbol fnSymbol)
         {
             var args = node.Args.Args.ToList();
             if (fnSymbol.ParamTypes.Length != args.Count)
@@ -286,7 +294,11 @@ internal class SemanticAnalyzer(SemanticModel model) : SyntaxTreeVisitor
                     var arg = args[i];
                     var paramType = fnSymbol.ParamTypes[i];
                     var argType = _model.LookupType(arg);
-                    if (!paramType.Equals(argType))
+                    if (paramType.IsError || argType.IsError)
+                    {
+                        // Reported somewhere else.
+                    }
+                    else if (!paramType.Equals(argType))
                     {
                         _diagnostics.Add(arg.Span, DiagnosticLevel.Error, $"incompatible type for arg, expected `{paramType.Name}` but received `{argType?.Name}`");
                     }
@@ -300,11 +312,17 @@ internal class SemanticAnalyzer(SemanticModel model) : SyntaxTreeVisitor
     public override void VisitAccessExpr(AccessExprNode node)
     {
         var targetType = _model.LookupType(node.Target);
-        if (targetType == null)
+        if (targetType.IsError)
         {
-            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"unallowed access");
-            return; // Should we return?
+            // Reported somewhere else.
+            return;
         }
+
+        //if (targetType ??)
+        //{
+        //    _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"unallowed access");
+        //    return; // Should we return?
+        //}
 
         // TODO: Store and use a lookup table for this?
         var matched = targetType.GetMember(node.Identifier.Value);
@@ -327,6 +345,24 @@ internal class SemanticAnalyzer(SemanticModel model) : SyntaxTreeVisitor
         base.VisitThisExpr(node);
     }
 
+    public override void VisitStructCreationExpr(StructCreationExprNode node)
+    {
+        var symbol = _model.LookupSymbol(node);
+        AnalyzeLookedUpIdentifier(node.Identifier, symbol);
+
+        if (symbol == null)
+        {
+            // If symbol is null, skip analyzing lhs for each initializer.
+            foreach (var initializerExpr in node.MapInitializer.WellFormedExprs)
+            {
+                Visit(initializerExpr.Rhs);
+            }
+            return;
+        }
+
+        base.VisitStructCreationExpr(node);
+    }
+
     public override void VisitParam(ParamNode node)
     {
         if (node.Type == null)
@@ -345,12 +381,17 @@ internal class SemanticAnalyzer(SemanticModel model) : SyntaxTreeVisitor
     public override void VisitIdentifierExpr(IdentifierExprNode node)
     {
         var symbol = _model.LookupSymbol(node);
-        if (symbol == null)
-        {
-            _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"unknown name");
-        }
+        AnalyzeLookedUpIdentifier(node.Identifier, symbol);
 
         base.VisitIdentifierExpr(node);
+    }
+
+    private void AnalyzeLookedUpIdentifier(IdentifierToken identifier, Symbol? symbol)
+    {
+        if (symbol == null)
+        {
+            _diagnostics.Add(identifier.Span, DiagnosticLevel.Error, $"unknown name");
+        }
     }
 
     public override void VisitNamedType(NamedTypeNode node)
