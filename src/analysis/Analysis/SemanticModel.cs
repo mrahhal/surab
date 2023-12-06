@@ -441,7 +441,7 @@ public class SemanticModel
             fnType.ParamTypes.ParamTypes.Select(p => (TypeSymbol)LookupSymbol(p.Type)!));
     }
 
-    private class Builder(SyntaxTree tree, bool isPrelude) : Visitor
+    private class Builder(SyntaxTree tree, bool isPrelude) : SyntaxTreeVisitor
     {
         private class TempTypeContext
         {

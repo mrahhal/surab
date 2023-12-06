@@ -5,7 +5,7 @@ namespace Surab.Analysis;
 /// <summary>
 /// A visitor that detects all semantic diagnostics for a given <see cref="SemanticModel"/>.
 /// </summary>
-internal class SemanticAnalyzer(SemanticModel model) : Visitor
+internal class SemanticAnalyzer(SemanticModel model) : SyntaxTreeVisitor
 {
     private readonly SemanticModel _model = model;
     private readonly DiagnosticBag _diagnostics = new();

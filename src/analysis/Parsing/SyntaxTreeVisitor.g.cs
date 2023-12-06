@@ -5,7 +5,7 @@
 
 namespace Surab.Analysis;
 
-public abstract partial class Visitor
+public abstract partial class SyntaxTreeVisitor
 {
     public virtual void VisitModule(ModuleNode node)
     {

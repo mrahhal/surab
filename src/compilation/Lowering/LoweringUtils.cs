@@ -35,7 +35,7 @@ internal static class LoweringUtils
     }
 }
 
-file class LocalVariableStmtsCollector : LoweredVisitor
+file class LocalVariableStmtsCollector : LoweredTreeVisitor
 {
     private readonly List<LoweredVariableStmt> _stmts = [];
 

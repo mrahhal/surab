@@ -25,7 +25,7 @@ async Task GenerateAst()
 
 async Task GenerateAstVisitors()
 {
-    var generatedFilePath = Path.Combine(srcFolderPath, "analysis/Parsing/Visitor.g.cs");
+    var generatedFilePath = Path.Combine(srcFolderPath, "analysis/Parsing/SyntaxTreeVisitor.g.cs");
     var generator = provider.GetRequiredService<AstVisitorsGenerator>();
     await generator.GenerateToAsync(generatedFilePath);
 }

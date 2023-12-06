@@ -1,12 +1,9 @@
-﻿
-using System.Xml.Linq;
-
-namespace Surab.Compilation;
+﻿namespace Surab.Compilation;
 
 /// <summary>
 /// A lowered tree visitor.
 /// </summary>
-internal abstract partial class LoweredVisitor
+internal abstract partial class LoweredTreeVisitor
 {
     // Visit*
     // ======

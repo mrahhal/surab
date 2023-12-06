@@ -10,7 +10,7 @@ public class AstVisitorsGenerator(
     protected override Task GenerateCoreAsync()
     {
         GenerateHeader();
-        new VisitorGenerator(_sb, Data, "Visitor").Generate();
+        new VisitorGenerator(_sb, Data, "SyntaxTreeVisitor").Generate();
 
         return Task.CompletedTask;
     }

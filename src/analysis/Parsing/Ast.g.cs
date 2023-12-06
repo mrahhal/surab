@@ -107,7 +107,7 @@ public partial class ModuleNode : SyntaxNode
 
     public IEnumerable<DeclNode> Decls => _childNodes.Cast<DeclNode>();
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitModule(this);
     }
@@ -136,7 +136,7 @@ public partial class ConstDeclNode : DeclNode
     public ExprNode Value => (ExprNode)_childNodes[2]!;
     public SimpleToken SemicolonToken => (SimpleToken)_childTokens[3]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitConstDecl(this);
     }
@@ -163,7 +163,7 @@ public partial class FnDeclNode : DeclNode
     /// </summary>
     public SimpleToken? SemicolonToken => (SimpleToken?)_childTokens[1]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitFnDecl(this);
     }
@@ -183,7 +183,7 @@ public partial class DeclMembersNode : SyntaxNode
 
     public IEnumerable<DeclNode> Members => _childNodes.Cast<DeclNode>();
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitDeclMembers(this);
     }
@@ -208,7 +208,7 @@ public partial class StructDeclNode : DeclNode
     public DeclMembersNode Members => (DeclMembersNode)_childNodes[1]!;
     public SimpleToken ClosedBraceToken => (SimpleToken)_childTokens[3]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitStructDecl(this);
     }
@@ -233,7 +233,7 @@ public partial class ClassDeclNode : DeclNode
     public DeclMembersNode Members => (DeclMembersNode)_childNodes[1]!;
     public SimpleToken ClosedBraceToken => (SimpleToken)_childTokens[3]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitClassDecl(this);
     }
@@ -257,7 +257,7 @@ public partial class FieldDeclNode : DeclNode
     public EqualsValueClauseNode? Initializer => (EqualsValueClauseNode?)_childNodes[2]!;
     public SimpleToken SemicolonToken => (SimpleToken)_childTokens[1]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitFieldDecl(this);
     }
@@ -279,7 +279,7 @@ public partial class MethodDeclNode : DeclNode
     public FnSigNode Sig => (FnSigNode)_childNodes[1]!;
     public BlockExprNode Body => (BlockExprNode)_childNodes[2]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitMethodDecl(this);
     }
@@ -299,7 +299,7 @@ public partial class SkippedTokensDeclNode : DeclNode
 
     public SkippedToken Skipped => (SkippedToken)_childTokens[0]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitSkippedTokensDecl(this);
     }
@@ -323,7 +323,7 @@ public partial class VarStmtNode : StmtNode
     public EqualsValueClauseNode? Initializer => (EqualsValueClauseNode?)_childNodes[1]!;
     public SimpleToken SemicolonToken => (SimpleToken)_childTokens[2]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitVarStmt(this);
     }
@@ -345,7 +345,7 @@ public partial class ReturnStmtNode : StmtNode
     public ExprNode? Expr => (ExprNode?)_childNodes[0]!;
     public SimpleToken SemicolonToken => (SimpleToken)_childTokens[1]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitReturnStmt(this);
     }
@@ -369,7 +369,7 @@ public partial class ExprStmtNode : StmtNode
     public ExprNode Expr => (ExprNode)_childNodes[0]!;
     public SimpleToken SemicolonToken => (SimpleToken)_childTokens[0]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitExprStmt(this);
     }
@@ -392,7 +392,7 @@ public partial class BareExprStmtNode : StmtNode
 
     public ExprNode Expr => (ExprNode)_childNodes[0]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitBareExprStmt(this);
     }
@@ -412,7 +412,7 @@ public partial class SkippedTokensStmtNode : StmtNode
 
     public SkippedToken Skipped => (SkippedToken)_childTokens[0]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitSkippedTokensStmt(this);
     }
@@ -434,7 +434,7 @@ public partial class BlockExprNode : ExprNode
     public IEnumerable<StmtNode> Stmts => _childNodes.Cast<StmtNode>();
     public SimpleToken ClosedBraceToken => (SimpleToken)_childTokens[1]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitBlockExpr(this);
     }
@@ -456,7 +456,7 @@ public partial class AssignmentExprNode : ExprNode
     public SimpleToken EqualToken => (SimpleToken)_childTokens[0]!;
     public ExprNode Rhs => (ExprNode)_childNodes[1]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitAssignmentExpr(this);
     }
@@ -477,7 +477,7 @@ public partial class UnaryExprNode : ExprNode
     public UnaryOperatorToken Op => (UnaryOperatorToken)_childTokens[0]!;
     public ExprNode Expr => (ExprNode)_childNodes[0]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitUnaryExpr(this);
     }
@@ -499,7 +499,7 @@ public partial class BinaryExprNode : ExprNode
     public BinaryOperatorToken Op => (BinaryOperatorToken)_childTokens[0]!;
     public ExprNode Right => (ExprNode)_childNodes[1]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitBinaryExpr(this);
     }
@@ -521,7 +521,7 @@ public partial class GroupingExprNode : ExprNode
     public ExprNode Expr => (ExprNode)_childNodes[0]!;
     public SimpleToken ClosedParenToken => (SimpleToken)_childTokens[1]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitGroupingExpr(this);
     }
@@ -545,7 +545,7 @@ public partial class CallExprNode : ExprNode
     public ExprNode Callee => (ExprNode)_childNodes[0]!;
     public ArgsListNode Args => (ArgsListNode)_childNodes[1]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitCallExpr(this);
     }
@@ -570,7 +570,7 @@ public partial class AccessExprNode : ExprNode
     public SimpleToken DotToken => (SimpleToken)_childTokens[0]!;
     public IdentifierToken Identifier => (IdentifierToken)_childTokens[1]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitAccessExpr(this);
     }
@@ -590,7 +590,7 @@ public partial class LiteralExprNode : ExprNode
 
     public LiteralToken Literal => (LiteralToken)_childTokens[0]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitLiteralExpr(this);
     }
@@ -610,7 +610,7 @@ public partial class IdentifierExprNode : ExprNode
 
     public IdentifierToken Identifier => (IdentifierToken)_childTokens[0]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitIdentifierExpr(this);
     }
@@ -630,7 +630,7 @@ public partial class ThisExprNode : ExprNode
 
     public SimpleToken KeywordToken => (SimpleToken)_childTokens[0]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitThisExpr(this);
     }
@@ -651,7 +651,7 @@ public partial class StructCreationExprNode : ExprNode
     public IdentifierToken Identifier => (IdentifierToken)_childTokens[0]!;
     public MapInitializerNode MapInitializer => (MapInitializerNode)_childNodes[0]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitStructCreationExpr(this);
     }
@@ -676,7 +676,7 @@ public partial class MapInitializerNode : SyntaxNode
     public IEnumerable<ExprNode> Exprs => _childNodes.Cast<ExprNode>();
     public SimpleToken ClosedBraceToken => (SimpleToken)_childTokens[1]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitMapInitializer(this);
     }
@@ -696,7 +696,7 @@ public partial class SkippedTokensExprNode : ExprNode
 
     public SkippedToken Skipped => (SkippedToken)_childTokens[0]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitSkippedTokensExpr(this);
     }
@@ -718,7 +718,7 @@ public partial class ParamsListNode : SyntaxNode
     public IEnumerable<ParamNode> @Params => _childNodes.Cast<ParamNode>();
     public SimpleToken ClosedParenToken => (SimpleToken)_childTokens[1]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitParamsList(this);
     }
@@ -743,7 +743,7 @@ public partial class ParamNode : SyntaxNode
     public ColonTypeNode? Type => (ColonTypeNode?)_childNodes[0]!;
     public SimpleToken? CommaToken => (SimpleToken?)_childTokens[1]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitParam(this);
     }
@@ -765,7 +765,7 @@ public partial class ParamTypesListNode : SyntaxNode
     public IEnumerable<ParamTypeNode> ParamTypes => _childNodes.Cast<ParamTypeNode>();
     public SimpleToken ClosedParenToken => (SimpleToken)_childTokens[1]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitParamTypesList(this);
     }
@@ -786,7 +786,7 @@ public partial class ParamTypeNode : SyntaxNode
     public TypeNode Type => (TypeNode)_childNodes[0]!;
     public SimpleToken? CommaToken => (SimpleToken?)_childTokens[0]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitParamType(this);
     }
@@ -808,7 +808,7 @@ public partial class ArgsListNode : SyntaxNode
     public IEnumerable<ArgNode> Args => _childNodes.Cast<ArgNode>();
     public SimpleToken ClosedParenToken => (SimpleToken)_childTokens[1]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitArgsList(this);
     }
@@ -829,7 +829,7 @@ public partial class ArgNode : SyntaxNode
     public ExprNode Expr => (ExprNode)_childNodes[0]!;
     public SimpleToken? CommaToken => (SimpleToken?)_childTokens[0]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitArg(this);
     }
@@ -850,7 +850,7 @@ public partial class ColonTypeNode : SyntaxNode
     public SimpleToken ColonToken => (SimpleToken)_childTokens[0]!;
     public TypeNode Type => (TypeNode)_childNodes[0]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitColonType(this);
     }
@@ -871,7 +871,7 @@ public partial class NamedTypeNode : TypeNode
     public AttrsListNode? Attrs => (AttrsListNode?)_childNodes[0]!;
     public IdentifierToken Identifier => (IdentifierToken)_childTokens[0]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitNamedType(this);
     }
@@ -894,7 +894,7 @@ public partial class FnTypeNode : TypeNode
     public ParamTypesListNode ParamTypes => (ParamTypesListNode)_childNodes[1]!;
     public TypeNode? ReturnType => (TypeNode?)_childNodes[2]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitFnType(this);
     }
@@ -916,7 +916,7 @@ public partial class FnSigNode : SyntaxNode
     public ParamsListNode @Params => (ParamsListNode)_childNodes[0]!;
     public TypeNode? ReturnType => (TypeNode?)_childNodes[1]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitFnSig(this);
     }
@@ -937,7 +937,7 @@ public partial class EqualsValueClauseNode : SyntaxNode
     public SimpleToken EqualToken => (SimpleToken)_childTokens[0]!;
     public ExprNode Expr => (ExprNode)_childNodes[0]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitEqualsValueClause(this);
     }
@@ -957,7 +957,7 @@ public partial class AttrsListNode : SyntaxNode
 
     public IEnumerable<AttrNode> Attrs => _childNodes.Cast<AttrNode>();
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitAttrsList(this);
     }
@@ -979,7 +979,7 @@ public partial class AttrNode : SyntaxNode
     public IdentifierToken Identifier => (IdentifierToken)_childTokens[1]!;
     public ArgsListNode? Args => (ArgsListNode?)_childNodes[0]!;
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitAttr(this);
     }

@@ -1,20 +1,20 @@
 ﻿namespace Surab.Analysis;
 
 /// <summary>
-/// Represents a type that can be visited by a <see cref="Visitor"/>.
+/// Represents a type that can be visited by a <see cref="SyntaxTreeVisitor"/>.
 /// </summary>
-public interface IVisitable
+public interface ISyntaxTreeVisitable
 {
     /// <summary>
-    /// Calls the Visit* method on the visitor that is respective to the current type.
+    /// Calls the relevant Visit* method on the visitor.
     /// </summary>
-    void Accept(Visitor visitor);
+    void Accept(SyntaxTreeVisitor visitor);
 }
 
 /// <summary>
-/// An AST visitor.
+/// A syntax tree visitor.
 /// </summary>
-public abstract partial class Visitor
+public abstract partial class SyntaxTreeVisitor
 {
     // Visit*
     // ======

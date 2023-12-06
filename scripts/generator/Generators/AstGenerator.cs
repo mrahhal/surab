@@ -101,7 +101,7 @@ public class AstGenerator(
                     }
 
                 {{OMembers(node)}}
-                    public override void Accept(Visitor visitor)
+                    public override void Accept(SyntaxTreeVisitor visitor)
                     {
                         visitor.Visit{{node.Name}}(this);
                     }

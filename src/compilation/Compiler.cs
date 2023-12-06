@@ -52,7 +52,7 @@ public sealed class Compiler
     }
 }
 
-internal sealed class ModuleCompiler(CompilationContext context, LoweredTree loweredTree) : LoweredVisitor
+internal sealed class ModuleCompiler(CompilationContext context, LoweredTree loweredTree) : LoweredTreeVisitor
 {
     private readonly CompilationContext _context = context;
     private readonly LoweredTree _loweredTree = loweredTree;
@@ -86,7 +86,7 @@ internal sealed class ModuleCompiler(CompilationContext context, LoweredTree low
     }
 }
 
-internal sealed class FnCompiler : LoweredVisitor
+internal sealed class FnCompiler : LoweredTreeVisitor
 {
     private readonly CompilationContext _context;
     private readonly LoweredFnDecl _fnDecl;

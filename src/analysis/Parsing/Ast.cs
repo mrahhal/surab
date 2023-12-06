@@ -11,7 +11,7 @@ public class SyntaxTree(SourceFile sourceFile, SyntaxNode root, DiagnosticBag di
     public DiagnosticBag Diagnostics { get; } = diagnostics;
 }
 
-public abstract class SyntaxEntity : IVisitable
+public abstract class SyntaxEntity : ISyntaxTreeVisitable
 {
     public SyntaxNode? Parent { get; private set; }
 
@@ -24,7 +24,7 @@ public abstract class SyntaxEntity : IVisitable
         Parent = parent;
     }
 
-    public abstract void Accept(Visitor visitor);
+    public abstract void Accept(SyntaxTreeVisitor visitor);
 }
 
 public enum SyntaxTokenKind
@@ -126,7 +126,7 @@ public sealed class SimpleToken : SyntaxToken
 
     public override string ToString() => SimpleTokenKind.ToString();
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitSimpleToken(this);
     }
@@ -169,7 +169,7 @@ public sealed class UnaryOperatorToken : SyntaxToken
         _ => throw new NotImplementedException(),
     };
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitUnaryOperatorToken(this);
     }
@@ -251,7 +251,7 @@ public sealed class BinaryOperatorToken : SyntaxToken
         _ => throw new NotImplementedException(),
     };
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitBinaryOperatorToken(this);
     }
@@ -269,7 +269,7 @@ public sealed class IdentifierToken : SyntaxToken
 
     public string Value { get; init; }
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitIdentifierToken(this);
     }
@@ -378,7 +378,7 @@ public sealed class LiteralToken : SyntaxToken
         return true;
     }
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitLiteralToken(this);
     }
@@ -396,7 +396,7 @@ public sealed class SkippedToken : SyntaxToken
 
     public List<Token> Tokens { get; init; }
 
-    public override void Accept(Visitor visitor)
+    public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitSkippedToken(this);
     }

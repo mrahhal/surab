@@ -1167,7 +1167,7 @@ internal class ParserImpl
     }
 }
 
-file class SyntaxTreeSetter(SyntaxTree tree) : Visitor
+file class SyntaxTreeSetter(SyntaxTree tree) : SyntaxTreeVisitor
 {
     public static void Apply(SyntaxTree tree)
     {
