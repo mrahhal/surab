@@ -316,6 +316,8 @@ public abstract class TypeSymbol : Symbol
 {
     private ImmutableArray<Symbol> _members;
 
+    public bool IsError => this is ErrorTypeSymbol;
+
     public bool IsBuiltin => BuiltinTypeSystem.IsBuiltin(this);
 
     public bool IsScalar => GetTag() switch
@@ -499,8 +501,6 @@ public abstract class NamedTypeSymbol : TypeSymbol
         StructDeclNode structDecl => structDecl.Identifier,
         _ => null,
     };
-
-    public bool IsError => this is ErrorTypeSymbol;
 }
 
 public class StructTypeSymbol : NamedTypeSymbol
