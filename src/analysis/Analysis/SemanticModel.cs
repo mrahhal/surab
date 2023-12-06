@@ -33,8 +33,7 @@ public class SemanticModel
 
     public SourceFile SourceFile => Tree.SourceFile;
 
-    // TODO: internal?
-    public static SemanticModel Create(SyntaxTree tree, bool isPrelude = false)
+    internal static SemanticModel Create(SyntaxTree tree, bool isPrelude = false)
     {
         return Builder.Build(tree, isPrelude);
     }
