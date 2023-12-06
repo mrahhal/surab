@@ -30,7 +30,10 @@ public abstract class Symbol
 
     public Symbol? Parent { get; private set; }
 
-    internal Scope Scope { get; private set; } = default!;
+    /// <summary>
+    /// The scope enclosing this symbol. This is usually always not null, except when the symbol is manually created (FnType, Error).
+    /// </summary>
+    internal Scope? Scope { get; private set; }
 
     /// <summary>
     /// The node in the tree representing this symbol.
@@ -83,6 +86,8 @@ public sealed class ConstSymbol : Symbol, ISymbolHasType
 
     public override SymbolKind Kind => SymbolKind.Const;
 
+    internal new Scope Scope => base.Scope!;
+
     public override SyntaxNode? DeclaringNode => _node;
 
     public override IdentifierToken? Identifier => _node.Identifier;
@@ -109,6 +114,8 @@ public sealed class FnSymbol : Symbol, ISymbolHasType
     }
 
     public override SymbolKind Kind => SymbolKind.Fn;
+
+    internal new Scope Scope => base.Scope!;
 
     // Parent will be either a FunctionDeclNode or a MethodDeclNode.
     public override SyntaxNode? DeclaringNode => _node.Parent;
@@ -178,6 +185,8 @@ public sealed class FnSymbol : Symbol, ISymbolHasType
 public abstract class FieldSymbol : Symbol, ISymbolHasType
 {
     public override SymbolKind Kind => SymbolKind.Field;
+
+    internal new Scope Scope => base.Scope!;
 
     /// <summary>
     /// The type of the field.
@@ -256,6 +265,8 @@ public sealed class ParamSymbol : Symbol, ISymbolHasType
 
     public override SymbolKind Kind => SymbolKind.Param;
 
+    internal new Scope Scope => base.Scope!;
+
     public override SyntaxNode? DeclaringNode => _node;
 
     public override IdentifierToken? Identifier => _node.Identifier;
@@ -283,6 +294,8 @@ public sealed class LocalSymbol : Symbol, ISymbolHasType
     }
 
     public override SymbolKind Kind => SymbolKind.Local;
+
+    internal new Scope Scope => base.Scope!;
 
     public override SyntaxNode? DeclaringNode => _node;
 
@@ -357,6 +370,7 @@ public abstract class TypeSymbol : Symbol
         var builder = ImmutableArray.CreateBuilder<Symbol>();
         foreach (var node in EnumerateMembers())
         {
+            Debug.Assert(Scope != null, "If symbol has members, it should have a scope.");
             if (Scope.SemanticModel.TryGetDeclaredSymbol(node, out var symbol))
             {
                 builder.Add(symbol);
@@ -365,12 +379,17 @@ public abstract class TypeSymbol : Symbol
         return builder.ToImmutable();
     }
 
-    public virtual Symbol? GetMember(string name)
+    public Symbol? GetMember(IdentifierToken identifier) => GetMember(identifier.Value);
+
+    public Symbol? GetMember(string name)
     {
-        return Scope.LookupIdentifierHere(name);
+        return Scope?.LookupIdentifierHere(name);
     }
 
-    protected abstract IEnumerable<SyntaxNode> EnumerateMembers();
+    protected virtual IEnumerable<SyntaxNode> EnumerateMembers()
+    {
+        yield break;
+    }
 }
 
 /// <summary>
@@ -451,11 +470,6 @@ public class FnTypeSymbol : TypeSymbol, IEquatable<FnTypeSymbol>
     public override SymbolKind Kind => SymbolKind.FnType;
 
     //public new StructDeclNode? DeclaringNode => (StructDeclNode?)base.DeclaringNode;
-
-    protected override IEnumerable<SyntaxNode> EnumerateMembers()
-    {
-        yield break;
-    }
 
     internal FnTypeKey Key => _key;
 
@@ -551,16 +565,6 @@ public sealed class ErrorTypeSymbol : NamedTypeSymbol, IEquatable<ErrorTypeSymbo
     // Do we need an error type taking an identifier?
 
     internal static readonly ErrorTypeSymbol General = new();
-
-    public override Symbol? GetMember(string name)
-    {
-        return null;
-    }
-
-    protected override IEnumerable<SyntaxNode> EnumerateMembers()
-    {
-        yield break;
-    }
 
     public override bool Equals(object? obj) => Equals(obj as ErrorTypeSymbol);
 

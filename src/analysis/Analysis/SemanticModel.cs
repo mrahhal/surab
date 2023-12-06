@@ -166,7 +166,7 @@ public class SemanticModel
         var targetType = LookupType(node.Target);
         Debug.Assert(targetType != null);
 
-        return targetType.Scope.LookupIdentifierHere(node.Identifier);
+        return targetType.GetMember(node.Identifier);
     }
 
     // TODO: What does "exported" mean in this context? (right now it means a public symbol in a module)
@@ -266,7 +266,7 @@ public class SemanticModel
         {
             if (typeSymbol.IsError) return ErrorTypeSymbol.General;
 
-            var member = typeSymbol.Scope.LookupIdentifierHere(node.Identifier);
+            var member = typeSymbol.GetMember(node.Identifier);
             return member switch
             {
                 ISymbolHasType s => s.Type,
