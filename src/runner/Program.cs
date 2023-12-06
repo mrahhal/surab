@@ -80,9 +80,11 @@ var src = """
         fnptr2(s2);
     }
     """;
-var tree = Parser.ParseModule(src);
+var sourceFile = SourceFile.FromText(src);
 
-var model = SemanticModel.Create(tree);
+var project = Project.Create([sourceFile]);
+var model = project.GetSemanticModel(sourceFile);
+
 var diags = model.GetAllDiagnostics();
 if (diags.Any(x => x.Level >= DiagnosticLevel.Error))
 {
@@ -92,7 +94,7 @@ if (diags.Any(x => x.Level >= DiagnosticLevel.Error))
     return;
 }
 
-var exe = Compiler.Compile(model, "");
+var exe = Compiler.Compile(project, "");
 ConsoleHelper.WriteInfo($"Running compiled exe '{Path.GetFileName(exe)}'...".NL());
 ConsoleHelper.WriteInfo("===".NL());
 

@@ -10,24 +10,27 @@ public sealed class Compiler
     private readonly CompilationContext _context;
 
     private Compiler(
-        SemanticModel model,
+        Project project,
         Target target,
         CompilationOptions options)
     {
         var llvm = LLVMCompilationContext.Create();
+
         // Need to compile the prelude too.
-        var models = new List<SemanticModel> { Prelude.GetSemanticModel(), model };
+        List<SemanticModel> models = [Prelude.GetSemanticModel(), .. project.GetAllSemanticModels()];
 
         _context = new CompilationContext(models, target, llvm, options);
     }
 
     public static string Compile(
-        SemanticModel model,
+        Project project,
         string targetTriple,
         CompilationOptions? options = null)
     {
+        project.EnsureAnalyzed();
+
         var target = ParseTargetTriple(targetTriple);
-        var compiler = new Compiler(model, target, options ?? CompilationOptions.CreateDefault());
+        var compiler = new Compiler(project, target, options ?? CompilationOptions.CreateDefault());
         return compiler.Compile();
     }
 
