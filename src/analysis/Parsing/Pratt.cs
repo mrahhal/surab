@@ -25,10 +25,14 @@ public enum Precedence
     Call,           // . ()
 }
 
-public record InfixRule(
-    Precedence Precedence,
-    Associativity Associativity)
+public class InfixRule(
+    Precedence precedence,
+    Associativity associativity)
 {
+    public Precedence Precedence { get; } = precedence;
+
+    public Associativity Associativity { get; } = associativity;
+
     public static InfixRule LeftAssociative(Precedence precedence) => new(precedence, Associativity.Left);
 
     public static InfixRule RightAssociative(Precedence precedence) => new(precedence, Associativity.Right);
