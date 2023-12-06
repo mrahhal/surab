@@ -103,6 +103,7 @@ public class SemanticModel
         var errored = Tree.Diagnostics.Diagnostics.Any(x => x.Level >= DiagnosticLevel.Error);
         if (errored)
         {
+            // TODO: Shouldn't short circuit? We should be able to analyze part of a broken tree.
             // Short circuit
             return Tree.Diagnostics.Diagnostics;
         }
@@ -169,6 +170,7 @@ public class SemanticModel
         return targetType.Scope.LookupIdentifierHere(node.Identifier);
     }
 
+    // TODO: What does "exported" mean in this context? (right now it means a public symbol in a module)
     /// <summary>
     /// Looks up an exported <see cref="Symbol"/> matching the given name.
     /// </summary>
