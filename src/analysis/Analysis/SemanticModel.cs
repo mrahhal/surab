@@ -133,6 +133,16 @@ public class SemanticModel
         };
     }
 
+    public Symbol? LookupSymbol(TypeNode typeNode)
+    {
+        return typeNode switch
+        {
+            NamedTypeNode n => LookupSymbol(n.Identifier, n),
+            FnTypeNode n => LookupSymbol(n),
+            _ => null,
+        };
+    }
+
     public Symbol? LookupSymbol(IdentifierExprNode node)
     {
         var scope = ResolveScopeForIdentifier(node);
@@ -191,8 +201,6 @@ public class SemanticModel
             BareExprStmtNode n => LookupType(n),
             ExprNode n => LookupType(n),
             ArgNode n => LookupType(n.Expr),
-
-            // For convenience.
             EqualsValueClauseNode n => LookupType(n.Expr),
 
             _ => ErrorTypeSymbol.General,
@@ -388,10 +396,7 @@ public class SemanticModel
             FnDeclNode fnDecl => GetUnnamedFnTypeSymbol(fnDecl.Sig),
             MethodDeclNode methodDecl => GetUnnamedFnTypeSymbol(methodDecl.Sig),
             FnTypeNode fnType => GetUnnamedFnTypeSymbol(fnType),
-
-            // Create an fn type symbol that is for this named alias type.
-            // TODO: From alias. Will use _nodeToSymbolMap, symbol should already be created from builder.
-            //case AliasDeclNode aliasDecl:
+            AliasDeclNode aliasDecl => GetNamedFnTypeSymbol(aliasDecl),
 
             _ => throw new UnreachableException(),
         };
@@ -425,6 +430,15 @@ public class SemanticModel
         return _unnamedFnTypeMap[key] = symbol;
     }
 
+    private FnTypeSymbol GetNamedFnTypeSymbol(AliasDeclNode aliasDecl)
+    {
+        // TODO: Actually get a named FnTypeSymbol for aliased fn types?
+        //       Right now this just returns the same shared unnamed symbol as it's created in AliasSymbol's Type (Scope.ResolveType).
+
+        var aliasSymbol = (AliasTypeSymbol)_nodeToSymbolMap[aliasDecl]!;
+        return (FnTypeSymbol)aliasSymbol.Type.UnwrapAliases();
+    }
+
     private FnTypeKey CreateFnTypeKey(FnSigNode sig)
     {
         // TODO: Return something else in case of error diags? (p.Type below could be null)
@@ -432,7 +446,12 @@ public class SemanticModel
         return new FnTypeKey(
             isExtern,
             sig.ReturnType == null ? BuiltinTypeSystem.None : (TypeSymbol)LookupSymbol(sig.ReturnType)!,
-            sig.Params.Params.Select(p => (TypeSymbol)LookupSymbol(p.Type!.Type)!));
+            sig.Params.Params.Select(p =>
+            {
+                var paramType = LookupSymbol(p.Type!.Type) as TypeSymbol;
+                Debug.Assert(paramType != null);
+                return paramType;
+            }));
     }
 
     private FnTypeKey CreateFnTypeKey(FnTypeNode fnType)
@@ -441,7 +460,12 @@ public class SemanticModel
         return new FnTypeKey(
             isExtern,
             fnType.ReturnType == null ? BuiltinTypeSystem.None : (TypeSymbol)LookupSymbol(fnType.ReturnType)!,
-            fnType.ParamTypes.ParamTypes.Select(p => (TypeSymbol)LookupSymbol(p.Type)!));
+            fnType.ParamTypes.ParamTypes.Select(p =>
+            {
+                var paramType = LookupSymbol(p.Type) as TypeSymbol;
+                Debug.Assert(paramType != null);
+                return paramType;
+            }));
     }
 
     private class Builder(SyntaxTree tree, bool isPrelude) : SyntaxTreeVisitor
@@ -544,6 +568,7 @@ public class SemanticModel
                 FieldDeclNode n => new FieldSymbolImpl(n, _typeContext == null ? -1 : _typeContext.FieldCounter++),
                 StructDeclNode n => new StructTypeSymbol(n),
                 ClassDeclNode n => new ClassTypeSymbol(n),
+                AliasDeclNode n => new AliasTypeSymbol(n),
 
                 VarStmtNode n => new LocalSymbol(n),
 

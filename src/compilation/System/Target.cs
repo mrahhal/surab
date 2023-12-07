@@ -41,6 +41,8 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
     {
         ArgumentNullException.ThrowIfNull(type);
 
+        type = type.UnwrapAliases();
+
         if (type == BuiltinTypeSystem.None)
             return new(0.AsBytes(), 0.AsBytes());
         if (type == BuiltinTypeSystem.@char || type == BuiltinTypeSystem.@bool)
@@ -123,6 +125,8 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 
     public IntegerSign GetIntegerSign(TypeSymbol type)
     {
+        type = type.UnwrapAliases();
+
         if (type == BuiltinTypeSystem.i32 || type == BuiltinTypeSystem.i64)
             return IntegerSign.Signed;
         if (type == BuiltinTypeSystem.u32 || type == BuiltinTypeSystem.u64)

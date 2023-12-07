@@ -64,6 +64,14 @@ internal abstract class LoweredDecl(SyntaxNode parsedNode) : LoweredNode(parsedN
 {
 }
 
+internal sealed class LoweredElidedDecl(SyntaxNode parsedNode) : LoweredDecl(parsedNode)
+{
+    public override IEnumerable<LoweredNode> EnumerateChildren()
+    {
+        yield break;
+    }
+}
+
 // Lowered from both functions and methods.
 internal sealed class LoweredFnDecl(
     SyntaxNode parsedNode,

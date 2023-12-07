@@ -482,11 +482,11 @@ internal class ParserImpl
         var aliasToken = EatAssertedSimpleToken(TokenKind.Alias);
         var identifier = ParseIdentifier();
         if (identifier == null) return null;
-
         var type = ParseType();
         if (type == null) return null;
+        var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
-        return new AliasDeclNode(attrs, aliasToken, identifier, type);
+        return new AliasDeclNode(attrs, aliasToken, identifier, type, semicolonToken);
     }
 
     /// <summary>

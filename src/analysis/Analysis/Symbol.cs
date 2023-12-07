@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Reflection.Metadata.Ecma335;
 
 namespace Surab.Analysis;
 
@@ -15,14 +13,12 @@ public enum SymbolKind
 
     NamedType,
     FnType,
+    AliasType,
 }
 
 /// <summary>
 /// Represents a symbol.
 /// </summary>
-/// <remarks>
-/// <see cref="object.Equals(object?)"/> should be used instead of referential equality as some symbols will override equality.
-/// </remarks>
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
 public abstract class Symbol
 {
@@ -325,6 +321,12 @@ public enum TypeTag
     Ptr,
 }
 
+/// <summary>
+/// Represents a type symbol. Can be unnamed or generated.
+/// </summary>
+/// <remarks>
+/// <see cref="IsAssignableFrom(TypeSymbol?)"/> should be used instead of referential equality.
+/// </remarks>
 public abstract class TypeSymbol : Symbol
 {
     private ImmutableArray<Symbol> _members;
@@ -341,7 +343,8 @@ public abstract class TypeSymbol : Symbol
 
     public TypeTag GetTag()
     {
-        var type = this;
+        var type = UnwrapAliases();
+
         if (type == BuiltinTypeSystem.None) return TypeTag.ZeroSized;
         if (type == BuiltinTypeSystem.@char) return TypeTag.Char;
         if (BuiltinTypeSystem.IsNumeric(type)) return TypeTag.Numeric;
@@ -383,12 +386,41 @@ public abstract class TypeSymbol : Symbol
 
     public Symbol? GetMember(string name)
     {
-        return Scope?.LookupIdentifierHere(name);
+        // REVIEW: Some duplication between symbols and scopes?
+
+        // Move from bottom to top trying to match the identifier.
+        for (var i = Members.Length - 1; i >= 0; i--)
+        {
+            var item = Members[i];
+            if (item.Identifier != null && item.Identifier.Value == name)
+            {
+                return item;
+            }
+        }
+        return null;
     }
 
-    protected virtual IEnumerable<SyntaxNode> EnumerateMembers()
+    internal virtual IEnumerable<SyntaxNode> EnumerateMembers()
     {
         yield break;
+    }
+
+    /// <summary>
+    /// Unwrap aliases and return the actual type. The result should always be a non alias type.
+    /// </summary>
+    public virtual TypeSymbol UnwrapAliases()
+    {
+        return this;
+    }
+
+    /// <summary>
+    /// If `true` is returned, the <paramref name="from"/> type can be assigned to this type. i.e. this = <paramref name="from"/>
+    /// This also performs aliased type unwrapping on both sides.
+    /// </summary>
+    public virtual bool IsAssignableFrom(TypeSymbol? from)
+    {
+        if (from == null) return false;
+        return Equals(UnwrapAliases(), from.UnwrapAliases());
     }
 }
 
@@ -525,7 +557,7 @@ public class StructTypeSymbol : NamedTypeSymbol
 
     public new StructDeclNode? DeclaringNode => (StructDeclNode?)base.DeclaringNode;
 
-    protected override IEnumerable<SyntaxNode> EnumerateMembers()
+    internal override IEnumerable<SyntaxNode> EnumerateMembers()
     {
         Debug.Assert(DeclaringNode != null, "Unreachable in built in types.");
         foreach (var member in DeclaringNode.Members.Members)
@@ -543,7 +575,7 @@ public class ClassTypeSymbol : NamedTypeSymbol
 
     public new ClassDeclNode? DeclaringNode => (ClassDeclNode?)base.DeclaringNode;
 
-    protected override IEnumerable<SyntaxNode> EnumerateMembers()
+    internal override IEnumerable<SyntaxNode> EnumerateMembers()
     {
         Debug.Assert(DeclaringNode != null, "Unreachable in built in types.");
         foreach (var member in DeclaringNode.Members.Members)
@@ -551,6 +583,45 @@ public class ClassTypeSymbol : NamedTypeSymbol
             yield return member;
         }
     }
+}
+
+public class AliasTypeSymbol : TypeSymbol
+{
+    private readonly AliasDeclNode _node;
+    private TypeSymbol? _type;
+
+    internal AliasTypeSymbol(AliasDeclNode node)
+    {
+        _node = node;
+    }
+
+    public override SymbolKind Kind => SymbolKind.AliasType;
+
+    internal new Scope Scope => base.Scope!;
+
+    public override DeclNode? DeclaringNode => _node;
+
+    public override IdentifierToken? Identifier => _node.Identifier;
+
+    public TypeSymbol Type
+    {
+        get
+        {
+            return _type ??= Scope.ResolveType(_node.Type).Type;
+        }
+    }
+
+    public override TypeSymbol UnwrapAliases()
+    {
+        // A second unwrap call on the Type is required in case the aliased type is another alias.
+        return Type.UnwrapAliases();
+    }
+
+    // REVIEW: Is this what we should really do? Shouldn't we depend on unwrapping instead?
+
+    internal override IEnumerable<SyntaxNode> EnumerateMembers() => Type.EnumerateMembers();
+
+    public override ImmutableArray<Symbol> Members => Type.Members;
 }
 
 /// <summary>

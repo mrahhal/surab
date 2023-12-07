@@ -125,6 +125,68 @@ public class SemanticModelTests
     }
 
     [Fact]
+    public void Symbol_Alias()
+    {
+        var src = """
+            alias Integer i32;
+            """;
+        var tree = Parser.ParseModule(src);
+        var model = SemanticModel.Create(tree);
+
+        var aliasDecl = tree.Root.DescendantNodes().OfType<AliasDeclNode>().Single();
+        model.TryGetDeclaredSymbol(aliasDecl, out var symbol).Should().BeTrue();
+        symbol.Should().BeOfType<AliasTypeSymbol>();
+    }
+
+    [Fact]
+    public void Symbol_Alias_UnwrapAliases()
+    {
+        var src = """
+            alias Integer i32;
+            alias AnotherInteger Integer;
+            """;
+        var tree = Parser.ParseModule(src);
+        var model = SemanticModel.Create(tree);
+
+        var anotherIntegerAliasDecl = tree.Root.DescendantNodes().OfType<AliasDeclNode>().ElementAt(1);
+        var symbol = (AliasTypeSymbol)model.GetDeclaredSymbol(anotherIntegerAliasDecl)!;
+        symbol.UnwrapAliases().Should().Be(BuiltinTypeSystem.i32);
+    }
+
+    [Fact]
+    public void Symbol_IsAssignableFrom()
+    {
+        var src = """
+            alias Integer i32;
+            alias AnotherInteger Integer;
+            """;
+        var tree = Parser.ParseModule(src);
+        var model = SemanticModel.Create(tree);
+
+        var anotherIntegerAliasDecl = tree.Root.DescendantNodes().OfType<AliasDeclNode>().ElementAt(1);
+        var symbol = (AliasTypeSymbol)model.GetDeclaredSymbol(anotherIntegerAliasDecl)!;
+        symbol.IsAssignableFrom(BuiltinTypeSystem.i32);
+        BuiltinTypeSystem.i32.IsAssignableFrom(symbol);
+    }
+
+    [Fact]
+    public void Symbol_IsAssignableFrom2()
+    {
+        var src = """
+            alias Delegate1 fn (i32) f64;
+            alias Delegate2 fn (i32) f64;
+            """;
+        var tree = Parser.ParseModule(src);
+        var model = SemanticModel.Create(tree);
+
+        var aliasDecl1 = tree.Root.DescendantNodes().OfType<AliasDeclNode>().ElementAt(0);
+        var aliasDecl2 = tree.Root.DescendantNodes().OfType<AliasDeclNode>().ElementAt(1);
+        var symbol1 = (AliasTypeSymbol)model.GetDeclaredSymbol(aliasDecl1)!;
+        var symbol2 = (AliasTypeSymbol)model.GetDeclaredSymbol(aliasDecl2)!;
+        symbol1.IsAssignableFrom(symbol2);
+    }
+
+    [Fact]
     public void LookupType_Call()
     {
         var src = """

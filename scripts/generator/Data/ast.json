@@ -107,6 +107,10 @@
         {
           "Name": "type",
           "Type": "TypeNode"
+        },
+        {
+          "Name": "semicolonToken",
+          "Type": "SimpleToken"
         }
       ]
     },

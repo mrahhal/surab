@@ -21,7 +21,7 @@ internal class Lowerer
 
     private LoweredTree Lower()
     {
-        var root = Lower(_model.Tree.Root);
+        var root = Lower(_model.Tree.Root)!;
         return new LoweredTree(root);
     }
 
@@ -35,6 +35,7 @@ internal class Lowerer
             StructDeclNode n => Lower(n),
             //ClassDeclNode n => Lower(n),
             //MethodDeclNode n => Lower(n),
+            AliasDeclNode n => new LoweredElidedDecl(n),
             VarStmtNode n => Lower(n),
             ReturnStmtNode n => Lower(n),
             ExprStmtNode n => Lower(n),
@@ -303,7 +304,7 @@ internal class Lowerer
     {
         return new LoweredUnaryExpr(
             node,
-            _model.LookupType(node)!,
+            _model.LookupType(node),
             LowerWithCast(node.Expr));
     }
 
@@ -311,7 +312,7 @@ internal class Lowerer
     {
         return new LoweredBinaryExpr(
             node,
-            _model.LookupType(node)!,
+            _model.LookupType(node),
             LowerWithCast(node.Left),
             LowerWithCast(node.Right));
     }
@@ -319,7 +320,7 @@ internal class Lowerer
     private LoweredNode Lower(CallExprNode node)
     {
         var symbol = _model.LookupSymbol(node.Callee)!;
-        var fnType = (FnTypeSymbol)_model.LookupType(node.Callee)!;
+        var fnType = (FnTypeSymbol)_model.LookupType(node.Callee).UnwrapAliases();
         return new LoweredCallExpr(
             node,
             fnType,
@@ -329,7 +330,7 @@ internal class Lowerer
 
     private LoweredNode Lower(LiteralExprNode node)
     {
-        var type = _model.LookupType(node)!;
+        var type = _model.LookupType(node);
         return new LoweredLiteralExpr(
             node,
             type,
@@ -339,7 +340,7 @@ internal class Lowerer
     private LoweredNode Lower(IdentifierExprNode node)
     {
         // Should only be here if we're loading a variable?
-        var symbol = _model.LookupSymbol(node)!;
+        var symbol = _model.LookupSymbol(node);
         Debug.Assert(symbol is ISymbolHasType);
         var symbolHasType = (ISymbolHasType)symbol;
         return new LoweredVariableLoadExpr(
@@ -350,7 +351,7 @@ internal class Lowerer
 
     private LoweredNode Lower(StructCreationExprNode node)
     {
-        var symbol = (StructTypeSymbol)_model.LookupSymbol(node)!;
+        var symbol = (StructTypeSymbol)_model.LookupType(node).UnwrapAliases();
         return new LoweredStructCreationExpr(
             node,
             symbol,

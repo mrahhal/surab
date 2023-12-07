@@ -173,7 +173,7 @@ internal class SemanticAnalyzer(SemanticModel model) : SyntaxTreeVisitor
         {
             // Reported somewhere else.
         }
-        else if (!lhsType.Equals(rhsType))
+        else if (!lhsType.IsAssignableFrom(rhsType))
         {
             // Incompatible types
             _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"invalid assignment because of incompatible types, expected `{lhsType?.Name}` but received `{rhsType?.Name}`");
@@ -215,7 +215,7 @@ internal class SemanticAnalyzer(SemanticModel model) : SyntaxTreeVisitor
         {
             // Shouldn't report. Will be reported elsewhere.
         }
-        else if (!leftType.Equals(rightType))
+        else if (!leftType.IsAssignableFrom(rightType))
         {
             _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"incompatible types");
         }
@@ -268,7 +268,7 @@ internal class SemanticAnalyzer(SemanticModel model) : SyntaxTreeVisitor
 
     public override void VisitCallExpr(CallExprNode node)
     {
-        var calleeType = _model.LookupType(node.Callee);
+        var calleeType = _model.LookupType(node.Callee).UnwrapAliases();
 
         // Ensure callee is a function and validate args.
 
@@ -298,7 +298,7 @@ internal class SemanticAnalyzer(SemanticModel model) : SyntaxTreeVisitor
                     {
                         // Reported somewhere else.
                     }
-                    else if (!paramType.Equals(argType))
+                    else if (!paramType.IsAssignableFrom(argType))
                     {
                         _diagnostics.Add(arg.Span, DiagnosticLevel.Error, $"incompatible type for arg, expected `{paramType.Name}` but received `{argType?.Name}`");
                     }
