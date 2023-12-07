@@ -59,6 +59,7 @@ public enum SimpleTokenKind
     Fn,
     Struct,
     Class,
+    Alias,
     New,
     This,
     True,
@@ -113,6 +114,7 @@ public sealed class SimpleToken : SyntaxToken
                 TokenKind.Fn => SimpleTokenKind.Fn,
                 TokenKind.Struct => SimpleTokenKind.Struct,
                 TokenKind.Class => SimpleTokenKind.Class,
+                TokenKind.Alias => SimpleTokenKind.Alias,
                 TokenKind.New => SimpleTokenKind.New,
                 TokenKind.This => SimpleTokenKind.This,
                 TokenKind.True => SimpleTokenKind.True,
@@ -204,31 +206,30 @@ public sealed class BinaryOperatorToken : SyntaxToken
 
     public BinaryOperatorTokenKind BinaryOperatorTokenKind { get; init; }
 
-    public static BinaryOperatorToken From(
-        Token token) => new()
+    public static BinaryOperatorToken From(Token token) => new()
+    {
+        Span = token.Span,
+        BinaryOperatorTokenKind = token.Kind switch
         {
-            Span = token.Span,
-            BinaryOperatorTokenKind = token.Kind switch
-            {
-                TokenKind.Plus => BinaryOperatorTokenKind.Add,
-                TokenKind.Minus => BinaryOperatorTokenKind.Sub,
-                TokenKind.Asterisk => BinaryOperatorTokenKind.Mul,
-                TokenKind.Slash => BinaryOperatorTokenKind.Div,
-                TokenKind.CaretCaret => BinaryOperatorTokenKind.Pow,
-                TokenKind.ConditionalAnd => BinaryOperatorTokenKind.And,
-                TokenKind.ConditionalOr => BinaryOperatorTokenKind.Or,
-                TokenKind.And => BinaryOperatorTokenKind.BitAnd,
-                TokenKind.InclusiveOr => BinaryOperatorTokenKind.BitOr,
-                TokenKind.ExclusiveOr => BinaryOperatorTokenKind.BitXor,
-                TokenKind.EqualEqual => BinaryOperatorTokenKind.Eq,
-                TokenKind.BangEqual => BinaryOperatorTokenKind.Ne,
-                TokenKind.Less => BinaryOperatorTokenKind.Lt,
-                TokenKind.LessEqual => BinaryOperatorTokenKind.Le,
-                TokenKind.Greater => BinaryOperatorTokenKind.Gt,
-                TokenKind.GreaterEqual => BinaryOperatorTokenKind.Ge,
-                _ => throw new Exception($"TokenKind {token.Kind} not supported."),
-            },
-        };
+            TokenKind.Plus => BinaryOperatorTokenKind.Add,
+            TokenKind.Minus => BinaryOperatorTokenKind.Sub,
+            TokenKind.Asterisk => BinaryOperatorTokenKind.Mul,
+            TokenKind.Slash => BinaryOperatorTokenKind.Div,
+            TokenKind.CaretCaret => BinaryOperatorTokenKind.Pow,
+            TokenKind.ConditionalAnd => BinaryOperatorTokenKind.And,
+            TokenKind.ConditionalOr => BinaryOperatorTokenKind.Or,
+            TokenKind.And => BinaryOperatorTokenKind.BitAnd,
+            TokenKind.InclusiveOr => BinaryOperatorTokenKind.BitOr,
+            TokenKind.ExclusiveOr => BinaryOperatorTokenKind.BitXor,
+            TokenKind.EqualEqual => BinaryOperatorTokenKind.Eq,
+            TokenKind.BangEqual => BinaryOperatorTokenKind.Ne,
+            TokenKind.Less => BinaryOperatorTokenKind.Lt,
+            TokenKind.LessEqual => BinaryOperatorTokenKind.Le,
+            TokenKind.Greater => BinaryOperatorTokenKind.Gt,
+            TokenKind.GreaterEqual => BinaryOperatorTokenKind.Ge,
+            _ => throw new Exception($"TokenKind {token.Kind} not supported."),
+        },
+    };
 
     public override string ToString() => BinaryOperatorTokenKind switch
     {

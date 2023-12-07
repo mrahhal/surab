@@ -83,6 +83,26 @@ public class ParserTests
     }
 
     [Fact]
+    public void Decl_Alias()
+    {
+        var src = "alias Foo Bar;";
+        var node = ParseDecl(src).Should().BeOfType<AliasDeclNode>().Subject;
+        node.AliasToken.Kind.Should().Be(SyntaxTokenKind.Simple);
+        node.Identifier.Value.Should().Be("Foo");
+        node.Type.Should().BeOfType<NamedTypeNode>().Subject.Identifier.Value.Should().Be("Bar");
+    }
+
+    [Fact]
+    public void Decl_Alias_Fn()
+    {
+        var src = "alias Foo fn ();";
+        var node = ParseDecl(src).Should().BeOfType<AliasDeclNode>().Subject;
+        node.AliasToken.Kind.Should().Be(SyntaxTokenKind.Simple);
+        node.Identifier.Value.Should().Be("Foo");
+        node.Type.Should().BeOfType<FnTypeNode>();
+    }
+
+    [Fact]
     public void Decl_Struct()
     {
         var src = "struct S1 { a: u32 = 2; f() {} }";

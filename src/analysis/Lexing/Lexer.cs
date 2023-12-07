@@ -29,6 +29,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
         { "fn", TokenKind.Fn },
         { "struct", TokenKind.Struct },
         { "class", TokenKind.Class },
+        { "alias", TokenKind.Alias },
         { "new", TokenKind.New },
         { "this", TokenKind.This },
         { "true", TokenKind.True },

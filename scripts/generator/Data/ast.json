@@ -88,6 +88,29 @@
       ]
     },
     {
+      "Name": "AliasDecl",
+      "Base": "DeclNode",
+      "Members": [
+        {
+          "Name": "attrs",
+          "Type": "AttrsListNode",
+          "Optional": true
+        },
+        {
+          "Name": "aliasToken",
+          "Type": "SimpleToken"
+        },
+        {
+          "Name": "identifier",
+          "Type": "IdentifierToken"
+        },
+        {
+          "Name": "type",
+          "Type": "TypeNode"
+        }
+      ]
+    },
+    {
       "Name": "StructDecl",
       "Base": "DeclNode",
       "Members": [

@@ -362,6 +362,7 @@ internal class ParserImpl
             TokenKind.Fn => ParseFnDecl(attrs),
             TokenKind.Struct => ParseStructDecl(attrs),
             TokenKind.Class => ParseClassDecl(attrs),
+            TokenKind.Alias => ParseAliasDecl(attrs),
 
             _ => null,
         };
@@ -471,6 +472,21 @@ internal class ParserImpl
         var closedBraceToken = EatExpectedSimpleToken(TokenKind.RightBrace);
 
         return new ClassDeclNode(attrs, classToken, identifier, openBraceToken, members, closedBraceToken);
+    }
+
+    /// <summary>
+    /// Parses `alias Foo Bar;`
+    /// </summary>
+    private DeclNode? ParseAliasDecl(AttrsListNode? attrs)
+    {
+        var aliasToken = EatAssertedSimpleToken(TokenKind.Alias);
+        var identifier = ParseIdentifier();
+        if (identifier == null) return null;
+
+        var type = ParseType();
+        if (type == null) return null;
+
+        return new AliasDeclNode(attrs, aliasToken, identifier, type);
     }
 
     /// <summary>
