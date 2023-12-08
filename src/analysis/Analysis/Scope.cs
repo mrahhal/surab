@@ -147,6 +147,20 @@ internal abstract class Scope
         };
         return ResolvedType.Typed(resolvedType as TypeSymbol ?? ErrorTypeSymbol.General);
     }
+
+    /// <summary>
+    /// Returns whether or not this scope should end with the given node.
+    /// </summary>
+    /// <remarks>
+    /// Some scopes (such as a local scope) should be extended to live beyond their associated node.
+    ///
+    /// The default implementation always returns `true` so that the scope ends with its associated node.
+    /// This is overriden in a local scope for example to make it live longer.
+    /// </remarks>
+    internal virtual bool ShouldEndScope(SyntaxNode node)
+    {
+        return true;
+    }
 }
 
 // TODO: preludeSemanticModel should become an array of models from imported modules.
@@ -247,7 +261,7 @@ internal class FnScope(
 /// A scope that exposes a local symbol.
 /// </summary>
 /// <remarks>
-/// This is the only scope that we extend the reach of, as these scopes replace explicit block scopes to allow var shadowing.
+/// This scope gets extended until the end of a block node. This scope replaces explicit block scopes to allow var shadowing.
 /// </remarks>
 internal class LocalScope(LocalSymbol symbol) : Scope
 {
@@ -256,5 +270,11 @@ internal class LocalScope(LocalSymbol symbol) : Scope
     public override Symbol? LookupIdentifierHere(string identifier)
     {
         return LookupIdentifierIn(_symbol, identifier);
+    }
+
+    internal override bool ShouldEndScope(SyntaxNode node)
+    {
+        // A local scope lives until its containing block ends.
+        return node is BlockExprNode;
     }
 }

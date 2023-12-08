@@ -545,21 +545,10 @@ public class SemanticModel
 
             Walk(node);
 
-            // A local scope is the only scope that we should extend the reach of, so we'll do that here.
-            // This effectively replaces needing a block scope and allows var shadowing.
-            if (scope is not LocalScope)
+            if (scope?.ShouldEndScope(node) ?? true)
             {
-                //  If current scope is not local scope, we should always restore parent.
+                // Restoring the parent scope effectively means the scope ends here.
                 _parentScope = prevParentScope;
-            }
-            else
-            {
-                // If scope is local scope, we want it to live longer until the end of an actual block node.
-                // So we only restore the parent if we've reached the end of a block node.
-                if (node is BlockExprNode)
-                {
-                    _parentScope = prevParentScope;
-                }
             }
 
             _parentSymbol = prevParentSymbol;

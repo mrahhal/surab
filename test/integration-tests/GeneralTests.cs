@@ -178,6 +178,7 @@ public class GeneralTests
     {
         var output = IntegrationRunner.Run($$"""
             fn main() {
+                var foo = 42;
                 var a = 2;
                 var a = true;
                 print_bool(a);
@@ -186,6 +187,7 @@ public class GeneralTests
                     var a = 2;
                     {
                         print_i32(a);
+                        print_i32(foo);
                     }
                 }
                 print_f64(a);
@@ -195,6 +197,7 @@ public class GeneralTests
         var expectedOutput =
             "true".NL() +
             "2".NL() +
+            "42".NL() +
             "4.2".NL();
 
         output.Should().Be(expectedOutput);
