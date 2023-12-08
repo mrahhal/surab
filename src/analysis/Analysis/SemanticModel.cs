@@ -521,15 +521,21 @@ public class SemanticModel
                 symbol.SetContextScope(contextScopeForSymbol);
             }
 
-            var prevParentSymbol = _parentSymbol;
-            if (symbol != null)
+            if (scope != null || _parentScope != null)
             {
-                _parentSymbol = symbol;
+                _model._nodeToScopeMap[node] = scope ?? _parentScope!;
             }
+
             var prevParentScope = _parentScope;
             if (scope != null)
             {
                 _parentScope = scope;
+            }
+
+            var prevParentSymbol = _parentSymbol;
+            if (symbol != null)
+            {
+                _parentSymbol = symbol;
             }
             var prevTypeContext = _typeContext;
             if (typeContext != null)
@@ -539,8 +545,24 @@ public class SemanticModel
 
             Walk(node);
 
+            // A local scope is the only scope that we should extend the reach of, so we'll do that here.
+            // This effectively replaces needing a block scope and allows var shadowing.
+            if (scope is not LocalScope)
+            {
+                //  If current scope is not local scope, we should always restore parent.
+                _parentScope = prevParentScope;
+            }
+            else
+            {
+                // If scope is local scope, we want it to live longer until the end of an actual block node.
+                // So we only restore the parent if we've reached the end of a block node.
+                if (node is BlockExprNode)
+                {
+                    _parentScope = prevParentScope;
+                }
+            }
+
             _parentSymbol = prevParentSymbol;
-            _parentScope = prevParentScope;
             _typeContext = prevTypeContext;
         }
 
@@ -592,7 +614,7 @@ public class SemanticModel
             {
                 scope.SemanticModel = _model;
                 scope.SetParent(_parentScope);
-                _model._nodeToScopeMap[node] = scope;
+                //_model._nodeToScopeMap[node] = scope;
             }
             return scope;
         }
@@ -608,7 +630,10 @@ public class SemanticModel
                 ClassDeclNode n => new ClassDeclScope(n, (NamedTypeSymbol)symbol!),
                 FnDeclNode n => new FnScope(n.Sig, (FnSymbol)symbol!),
                 MethodDeclNode n => new FnScope(n.Sig, (FnSymbol)symbol!),
-                BlockExprNode n => new BlockExprScope(n),
+
+                // Create a new scope on each new var. This is to effectively allow shadowing vars.
+                VarStmtNode => new LocalScope((LocalSymbol)symbol!),
+                // TODO: const?
 
                 _ => null,
             };

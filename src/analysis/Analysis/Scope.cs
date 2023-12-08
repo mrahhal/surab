@@ -84,6 +84,16 @@ internal abstract class Scope
     /// </summary>
     public virtual TypeSymbol? LookupTypeDeclHere() => null;
 
+    protected static T? LookupIdentifierIn<T>(T symbol, string identifier)
+        where T : Symbol
+    {
+        if (symbol.Identifier?.Value == identifier)
+        {
+            return symbol;
+        }
+        return null;
+    }
+
     protected static T? LookupIdentifierIn<T>(ImmutableArray<T> array, string identifier)
         where T : Symbol
     {
@@ -91,7 +101,7 @@ internal abstract class Scope
         for (var i = array.Length - 1; i >= 0; i--)
         {
             var item = array[i];
-            if (item.Identifier != null && item.Identifier.Value == identifier)
+            if (item.Identifier?.Value == identifier)
             {
                 return item;
             }
@@ -137,17 +147,6 @@ internal abstract class Scope
         };
         return ResolvedType.Typed(resolvedType as TypeSymbol ?? ErrorTypeSymbol.General);
     }
-}
-
-/// <summary>
-/// Marks scopes that have locals.
-/// </summary>
-internal interface IScopeHasLocals
-{
-    /// <summary>
-    /// The locals exposed by the scope.
-    /// </summary>
-    ImmutableArray<LocalSymbol> Locals { get; }
 }
 
 // TODO: preludeSemanticModel should become an array of models from imported modules.
@@ -244,40 +243,18 @@ internal class FnScope(
     }
 }
 
-internal class BlockExprScope(BlockExprNode block) : Scope, IScopeHasLocals
+/// <summary>
+/// A scope that exposes a local symbol.
+/// </summary>
+/// <remarks>
+/// This is the only scope that we extend the reach of, as these scopes replace explicit block scopes to allow var shadowing.
+/// </remarks>
+internal class LocalScope(LocalSymbol symbol) : Scope
 {
-    private ImmutableArray<LocalSymbol> _locals;
-
-    private readonly BlockExprNode _block = block;
-
-    public ImmutableArray<LocalSymbol> Locals
-    {
-        get
-        {
-            if (_locals.IsDefault)
-            {
-                ImmutableInterlocked.InterlockedCompareExchange(ref _locals, BuildLocals(), default);
-            }
-
-            return _locals;
-        }
-    }
+    private readonly LocalSymbol _symbol = symbol;
 
     public override Symbol? LookupIdentifierHere(string identifier)
     {
-        return LookupIdentifierIn(Locals, identifier);
-    }
-
-    private ImmutableArray<LocalSymbol> BuildLocals()
-    {
-        var builder = ImmutableArray.CreateBuilder<LocalSymbol>();
-        foreach (var decl in _block.Stmts)
-        {
-            if (SemanticModel.TryGetDeclaredSymbol(decl, out var symbol) && symbol is LocalSymbol localSymbol)
-            {
-                builder.Add(localSymbol);
-            }
-        }
-        return builder.ToImmutable();
+        return LookupIdentifierIn(_symbol, identifier);
     }
 }

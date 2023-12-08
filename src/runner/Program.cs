@@ -75,14 +75,14 @@ var src = """
         print_from_rust(s2);
 
         // Fn pointers
-        var fnptr /* : @extern fn (f64, f64) f64 */ = f;
-        print_f64(fnptr(2.0, 3.0));
+        var fn_ptr /* : @extern fn (f64, f64) f64 */ = f;
+        print_f64(fn_ptr(2.0, 3.0));
 
-        var fnptr2: @extern() fn (S2) = print_from_rust;
-        fnptr2(s2);
+        var fn_ptr: @extern() fn (S2) = print_from_rust;
+        fn_ptr(s2);
 
-        var fnptr3: Delegate1 = print_from_rust;
-        fnptr3(s2);
+        var fn_ptr: Delegate1 = print_from_rust;
+        fn_ptr(s2);
     }
     """;
 var sourceFile = SourceFile.FromText(src);

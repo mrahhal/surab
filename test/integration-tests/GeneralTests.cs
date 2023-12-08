@@ -173,21 +173,29 @@ public class GeneralTests
             """);
     }
 
-    [Fact(Skip = "Not implemented yet")]
-    public void General_DifferentSymbolsForRedeclaredLocals()
+    [Fact]
+    public void General_VarShadowing()
     {
         var output = IntegrationRunner.Run($$"""
             fn main() {
-                var a: i32 = 4;
-                print_i32(a);
-                var a: bool = true;
+                var a = 2;
+                var a = true;
                 print_bool(a);
+                var a = 4.2;
+                {
+                    var a = 2;
+                    {
+                        print_i32(a);
+                    }
+                }
+                print_f64(a);
             }
             """);
 
         var expectedOutput =
-            "4".NL() +
-            "true".NL();
+            "true".NL() +
+            "2".NL() +
+            "4.2".NL();
 
         output.Should().Be(expectedOutput);
     }
