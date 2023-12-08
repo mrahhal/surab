@@ -88,6 +88,33 @@
       ]
     },
     {
+      "Name": "AliasDecl",
+      "Base": "DeclNode",
+      "Members": [
+        {
+          "Name": "attrs",
+          "Type": "AttrsListNode",
+          "Optional": true
+        },
+        {
+          "Name": "aliasToken",
+          "Type": "SimpleToken"
+        },
+        {
+          "Name": "identifier",
+          "Type": "IdentifierToken"
+        },
+        {
+          "Name": "type",
+          "Type": "TypeNode"
+        },
+        {
+          "Name": "semicolonToken",
+          "Type": "SimpleToken"
+        }
+      ]
+    },
+    {
       "Name": "StructDecl",
       "Base": "DeclNode",
       "Members": [

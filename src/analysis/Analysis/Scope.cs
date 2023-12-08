@@ -103,22 +103,11 @@ internal abstract class Scope
     /// Resolves a type, binding the type node to its type symbol.
     /// This method never returns `null`. If resolving fails a special <see cref="ErrorTypeSymbol"/> will be returned.
     /// </summary>
-    public ResolvedType ResolveType(SyntaxNode node, TypeNode? type)
+    public ResolvedType ResolveType(SyntaxNode node, TypeNode? typeNode)
     {
-        if (type != null)
+        if (typeNode != null)
         {
-            var identifier = type switch
-            {
-                NamedTypeNode namedTypeNode => namedTypeNode.Identifier,
-                _ => null,
-            };
-            var resolvedType = type switch
-            {
-                NamedTypeNode namedTypeNode => LookupIdentifier(namedTypeNode.Identifier),
-                FnTypeNode fnTypeNode => SemanticModel.LookupSymbol(fnTypeNode),
-                _ => throw new UnreachableException(),
-            };
-            return ResolvedType.Typed(resolvedType as TypeSymbol ?? ErrorTypeSymbol.General);
+            return ResolveType(typeNode);
         }
         else
         {
@@ -128,6 +117,26 @@ internal abstract class Scope
     }
 
     public ResolvedType ResolveType(SyntaxNode node, ColonTypeNode? colonType) => ResolveType(node, colonType?.Type);
+
+    /// <summary>
+    /// Resolves a type, binding the type node to its type symbol.
+    /// This method never returns `null`. If resolving fails a special <see cref="ErrorTypeSymbol"/> will be returned.
+    /// </summary>
+    public ResolvedType ResolveType(TypeNode typeNode)
+    {
+        var identifier = typeNode switch
+        {
+            NamedTypeNode namedTypeNode => namedTypeNode.Identifier,
+            _ => null,
+        };
+        var resolvedType = typeNode switch
+        {
+            NamedTypeNode namedTypeNode => LookupIdentifier(namedTypeNode.Identifier),
+            FnTypeNode fnTypeNode => SemanticModel.LookupSymbol(fnTypeNode),
+            _ => throw new UnreachableException(),
+        };
+        return ResolvedType.Typed(resolvedType as TypeSymbol ?? ErrorTypeSymbol.General);
+    }
 }
 
 /// <summary>

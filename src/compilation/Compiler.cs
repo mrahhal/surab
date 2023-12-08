@@ -656,6 +656,8 @@ internal abstract class LLVMTarget
     /// <returns>The lowered LLVM type.</returns>
     public LLVMTypeRef LowerType(TypeSymbol type)
     {
+        type = type.UnwrapAliases();
+
         if (type == BuiltinTypeSystem.None)
             return LLVMTypeRef.Void;
         if (type == BuiltinTypeSystem.@char || type == BuiltinTypeSystem.@bool)

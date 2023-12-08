@@ -19,6 +19,8 @@ p.Start();
 p.WaitForExit();
 
 var src = """
+    alias Delegate1 @extern() fn (S2);
+
     struct S1 {
         a: f64;
         b: bool;
@@ -78,6 +80,9 @@ var src = """
 
         var fnptr2: @extern() fn (S2) = print_from_rust;
         fnptr2(s2);
+
+        var fnptr3: Delegate1 = print_from_rust;
+        fnptr3(s2);
     }
     """;
 var sourceFile = SourceFile.FromText(src);

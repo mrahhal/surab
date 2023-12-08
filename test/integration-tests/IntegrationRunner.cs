@@ -14,7 +14,7 @@ public static class IntegrationRunner
         var model = project.GetSemanticModel(sourceFile);
 
         var diags = model.GetAllDiagnostics();
-        var errors = diags.Where(x => x.Level >= DiagnosticLevel.Error);
+        var errors = diags.Where(x => x.Level >= DiagnosticLevel.Error).Select(x => new { x.Level, x.Message, Text = src[x.Span.File.Start..x.Span.File.End] });
         if (!fails)
         {
             errors.Should().HaveCount(0);

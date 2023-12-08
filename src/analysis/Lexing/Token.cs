@@ -41,6 +41,7 @@ public enum TokenKind
     Fn,
     Struct,
     Class,
+    Alias,
     New,
     This,
     True,
@@ -118,7 +119,9 @@ public class Token(TokenKind kind, TextSpan span, object? data)
             AtBeforeIdentifier => "@",
 
             Fn => "fn",
+            Struct => "struct",
             Class => "class",
+            Alias => "alias",
             New => "new",
             This => "this",
             True => "true",
@@ -202,7 +205,9 @@ public static class TokenKindExtensions
     public static bool CanStartDecl(this TokenKind kind) => kind is
         Const or
         Fn or
+        Struct or
         Class or
+        Alias or
         Identifier ||
         CanStartAttribute(kind); // While an attribute isn't a part of the decl in the structural sense, we need to account for it here.
 
