@@ -190,6 +190,46 @@ public class ParserTests
         node.Expr.Should().NotBeNull();
     }
 
+    [Fact]
+    public void BareExprs_Blocks()
+    {
+        var src = "{ 2 }";
+        var node = ParseStmt(src).Should().BeOfType<BareExprStmtNode>().Subject;
+        node.IsTreatedAsStmt.Should().BeFalse();
+        var blockNode = node.Expr.Should().BeOfType<BlockExprNode>().Subject;
+        blockNode.ReturnsExpr.Should().BeTrue();
+    }
+
+    [Fact]
+    public void BareExprs_Blocks2()
+    {
+        var src = "{ var a = 2; }";
+        var node = ParseStmt(src).Should().BeOfType<BareExprStmtNode>().Subject;
+        node.IsTreatedAsStmt.Should().BeTrue();
+        var blockNode = node.Expr.Should().BeOfType<BlockExprNode>().Subject;
+        blockNode.ReturnsExpr.Should().BeFalse();
+    }
+
+    [Fact]
+    public void BareExprs_Blocks3()
+    {
+        var src = "{ { 2 } }";
+        var node = ParseStmt(src).Should().BeOfType<BareExprStmtNode>().Subject;
+        node.IsTreatedAsStmt.Should().BeFalse();
+        var blockNode = node.Expr.Should().BeOfType<BlockExprNode>().Subject;
+        blockNode.ReturnsExpr.Should().BeTrue();
+    }
+
+    [Fact]
+    public void BareExprs_Blocks4()
+    {
+        var src = "{ { var a = 2; } }";
+        var node = ParseStmt(src).Should().BeOfType<BareExprStmtNode>().Subject;
+        node.IsTreatedAsStmt.Should().BeTrue();
+        var blockNode = node.Expr.Should().BeOfType<BlockExprNode>().Subject;
+        blockNode.ReturnsExpr.Should().BeFalse();
+    }
+
     [Theory]
     [InlineData("0", 0)]
     [InlineData("12", 12)]

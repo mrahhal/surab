@@ -561,7 +561,7 @@ public partial class BlockExprNode
             if (_returnsExpr.HasValue)
                 return _returnsExpr.Value;
 
-            _returnsExpr = Stmts.Any() && Stmts.Last() is BareExprStmtNode;
+            _returnsExpr = Stmts.Any() && Stmts.Last() is BareExprStmtNode bareExprStmt && !bareExprStmt.IsTreatedAsStmt;
             return _returnsExpr.Value;
         }
     }
