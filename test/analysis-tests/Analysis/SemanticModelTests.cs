@@ -415,6 +415,31 @@ public class SemanticModelTests
     }
 
     [Fact]
+    public void FnTypesUsingTypeAliases()
+    {
+        var src = """
+            alias Integer1 i32;
+            alias Integer2 i32;
+            alias Float f64;
+
+            fn f() {
+                var f1: fn (Integer1, i32, Integer1) f64;
+                var f2: fn (i32, Integer2, Integer2) Float;
+            }
+            """;
+        var tree = Parser.ParseModule(src);
+        var model = SemanticModel.Create(tree);
+
+        var f1Node = tree.Root.DescendantNodes().OfType<VarStmtNode>().ElementAt(0);
+        var f1Symbol = (LocalSymbol)model.GetDeclaredSymbol(f1Node)!;
+        var f2Node = tree.Root.DescendantNodes().OfType<VarStmtNode>().ElementAt(1);
+        var f2Symbol = (LocalSymbol)model.GetDeclaredSymbol(f2Node)!;
+
+        f1Symbol.Type.IsAssignableFrom(f2Symbol.Type).Should().BeTrue();
+        f2Symbol.Type.IsAssignableFrom(f1Symbol.Type).Should().BeTrue();
+    }
+
+    [Fact]
     public void FnSymbol_IsExtern()
     {
         var src = """

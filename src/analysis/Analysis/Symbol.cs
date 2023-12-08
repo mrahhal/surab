@@ -443,7 +443,7 @@ internal readonly struct FnTypeKey(
     {
         return
             IsExtern == other.IsExtern &&
-            Equals(ReturnType, other.ReturnType) &&
+            ReturnType.IsAssignableFrom(other.ReturnType) &&
             ParamTypesEqual(this, other);
     }
 
@@ -453,7 +453,7 @@ internal readonly struct FnTypeKey(
             return false;
         for (var i = 0; i < x.ParamTypes.Length; i++)
         {
-            if (!Equals(x.ParamTypes[i], y.ParamTypes[i]))
+            if (!x.ParamTypes[i].IsAssignableFrom(y.ParamTypes[i]))
                 return false;
         }
         return true;
@@ -461,14 +461,16 @@ internal readonly struct FnTypeKey(
 
     public override int GetHashCode()
     {
+        // Calling UnwrapAliases() is important here so we get stable hash codes to not duplicate unnamed fn type symbols.
+
         unchecked
         {
             var hash = 92821;
             hash = hash * 29 + IsExtern.GetHashCode();
-            hash = hash * 29 + ReturnType.GetHashCode();
+            hash = hash * 29 + ReturnType.UnwrapAliases().GetHashCode();
             foreach (var p in ParamTypes)
             {
-                hash = hash * 29 + p.GetHashCode();
+                hash = hash * 29 + p.UnwrapAliases().GetHashCode();
             }
             return hash;
         }
