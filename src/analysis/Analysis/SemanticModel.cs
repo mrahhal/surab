@@ -388,7 +388,7 @@ public class SemanticModel
     // - FnDeclNode: From `fn foo(v: i32) i32 { ... }`
     // - MethodDeclNode: ^ but method
     // - TypeNode: e.g. From the type in `var f: fn (i32) i32;`
-    // - AliasNode: `alias Delegate fn (i32) i32;`
+    // - AliasDeclNode: `alias Delegate fn (i32) i32;`
     public FnTypeSymbol GetFnType(SyntaxNode node)
     {
         return node switch
