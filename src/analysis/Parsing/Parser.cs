@@ -104,9 +104,9 @@ internal class ParserImpl
     private void Advance()
     {
         _tokens.TryMoveNext(out var token);
-        if (_prev != null)
+        if (_current != null)
         {
-            _tokensConsumed.Add(_prev);
+            _tokensConsumed.Add(_current);
         }
         _prev = _current;
         _current = token;
@@ -262,11 +262,8 @@ internal class ParserImpl
     // This happens in one of the recovery of the three main items: decls, stmts, exprs.
     private List<Token> TakeTokensConsumed()
     {
-        var tokens = _tokensConsumed;
-        if (_prev != null)
-        {
-            tokens.Add(_prev);
-        }
+        var tokens = _tokensConsumed.ToList();
+        ResetTokensConsumed();
         return tokens;
     }
 
