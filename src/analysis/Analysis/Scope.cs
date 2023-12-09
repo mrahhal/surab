@@ -10,7 +10,7 @@ internal abstract class Scope
 {
     public Scope? Parent { get; private set; }
 
-    public SemanticModel SemanticModel { get; internal set; } = default!;
+    public Reasoner Reasoner { get; internal set; } = default!;
 
     /// <summary>
     /// Sets the parent scope of this scope.
@@ -121,7 +121,7 @@ internal abstract class Scope
         }
         else
         {
-            var boundType = SemanticModel.InferTypeOfDeclaringNode(node);
+            var boundType = Reasoner.InferTypeOfDeclaringNode(node);
             return ResolvedType.Inferred(boundType ?? ErrorTypeSymbol.General);
         }
     }
@@ -142,7 +142,7 @@ internal abstract class Scope
         var resolvedType = typeNode switch
         {
             NamedTypeNode namedTypeNode => LookupIdentifier(namedTypeNode.Identifier),
-            FnTypeNode fnTypeNode => SemanticModel.LookupSymbol(fnTypeNode),
+            FnTypeNode fnTypeNode => Reasoner.LookupSymbol(fnTypeNode),
             _ => throw new UnreachableException(),
         };
         return ResolvedType.Typed(resolvedType as TypeSymbol ?? ErrorTypeSymbol.General);
@@ -163,13 +163,13 @@ internal abstract class Scope
     }
 }
 
-// TODO: preludeSemanticModel should become an array of models from imported modules.
-internal class ModuleScope(ModuleNode module, SemanticModel? preludeSemanticModel) : Scope
+// TODO: preludeReasoner should become an array of reasoners from imported modules.
+internal class ModuleScope(ModuleNode module, Reasoner? preludeReasoner) : Scope
 {
     private ImmutableArray<Symbol> _decls;
 
     private readonly ModuleNode _module = module;
-    private readonly SemanticModel? _preludeSemanticModel = preludeSemanticModel;
+    private readonly Reasoner? _preludeReasoner = preludeReasoner;
 
     public ImmutableArray<Symbol> Decls
     {
@@ -188,7 +188,7 @@ internal class ModuleScope(ModuleNode module, SemanticModel? preludeSemanticMode
     {
         return
             LookupIdentifierIn(Decls, identifier) ??
-            _preludeSemanticModel?.LookupExportedSymbolByName(identifier);
+            _preludeReasoner?.LookupExportedSymbolByName(identifier);
     }
 
     public override Symbol? LookupExportedIdentifier(string identifier)
@@ -201,7 +201,7 @@ internal class ModuleScope(ModuleNode module, SemanticModel? preludeSemanticMode
         var builder = ImmutableArray.CreateBuilder<Symbol>();
         foreach (var decl in _module.Decls)
         {
-            if (SemanticModel.TryGetDeclaredSymbol(decl, out var symbol))
+            if (Reasoner.TryGetDeclaredSymbol(decl, out var symbol))
             {
                 builder.Add(symbol);
             }

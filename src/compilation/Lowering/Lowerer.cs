@@ -6,22 +6,22 @@ namespace Surab.Compilation;
 
 internal class Lowerer
 {
-    private readonly SemanticModel _model;
+    private readonly Reasoner _reasoner;
 
-    private Lowerer(SemanticModel model)
+    private Lowerer(Reasoner reasoner)
     {
-        _model = model;
+        _reasoner = reasoner;
     }
 
-    internal static LoweredTree Lower(SemanticModel model)
+    internal static LoweredTree Lower(Reasoner reasoner)
     {
-        var lowerer = new Lowerer(model);
+        var lowerer = new Lowerer(reasoner);
         return lowerer.Lower();
     }
 
     private LoweredTree Lower()
     {
-        var root = Lower(_model.Tree.Root)!;
+        var root = Lower(_reasoner.Tree.Root)!;
         return new LoweredTree(root);
     }
 
@@ -77,7 +77,7 @@ internal class Lowerer
 
     private LoweredNode Lower(FnDeclNode node)
     {
-        var fnSymbol = _model.GetDeclaredSymbol(node) as FnSymbol;
+        var fnSymbol = _reasoner.GetDeclaredSymbol(node) as FnSymbol;
         Debug.Assert(fnSymbol != null);
 
         return new LoweredFnDecl(
@@ -88,7 +88,7 @@ internal class Lowerer
 
     private LoweredNode Lower(StructDeclNode node)
     {
-        var structTypeSymbol = _model.GetDeclaredSymbol(node) as StructTypeSymbol;
+        var structTypeSymbol = _reasoner.GetDeclaredSymbol(node) as StructTypeSymbol;
         Debug.Assert(structTypeSymbol != null);
 
         return new LoweredTypeDecl(
@@ -99,7 +99,7 @@ internal class Lowerer
 
     private LoweredNode Lower(VarStmtNode node)
     {
-        var symbol = _model.GetDeclaredSymbol(node) as LocalSymbol;
+        var symbol = _reasoner.GetDeclaredSymbol(node) as LocalSymbol;
         Debug.Assert(symbol != null);
 
         var variableStmt = (LoweredStmt)new LoweredVariableStmt(
@@ -215,7 +215,7 @@ internal class Lowerer
 
     private LoweredNode Lower(AssignmentExprNode node, RewriteExpr? rewrite)
     {
-        var symbol = _model.LookupSymbol(node.Lhs);
+        var symbol = _reasoner.LookupSymbol(node.Lhs);
         if (symbol is LocalSymbol or ParamSymbol)
         {
             var result = Lower(node.Rhs, rewrite: expr =>
@@ -249,7 +249,7 @@ internal class Lowerer
         else if (symbol is FieldSymbol fieldSymbol)
         {
             var accessExpr = (AccessExprNode)node.Lhs; // Is this always valid?
-            //var targetSymbol = _model.LookupSymbol(accessExpr.Target);
+            //var targetSymbol = _reasoner.LookupSymbol(accessExpr.Target);
             var loweredTarget = LowerWithCast(accessExpr.Target);
             //var enclosingType = fieldSymbol.EnclosingType;
 
@@ -292,7 +292,7 @@ internal class Lowerer
     private LoweredExpr Lower(AccessExprNode node)
     {
         // Should only be here if we're loading a field?
-        var symbol = (FieldSymbol)_model.LookupSymbol(node)!;
+        var symbol = (FieldSymbol)_reasoner.LookupSymbol(node)!;
         var loweredTarget = LowerWithCast(node.Target);
         return new LoweredFieldLoadExpr(
             node,
@@ -304,7 +304,7 @@ internal class Lowerer
     {
         return new LoweredUnaryExpr(
             node,
-            _model.LookupType(node),
+            _reasoner.LookupType(node),
             LowerWithCast(node.Expr));
     }
 
@@ -312,15 +312,15 @@ internal class Lowerer
     {
         return new LoweredBinaryExpr(
             node,
-            _model.LookupType(node),
+            _reasoner.LookupType(node),
             LowerWithCast(node.Left),
             LowerWithCast(node.Right));
     }
 
     private LoweredNode Lower(CallExprNode node)
     {
-        var symbol = _model.LookupSymbol(node.Callee)!;
-        var fnType = (FnTypeSymbol)_model.LookupType(node.Callee).UnwrapAliases();
+        var symbol = _reasoner.LookupSymbol(node.Callee)!;
+        var fnType = (FnTypeSymbol)_reasoner.LookupType(node.Callee).UnwrapAliases();
         return new LoweredCallExpr(
             node,
             fnType,
@@ -330,7 +330,7 @@ internal class Lowerer
 
     private LoweredNode Lower(LiteralExprNode node)
     {
-        var type = _model.LookupType(node);
+        var type = _reasoner.LookupType(node);
         return new LoweredLiteralExpr(
             node,
             type,
@@ -340,7 +340,7 @@ internal class Lowerer
     private LoweredNode Lower(IdentifierExprNode node)
     {
         // Should only be here if we're loading a variable?
-        var symbol = _model.LookupSymbol(node);
+        var symbol = _reasoner.LookupSymbol(node);
         Debug.Assert(symbol is ISymbolHasType);
         var symbolHasType = (ISymbolHasType)symbol;
         return new LoweredVariableLoadExpr(
@@ -351,7 +351,7 @@ internal class Lowerer
 
     private LoweredNode Lower(StructCreationExprNode node)
     {
-        var symbol = (StructTypeSymbol)_model.LookupType(node).UnwrapAliases();
+        var symbol = (StructTypeSymbol)_reasoner.LookupType(node).UnwrapAliases();
         return new LoweredStructCreationExpr(
             node,
             symbol,

@@ -3,21 +3,25 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Surab.Analysis;
 
-public class SemanticModel
+/// <summary>
+/// A <see cref="Reasoner"/> is responsible for answering semantic questions about the <see cref="SyntaxTree"/> it's tied to.
+/// It is the core of semantic analysis.
+/// </summary>
+public class Reasoner
 {
     private readonly Dictionary<SyntaxNode, Scope> _nodeToScopeMap = [];
     private readonly Dictionary<SyntaxNode, Symbol> _nodeToSymbolMap = [];
-    // TODO: Should be moved to some place above a semantic model so they're shared between different models?
+    // TODO: Should be moved to some place above a reasoner so they're shared between different reasoners?
     private readonly Dictionary<FnTypeKey, FnTypeSymbol> _unnamedFnTypeMap = [];
 
-    private SemanticModel(SyntaxTree tree)
+    private Reasoner(SyntaxTree tree)
     {
         Tree = tree;
     }
 
-    static SemanticModel()
+    static Reasoner()
     {
-        // The first moment we touch SemanticModel in any way, we'll need to load the prelude.
+        // The first moment we touch a Reasoner in any way, we'll need to load the prelude.
         Prelude.Load();
     }
 
@@ -33,7 +37,7 @@ public class SemanticModel
 
     public SourceFile SourceFile => Tree.SourceFile;
 
-    internal static SemanticModel Create(SyntaxTree tree, bool isPrelude = false)
+    internal static Reasoner Create(SyntaxTree tree, bool isPrelude = false)
     {
         return Builder.Build(tree, isPrelude);
     }
@@ -109,7 +113,7 @@ public class SemanticModel
         }
 
         // Semantic
-        var semanticDiagnostics = SemanticAnalyzer.Analyze(this);
+        var semanticDiagnostics = CoreAnalyzer.Analyze(this);
         return [.. Tree.Diagnostics.Diagnostics, .. semanticDiagnostics.Diagnostics];
     }
 
@@ -475,17 +479,17 @@ public class SemanticModel
             public int FieldCounter = 0;
         }
 
-        private readonly SemanticModel _model = new(tree);
+        private readonly Reasoner _reasoner = new(tree);
         private readonly Dictionary<SyntaxNode, Symbol> _nodeToSymbolMap = [];
         private Scope? _parentScope;
         private Symbol? _parentSymbol;
         private TempTypeContext? _typeContext;
 
-        public static SemanticModel Build(SyntaxTree tree, bool isPrelude)
+        public static Reasoner Build(SyntaxTree tree, bool isPrelude)
         {
             var builder = new Builder(tree, isPrelude);
             builder.Build();
-            return builder._model;
+            return builder._reasoner;
         }
 
         private void Build()
@@ -523,7 +527,7 @@ public class SemanticModel
 
             if (scope != null || _parentScope != null)
             {
-                _model._nodeToScopeMap[node] = scope ?? _parentScope!;
+                _reasoner._nodeToScopeMap[node] = scope ?? _parentScope!;
             }
 
             var prevParentScope = _parentScope;
@@ -561,7 +565,7 @@ public class SemanticModel
             if (symbol != null)
             {
                 symbol.SetParent(_parentSymbol);
-                _model._nodeToSymbolMap[node] = symbol;
+                _reasoner._nodeToSymbolMap[node] = symbol;
             }
             return symbol;
         }
@@ -601,9 +605,9 @@ public class SemanticModel
             var scope = CreateScopeOnNode(node, symbol);
             if (scope != null)
             {
-                scope.SemanticModel = _model;
+                scope.Reasoner = _reasoner;
                 scope.SetParent(_parentScope);
-                //_model._nodeToScopeMap[node] = scope;
+                //_reasoner._nodeToScopeMap[node] = scope;
             }
             return scope;
         }
@@ -612,9 +616,9 @@ public class SemanticModel
         {
             return node switch
             {
-                // Temporarily give non prelude modules the prelude model to lookup exported symbols.
+                // Temporarily give non prelude modules the prelude reasoner to lookup exported symbols.
                 // Later, this should be given as part of the imported modules.
-                ModuleNode n => new ModuleScope(n, isPrelude ? null : Prelude.GetSemanticModel()),
+                ModuleNode n => new ModuleScope(n, isPrelude ? null : Prelude.GetReasoner()),
                 StructDeclNode n => new StructDeclScope(n, (StructTypeSymbol)symbol!),
                 ClassDeclNode n => new ClassDeclScope(n, (NamedTypeSymbol)symbol!),
                 FnDeclNode n => new FnScope(n.Sig, (FnSymbol)symbol!),

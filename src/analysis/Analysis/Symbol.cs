@@ -140,7 +140,7 @@ public sealed class FnSymbol : Symbol, ISymbolHasType
     {
         get
         {
-            return _type ??= Scope.SemanticModel.GetFnType(_node.Parent!);
+            return _type ??= Scope.Reasoner.GetFnType(_node.Parent!);
         }
     }
 
@@ -169,7 +169,7 @@ public sealed class FnSymbol : Symbol, ISymbolHasType
         var builder = ImmutableArray.CreateBuilder<ParamSymbol>();
         foreach (var paramNode in _node.Params.Params)
         {
-            if (Scope.SemanticModel.TryGetDeclaredSymbol(paramNode, out var symbol))
+            if (Scope.Reasoner.TryGetDeclaredSymbol(paramNode, out var symbol))
             {
                 builder.Add((ParamSymbol)symbol);
             }
@@ -374,7 +374,7 @@ public abstract class TypeSymbol : Symbol
         foreach (var node in EnumerateMembers())
         {
             Debug.Assert(Scope != null, "If symbol has members, it should have a scope.");
-            if (Scope.SemanticModel.TryGetDeclaredSymbol(node, out var symbol))
+            if (Scope.Reasoner.TryGetDeclaredSymbol(node, out var symbol))
             {
                 builder.Add(symbol);
             }

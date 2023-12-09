@@ -11,9 +11,9 @@ public static class IntegrationRunner
         var sourceFile = SourceFile.FromText(src);
 
         var project = Project.Create([sourceFile]);
-        var model = project.GetSemanticModel(sourceFile);
+        var reasoner = project.GetReasoner(sourceFile);
 
-        var diags = model.GetAllDiagnostics();
+        var diags = reasoner.GetAllDiagnostics();
         var errors = diags.Where(x => x.Level >= DiagnosticLevel.Error).Select(x => new { x.Level, x.Message, Text = src[x.Span.File.Start..x.Span.File.End] });
         if (!fails)
         {

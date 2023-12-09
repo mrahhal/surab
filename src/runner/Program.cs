@@ -88,9 +88,9 @@ var src = """
 var sourceFile = SourceFile.FromText(src);
 
 var project = Project.Create([sourceFile]);
-var model = project.GetSemanticModel(sourceFile);
+var reasoner = project.GetReasoner(sourceFile);
 
-var diags = model.GetAllDiagnostics();
+var diags = reasoner.GetAllDiagnostics();
 if (diags.Any(x => x.Level >= DiagnosticLevel.Error))
 {
     var errors = diags.Select(d => (d, v: d.Visualize(src))).ToList();

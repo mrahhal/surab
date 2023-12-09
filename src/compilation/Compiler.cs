@@ -17,9 +17,9 @@ public sealed class Compiler
         var llvm = LLVMCompilationContext.Create();
 
         // Need to compile the prelude too.
-        List<SemanticModel> models = [Prelude.GetSemanticModel(), .. project.GetAllSemanticModels()];
+        List<Reasoner> reasoners = [Prelude.GetReasoner(), .. project.GetAllReasoners()];
 
-        _context = new CompilationContext(models, target, llvm, options);
+        _context = new CompilationContext(reasoners, target, llvm, options);
     }
 
     public static string Compile(
@@ -36,9 +36,9 @@ public sealed class Compiler
 
     private string Compile()
     {
-        foreach (var model in _context.SemanticModels)
+        foreach (var reasoner in _context.Reasoners)
         {
-            ModuleCompiler.Compile(_context, model);
+            ModuleCompiler.Compile(_context, reasoner);
         }
 
         _context.LLVM.Module.PrintToFile(_context.Options.LLFileName);
@@ -59,9 +59,9 @@ internal sealed class ModuleCompiler(CompilationContext context, LoweredTree low
 
     private LLVMCompilationContext LLVM => _context.LLVM;
 
-    public static void Compile(CompilationContext context, SemanticModel semanticModel)
+    public static void Compile(CompilationContext context, Reasoner reasoner)
     {
-        var loweredTree = Lowerer.Lower(semanticModel);
+        var loweredTree = Lowerer.Lower(reasoner);
         var rootCompiler = new ModuleCompiler(context, loweredTree);
         rootCompiler.CompileModule();
     }

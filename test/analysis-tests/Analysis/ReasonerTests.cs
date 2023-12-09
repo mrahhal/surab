@@ -1,6 +1,6 @@
 ﻿namespace Surab.Analysis;
 
-public class SemanticModelTests
+public class ReasonerTests
 {
     [Fact]
     public void CreatesSymbols()
@@ -9,10 +9,10 @@ public class SemanticModelTests
             const a = 2;
             """;
         var tree = Parser.ParseModule(src);
-        var model = SemanticModel.Create(tree);
+        var reasoner = Reasoner.Create(tree);
 
         var decl = tree.Root.DescendantNodes().OfType<ConstDeclNode>().Single();
-        model.TryGetDeclaredSymbol(decl, out var symbol).Should().BeTrue();
+        reasoner.TryGetDeclaredSymbol(decl, out var symbol).Should().BeTrue();
         symbol.Should().BeOfType<ConstSymbol>();
     }
 
@@ -23,9 +23,9 @@ public class SemanticModelTests
             const a = 2;
             """;
         var tree = Parser.ParseModule(src);
-        var model = SemanticModel.Create(tree);
+        var reasoner = Reasoner.Create(tree);
 
-        model.TryGetScope(tree.Root, out var symbol).Should().BeTrue();
+        reasoner.TryGetScope(tree.Root, out var symbol).Should().BeTrue();
         symbol.Should().BeOfType<ModuleScope>();
     }
 
@@ -37,12 +37,12 @@ public class SemanticModelTests
             const b = a;
             """;
         var tree = Parser.ParseModule(src);
-        var model = SemanticModel.Create(tree);
+        var reasoner = Reasoner.Create(tree);
 
         var decl1 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().First();
         var decl2 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().Skip(1).Single();
-        var valueSymbol = model.LookupSymbol(decl2.Value);
-        model.TryGetDeclaredSymbol(decl1, out var symbol).Should().BeTrue();
+        var valueSymbol = reasoner.LookupSymbol(decl2.Value);
+        reasoner.TryGetDeclaredSymbol(decl1, out var symbol).Should().BeTrue();
 
         valueSymbol.Should().NotBeNull().And.Be(symbol);
     }
@@ -55,11 +55,11 @@ public class SemanticModelTests
             fn f() { var s = S1 { }; var a = s.a; }
             """;
         var tree = Parser.ParseModule(src);
-        var model = SemanticModel.Create(tree);
+        var reasoner = Reasoner.Create(tree);
 
         var varStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Skip(1).Single();
         var accessExpr = varStmt.Initializer!.Expr;
-        var fieldSymbol = model.LookupSymbol(accessExpr);
+        var fieldSymbol = reasoner.LookupSymbol(accessExpr);
 
         fieldSymbol.Should().NotBeNull().And.BeAssignableTo<FieldSymbol>();
     }
@@ -72,14 +72,14 @@ public class SemanticModelTests
             fn f() { var s = S1 { a = 42 }; }
             """;
         var tree = Parser.ParseModule(src);
-        var model = SemanticModel.Create(tree);
+        var reasoner = Reasoner.Create(tree);
 
         var varStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Single();
         var structCreationExpr = (StructCreationExprNode)varStmt.Initializer!.Expr;
         var mapInitializer = structCreationExpr.MapInitializer;
 
-        var fieldSymbol = model.LookupSymbol(mapInitializer.WellFormedExprs.ElementAt(0).Lhs);
-        var fieldType = model.LookupType(mapInitializer.WellFormedExprs.ElementAt(0).Lhs);
+        var fieldSymbol = reasoner.LookupSymbol(mapInitializer.WellFormedExprs.ElementAt(0).Lhs);
+        var fieldType = reasoner.LookupType(mapInitializer.WellFormedExprs.ElementAt(0).Lhs);
 
         fieldSymbol.Should().NotBeNull().And.BeAssignableTo<FieldSymbol>();
         fieldType.Should().NotBeNull().And.Be(BuiltinTypeSystem.i32);
@@ -95,17 +95,17 @@ public class SemanticModelTests
             const d = true;
             """;
         var tree = Parser.ParseModule(src);
-        var model = SemanticModel.Create(tree);
+        var reasoner = Reasoner.Create(tree);
 
         var decl1 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().First();
         var decl2 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().Skip(1).First();
         //var decl3 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().Skip(2).First();
         var decl4 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().Skip(2).Single();
 
-        model.LookupType(decl1.Value).Should().Be(BuiltinTypeSystem.i32);
-        model.LookupType(decl2.Value).Should().Be(BuiltinTypeSystem.@char);
-        //model.LookupType(decl3.Value).Should().Be(BuiltInTypeSystem.String);
-        model.LookupType(decl4.Value).Should().Be(BuiltinTypeSystem.@bool);
+        reasoner.LookupType(decl1.Value).Should().Be(BuiltinTypeSystem.i32);
+        reasoner.LookupType(decl2.Value).Should().Be(BuiltinTypeSystem.@char);
+        //reasoner.LookupType(decl3.Value).Should().Be(BuiltInTypeSystem.String);
+        reasoner.LookupType(decl4.Value).Should().Be(BuiltinTypeSystem.@bool);
     }
 
     [Fact]
@@ -117,10 +117,10 @@ public class SemanticModelTests
             }
             """;
         var tree = Parser.ParseModule(src);
-        var model = SemanticModel.Create(tree);
+        var reasoner = Reasoner.Create(tree);
 
         var letStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Single();
-        var initializerSymbol = model.LookupType(letStmt.Initializer!);
+        var initializerSymbol = reasoner.LookupType(letStmt.Initializer!);
         initializerSymbol.Should().Be(BuiltinTypeSystem.i32);
     }
 
@@ -131,10 +131,10 @@ public class SemanticModelTests
             alias Integer i32;
             """;
         var tree = Parser.ParseModule(src);
-        var model = SemanticModel.Create(tree);
+        var reasoner = Reasoner.Create(tree);
 
         var aliasDecl = tree.Root.DescendantNodes().OfType<AliasDeclNode>().Single();
-        model.TryGetDeclaredSymbol(aliasDecl, out var symbol).Should().BeTrue();
+        reasoner.TryGetDeclaredSymbol(aliasDecl, out var symbol).Should().BeTrue();
         symbol.Should().BeOfType<AliasTypeSymbol>();
     }
 
@@ -146,10 +146,10 @@ public class SemanticModelTests
             alias AnotherInteger Integer;
             """;
         var tree = Parser.ParseModule(src);
-        var model = SemanticModel.Create(tree);
+        var reasoner = Reasoner.Create(tree);
 
         var anotherIntegerAliasDecl = tree.Root.DescendantNodes().OfType<AliasDeclNode>().ElementAt(1);
-        var symbol = (AliasTypeSymbol)model.GetDeclaredSymbol(anotherIntegerAliasDecl)!;
+        var symbol = (AliasTypeSymbol)reasoner.GetDeclaredSymbol(anotherIntegerAliasDecl)!;
         symbol.UnwrapAliases().Should().Be(BuiltinTypeSystem.i32);
     }
 
@@ -161,10 +161,10 @@ public class SemanticModelTests
             alias AnotherInteger Integer;
             """;
         var tree = Parser.ParseModule(src);
-        var model = SemanticModel.Create(tree);
+        var reasoner = Reasoner.Create(tree);
 
         var anotherIntegerAliasDecl = tree.Root.DescendantNodes().OfType<AliasDeclNode>().ElementAt(1);
-        var symbol = (AliasTypeSymbol)model.GetDeclaredSymbol(anotherIntegerAliasDecl)!;
+        var symbol = (AliasTypeSymbol)reasoner.GetDeclaredSymbol(anotherIntegerAliasDecl)!;
         symbol.IsAssignableFrom(BuiltinTypeSystem.i32);
         BuiltinTypeSystem.i32.IsAssignableFrom(symbol);
     }
@@ -177,12 +177,12 @@ public class SemanticModelTests
             alias Delegate2 fn (i32) f64;
             """;
         var tree = Parser.ParseModule(src);
-        var model = SemanticModel.Create(tree);
+        var reasoner = Reasoner.Create(tree);
 
         var aliasDecl1 = tree.Root.DescendantNodes().OfType<AliasDeclNode>().ElementAt(0);
         var aliasDecl2 = tree.Root.DescendantNodes().OfType<AliasDeclNode>().ElementAt(1);
-        var symbol1 = (AliasTypeSymbol)model.GetDeclaredSymbol(aliasDecl1)!;
-        var symbol2 = (AliasTypeSymbol)model.GetDeclaredSymbol(aliasDecl2)!;
+        var symbol1 = (AliasTypeSymbol)reasoner.GetDeclaredSymbol(aliasDecl1)!;
+        var symbol2 = (AliasTypeSymbol)reasoner.GetDeclaredSymbol(aliasDecl2)!;
         symbol1.IsAssignableFrom(symbol2);
     }
 
@@ -197,10 +197,10 @@ public class SemanticModelTests
             }
             """;
         var tree = Parser.ParseModule(src);
-        var model = SemanticModel.Create(tree);
+        var reasoner = Reasoner.Create(tree);
 
         var callExpr = tree.Root.DescendantNodes().OfType<CallExprNode>().Single();
-        var callType = model.LookupType(callExpr);
+        var callType = reasoner.LookupType(callExpr);
         callType.Should().Be(BuiltinTypeSystem.i32);
     }
 
@@ -216,10 +216,10 @@ public class SemanticModelTests
             }
             """;
         var tree = Parser.ParseModule(src);
-        var model = SemanticModel.Create(tree);
+        var reasoner = Reasoner.Create(tree);
 
         var callExpr = tree.Root.DescendantNodes().OfType<CallExprNode>().Single();
-        var callType = model.LookupType(callExpr);
+        var callType = reasoner.LookupType(callExpr);
         callType.Should().Be(BuiltinTypeSystem.i32);
     }
 
@@ -231,11 +231,11 @@ public class SemanticModelTests
             fn f() { var s = S1 { }; var a = s.a; }
             """;
         var tree = Parser.ParseModule(src);
-        var model = SemanticModel.Create(tree);
+        var reasoner = Reasoner.Create(tree);
 
         var varStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Skip(1).Single();
         var accessExpr = varStmt.Initializer!.Expr;
-        var fieldType = model.LookupType(accessExpr);
+        var fieldType = reasoner.LookupType(accessExpr);
         fieldType.Should().NotBeNull().And.Be(BuiltinTypeSystem.i32);
     }
 
@@ -246,11 +246,11 @@ public class SemanticModelTests
             fn f() { var n = 32f32; }
             """;
         var tree = Parser.ParseModule(src);
-        var model = SemanticModel.Create(tree);
+        var reasoner = Reasoner.Create(tree);
 
         var varStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Single();
         var literalExpr = varStmt.Initializer!.Expr;
-        var numericType = model.LookupType(literalExpr);
+        var numericType = reasoner.LookupType(literalExpr);
         numericType.Should().Be(BuiltinTypeSystem.f32);
     }
 
@@ -263,10 +263,10 @@ public class SemanticModelTests
             }
             """;
         var tree = Parser.ParseModule(src);
-        var model = SemanticModel.Create(tree);
+        var reasoner = Reasoner.Create(tree);
 
         var letStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Single();
-        model.TryGetDeclaredSymbol(letStmt, out var symbol).Should().BeTrue();
+        reasoner.TryGetDeclaredSymbol(letStmt, out var symbol).Should().BeTrue();
         var localSymbol = (LocalSymbol)symbol!;
         localSymbol.Type.Should().BeOfType<ErrorTypeSymbol>();
         localSymbol.IsTypeInferred.Should().BeFalse();
@@ -303,10 +303,10 @@ public class SemanticModelTests
     private void ExpectLocalInferredType(string src, TypeSymbol expectedType)
     {
         var tree = Parser.ParseModule(src);
-        var model = SemanticModel.Create(tree);
+        var reasoner = Reasoner.Create(tree);
 
         var letStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Single();
-        model.TryGetDeclaredSymbol(letStmt, out var symbol).Should().BeTrue();
+        reasoner.TryGetDeclaredSymbol(letStmt, out var symbol).Should().BeTrue();
         var localSymbol = symbol.Should().BeOfType<LocalSymbol>().Subject;
         localSymbol.Type.Should().Be(expectedType);
         localSymbol.IsTypeInferred.Should().BeTrue();
@@ -321,10 +321,10 @@ public class SemanticModelTests
             }
             """;
         var tree = Parser.ParseModule(src);
-        var model = SemanticModel.Create(tree);
+        var reasoner = Reasoner.Create(tree);
 
         var fieldDecl = tree.Root.DescendantNodes().OfType<FieldDeclNode>().Single();
-        model.TryGetDeclaredSymbol(fieldDecl, out var symbol).Should().BeTrue();
+        reasoner.TryGetDeclaredSymbol(fieldDecl, out var symbol).Should().BeTrue();
         var fieldSymbol = (FieldSymbol)symbol!;
         fieldSymbol.Type.Should().Be(BuiltinTypeSystem.@bool);
         fieldSymbol.IsTypeInferred.Should().BeTrue();
@@ -337,10 +337,10 @@ public class SemanticModelTests
             fn f() { }
             """;
         var tree = Parser.ParseModule(src);
-        var model = SemanticModel.Create(tree);
+        var reasoner = Reasoner.Create(tree);
 
         var fnDecl = tree.Root.DescendantNodes().OfType<FnDeclNode>().Single();
-        model.TryGetDeclaredSymbol(fnDecl, out var symbol).Should().BeTrue();
+        reasoner.TryGetDeclaredSymbol(fnDecl, out var symbol).Should().BeTrue();
         var fnSymbol = symbol.Should().BeOfType<FnSymbol>().Subject;
         fnSymbol.ReturnType.Should().Be(BuiltinTypeSystem.None);
     }
@@ -354,14 +354,14 @@ public class SemanticModelTests
             fn f3(a: i32, b: i32) { }
             """;
         var tree = Parser.ParseModule(src);
-        var model = SemanticModel.Create(tree);
+        var reasoner = Reasoner.Create(tree);
 
         var f1Node = tree.Root.DescendantNodes().OfType<FnDeclNode>().ElementAt(0);
-        var f1Symbol = (FnSymbol)model.GetDeclaredSymbol(f1Node)!;
+        var f1Symbol = (FnSymbol)reasoner.GetDeclaredSymbol(f1Node)!;
         var f2Node = tree.Root.DescendantNodes().OfType<FnDeclNode>().ElementAt(1);
-        var f2Symbol = (FnSymbol)model.GetDeclaredSymbol(f2Node)!;
+        var f2Symbol = (FnSymbol)reasoner.GetDeclaredSymbol(f2Node)!;
         var f3Node = tree.Root.DescendantNodes().OfType<FnDeclNode>().ElementAt(2);
-        var f3Symbol = (FnSymbol)model.GetDeclaredSymbol(f3Node)!;
+        var f3Symbol = (FnSymbol)reasoner.GetDeclaredSymbol(f3Node)!;
 
         f1Symbol.Type.Equals(f2Symbol.Type).Should().BeTrue();
         f1Symbol.Type.Equals(f3Symbol.Type).Should().BeFalse();
@@ -376,14 +376,14 @@ public class SemanticModelTests
             fn f3(a: i32, b: i32) i64 { return 3.0; }
             """;
         var tree = Parser.ParseModule(src);
-        var model = SemanticModel.Create(tree);
+        var reasoner = Reasoner.Create(tree);
 
         var f1Node = tree.Root.DescendantNodes().OfType<FnDeclNode>().ElementAt(0);
-        var f1Symbol = (FnSymbol)model.GetDeclaredSymbol(f1Node)!;
+        var f1Symbol = (FnSymbol)reasoner.GetDeclaredSymbol(f1Node)!;
         var f2Node = tree.Root.DescendantNodes().OfType<FnDeclNode>().ElementAt(1);
-        var f2Symbol = (FnSymbol)model.GetDeclaredSymbol(f2Node)!;
+        var f2Symbol = (FnSymbol)reasoner.GetDeclaredSymbol(f2Node)!;
         var f3Node = tree.Root.DescendantNodes().OfType<FnDeclNode>().ElementAt(2);
-        var f3Symbol = (FnSymbol)model.GetDeclaredSymbol(f3Node)!;
+        var f3Symbol = (FnSymbol)reasoner.GetDeclaredSymbol(f3Node)!;
 
         f1Symbol.Type.Equals(f2Symbol.Type).Should().BeTrue();
         f1Symbol.Type.Equals(f3Symbol.Type).Should().BeFalse();
@@ -400,14 +400,14 @@ public class SemanticModelTests
             }
             """;
         var tree = Parser.ParseModule(src);
-        var model = SemanticModel.Create(tree);
+        var reasoner = Reasoner.Create(tree);
 
         var f1Node = tree.Root.DescendantNodes().OfType<VarStmtNode>().ElementAt(0);
-        var f1Symbol = (LocalSymbol)model.GetDeclaredSymbol(f1Node)!;
+        var f1Symbol = (LocalSymbol)reasoner.GetDeclaredSymbol(f1Node)!;
         var f2Node = tree.Root.DescendantNodes().OfType<VarStmtNode>().ElementAt(1);
-        var f2Symbol = (LocalSymbol)model.GetDeclaredSymbol(f2Node)!;
+        var f2Symbol = (LocalSymbol)reasoner.GetDeclaredSymbol(f2Node)!;
         var f3Node = tree.Root.DescendantNodes().OfType<VarStmtNode>().ElementAt(2);
-        var f3Symbol = (LocalSymbol)model.GetDeclaredSymbol(f3Node)!;
+        var f3Symbol = (LocalSymbol)reasoner.GetDeclaredSymbol(f3Node)!;
 
         f1Symbol.Type.Should().BeOfType<FnTypeSymbol>();
         f1Symbol.Type.Equals(f2Symbol.Type).Should().BeTrue();
@@ -428,12 +428,12 @@ public class SemanticModelTests
             }
             """;
         var tree = Parser.ParseModule(src);
-        var model = SemanticModel.Create(tree);
+        var reasoner = Reasoner.Create(tree);
 
         var f1Node = tree.Root.DescendantNodes().OfType<VarStmtNode>().ElementAt(0);
-        var f1Symbol = (LocalSymbol)model.GetDeclaredSymbol(f1Node)!;
+        var f1Symbol = (LocalSymbol)reasoner.GetDeclaredSymbol(f1Node)!;
         var f2Node = tree.Root.DescendantNodes().OfType<VarStmtNode>().ElementAt(1);
-        var f2Symbol = (LocalSymbol)model.GetDeclaredSymbol(f2Node)!;
+        var f2Symbol = (LocalSymbol)reasoner.GetDeclaredSymbol(f2Node)!;
 
         f1Symbol.Type.IsAssignableFrom(f2Symbol.Type).Should().BeTrue();
         f2Symbol.Type.IsAssignableFrom(f1Symbol.Type).Should().BeTrue();
@@ -446,10 +446,10 @@ public class SemanticModelTests
             @extern fn f();
             """;
         var tree = Parser.ParseModule(src);
-        var model = SemanticModel.Create(tree);
+        var reasoner = Reasoner.Create(tree);
 
         var fnDecl = tree.Root.DescendantNodes().OfType<FnDeclNode>().Single();
-        model.TryGetDeclaredSymbol(fnDecl, out var symbol).Should().BeTrue();
+        reasoner.TryGetDeclaredSymbol(fnDecl, out var symbol).Should().BeTrue();
         var fnSymbol = symbol.Should().BeOfType<FnSymbol>().Subject;
         fnSymbol.IsExtern.Should().BeTrue();
     }
@@ -462,10 +462,10 @@ public class SemanticModelTests
             fn f() { }
             """;
         var tree = Parser.ParseModule(src);
-        var model = SemanticModel.Create(tree);
+        var reasoner = Reasoner.Create(tree);
 
         var fnDecl = tree.Root.DescendantNodes().OfType<FnDeclNode>().Single();
-        model.TryGetDeclaredSymbol(fnDecl, out var symbol).Should().BeTrue();
+        reasoner.TryGetDeclaredSymbol(fnDecl, out var symbol).Should().BeTrue();
         var fnSymbol = symbol.Should().BeOfType<FnSymbol>().Subject;
         fnSymbol.IsOuterFn.Should().BeTrue();
     }

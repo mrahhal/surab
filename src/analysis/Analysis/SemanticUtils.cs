@@ -3,12 +3,12 @@
 public static class SemanticUtils
 {
     public static IEnumerable<LocalSymbol> CollectLocals(
-        SemanticModel model,
+        Reasoner reasoner,
         SyntaxNode node)
     {
         foreach (var n in node.DescendantNodes())
         {
-            if (model.TryGetDeclaredSymbol(n, out var symbol) &&
+            if (reasoner.TryGetDeclaredSymbol(n, out var symbol) &&
                 symbol is LocalSymbol localSymbol)
             {
                 yield return localSymbol;

@@ -205,7 +205,7 @@ public class LowererTests
     private static LoweredTree Lower(string src)
     {
         var tree = Parser.ParseModule(src);
-        var model = SemanticModel.Create(tree);
-        return Lowerer.Lower(model);
+        var reasoner = Reasoner.Create(tree);
+        return Lowerer.Lower(reasoner);
     }
 }

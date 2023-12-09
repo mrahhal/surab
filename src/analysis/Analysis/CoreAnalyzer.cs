@@ -3,23 +3,23 @@
 namespace Surab.Analysis;
 
 /// <summary>
-/// A visitor that detects all semantic diagnostics for a given <see cref="SemanticModel"/>.
+/// A visitor that detects all core semantic diagnostics in a <see cref="Reasoner"/>.
 /// </summary>
-internal class SemanticAnalyzer(SemanticModel model) : SyntaxTreeVisitor
+internal class CoreAnalyzer(Reasoner reasoner) : SyntaxTreeVisitor
 {
-    private readonly SemanticModel _model = model;
+    private readonly Reasoner _reasoner = reasoner;
     private readonly DiagnosticBag _diagnostics = new();
 
-    public static DiagnosticBag Analyze(SemanticModel model)
+    public static DiagnosticBag Analyze(Reasoner reasoner)
     {
-        var analyzer = new SemanticAnalyzer(model);
+        var analyzer = new CoreAnalyzer(reasoner);
         analyzer.Analyze();
         return analyzer._diagnostics;
     }
 
     private void Analyze()
     {
-        Visit(_model.Tree.Root);
+        Visit(_reasoner.Tree.Root);
     }
 
     public override void VisitConstDecl(ConstDeclNode node)
@@ -126,12 +126,12 @@ internal class SemanticAnalyzer(SemanticModel model) : SyntaxTreeVisitor
 
     public override void VisitVarStmt(VarStmtNode node)
     {
-        var lhsSymbol = (LocalSymbol)_model.GetDeclaredSymbol(node)!;
+        var lhsSymbol = (LocalSymbol)_reasoner.GetDeclaredSymbol(node)!;
         var lhsType = lhsSymbol.Type;
 
         if (node.Initializer != null)
         {
-            var rhsType = _model.LookupType(node.Initializer.Expr);
+            var rhsType = _reasoner.LookupType(node.Initializer.Expr);
 
             AnalyzeAssignment(node, lhsType, rhsType);
         }
@@ -142,12 +142,12 @@ internal class SemanticAnalyzer(SemanticModel model) : SyntaxTreeVisitor
     public override void VisitAssignmentExpr(AssignmentExprNode node)
     {
         // Compatibility
-        //var lhsSymbol = _model.LookupSymbol(node.Lhs);
+        //var lhsSymbol = _reasoner.LookupSymbol(node.Lhs);
         // TODO: Use lhsSymbol.Type if lhsSymbol has a Type?
-        var lhsType = _model.LookupType(node.Lhs);
+        var lhsType = _reasoner.LookupType(node.Lhs);
 
-        //var rhsSymbol = _model.LookupSymbol(node.Rhs);
-        var rhsType = _model.LookupType(node.Rhs);
+        //var rhsSymbol = _reasoner.LookupSymbol(node.Rhs);
+        var rhsType = _reasoner.LookupType(node.Rhs);
 
         AnalyzeAssignment(node, lhsType, rhsType);
 
@@ -184,7 +184,7 @@ internal class SemanticAnalyzer(SemanticModel model) : SyntaxTreeVisitor
     {
         // TODO: Should work on traits or something.
 
-        var exprType = _model.LookupType(node.Expr);
+        var exprType = _reasoner.LookupType(node.Expr);
 
         switch (node.Op.UnaryOperatorTokenKind)
         {
@@ -208,8 +208,8 @@ internal class SemanticAnalyzer(SemanticModel model) : SyntaxTreeVisitor
 
     public override void VisitBinaryExpr(BinaryExprNode node)
     {
-        var leftType = _model.LookupType(node.Left);
-        var rightType = _model.LookupType(node.Right);
+        var leftType = _reasoner.LookupType(node.Left);
+        var rightType = _reasoner.LookupType(node.Right);
 
         if (leftType == null || rightType == null)
         {
@@ -268,7 +268,7 @@ internal class SemanticAnalyzer(SemanticModel model) : SyntaxTreeVisitor
 
     public override void VisitCallExpr(CallExprNode node)
     {
-        var calleeType = _model.LookupType(node.Callee).UnwrapAliases();
+        var calleeType = _reasoner.LookupType(node.Callee).UnwrapAliases();
 
         // Ensure callee is a function and validate args.
 
@@ -293,7 +293,7 @@ internal class SemanticAnalyzer(SemanticModel model) : SyntaxTreeVisitor
                 {
                     var arg = args[i];
                     var paramType = fnSymbol.ParamTypes[i];
-                    var argType = _model.LookupType(arg);
+                    var argType = _reasoner.LookupType(arg);
                     if (paramType.IsError || argType.IsError)
                     {
                         // Reported somewhere else.
@@ -311,7 +311,7 @@ internal class SemanticAnalyzer(SemanticModel model) : SyntaxTreeVisitor
 
     public override void VisitAccessExpr(AccessExprNode node)
     {
-        var targetType = _model.LookupType(node.Target);
+        var targetType = _reasoner.LookupType(node.Target);
         if (targetType.IsError)
         {
             // Reported somewhere else.
@@ -336,7 +336,7 @@ internal class SemanticAnalyzer(SemanticModel model) : SyntaxTreeVisitor
 
     public override void VisitThisExpr(ThisExprNode node)
     {
-        var thisType = _model.LookupType(node);
+        var thisType = _reasoner.LookupType(node);
         if (thisType == null)
         {
             _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"unknown this context");
@@ -347,7 +347,7 @@ internal class SemanticAnalyzer(SemanticModel model) : SyntaxTreeVisitor
 
     public override void VisitStructCreationExpr(StructCreationExprNode node)
     {
-        var symbol = _model.LookupSymbol(node);
+        var symbol = _reasoner.LookupSymbol(node);
         AnalyzeLookedUpIdentifier(node.Identifier, symbol);
 
         if (symbol == null)
@@ -380,7 +380,7 @@ internal class SemanticAnalyzer(SemanticModel model) : SyntaxTreeVisitor
 
     public override void VisitIdentifierExpr(IdentifierExprNode node)
     {
-        var symbol = _model.LookupSymbol(node);
+        var symbol = _reasoner.LookupSymbol(node);
         AnalyzeLookedUpIdentifier(node.Identifier, symbol);
 
         base.VisitIdentifierExpr(node);
@@ -396,7 +396,7 @@ internal class SemanticAnalyzer(SemanticModel model) : SyntaxTreeVisitor
 
     public override void VisitNamedType(NamedTypeNode node)
     {
-        var symbol = _model.LookupSymbol(node);
+        var symbol = _reasoner.LookupSymbol(node);
         if (symbol == null)
         {
             _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"unknown type");

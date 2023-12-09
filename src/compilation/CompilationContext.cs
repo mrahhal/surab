@@ -6,12 +6,12 @@ namespace Surab.Compilation;
 public sealed class CompilationContext
 {
     internal CompilationContext(
-        List<SemanticModel> semanticModels,
+        List<Reasoner> reasoners,
         Target target,
         LLVMCompilationContext llvmCompilationContext,
         CompilationOptions options)
     {
-        SemanticModels = semanticModels;
+        Reasoners = reasoners;
         Target = target;
         LLVM = llvmCompilationContext;
         Options = options;
@@ -19,7 +19,7 @@ public sealed class CompilationContext
         LLVMTarget = LLVMTarget.Create(this);
     }
 
-    public List<SemanticModel> SemanticModels { get; }
+    public List<Reasoner> Reasoners { get; }
 
     public Target Target { get; }
 
@@ -29,7 +29,7 @@ public sealed class CompilationContext
 
     public CompilationOptions Options { get; }
 
-    // TODO: Some of these might need to be moved to a semantic model context so that we can bust them.
+    // TODO: Some of these might need to be moved to a reasoner context so that we can bust them.
 
     internal Dictionary<Symbol, LLVMUnit> SymbolToLLVMUnit { get; } = [];
 

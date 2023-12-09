@@ -85,29 +85,29 @@ public class Project
         return _sourceFileToStateMap[sourceFile].SyntaxTree;
     }
 
-    public SemanticModel GetSemanticModel(SourceFile sourceFile)
+    public Reasoner GetReasoner(SourceFile sourceFile)
     {
-        return _sourceFileToStateMap[sourceFile].SemanticModel;
+        return _sourceFileToStateMap[sourceFile].Reasoner;
     }
 
-    public IEnumerable<SemanticModel> GetAllSemanticModels()
+    public IEnumerable<Reasoner> GetAllReasoners()
     {
         foreach (var sourceFileState in _sourceFileToStateMap.Values)
         {
-            yield return sourceFileState.SemanticModel;
+            yield return sourceFileState.Reasoner;
         }
     }
 
     private void InitializeSourceFile(SourceFile sourceFile)
     {
         var tree = Parser.ParseModule(sourceFile);
-        var model = SemanticModel.Create(tree);
+        var reasoner = Reasoner.Create(tree);
 
         _sourceFileToStateMap[sourceFile] = new SourceFileState
         {
             IsAnalyzed = false,
             SyntaxTree = tree,
-            SemanticModel = model,
+            Reasoner = reasoner,
         };
     }
 
@@ -126,10 +126,10 @@ public class Project
         state.IsAnalyzed = true;
 
         // Later:
-        // semanticModel.GetDependentSourceFiles() => each => EnsureAnalyzeSourceFile()
+        // reasoner.GetDependentSourceFiles() => each => EnsureAnalyzeSourceFile()
 
-        var semanticModel = GetSemanticModel(sourceFile);
-        var diags = semanticModel.GetAllDiagnostics().ToImmutableArray();
+        var reasoner = GetReasoner(sourceFile);
+        var diags = reasoner.GetAllDiagnostics().ToImmutableArray();
         state.FileDiagnostics = new FileDiagnostics(sourceFile, diags);
     }
 
@@ -139,7 +139,7 @@ public class Project
 
         public required SyntaxTree SyntaxTree { get; set; }
 
-        public required SemanticModel SemanticModel { get; set; }
+        public required Reasoner Reasoner { get; set; }
 
         public FileDiagnostics? FileDiagnostics { get; set; }
     }
