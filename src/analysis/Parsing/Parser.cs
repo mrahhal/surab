@@ -979,11 +979,10 @@ internal class ParserImpl
 
     /// <summary>
     /// Parses `(ident1: Type, ident2: Type)`
-    /// Requirements: current is LeftParen.
     /// </summary>
     private ParamsListNode? ParseParamsList()
     {
-        var openParenToken = EatAssertedSimpleToken(TokenKind.LeftParen);
+        var openParenToken = EatExpectedSimpleToken(TokenKind.LeftParen);
 
         var @params = new List<ParamNode>();
 
