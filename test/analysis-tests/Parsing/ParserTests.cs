@@ -85,7 +85,7 @@ public class ParserTests
     [Fact]
     public void Decl_Alias()
     {
-        var src = "@public() alias Foo Bar;";
+        var src = "@public alias Foo Bar;";
         var node = ParseDecl(src).Should().BeOfType<AliasDeclNode>().Subject;
         node.Attrs.Should().NotBeNull();
         node.Attrs!.Attrs.Should().HaveCount(1);
@@ -98,7 +98,7 @@ public class ParserTests
     [Fact]
     public void Decl_Alias_Fn()
     {
-        var src = "alias Delegate @extern() fn (S2);";
+        var src = "alias Delegate @extern fn (S2);";
         var node = ParseDecl(src).Should().BeOfType<AliasDeclNode>().Subject;
         node.AliasToken.Kind.Should().Be(SyntaxTokenKind.Simple);
         node.Identifier.Value.Should().Be("Delegate");

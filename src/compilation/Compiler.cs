@@ -823,9 +823,9 @@ internal abstract class LLVMTarget
     protected abstract LLVMTypeLowering GetLLVMLoweringCore(TypeSymbol type);
 }
 
-internal class x86_64WindowsLLVMTarget(CompilationContext context) : LLVMTarget(context)
+internal abstract class x86_64WindowsLLVMTarget(CompilationContext context) : LLVMTarget(context)
 {
-    protected new x86_64WindowsTarget Target => (x86_64WindowsTarget)Context.Target;
+    protected new x86_64WindowsTarget Target => (x86_64WindowsTarget)base.Target;
 
     public override bool IsReturnSRetCore(FnTypeSymbol fnType)
     {

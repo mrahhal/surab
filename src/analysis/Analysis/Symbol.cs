@@ -406,7 +406,7 @@ public abstract class TypeSymbol : Symbol
     }
 
     /// <summary>
-    /// Unwrap aliases and return the actual type. The result should always be a non alias type.
+    /// Unwrap aliases and return the actual type. The result should always be a non aliased type.
     /// </summary>
     public virtual TypeSymbol UnwrapAliases()
     {
@@ -478,7 +478,7 @@ internal readonly struct FnTypeKey(
 
     public override string ToString()
     {
-        return $"{(IsExtern ? "@extern() " : "")}fn ({string.Join(", ", ParamTypes.Select(p => p.Name))}) {ReturnType.Name}";
+        return $"{(IsExtern ? "@extern " : "")}fn ({string.Join(", ", ParamTypes.Select(p => p.Name))}) {ReturnType.Name}";
     }
 }
 

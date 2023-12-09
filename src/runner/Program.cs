@@ -19,7 +19,7 @@ p.Start();
 p.WaitForExit();
 
 var src = """
-    alias Delegate1 @extern() fn (S2);
+    alias Delegate1 @extern fn (S2);
 
     struct S1 {
         a: f64;
@@ -78,7 +78,7 @@ var src = """
         var fn_ptr /* : @extern fn (f64, f64) f64 */ = f;
         print_f64(fn_ptr(2.0, 3.0));
 
-        var fn_ptr: @extern() fn (S2) = print_from_rust;
+        var fn_ptr: @extern fn (S2) = print_from_rust;
         fn_ptr(s2);
 
         var fn_ptr: Delegate1 = print_from_rust;
