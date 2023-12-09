@@ -647,7 +647,17 @@ internal abstract class LLVMTarget
     public abstract bool IsReturnSRetCore(FnTypeSymbol fnType);
 
     // TODO: Support different calling conventions. Right now it's always Win64 cc.
-    public abstract LLVMTypeRef LowerFnReturnType(FnSymbol fn);
+    public LLVMTypeRef LowerFnReturnType(FnTypeSymbol fnType)
+    {
+        if (fnType.ReturnType == BuiltinTypeSystem.None)
+            return LLVMTypeRef.Void;
+
+        Debug.Assert(!Target.GetAbiSize(fnType.ReturnType).IsZeroSized);
+
+        return LowerFnReturnTypeCore(fnType);
+    }
+
+    public abstract LLVMTypeRef LowerFnReturnTypeCore(FnTypeSymbol fnType);
 
     /// <summary>
     /// Lowers a type from Surab to LLVM.
@@ -707,7 +717,7 @@ internal abstract class LLVMTarget
     {
         // TODO: Optimize? This is being called multiple times in sequence when we compile an fn.
         var (sret, _) = GetFnInfoFromFnType(fnType);
-        var returnType = LowerType(fnType.ReturnType);
+        var returnType = LowerFnReturnType(fnType);
 
         // TODO: Better way?
         var llvmIndex = 0;
@@ -751,7 +761,7 @@ internal abstract class LLVMTarget
             llvmIndex++;
         }
 
-        var llvmFnType = LLVMTypeRef.CreateFunction(sret.HasValue ? LLVMTypeRef.Void : returnType, @params.ToArray(), false);
+        var llvmFnType = LLVMTypeRef.CreateFunction(returnType, @params.ToArray(), false);
 
         // TODO: AddressSpace?
         return (LLVMTypeRef.CreatePointer(llvmFnType, 0), llvmFnType);
@@ -822,9 +832,9 @@ internal class x86_64WindowsLLVMTarget(CompilationContext context) : LLVMTarget(
         return Target.Classify(fnType.ReturnType) == Classification.Memory;
     }
 
-    public override LLVMTypeRef LowerFnReturnType(FnSymbol fn)
+    public override LLVMTypeRef LowerFnReturnTypeCore(FnTypeSymbol fnType)
     {
-        var returnType = fn.ReturnType;
+        var returnType = fnType.ReturnType;
         var classification = Target.Classify(returnType);
         return classification switch
         {
