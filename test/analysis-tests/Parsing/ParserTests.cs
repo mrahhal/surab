@@ -566,6 +566,19 @@ public class ParserTests
         tree.Diagnostics.Diagnostics.Should().HaveCount(1);
     }
 
+    [Fact]
+    public void RandomIssue_1()
+    {
+        // Used to cause an infinite loop when parsing due to not properly checking EOF.
+        var src = """
+            fn main() {
+                d(
+            }
+            """;
+        var tree = Parser.ParseModule(src);
+        tree.Diagnostics.Diagnostics.Should().NotBeNullOrEmpty();
+    }
+
     // ---
 
     private static ModuleNode ParseModule(string src)

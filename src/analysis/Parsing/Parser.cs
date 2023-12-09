@@ -434,7 +434,7 @@ internal class ParserImpl
     {
         var members = new List<DeclNode>();
 
-        while (!CheckToken(TokenKind.RightBrace))
+        while (!IsAtEnd() && !CheckToken(TokenKind.RightBrace))
         {
             var decl = ParseInnerDecl();
             if (decl == null) return null;
@@ -827,7 +827,7 @@ internal class ParserImpl
         var openBraceToken = EatAssertedSimpleToken(TokenKind.LeftBrace);
         var stmts = new List<StmtNode>();
 
-        while (!CheckToken(TokenKind.RightBrace))
+        while (!IsAtEnd() && !CheckToken(TokenKind.RightBrace))
         {
             stmts.Add(ParseStmt());
         }
