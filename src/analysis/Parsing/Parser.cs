@@ -115,12 +115,15 @@ internal class ParserImpl
     /// <summary>
     /// Only called when a current token is expected to exist. Throws if it doesn't.
     /// </summary>
+    [DebuggerStepThrough]
     private Token AssertedCurrent() =>
         _current ?? throw new Exception("Expected current token to exist.");
 
+    [DebuggerStepThrough]
     private Token AssertedPrev() =>
         _prev ?? throw new Exception("Expected prev token to exist.");
 
+    [DebuggerStepThrough]
     [MemberNotNullWhen(false, nameof(_current))]
     private bool IsAtEnd() => _current == null;
 
@@ -272,6 +275,7 @@ internal class ParserImpl
     /// <summary>
     /// Returns `true` if the current token matches the given <see cref="TokenKind"/>.
     /// </summary>
+    [DebuggerStepThrough]
     private bool CheckToken(TokenKind tokenKind) =>
         _current?.Kind == tokenKind;
 
@@ -601,7 +605,7 @@ internal class ParserImpl
         var expr = ParsePrefixExpr();
         if (expr == null) return null;
 
-        while (_current != null)
+        while (!IsAtEnd())
         {
             var rule = Pratt.GetInfixRule(_current.Kind);
             if (rule == null) break;
