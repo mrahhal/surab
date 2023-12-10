@@ -289,11 +289,11 @@ internal class ParserImpl
         return false;
     }
 
-    private SimpleToken? TryEatSimpleToken(TokenKind tokenKind)
+    private SimpleToken? TryEatSimpleToken(TokenKind tokenKind, bool? isContextualKeyword = null)
     {
         if (TryEatToken(tokenKind))
         {
-            return SimpleToken.From(AssertedPrev());
+            return SimpleToken.From(AssertedPrev(), isContextualKeyword ?? false);
         }
         return null;
     }
@@ -306,10 +306,10 @@ internal class ParserImpl
         }
     }
 
-    private SimpleToken EatAssertedSimpleToken(TokenKind tokenKind)
+    private SimpleToken EatAssertedSimpleToken(TokenKind tokenKind, bool? isContextualKeyword = null)
     {
         EatAssertedToken(tokenKind);
-        return SimpleToken.From(AssertedPrev());
+        return SimpleToken.From(AssertedPrev(), isContextualKeyword ?? false);
     }
 
     private bool EatExpectedToken(TokenKind tokenKind)
@@ -323,15 +323,15 @@ internal class ParserImpl
         return true;
     }
 
-    private SimpleToken EatExpectedSimpleToken(TokenKind tokenKind)
+    private SimpleToken EatExpectedSimpleToken(TokenKind tokenKind, bool? isContextualKeyword = null)
     {
         if (EatExpectedToken(tokenKind))
         {
-            return SimpleToken.From(AssertedPrev());
+            return SimpleToken.From(AssertedPrev(), isContextualKeyword ?? false);
         }
         else
         {
-            return SimpleToken.Missing(tokenKind, ShrinkToEndSpanAtCurrent());
+            return SimpleToken.Missing(tokenKind, ShrinkToEndSpanAtCurrent(), isContextualKeyword ?? false);
         }
     }
 

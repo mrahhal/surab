@@ -81,20 +81,33 @@ public sealed class SimpleToken : SyntaxToken
 
     public SimpleTokenKind SimpleTokenKind { get; init; }
 
+    /// <summary>
+    /// Gets whether the token is a keyword (reserved or contextual).
+    /// </summary>
+    public bool IsKeyword { get; init; }
+
+    /// <summary>
+    /// Gets whether the token is a contextual keyword.
+    /// </summary>
+    public bool IsContextualKeyword { get; init; }
+
     public bool IsMissing { get; init; }
 
-    public static SimpleToken Missing(TokenKind tokenKind, TextSpan span) =>
-        From(tokenKind, span, isMissing: true);
+    public static SimpleToken Missing(TokenKind tokenKind, TextSpan span, bool isContextualKeyword) =>
+        From(tokenKind, span, isContextualKeyword, isMissing: true);
 
-    public static SimpleToken From(Token token, bool isMissing = false) =>
-        From(token.Kind, token.Span, isMissing);
+    public static SimpleToken From(Token token, bool isContextualKeyword, bool isMissing = false) =>
+        From(token.Kind, token.Span, isContextualKeyword, isMissing);
 
     public static SimpleToken From(
         TokenKind tokenKind,
         TextSpan span,
+        bool isContextualKeyword,
         bool isMissing = false) => new()
         {
             Span = span,
+            IsKeyword = isContextualKeyword || tokenKind.IsReservedKeyword(),
+            IsContextualKeyword = isContextualKeyword,
             IsMissing = isMissing,
             SimpleTokenKind = tokenKind switch
             {
@@ -122,6 +135,7 @@ public sealed class SimpleToken : SyntaxToken
                 TokenKind.Var => SimpleTokenKind.Var,
                 TokenKind.Const => SimpleTokenKind.Const,
                 TokenKind.Return => SimpleTokenKind.Return,
+
                 _ => throw new Exception($"TokenKind {tokenKind} not supported."),
             },
         };

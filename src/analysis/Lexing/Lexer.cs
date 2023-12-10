@@ -24,20 +24,6 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
         public int Char { get; set; }
     }
 
-    private static readonly Dictionary<string, TokenKind> KeywordsMap = new()
-    {
-        { "fn", TokenKind.Fn },
-        { "struct", TokenKind.Struct },
-        { "class", TokenKind.Class },
-        { "alias", TokenKind.Alias },
-        { "new", TokenKind.New },
-        { "this", TokenKind.This },
-        { "true", TokenKind.True },
-        { "false", TokenKind.False },
-        { "var", TokenKind.Var },
-        { "const", TokenKind.Const },
-        { "return", TokenKind.Return },
-    };
 
     private readonly ReadOnlyMemory<char> _src;
     private ReadOnlyMemory<char> _window;
@@ -359,8 +345,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 
         EatIdentifier();
         var lexeme = SliceConsumed();
-        // TODO: Optimize this when dictionaries start supporting spans.
-        if (!KeywordsMap.TryGetValue(lexeme.ToString(), out var tokenKind))
+        if (!TokenKindHelper.TryGetReservedKeyword(lexeme.ToString(), out var tokenKind))
         {
             tokenKind = TokenKind.Identifier;
         }

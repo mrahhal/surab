@@ -24,6 +24,8 @@ public class ParserTests
     {
         var src = "fn f() {}";
         var node = ParseDecl(src).Should().BeOfType<FnDeclNode>().Subject;
+        node.FnToken.IsKeyword.Should().BeTrue();
+        node.FnToken.IsContextualKeyword.Should().BeFalse();
         node.Sig.ReturnType.Should().BeNull();
         node.Body.Should().NotBeNull();
         node.SemicolonToken.Should().BeNull();

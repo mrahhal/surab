@@ -162,8 +162,35 @@ public class BlockCommentTokenData
     public bool IsTerminated { get; init; }
 }
 
+internal static class TokenKindHelper
+{
+    public static readonly Dictionary<string, TokenKind> ReservedKeywordsMap = new()
+    {
+        { "fn", Fn },
+        { "struct", Struct },
+        { "class", Class },
+        { "alias", Alias },
+        { "new", New },
+        { "this", This },
+        { "true", True },
+        { "false", False },
+        { "var", Var },
+        { "const", Const },
+        { "return", Return },
+    };
+
+    public static readonly HashSet<TokenKind> ReservedKeywordsSet = [.. ReservedKeywordsMap.Values];
+
+    public static bool TryGetReservedKeyword(string key, out TokenKind kind)
+    {
+        return ReservedKeywordsMap.TryGetValue(key, out kind);
+    }
+}
+
 public static class TokenKindExtensions
 {
+    public static bool IsReservedKeyword(this TokenKind kind) => TokenKindHelper.ReservedKeywordsSet.Contains(kind);
+
     public static bool IsUnary(this TokenKind kind) => kind is
         Plus or
         Minus or
