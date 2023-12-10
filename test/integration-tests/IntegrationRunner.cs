@@ -10,7 +10,7 @@ public static class IntegrationRunner
     {
         var sourceFile = SourceFile.FromText(src);
 
-        var project = Project.Create([sourceFile]);
+        var project = SurabProject.Create([sourceFile]);
         var reasoner = project.GetReasoner(sourceFile);
 
         var diags = reasoner.GetAllDiagnostics();

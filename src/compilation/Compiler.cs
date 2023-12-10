@@ -10,7 +10,7 @@ public sealed class Compiler
     private readonly CompilationContext _context;
 
     private Compiler(
-        Project project,
+        SurabProject project,
         Target target,
         CompilationOptions options)
     {
@@ -23,7 +23,7 @@ public sealed class Compiler
     }
 
     public static string Compile(
-        Project project,
+        SurabProject project,
         string targetTriple,
         CompilationOptions? options = null)
     {
