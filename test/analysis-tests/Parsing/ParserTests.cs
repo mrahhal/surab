@@ -59,6 +59,20 @@ public class ParserTests
     }
 
     [Fact]
+    public void Decl_Fn_Faulty()
+    {
+        var src = "fn some()";
+        var node = ParseDecl(src).Should().NotBeNull();
+    }
+
+    [Fact]
+    public void Decl_Fn_Faulty2()
+    {
+        var src = "fn some() /* some fn not complete */ fn main() {}";
+        ParseDecl(src).Should().NotBeNull();
+    }
+
+    [Fact]
     public void FnType()
     {
         var src = "var f: fn (i32, i32) i64;";

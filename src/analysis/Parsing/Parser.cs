@@ -1002,10 +1002,13 @@ internal class ParserImpl
     {
         var attrs = TryParseAttrsList();
 
-        var token = AssertedCurrent();
-        return token.Kind switch
+        if (_current == null) return null;
+        return _current.Kind switch
         {
             TokenKind.Identifier => ParseNamedType(attrs),
+            // Note that in the faulty: `fn some() /* not complete */ fn main() {}`
+            // The parser will think the next fn keyword (for main) the start of the fn return type of some.
+            // Currently, can't figure out a good way to recover this better without doing a lot of lookaheads.
             TokenKind.AtBeforeIdentifier or TokenKind.Fn => ParseFnType(attrs),
             _ => null,
         };
@@ -1087,11 +1090,10 @@ internal class ParserImpl
 
     /// <summary>
     /// Parses `(Type, Type)`
-    /// Requirements: current is LeftParen.
     /// </summary>
     private ParamTypesListNode? ParseParamTypesList()
     {
-        var openParenToken = EatAssertedSimpleToken(TokenKind.LeftParen);
+        var openParenToken = EatExpectedSimpleToken(TokenKind.LeftParen);
 
         var paramTypes = new List<ParamTypeNode>();
 
