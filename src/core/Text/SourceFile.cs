@@ -1,20 +1,20 @@
 ﻿namespace Surab;
 
 /// <summary>
-/// A source file in the project.
+/// A source file in a Surab project.
 /// </summary>
 public class SourceFile
 {
-    private SourceFile(Uri? uri, string text)
+    private SourceFile(string? path, string text)
     {
-        Uri = uri;
+        Path = path;
         Text = text;
     }
 
     /// <summary>
-    /// The uri of the source file.
+    /// The file system path of the source file.
     /// </summary>
-    public Uri? Uri { get; }
+    public string? Path { get; }
 
     /// <summary>
     /// The text content of the source file.
@@ -23,9 +23,9 @@ public class SourceFile
 
     public string? Description { get; init; }
 
-    public static SourceFile Create(Uri uri, string text)
+    public static SourceFile Create(string path, string text)
     {
-        return new(uri, text);
+        return new(path, text);
     }
 
     public static SourceFile FromText(string text)
@@ -33,7 +33,7 @@ public class SourceFile
         return new(null, text);
     }
 
-    internal void UpdateText(string newText)
+    public void UpdateText(string newText)
     {
         Text = newText;
     }
