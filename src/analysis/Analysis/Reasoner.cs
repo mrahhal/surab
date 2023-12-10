@@ -207,7 +207,7 @@ public class Reasoner
             ArgNode n => LookupType(n.Expr),
             EqualsValueClauseNode n => LookupType(n.Expr),
 
-            _ => ErrorTypeSymbol.General,
+            _ => ErrorTypeSymbol.Create(),
         };
     }
 
@@ -232,7 +232,7 @@ public class Reasoner
             ThisExprNode n => LookupType(n),
             StructCreationExprNode n => LookupType(n),
 
-            _ => ErrorTypeSymbol.General,
+            _ => ErrorTypeSymbol.Create(),
         };
     }
 
@@ -241,7 +241,7 @@ public class Reasoner
         var lastStmt = node.Stmts.LastOrDefault();
         if (lastStmt == null)
         {
-            return ErrorTypeSymbol.General;
+            return ErrorTypeSymbol.Create();
         }
 
         return LookupType(lastStmt);
@@ -260,7 +260,7 @@ public class Reasoner
     private TypeSymbol LookupType(CallExprNode node)
     {
         var fnType = LookupType(node.Callee) as FnTypeSymbol;
-        return fnType?.ReturnType ?? ErrorTypeSymbol.General;
+        return fnType?.ReturnType ?? ErrorTypeSymbol.Create();
     }
 
     private TypeSymbol LookupType(AccessExprNode node)
@@ -272,11 +272,11 @@ public class Reasoner
             ISymbolHasType s => GetMemberTypeSymbol(s.Type), // Instance access
             _ => null,
         };
-        return result ?? ErrorTypeSymbol.General;
+        return result ?? ErrorTypeSymbol.Create();
 
         TypeSymbol? GetMemberTypeSymbol(TypeSymbol typeSymbol)
         {
-            if (typeSymbol.IsError) return ErrorTypeSymbol.General;
+            if (typeSymbol.IsError) return ErrorTypeSymbol.Create();
 
             var member = typeSymbol.GetMember(node.Identifier);
             return member switch
@@ -345,14 +345,14 @@ public class Reasoner
         {
             TypeSymbol s => s,
             ISymbolHasType s => s.Type,
-            _ => ErrorTypeSymbol.General,
+            _ => ErrorTypeSymbol.Create(),
         };
     }
 
     private TypeSymbol LookupType(ThisExprNode node)
     {
         var scope = GetEnclosingScope(node);
-        return scope?.LookupThis() ?? ErrorTypeSymbol.General;
+        return scope?.LookupThis() ?? ErrorTypeSymbol.Create();
     }
 
     private TypeSymbol LookupType(StructCreationExprNode node)
@@ -392,7 +392,7 @@ public class Reasoner
     // - FnDeclNode: From `fn foo(v: i32) i32 { ... }`
     // - MethodDeclNode: ^ but method
     // - TypeNode: e.g. From the type in `var f: fn (i32) i32;`
-    // - AliasDeclNode: `alias Delegate fn (i32) i32;`
+    // - AliasDeclNode: `alias Delegate as fn (i32) i32;`
     public FnTypeSymbol GetFnType(SyntaxNode node)
     {
         return node switch
@@ -449,12 +449,10 @@ public class Reasoner
         var isExtern = sig.Attrs.HasAttr(KnownAttrs.Extern);
         return new FnTypeKey(
             isExtern,
-            sig.ReturnType == null ? BuiltinTypeSystem.None : (TypeSymbol)LookupSymbol(sig.ReturnType)!,
+            sig.ReturnType == null ? BuiltinTypeSystem.None : LookupSymbol(sig.ReturnType).AsTypeSymbolOrError(),
             sig.Params.Params.Select(p =>
             {
-                var paramType = LookupSymbol(p.Type!.Type) as TypeSymbol;
-                Debug.Assert(paramType != null);
-                return paramType;
+                return LookupSymbol(p.Type!.Type).AsTypeSymbolOrError();
             }));
     }
 
@@ -463,12 +461,10 @@ public class Reasoner
         var isExtern = fnType.Attrs.HasAttr(KnownAttrs.Extern);
         return new FnTypeKey(
             isExtern,
-            fnType.ReturnType == null ? BuiltinTypeSystem.None : (TypeSymbol)LookupSymbol(fnType.ReturnType)!,
+            fnType.ReturnType == null ? BuiltinTypeSystem.None : LookupSymbol(fnType.ReturnType).AsTypeSymbolOrError(),
             fnType.ParamTypes.ParamTypes.Select(p =>
             {
-                var paramType = LookupSymbol(p.Type) as TypeSymbol;
-                Debug.Assert(paramType != null);
-                return paramType;
+                return LookupSymbol(p.Type).AsTypeSymbolOrError();
             }));
     }
 

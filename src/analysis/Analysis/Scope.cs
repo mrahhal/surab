@@ -122,7 +122,7 @@ internal abstract class Scope
         else
         {
             var boundType = Reasoner.InferTypeOfDeclaringNode(node);
-            return ResolvedType.Inferred(boundType ?? ErrorTypeSymbol.General);
+            return ResolvedType.Inferred(boundType ?? ErrorTypeSymbol.Create());
         }
     }
 
@@ -145,7 +145,7 @@ internal abstract class Scope
             FnTypeNode fnTypeNode => Reasoner.LookupSymbol(fnTypeNode),
             _ => throw new UnreachableException(),
         };
-        return ResolvedType.Typed(resolvedType as TypeSymbol ?? ErrorTypeSymbol.General);
+        return ResolvedType.Typed(resolvedType as TypeSymbol ?? ErrorTypeSymbol.Create());
     }
 
     /// <summary>

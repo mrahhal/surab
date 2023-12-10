@@ -14,6 +14,7 @@ public enum SymbolKind
     NamedType,
     FnType,
     AliasType,
+    ErrorType,
 }
 
 /// <summary>
@@ -244,7 +245,7 @@ internal sealed class FieldSymbolImpl : FieldSymbol, ISymbolHasType
         TypeSymbol ResolveEnclosingType()
         {
             var enclosingType = Scope.LookupTypeDecl();
-            return enclosingType ?? ErrorTypeSymbol.General;
+            return enclosingType ?? ErrorTypeSymbol.Create();
         }
     }
 }
@@ -629,27 +630,37 @@ public class AliasTypeSymbol : TypeSymbol
 /// <summary>
 /// Represents a type symbol that failed to bind.
 /// </summary>
-public sealed class ErrorTypeSymbol : NamedTypeSymbol, IEquatable<ErrorTypeSymbol>
+public sealed class ErrorTypeSymbol : TypeSymbol
 {
-    private ErrorTypeSymbol() : base(null)
+    private readonly SyntaxNode? _node;
+    private readonly IdentifierToken? _identifier;
+
+    private ErrorTypeSymbol(SyntaxNode? node, IdentifierToken? identifier)
     {
+        _node = node;
+        _identifier = identifier;
     }
 
-    // Do we need an error type taking an identifier?
+    public override SymbolKind Kind => SymbolKind.ErrorType;
 
-    internal static readonly ErrorTypeSymbol General = new();
+    public override IdentifierToken? Identifier => _identifier;
 
-    public override bool Equals(object? obj) => Equals(obj as ErrorTypeSymbol);
+    public override string? Name => Identifier?.Value ?? "_ERR_";
 
-    public bool Equals(ErrorTypeSymbol? other)
+    public static ErrorTypeSymbol Create() => new(null, null);
+
+    public static ErrorTypeSymbol Create(SyntaxNode? node) => new(node, null);
+
+    public static ErrorTypeSymbol Create(IdentifierToken? identifier) => new(null, identifier);
+
+    public static ErrorTypeSymbol Create(SyntaxNode? node, IdentifierToken? identifier) => new(node, identifier);
+}
+
+public static class SymbolExtensions
+{
+    public static TypeSymbol AsTypeSymbolOrError(this Symbol? symbol)
     {
-        // No two error type symbols are equal.
-        return false;
-    }
-
-    public override int GetHashCode()
-    {
-        throw new UnreachableException();
+        return (symbol as TypeSymbol) ?? ErrorTypeSymbol.Create();
     }
 }
 

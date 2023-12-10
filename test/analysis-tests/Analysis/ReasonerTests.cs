@@ -440,6 +440,24 @@ public class ReasonerTests
     }
 
     [Fact]
+    public void FnTypes_FnTypesWithErrorsAreNotCompatible()
+    {
+        var src = """
+            fn f1(a: Unknown) { }
+            fn f2(a: Unknown) { }
+            """;
+        var tree = Parser.ParseModule(src);
+        var reasoner = Reasoner.Create(tree);
+
+        var fnDeclNode1 = tree.Root.DescendantNodes().OfType<FnDeclNode>().ElementAt(0);
+        var fnSymbol1 = (FnSymbol)reasoner.GetDeclaredSymbol(fnDeclNode1)!;
+        var fnDeclNode2 = tree.Root.DescendantNodes().OfType<FnDeclNode>().ElementAt(1);
+        var fnSymbol2 = (FnSymbol)reasoner.GetDeclaredSymbol(fnDeclNode2)!;
+
+        fnSymbol1.Type.IsAssignableFrom(fnSymbol2.Type).Should().BeFalse();
+    }
+
+    [Fact]
     public void FnSymbol_IsExtern()
     {
         var src = """
