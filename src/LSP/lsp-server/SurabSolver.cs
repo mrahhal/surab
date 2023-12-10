@@ -23,21 +23,45 @@ public class SurabSolver(LanguageServerHost host)
         return Host.SurabProject.SourceFiles.FirstOrDefault(x => x.Path == filePath);
     }
 
-    public SyntaxNode? GetDeepestNodeAt(SourceFile sourceFile, LinePosition linePosition)
+    /// <summary>
+    /// Gets the deepest node at the given position.
+    /// </summary>
+    public SyntaxNode? GetNodeAt(SourceFile sourceFile, LinePosition linePosition)
     {
         var tree = Project.GetSyntaxTree(sourceFile);
-        return GetDeepestNodeAtRecursive(tree.Root, linePosition);
+        return GetNodeAtRecursive(tree.Root, linePosition);
     }
 
-    private SyntaxNode? GetDeepestNodeAtRecursive(SyntaxNode node, LinePosition linePosition)
+    private SyntaxNode? GetNodeAtRecursive(SyntaxNode node, LinePosition linePosition)
     {
         foreach (var childNode in node.ChildNodes)
         {
             if (childNode.Span.Line.Contains(linePosition))
             {
-                return GetDeepestNodeAtRecursive(childNode, linePosition);
+                return GetNodeAtRecursive(childNode, linePosition);
             }
         }
         return node;
+    }
+
+    public LocationOrLocationLinks? GetDefinitionRef(TextDocumentIdentifier textDocument, Position position)
+    {
+        var sourceFile = GetSourceFile(textDocument)!;
+        var reasoner = Project.GetReasoner(sourceFile);
+        var linePosition = ConversionHelper.FromTo(position);
+        var node = GetNodeAt(sourceFile, linePosition)!;
+        var symbol = reasoner.LookupSymbol(node);
+        if (symbol != null)
+        {
+            var span = symbol.DeclaringNode?.GetMainIdentifierToken()?.Span ?? symbol.DeclaringNode?.Span ?? new();
+            var locations = new LocationOrLocationLinks(new LocationOrLocationLink(new Location
+            {
+                Uri = textDocument.Uri, // TODO
+                Range = ConversionHelper.FromTo(span),
+            }));
+            return locations;
+        }
+
+        return null;
     }
 }

@@ -52,8 +52,6 @@ public class TextDocumentSyncHandler(
                 Percentage = 10,
             });
 
-        await Task.Delay(1000);
-
         var sourceFile = _solver.GetSourceFile(textDocument)!;
 
         _solver.Project.EnsureAnalyzed();

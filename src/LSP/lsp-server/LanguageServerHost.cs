@@ -45,19 +45,20 @@ public class LanguageServerHost
             {
                 Section = "surab",
             })
-            .OnInitialize((_, @params, _) =>
+            .OnInitialize(async (_, @params, _) =>
             {
                 var workspaceUri = @params.RootUri;
-                if (workspaceUri is null) return Task.CompletedTask;
+                if (workspaceUri is null)
+                    return;
 
                 _logger.LogInformation("Workspace: {Workspace}", workspaceUri.GetFileSystemPath());
 
-                InitializeProject(workspaceUri);
-
-                return Task.CompletedTask;
+                await InitializeProjectAsync(workspaceUri);
             })
             .WithHandler<TextDocumentSyncHandler>()
-            .WithHandler<SemanticTokensFullHandler>();
+            .WithHandler<SemanticTokensFullHandler>()
+            .WithHandler<DefinitionHandler>()
+            .WithHandler<DeclarationHandler>();
 
         Server = LanguageServer.Create(options, services.BuildServiceProvider());
         _logger = Server.Services.GetRequiredService<ILogger<LanguageServerHost>>();
@@ -65,8 +66,14 @@ public class LanguageServerHost
         await Server.Initialize(default);
     }
 
-    private void InitializeProject(DocumentUri workspaceUri)
+    private async Task InitializeProjectAsync(DocumentUri workspaceUri)
     {
+        var progress = await Server.WorkDoneManager.Create(
+            new WorkDoneProgressBegin
+            {
+                Title = "Initializing project...",
+            });
+
         var workspacePath = workspaceUri.GetFileSystemPath();
         var sourceFiles = Directory
             .GetFiles(workspacePath, "*.surab")
