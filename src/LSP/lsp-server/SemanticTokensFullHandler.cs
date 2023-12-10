@@ -105,7 +105,7 @@ public class SemanticTokensFullHandler(
                 LiteralTokenKind.NumericInteger or LiteralTokenKind.NumericFloat => (SemanticTokenType?)SemanticTokenType.Number,
                 _ => null,
             },
-            // TODO: Comments
+            TriviaToken triviaToken when triviaToken.Token.Kind is TokenKind.LineComment or TokenKind.BlockComment => SemanticTokenType.Comment,
             _ => null,
         };
     }
