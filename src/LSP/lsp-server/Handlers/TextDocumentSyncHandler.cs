@@ -24,13 +24,13 @@ public class TextDocumentSyncHandler(
     {
         _logger.LogInformation("[DidOpenTextDocumentParams]");
 
-        ReAnalyze(notification.TextDocument);
+        await ReAnalyzeAsync(notification.TextDocument);
 
         await _configuration.GetScopedConfiguration(notification.TextDocument.Uri, token).ConfigureAwait(false);
         return Unit.Value;
     }
 
-    public override Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken token)
+    public override async Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken token)
     {
         _logger.LogInformation("[DidChangeTextDocumentParams]");
 
@@ -38,17 +38,28 @@ public class TextDocumentSyncHandler(
         var sourceFile = _host.SurabProject.SourceFiles.First(x => x.Path == filePath);
         sourceFile.UpdateText(notification.ContentChanges.First().Text);
 
-        ReAnalyze(notification.TextDocument);
+        await ReAnalyzeAsync(notification.TextDocument);
 
-        return Unit.Task;
+        return Unit.Value;
     }
 
-    private void ReAnalyze(TextDocumentIdentifier textDocument)
+    private async Task ReAnalyzeAsync(TextDocumentIdentifier textDocument)
     {
+        var progress = await _host.Server.WorkDoneManager.Create(
+            new WorkDoneProgressBegin
+            {
+                Title = "Starting analysis...",
+                Percentage = 10,
+            });
+
+        await Task.Delay(1000);
+
         var filePath = textDocument.Uri.GetFileSystemPath();
         var sourceFile = _host.SurabProject.SourceFiles.First(x => x.Path == filePath);
 
         _host.SurabProject.EnsureAnalyzed();
+
+        progress.OnNext("Collecting diags...", 70, null);
 
         foreach (var fileDiagnostics in _host.SurabProject.GetProjectDiagnostics())
         {
@@ -63,6 +74,8 @@ public class TextDocumentSyncHandler(
                 })),
             });
         }
+
+        progress.OnCompleted();
     }
 
     public override Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken token)
