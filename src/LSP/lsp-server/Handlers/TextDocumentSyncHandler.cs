@@ -6,17 +6,18 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server.Capabilities;
+using OmniSharp.Extensions.LanguageServer.Server;
 
 namespace Surab.LSPServer.Handlers;
 
 public class TextDocumentSyncHandler(
     ILogger<TextDocumentSyncHandler> logger,
     ILanguageServerConfiguration configuration,
-    LanguageServerHost host) : TextDocumentSyncHandlerBase
+    SurabSolver solver) : TextDocumentSyncHandlerBase
 {
     private readonly ILogger _logger = logger;
     private readonly ILanguageServerConfiguration _configuration = configuration;
-    private readonly LanguageServerHost _host = host;
+    private readonly SurabSolver _solver = solver;
 
     public TextDocumentSyncKind Change => TextDocumentSyncKind.Full;
 
@@ -34,8 +35,7 @@ public class TextDocumentSyncHandler(
     {
         _logger.LogInformation("[DidChangeTextDocumentParams]");
 
-        var filePath = notification.TextDocument.Uri.GetFileSystemPath();
-        var sourceFile = _host.SurabProject.SourceFiles.First(x => x.Path == filePath);
+        var sourceFile = _solver.GetSourceFile(notification.TextDocument)!;
         sourceFile.UpdateText(notification.ContentChanges.First().Text);
 
         await ReAnalyzeAsync(notification.TextDocument);
@@ -45,7 +45,7 @@ public class TextDocumentSyncHandler(
 
     private async Task ReAnalyzeAsync(TextDocumentIdentifier textDocument)
     {
-        var progress = await _host.Server.WorkDoneManager.Create(
+        var progress = await _solver.Server.WorkDoneManager.Create(
             new WorkDoneProgressBegin
             {
                 Title = "Starting analysis...",
@@ -54,16 +54,15 @@ public class TextDocumentSyncHandler(
 
         await Task.Delay(1000);
 
-        var filePath = textDocument.Uri.GetFileSystemPath();
-        var sourceFile = _host.SurabProject.SourceFiles.First(x => x.Path == filePath);
+        var sourceFile = _solver.GetSourceFile(textDocument)!;
 
-        _host.SurabProject.EnsureAnalyzed();
+        _solver.Project.EnsureAnalyzed();
 
         progress.OnNext("Collecting diags...", 70, null);
 
-        foreach (var fileDiagnostics in _host.SurabProject.GetProjectDiagnostics())
+        foreach (var fileDiagnostics in _solver.Project.GetProjectDiagnostics())
         {
-            _host.Server.PublishDiagnostics(new PublishDiagnosticsParams
+            _solver.Server.PublishDiagnostics(new PublishDiagnosticsParams
             {
                 Uri = DocumentUri.FromFileSystemPath(fileDiagnostics.SourceFile.Path!),
                 Diagnostics = Container.From(fileDiagnostics.Diagnostics.Select(d => new OmniSharp.Extensions.LanguageServer.Protocol.Models.Diagnostic

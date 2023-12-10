@@ -35,6 +35,10 @@ public class LanguageServerHost
 
         var options = new LanguageServerOptions()
             .ConfigureLogging(b => b.AddSerilog(_serilogLogger, dispose: true))
+            .WithServices(services =>
+            {
+                services.AddSingleton<SurabSolver>();
+            })
             .WithInput(Console.OpenStandardInput())
             .WithOutput(Console.OpenStandardOutput())
             .WithConfigurationItem(new ConfigurationItem

@@ -1,4 +1,6 @@
-﻿namespace Surab;
+﻿using System.Diagnostics;
+
+namespace Surab;
 
 /// <summary>
 /// A span of text in a source file. All offsets use UTF-16 encoding.
@@ -86,15 +88,62 @@ public readonly record struct FileSpan(
 /// </summary>
 /// <param name="Start">The span's start position.</param>
 /// <param name="End">The span's end position.</param>
+[DebuggerDisplay("LineSpan: [{Start,nq}..{End,nq})")]
 public readonly record struct LineSpan(
     LinePosition Start,
-    LinePosition End);
+    LinePosition End)
+{
+    public bool Contains(LinePosition otherPosition)
+    {
+        return
+            Start <= otherPosition &&
+            End >= otherPosition;
+    }
+
+    public bool Contains(LineSpan other)
+    {
+        return
+            Start <= other.Start &&
+            End >= other.End;
+    }
+}
 
 /// <summary>
 /// A line based position.
 /// </summary>
 /// <param name="Line">Line position (zero-based).</param>
 /// <param name="Char">Char position (zer-based).</param>
+[DebuggerDisplay("LinePosition: {ToString(),nq}")]
 public readonly record struct LinePosition(
     int Line,
-    int Char);
+    int Char)
+{
+    public static bool operator >(LinePosition p1, LinePosition p2)
+    {
+        return
+            p1.Line > p2.Line ||
+            (p1.Line == p2.Line && p1.Char > p2.Char);
+    }
+
+    public static bool operator >=(LinePosition p1, LinePosition p2)
+    {
+        return Equals(p1, p2) || p1 > p2;
+    }
+
+    public static bool operator <(LinePosition p1, LinePosition p2)
+    {
+        return
+            p1.Line < p2.Line ||
+            (p1.Line == p2.Line && p1.Char < p2.Char);
+    }
+
+    public static bool operator <=(LinePosition p1, LinePosition p2)
+    {
+        return Equals(p1, p2) || p1 < p2;
+    }
+
+    public override string ToString()
+    {
+        return $"{{{Line}:{Char}}}";
+    }
+}
