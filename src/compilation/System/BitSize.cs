@@ -55,9 +55,19 @@ public readonly record struct BitSize
         return x.Bits > y.Bits;
     }
 
+    public static bool operator >=(BitSize x, BitSize y)
+    {
+        return Equals(x, y) || x > y;
+    }
+
     public static bool operator <(BitSize x, BitSize y)
     {
         return x.Bits < y.Bits;
+    }
+
+    public static bool operator <=(BitSize x, BitSize y)
+    {
+        return Equals(x, y) || x < y;
     }
 
     public override string ToString()
