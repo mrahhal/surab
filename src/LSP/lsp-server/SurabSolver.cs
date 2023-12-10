@@ -44,6 +44,21 @@ public class SurabSolver(LanguageServerHost host)
         return node;
     }
 
+    public (Symbol? symbol, TypeSymbol? type) GetSymbolAndTypeOfPosition(TextDocumentIdentifier textDocument, Position position)
+    {
+        var sourceFile = GetSourceFile(textDocument)!;
+        var reasoner = Project.GetReasoner(sourceFile);
+        var linePosition = ConversionHelper.FromTo(position);
+        var node = GetNodeAt(sourceFile, linePosition)!;
+        var symbol = reasoner.LookupSymbol(node);
+        var type = default(TypeSymbol?);
+        if (symbol != null)
+        {
+            type = reasoner.LookupType(node);
+        }
+        return (symbol, type);
+    }
+
     public LocationOrLocationLinks? GetDefinitionRef(TextDocumentIdentifier textDocument, Position position)
     {
         var sourceFile = GetSourceFile(textDocument)!;

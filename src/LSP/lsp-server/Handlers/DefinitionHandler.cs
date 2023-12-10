@@ -6,7 +6,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Surab.LSPServer.Handlers;
 
 public class DefinitionHandler(
-    ILogger<DeclarationHandler> logger,
+    ILogger<DefinitionHandler> logger,
     SurabSolver solver) : DefinitionHandlerBase
 {
     private readonly ILogger _logger = logger;
