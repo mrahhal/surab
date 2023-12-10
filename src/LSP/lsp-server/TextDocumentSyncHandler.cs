@@ -29,7 +29,7 @@ public class TextDocumentSyncHandler(
 
     public override async Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken token)
     {
-        _logger.LogInformation("Handle open!");
+        _logger.LogInformation("[DidOpenTextDocumentParams]");
 
         ReAnalyze(notification.TextDocument);
 
@@ -39,7 +39,7 @@ public class TextDocumentSyncHandler(
 
     public override Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken token)
     {
-        _logger.LogInformation("Handle change!");
+        _logger.LogInformation("[DidChangeTextDocumentParams]");
 
         var filePath = notification.TextDocument.Uri.GetFileSystemPath();
         var sourceFile = _host.SurabProject.SourceFiles.First(x => x.Path == filePath);
@@ -74,7 +74,7 @@ public class TextDocumentSyncHandler(
 
     public override Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken token)
     {
-        _logger.LogInformation("Handle close!");
+        _logger.LogInformation("[DidCloseTextDocumentParams]");
 
         if (_configuration.TryGetScopedConfiguration(notification.TextDocument.Uri, out var disposable))
         {

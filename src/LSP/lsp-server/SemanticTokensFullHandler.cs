@@ -25,7 +25,7 @@ public class SemanticTokensFullHandler(
 
     public override Task<SemanticTokens?> Handle(SemanticTokensParams request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Handle semantics!");
+        _logger.LogInformation("[SemanticTokensParams]");
 
         var filePath = request.TextDocument.Uri.GetFileSystemPath();
         var sourceFile = _host.SurabProject.SourceFiles.First(x => x.Path == filePath);
@@ -88,10 +88,9 @@ public class SemanticTokensFullHandler(
                 _ when simpleToken.IsKeyword => (SemanticTokenType?)SemanticTokenType.Keyword,
                 _ => null,
             },
-            // TODO: If identifier, lookup symbol, etc
             IdentifierToken identifierToken => identifierToken.Parent switch
             {
-                FnSigNode => (SemanticTokenType?)SemanticTokenType.Function, // TODO: Method
+                FnSigNode sig => sig.Parent is FnDeclNode ? SemanticTokenType.Function : SemanticTokenType.Method,
                 StructDeclNode => SemanticTokenType.Struct,
                 FieldDeclNode => SemanticTokenType.Property,
                 ParamNode => SemanticTokenType.Parameter,
@@ -115,9 +114,9 @@ public class SemanticTokensFullHandler(
         return symbol switch
         {
             FieldSymbol => (SemanticTokenType?)SemanticTokenType.Property,
-            ParamSymbol => (SemanticTokenType?)SemanticTokenType.Parameter,
-            LocalSymbol => (SemanticTokenType?)SemanticTokenType.Variable,
-            FnSymbol => (SemanticTokenType?)SemanticTokenType.Function,
+            ParamSymbol => SemanticTokenType.Parameter,
+            LocalSymbol => SemanticTokenType.Variable,
+            FnSymbol => SemanticTokenType.Function,
             TypeSymbol typeSymbol => GetTokenType(typeSymbol),
             _ => null,
         };
@@ -129,7 +128,7 @@ public class SemanticTokensFullHandler(
         return typeSymbol switch
         {
             StructTypeSymbol => (SemanticTokenType?)SemanticTokenType.Struct,
-            FnTypeSymbol => (SemanticTokenType?)SemanticTokenType.Function,
+            FnTypeSymbol => SemanticTokenType.Function,
             _ => null,
         };
     }
