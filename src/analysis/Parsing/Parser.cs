@@ -273,6 +273,7 @@ internal class ParserImpl
     /// Returns `true` if the current token matches the given <see cref="TokenKind"/>.
     /// </summary>
     [DebuggerStepThrough]
+    [MemberNotNullWhen(true, [nameof(_current)])]
     private bool CheckToken(TokenKind tokenKind) =>
         _current?.Kind == tokenKind;
 
@@ -289,11 +290,11 @@ internal class ParserImpl
         return false;
     }
 
-    private SimpleToken? TryEatSimpleToken(TokenKind tokenKind, bool? isContextualKeyword = null)
+    private SimpleToken? TryEatSimpleToken(TokenKind tokenKind)
     {
         if (TryEatToken(tokenKind))
         {
-            return SimpleToken.From(AssertedPrev(), isContextualKeyword ?? false);
+            return SimpleToken.From(AssertedPrev());
         }
         return null;
     }
@@ -306,10 +307,10 @@ internal class ParserImpl
         }
     }
 
-    private SimpleToken EatAssertedSimpleToken(TokenKind tokenKind, bool? isContextualKeyword = null)
+    private SimpleToken EatAssertedSimpleToken(TokenKind tokenKind)
     {
         EatAssertedToken(tokenKind);
-        return SimpleToken.From(AssertedPrev(), isContextualKeyword ?? false);
+        return SimpleToken.From(AssertedPrev());
     }
 
     private bool EatExpectedToken(TokenKind tokenKind)
@@ -323,15 +324,29 @@ internal class ParserImpl
         return true;
     }
 
-    private SimpleToken EatExpectedSimpleToken(TokenKind tokenKind, bool? isContextualKeyword = null)
+    private SimpleToken EatExpectedSimpleToken(TokenKind tokenKind)
     {
         if (EatExpectedToken(tokenKind))
         {
-            return SimpleToken.From(AssertedPrev(), isContextualKeyword ?? false);
+            return SimpleToken.From(AssertedPrev());
         }
         else
         {
-            return SimpleToken.Missing(tokenKind, ShrinkToEndSpanAtCurrent(), isContextualKeyword ?? false);
+            return SimpleToken.Missing(tokenKind, ShrinkToEndSpanAtCurrent());
+        }
+    }
+
+    private SimpleToken EatExpectedContextualKeywordToken(ContextualKeyword contextualKeyword)
+    {
+        if (CheckToken(TokenKind.Identifier) && SimpleTokenHelper.IsContextualKeyword(contextualKeyword, GetLexeme(_current).ToString()))
+        {
+            Advance();
+            var token = AssertedPrev();
+            return SimpleToken.From(contextualKeyword, token);
+        }
+        else
+        {
+            return SimpleToken.Missing(contextualKeyword, ShrinkToEndSpanAtCurrent());
         }
     }
 
@@ -476,18 +491,19 @@ internal class ParserImpl
     }
 
     /// <summary>
-    /// Parses `alias Foo Bar;`
+    /// Parses `alias Foo as Bar;`
     /// </summary>
     private DeclNode? ParseAliasDecl(AttrsListNode? attrs)
     {
         var aliasToken = EatAssertedSimpleToken(TokenKind.Alias);
         var identifier = ParseIdentifier();
         if (identifier == null) return null;
+        var asToken = EatExpectedContextualKeywordToken(ContextualKeyword.As);
         var type = ParseType();
         if (type == null) return null;
         var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
-        return new AliasDeclNode(attrs, aliasToken, identifier, type, semicolonToken);
+        return new AliasDeclNode(attrs, aliasToken, identifier, asToken, type, semicolonToken);
     }
 
     /// <summary>

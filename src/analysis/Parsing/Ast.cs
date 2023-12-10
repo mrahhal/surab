@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Security.Claims;
 
 namespace Surab.Analysis;
 
@@ -42,6 +43,28 @@ public abstract class SyntaxToken(SyntaxTokenKind kind) : SyntaxEntity
     public SyntaxTokenKind Kind { get; } = kind;
 }
 
+public enum ContextualKeyword
+{
+    As,
+}
+
+internal static class SimpleTokenHelper
+{
+    public static readonly Dictionary<ContextualKeyword, string> ContextualKeywordsMap = new()
+    {
+        { ContextualKeyword.As, "as" },
+    };
+
+    public static bool IsContextualKeyword(ContextualKeyword contextualKeyword, string str)
+    {
+        if (ContextualKeywordsMap.TryGetValue(contextualKeyword, out var value) && str == value)
+        {
+            return true;
+        }
+        return false;
+    }
+}
+
 public enum SimpleTokenKind
 {
     LeftParen,
@@ -70,6 +93,8 @@ public enum SimpleTokenKind
     Extern,
     Public,
     Return,
+
+    AsKeyword,
 }
 
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} [{SimpleTokenKind}] {ToString()}")]
@@ -93,21 +118,19 @@ public sealed class SimpleToken : SyntaxToken
 
     public bool IsMissing { get; init; }
 
-    public static SimpleToken Missing(TokenKind tokenKind, TextSpan span, bool isContextualKeyword) =>
-        From(tokenKind, span, isContextualKeyword, isMissing: true);
+    public static SimpleToken From(Token token) =>
+        From(token.Kind, token.Span, isMissing: false);
 
-    public static SimpleToken From(Token token, bool isContextualKeyword, bool isMissing = false) =>
-        From(token.Kind, token.Span, isContextualKeyword, isMissing);
+    public static SimpleToken Missing(TokenKind tokenKind, TextSpan span) =>
+        From(tokenKind, span, isMissing: true);
 
     public static SimpleToken From(
         TokenKind tokenKind,
         TextSpan span,
-        bool isContextualKeyword,
         bool isMissing = false) => new()
         {
             Span = span,
-            IsKeyword = isContextualKeyword || tokenKind.IsReservedKeyword(),
-            IsContextualKeyword = isContextualKeyword,
+            IsKeyword = tokenKind.IsReservedKeyword(),
             IsMissing = isMissing,
             SimpleTokenKind = tokenKind switch
             {
@@ -137,6 +160,28 @@ public sealed class SimpleToken : SyntaxToken
                 TokenKind.Return => SimpleTokenKind.Return,
 
                 _ => throw new Exception($"TokenKind {tokenKind} not supported."),
+            },
+        };
+
+    public static SimpleToken From(ContextualKeyword contextualKeyword, Token token) =>
+        From(contextualKeyword, token.Span, isMissing: false);
+
+    public static SimpleToken Missing(ContextualKeyword contextualKeyword, TextSpan span) =>
+        From(contextualKeyword, span, isMissing: true);
+
+    public static SimpleToken From(
+        ContextualKeyword contextualKeyword,
+        TextSpan span,
+        bool isMissing = false) => new()
+        {
+            Span = span,
+            IsKeyword = true,
+            IsContextualKeyword = true,
+            IsMissing = isMissing,
+            SimpleTokenKind = contextualKeyword switch
+            {
+                ContextualKeyword.As => SimpleTokenKind.AsKeyword,
+                _ => throw new UnreachableException(),
             },
         };
 

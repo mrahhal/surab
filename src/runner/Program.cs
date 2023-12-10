@@ -19,7 +19,7 @@ p.Start();
 p.WaitForExit();
 
 var src = """
-    alias Delegate1 @extern fn (S2);
+    alias Delegate1 as @extern fn (S2);
 
     struct S1 {
         a: f64;

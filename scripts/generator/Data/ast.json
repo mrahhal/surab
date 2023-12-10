@@ -105,6 +105,10 @@
           "Type": "IdentifierToken"
         },
         {
+          "Name": "asToken",
+          "Type": "SimpleToken"
+        },
+        {
           "Name": "type",
           "Type": "TypeNode"
         },

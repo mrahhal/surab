@@ -128,7 +128,7 @@ public class ReasonerTests
     public void Symbol_Alias()
     {
         var src = """
-            alias Integer i32;
+            alias Integer as i32;
             """;
         var tree = Parser.ParseModule(src);
         var reasoner = Reasoner.Create(tree);
@@ -142,8 +142,8 @@ public class ReasonerTests
     public void Symbol_Alias_UnwrapAliases()
     {
         var src = """
-            alias Integer i32;
-            alias AnotherInteger Integer;
+            alias Integer as i32;
+            alias AnotherInteger as Integer;
             """;
         var tree = Parser.ParseModule(src);
         var reasoner = Reasoner.Create(tree);
@@ -157,8 +157,8 @@ public class ReasonerTests
     public void Symbol_IsAssignableFrom()
     {
         var src = """
-            alias Integer i32;
-            alias AnotherInteger Integer;
+            alias Integer as i32;
+            alias AnotherInteger as Integer;
             """;
         var tree = Parser.ParseModule(src);
         var reasoner = Reasoner.Create(tree);
@@ -173,8 +173,8 @@ public class ReasonerTests
     public void Symbol_IsAssignableFrom2()
     {
         var src = """
-            alias Delegate1 fn (i32) f64;
-            alias Delegate2 fn (i32) f64;
+            alias Delegate1 as fn (i32) f64;
+            alias Delegate2 as fn (i32) f64;
             """;
         var tree = Parser.ParseModule(src);
         var reasoner = Reasoner.Create(tree);

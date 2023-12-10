@@ -87,12 +87,15 @@ public class ParserTests
     [Fact]
     public void Decl_Alias()
     {
-        var src = "@public alias Foo Bar;";
+        var src = "@public alias Foo as Bar;";
         var node = ParseDecl(src).Should().BeOfType<AliasDeclNode>().Subject;
         node.Attrs.Should().NotBeNull();
         node.Attrs!.Attrs.Should().HaveCount(1);
         node.AliasToken.Kind.Should().Be(SyntaxTokenKind.Simple);
         node.Identifier.Value.Should().Be("Foo");
+        node.AsToken.SimpleTokenKind.Should().Be(SimpleTokenKind.AsKeyword);
+        node.AsToken.IsKeyword.Should().BeTrue();
+        node.AsToken.IsContextualKeyword.Should().BeTrue();
         node.Type.Should().BeOfType<NamedTypeNode>().Subject.Identifier.Value.Should().Be("Bar");
         node.SemicolonToken.Should().NotBeNull();
     }
@@ -100,10 +103,13 @@ public class ParserTests
     [Fact]
     public void Decl_Alias_Fn()
     {
-        var src = "alias Delegate @extern fn (S2);";
+        var src = "alias Delegate as @extern fn (S2);";
         var node = ParseDecl(src).Should().BeOfType<AliasDeclNode>().Subject;
         node.AliasToken.Kind.Should().Be(SyntaxTokenKind.Simple);
         node.Identifier.Value.Should().Be("Delegate");
+        node.AsToken.SimpleTokenKind.Should().Be(SimpleTokenKind.AsKeyword);
+        node.AsToken.IsKeyword.Should().BeTrue();
+        node.AsToken.IsContextualKeyword.Should().BeTrue();
         node.Type.Should().BeOfType<FnTypeNode>().Subject.Attrs.Should().NotBeNull();
         node.SemicolonToken.Should().NotBeNull();
     }

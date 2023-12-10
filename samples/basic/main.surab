@@ -1,4 +1,4 @@
-alias Delegate1 @extern fn (S2);
+alias Delegate1  @extern fn (S2);
 
 struct S1 {
     a: f64;

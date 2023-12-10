@@ -192,10 +192,10 @@ public partial class DeclMembersNode : SyntaxNode
 
 public partial class AliasDeclNode : DeclNode
 {
-    public AliasDeclNode(AttrsListNode? attrs, SimpleToken aliasToken, IdentifierToken identifier, TypeNode type, SimpleToken semicolonToken)
+    public AliasDeclNode(AttrsListNode? attrs, SimpleToken aliasToken, IdentifierToken identifier, SimpleToken asToken, TypeNode type, SimpleToken semicolonToken)
         : base(SyntaxNodeKind.AliasDecl)
     {
-        _childTokens = new() { aliasToken, identifier, semicolonToken, };
+        _childTokens = new() { aliasToken, identifier, asToken, semicolonToken, };
         _childNodes = new() { attrs, type, };
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
@@ -205,8 +205,9 @@ public partial class AliasDeclNode : DeclNode
     public AttrsListNode? Attrs => (AttrsListNode?)_childNodes[0]!;
     public SimpleToken AliasToken => (SimpleToken)_childTokens[0]!;
     public IdentifierToken Identifier => (IdentifierToken)_childTokens[1]!;
+    public SimpleToken AsToken => (SimpleToken)_childTokens[2]!;
     public TypeNode Type => (TypeNode)_childNodes[1]!;
-    public SimpleToken SemicolonToken => (SimpleToken)_childTokens[2]!;
+    public SimpleToken SemicolonToken => (SimpleToken)_childTokens[3]!;
 
     public override void Accept(SyntaxTreeVisitor visitor)
     {
