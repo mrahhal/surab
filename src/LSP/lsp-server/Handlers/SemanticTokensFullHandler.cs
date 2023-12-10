@@ -5,7 +5,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using Surab.Analysis;
 
-namespace Surab.LSPServer;
+namespace Surab.LSPServer.Handlers;
 
 public class SemanticTokensFullHandler(
     ILogger<SemanticTokensFullHandler> logger,

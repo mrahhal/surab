@@ -5,6 +5,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Server;
 using Serilog;
 using Surab.Analysis;
+using Surab.LSPServer.Handlers;
 
 namespace Surab.LSPServer;
 
