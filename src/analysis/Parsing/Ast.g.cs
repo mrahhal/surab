@@ -116,7 +116,7 @@ public partial class ModuleNode : SyntaxNode
     }
 }
 
-public partial class ConstDeclNode : DeclNode
+public partial class ConstDeclNode : DeclNode, ISyntaxNodeHasMainIdentifier
 {
     public ConstDeclNode(AttrsListNode? attrs, SimpleToken constToken, IdentifierToken identifier, ColonTypeNode? type, SimpleToken equalToken, ExprNode value, SimpleToken semicolonToken, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.ConstDecl)
@@ -198,7 +198,7 @@ public partial class DeclMembersNode : SyntaxNode
     }
 }
 
-public partial class AliasDeclNode : DeclNode
+public partial class AliasDeclNode : DeclNode, ISyntaxNodeHasMainIdentifier
 {
     public AliasDeclNode(AttrsListNode? attrs, SimpleToken aliasToken, IdentifierToken identifier, SimpleToken asToken, TypeNode type, SimpleToken semicolonToken, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.AliasDecl)
@@ -225,7 +225,7 @@ public partial class AliasDeclNode : DeclNode
     }
 }
 
-public partial class StructDeclNode : DeclNode
+public partial class StructDeclNode : DeclNode, ISyntaxNodeHasMainIdentifier
 {
     public StructDeclNode(AttrsListNode? attrs, SimpleToken structToken, IdentifierToken identifier, SimpleToken openBraceToken, DeclMembersNode members, SimpleToken closedBraceToken, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.StructDecl)
@@ -252,7 +252,7 @@ public partial class StructDeclNode : DeclNode
     }
 }
 
-public partial class ClassDeclNode : DeclNode
+public partial class ClassDeclNode : DeclNode, ISyntaxNodeHasMainIdentifier
 {
     public ClassDeclNode(AttrsListNode? attrs, SimpleToken classToken, IdentifierToken identifier, SimpleToken openBraceToken, DeclMembersNode members, SimpleToken closedBraceToken, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.ClassDecl)
@@ -279,7 +279,7 @@ public partial class ClassDeclNode : DeclNode
     }
 }
 
-public partial class FieldDeclNode : DeclNode
+public partial class FieldDeclNode : DeclNode, ISyntaxNodeHasMainIdentifier
 {
     public FieldDeclNode(AttrsListNode? attrs, IdentifierToken identifier, ColonTypeNode? type, EqualsValueClauseNode? initializer, SimpleToken semicolonToken, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.FieldDecl)
@@ -351,7 +351,7 @@ public partial class SkippedTokensDeclNode : DeclNode
     }
 }
 
-public partial class VarStmtNode : StmtNode
+public partial class VarStmtNode : StmtNode, ISyntaxNodeHasMainIdentifier
 {
     public VarStmtNode(SimpleToken varToken, IdentifierToken identifier, ColonTypeNode? type, EqualsValueClauseNode? initializer, SimpleToken semicolonToken, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.VarStmt)
@@ -622,7 +622,7 @@ public partial class CallExprNode : ExprNode
 /// <summary>
 /// A member access (`target.identifier`).
 /// </summary>
-public partial class AccessExprNode : ExprNode
+public partial class AccessExprNode : ExprNode, ISyntaxNodeHasMainIdentifier
 {
     public AccessExprNode(ExprNode target, SimpleToken dotToken, IdentifierToken identifier, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.AccessExpr)
@@ -668,7 +668,7 @@ public partial class LiteralExprNode : ExprNode
     }
 }
 
-public partial class IdentifierExprNode : ExprNode
+public partial class IdentifierExprNode : ExprNode, ISyntaxNodeHasMainIdentifier
 {
     public IdentifierExprNode(IdentifierToken identifier, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.IdentifierExpr)
@@ -712,7 +712,7 @@ public partial class ThisExprNode : ExprNode
     }
 }
 
-public partial class StructCreationExprNode : ExprNode
+public partial class StructCreationExprNode : ExprNode, ISyntaxNodeHasMainIdentifier
 {
     public StructCreationExprNode(IdentifierToken identifier, MapInitializerNode mapInitializer, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.StructCreationExpr)
@@ -808,7 +808,7 @@ public partial class ParamsListNode : SyntaxNode
     }
 }
 
-public partial class ParamNode : SyntaxNode
+public partial class ParamNode : SyntaxNode, ISyntaxNodeHasMainIdentifier
 {
     public ParamNode(IdentifierToken identifier, ColonTypeNode? type, SimpleToken? commaToken, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.Param)
@@ -952,7 +952,7 @@ public partial class ColonTypeNode : SyntaxNode
     }
 }
 
-public partial class NamedTypeNode : TypeNode
+public partial class NamedTypeNode : TypeNode, ISyntaxNodeHasMainIdentifier
 {
     public NamedTypeNode(AttrsListNode? attrs, IdentifierToken identifier, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.NamedType)
@@ -1000,7 +1000,7 @@ public partial class FnTypeNode : TypeNode
     }
 }
 
-public partial class FnSigNode : SyntaxNode
+public partial class FnSigNode : SyntaxNode, ISyntaxNodeHasMainIdentifier
 {
     public FnSigNode(IdentifierToken identifier, ParamsListNode @params, TypeNode? returnType, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.FnSig)
@@ -1069,7 +1069,7 @@ public partial class AttrsListNode : SyntaxNode
     }
 }
 
-public partial class AttrNode : SyntaxNode
+public partial class AttrNode : SyntaxNode, ISyntaxNodeHasMainIdentifier
 {
     public AttrNode(SimpleToken atToken, IdentifierToken identifier, ArgsListNode? args, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.Attr)

@@ -88,8 +88,11 @@ public class AstGenerator(
                 _sb.Append(comment.NL());
             }
 
+            var nodeHasMainIdentifier = node.Members.Where(x => x.Type == "IdentifierToken").Count() == 1;
+            var hasMainIdentifierInterface = nodeHasMainIdentifier ? ", ISyntaxNodeHasMainIdentifier" : string.Empty;
+
             _sb.Append($$"""
-                public partial class {{node.TypeName}} : {{node.Base}}
+                public partial class {{node.TypeName}} : {{node.Base}}{{hasMainIdentifierInterface}}
                 {
                     public {{node.TypeName}}({{OCtorParams(node)}})
                         : base(SyntaxNodeKind.{{node.Name}})

@@ -491,6 +491,11 @@ public sealed class SkippedToken : SyntaxToken
     }
 }
 
+public interface ISyntaxNodeHasMainIdentifier
+{
+    IdentifierToken Identifier { get; }
+}
+
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
 public abstract class SyntaxNode(SyntaxNodeKind kind) : SyntaxEntity
 {
@@ -696,5 +701,19 @@ public static class AttrsListNodeExtensions
     public static bool HasAttr(this AttrsListNode? @this, string attrName)
     {
         return @this?.Attrs.Any(x => x.Identifier.Value == attrName) ?? false;
+    }
+}
+
+public static class SyntaxNodeExtensions
+{
+    public static IdentifierToken? GetMainIdentifierToken(this SyntaxNode? node)
+    {
+        return node switch
+        {
+            ISyntaxNodeHasMainIdentifier n => n.Identifier,
+            FnDeclNode n => GetMainIdentifierToken(n.Sig),
+            MethodDeclNode n => GetMainIdentifierToken(n.Sig),
+            _ => null,
+        };
     }
 }
