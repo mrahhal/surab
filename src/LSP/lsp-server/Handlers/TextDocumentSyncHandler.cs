@@ -18,13 +18,6 @@ public class TextDocumentSyncHandler(
     private readonly ILanguageServerConfiguration _configuration = configuration;
     private readonly LanguageServerHost _host = host;
 
-    private readonly TextDocumentSelector _textDocumentSelector = new(
-        new TextDocumentFilter
-        {
-            Pattern = "**/*.surab",
-        }
-    );
-
     public TextDocumentSyncKind Change => TextDocumentSyncKind.Full;
 
     public override async Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken token)
@@ -85,12 +78,15 @@ public class TextDocumentSyncHandler(
 
     public override Task<Unit> Handle(DidSaveTextDocumentParams notification, CancellationToken token) => Unit.Task;
 
-    protected override TextDocumentSyncRegistrationOptions CreateRegistrationOptions(TextSynchronizationCapability capability, ClientCapabilities clientCapabilities) => new()
+    protected override TextDocumentSyncRegistrationOptions CreateRegistrationOptions(TextSynchronizationCapability capability, ClientCapabilities clientCapabilities)
     {
-        DocumentSelector = _textDocumentSelector,
-        Change = Change,
-        Save = new SaveOptions() { IncludeText = true },
-    };
+        return new()
+        {
+            DocumentSelector = LanguageServerHelper.CreateSurabDocumentSelector(),
+            Change = Change,
+            Save = new SaveOptions() { IncludeText = true },
+        };
+    }
 
     public override TextDocumentAttributes GetTextDocumentAttributes(DocumentUri uri) => new(uri, "surab");
 }

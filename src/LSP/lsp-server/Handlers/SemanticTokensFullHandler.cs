@@ -16,13 +16,6 @@ public class SemanticTokensFullHandler(
     private readonly ILanguageServerConfiguration _configuration = configuration;
     private readonly LanguageServerHost _host = host;
 
-    private readonly TextDocumentSelector _textDocumentSelector = new(
-        new TextDocumentFilter
-        {
-            Pattern = "**/*.surab",
-        }
-    );
-
     public override Task<SemanticTokens?> Handle(SemanticTokensParams request, CancellationToken cancellationToken)
     {
         _logger.LogInformation("[SemanticTokensParams]");
@@ -142,7 +135,7 @@ public class SemanticTokensFullHandler(
     {
         return new()
         {
-            DocumentSelector = _textDocumentSelector,
+            DocumentSelector = LanguageServerHelper.CreateSurabDocumentSelector(),
             Legend = new SemanticTokensLegend
             {
                 TokenModifiers = capability.TokenModifiers,
