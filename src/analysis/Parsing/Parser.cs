@@ -104,9 +104,9 @@ internal class ParserImpl
     private void Advance()
     {
         _tokens.TryMoveNext(out var token);
-        if (_prev != null)
+        if (_current != null)
         {
-            _tokensConsumed.Add(_prev);
+            _tokensConsumed.Add(_current);
         }
         _prev = _current;
         _current = token;
@@ -115,12 +115,15 @@ internal class ParserImpl
     /// <summary>
     /// Only called when a current token is expected to exist. Throws if it doesn't.
     /// </summary>
+    [DebuggerStepThrough]
     private Token AssertedCurrent() =>
         _current ?? throw new Exception("Expected current token to exist.");
 
+    [DebuggerStepThrough]
     private Token AssertedPrev() =>
         _prev ?? throw new Exception("Expected prev token to exist.");
 
+    [DebuggerStepThrough]
     [MemberNotNullWhen(false, nameof(_current))]
     private bool IsAtEnd() => _current == null;
 
@@ -259,11 +262,8 @@ internal class ParserImpl
     // This happens in one of the recovery of the three main items: decls, stmts, exprs.
     private List<Token> TakeTokensConsumed()
     {
-        var tokens = _tokensConsumed;
-        if (_prev != null)
-        {
-            tokens.Add(_prev);
-        }
+        var tokens = _tokensConsumed.ToList();
+        ResetTokensConsumed();
         return tokens;
     }
 
@@ -272,6 +272,7 @@ internal class ParserImpl
     /// <summary>
     /// Returns `true` if the current token matches the given <see cref="TokenKind"/>.
     /// </summary>
+    [DebuggerStepThrough]
     private bool CheckToken(TokenKind tokenKind) =>
         _current?.Kind == tokenKind;
 
@@ -430,7 +431,7 @@ internal class ParserImpl
     {
         var members = new List<DeclNode>();
 
-        while (!CheckToken(TokenKind.RightBrace))
+        while (!IsAtEnd() && !CheckToken(TokenKind.RightBrace))
         {
             var decl = ParseInnerDecl();
             if (decl == null) return null;
@@ -601,7 +602,7 @@ internal class ParserImpl
         var expr = ParsePrefixExpr();
         if (expr == null) return null;
 
-        while (_current != null)
+        while (!IsAtEnd())
         {
             var rule = Pratt.GetInfixRule(_current.Kind);
             if (rule == null) break;
@@ -823,7 +824,7 @@ internal class ParserImpl
         var openBraceToken = EatAssertedSimpleToken(TokenKind.LeftBrace);
         var stmts = new List<StmtNode>();
 
-        while (!CheckToken(TokenKind.RightBrace))
+        while (!IsAtEnd() && !CheckToken(TokenKind.RightBrace))
         {
             stmts.Add(ParseStmt());
         }
@@ -975,11 +976,10 @@ internal class ParserImpl
 
     /// <summary>
     /// Parses `(ident1: Type, ident2: Type)`
-    /// Requirements: current is LeftParen.
     /// </summary>
     private ParamsListNode? ParseParamsList()
     {
-        var openParenToken = EatAssertedSimpleToken(TokenKind.LeftParen);
+        var openParenToken = EatExpectedSimpleToken(TokenKind.LeftParen);
 
         var @params = new List<ParamNode>();
 

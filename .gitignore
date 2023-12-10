@@ -2,3 +2,5 @@
 obj
 bin
 /target
+node_modules
+surab-lsp-server.log

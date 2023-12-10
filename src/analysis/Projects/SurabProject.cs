@@ -9,12 +9,12 @@ namespace Surab.Analysis;
 /// This isn't thread safe in general.
 /// Initial plan is for concurrent queries to be thread safe, but updates can't occur at the same time (will need to use a reader/writer lock).
 /// </remarks>
-public class Project
+public class SurabProject
 {
     private readonly List<SourceFile> _sourceFiles;
     private readonly Dictionary<SourceFile, SourceFileState> _sourceFileToStateMap = [];
 
-    private Project(IEnumerable<SourceFile> sourceFiles)
+    private SurabProject(IEnumerable<SourceFile> sourceFiles)
     {
         _sourceFiles = sourceFiles.ToList();
 
@@ -24,10 +24,10 @@ public class Project
         }
     }
 
-    public static Project Create(
+    public static SurabProject Create(
         IEnumerable<SourceFile> sourceFiles)
     {
-        return new Project(sourceFiles);
+        return new SurabProject(sourceFiles);
     }
 
     public IReadOnlyList<SourceFile> SourceFiles => _sourceFiles;
@@ -116,7 +116,7 @@ public class Project
         // Can call AnalyzeSourceFile on other dependent files.
 
         var state = _sourceFileToStateMap[sourceFile];
-        if (state.IsAnalyzed) return;
+        //if (state.IsAnalyzed) return;
 
         AnalyzeSourceFile(sourceFile, state);
     }
@@ -128,7 +128,11 @@ public class Project
         // Later:
         // reasoner.GetDependentSourceFiles() => each => EnsureAnalyzeSourceFile()
 
-        var reasoner = GetReasoner(sourceFile);
+        var tree = Parser.ParseModule(sourceFile);
+        var reasoner = Reasoner.Create(tree);
+        state.SyntaxTree = tree;
+        state.Reasoner = reasoner;
+
         var diags = reasoner.GetAllDiagnostics().ToImmutableArray();
         state.FileDiagnostics = new FileDiagnostics(sourceFile, diags);
     }
