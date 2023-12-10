@@ -1,20 +1,20 @@
 ﻿using Serilog;
 using Surab.LSPServer;
 
-Log.Logger = new LoggerConfiguration()
+var logger = new LoggerConfiguration()
     .Enrich.FromLogContext()
     .WriteTo.File("surab-lsp-server.log")
     .CreateLogger();
 
-Log.Logger.Information("[STARTED]");
+logger.Information("[STARTED]");
 foreach (var arg in args)
 {
-    Log.Logger.Information("arg: " + arg);
+    logger.Information("arg: " + arg);
 }
 
-var host = LanguageServerHost.Create();
+var host = LanguageServerHost.Create(logger);
 await host.StartAsync();
 
-Log.Logger.Information(messageTemplate: "[WAIT FOR EXIT]");
+logger.Information(messageTemplate: "[WAIT FOR EXIT]");
 await host.Server.WaitForExit;
-Log.Logger.Information("[SERVER EXITED]");
+logger.Information("[SERVER EXITED]");

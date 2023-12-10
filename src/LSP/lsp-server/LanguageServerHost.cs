@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Server;
@@ -9,17 +10,21 @@ namespace Surab.LSPServer;
 
 public class LanguageServerHost
 {
-    private LanguageServerHost()
+    private readonly Serilog.Core.Logger _serilogLogger;
+    private ILogger<LanguageServerHost> _logger = null!;
+
+    private LanguageServerHost(Serilog.Core.Logger logger)
     {
+        _serilogLogger = logger;
     }
 
     public LanguageServer Server { get; private set; } = null!;
 
     public SurabProject SurabProject { get; private set; } = null!;
 
-    public static LanguageServerHost Create()
+    public static LanguageServerHost Create(Serilog.Core.Logger logger)
     {
-        return new LanguageServerHost();
+        return new LanguageServerHost(logger);
     }
 
     public async Task StartAsync()
@@ -28,7 +33,7 @@ public class LanguageServerHost
         services.AddSingleton(this);
 
         var options = new LanguageServerOptions()
-            .ConfigureLogging(b => b.AddSerilog(dispose: true))
+            .ConfigureLogging(b => b.AddSerilog(_serilogLogger, dispose: true))
             .WithInput(Console.OpenStandardInput())
             .WithOutput(Console.OpenStandardOutput())
             .WithConfigurationItem(new ConfigurationItem
@@ -40,7 +45,7 @@ public class LanguageServerHost
                 var workspaceUri = @params.RootUri;
                 if (workspaceUri is null) return Task.CompletedTask;
 
-                Log.Logger.Information("Workspace: " + workspaceUri.GetFileSystemPath());
+                _logger.LogInformation("Workspace: {Workspace}", workspaceUri.GetFileSystemPath());
 
                 InitializeProject(workspaceUri);
 
@@ -50,6 +55,8 @@ public class LanguageServerHost
             .WithHandler<SemanticTokensFullHandler>();
 
         Server = LanguageServer.Create(options, services.BuildServiceProvider());
+        _logger = Server.Services.GetRequiredService<ILogger<LanguageServerHost>>();
+
         await Server.Initialize(default);
     }
 
