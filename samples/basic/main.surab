@@ -1,4 +1,6 @@
-alias Delegate1  @extern fn (S2);
+alias Delegate1 as @extern fn (S2);
+
+/* c */ const /* c */ /* c */ a /* c */ = /* c */ 2 /* c */; // c
 
 struct S1 {
     a: f64;

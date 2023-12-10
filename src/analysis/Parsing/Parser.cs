@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Surab.Analysis;
@@ -300,10 +301,10 @@ internal class ParserImpl
             _tokens.TryMoveNext(out var token);
             // _prev and _current should always point to a non trivia outside of CollectAnyTrivia
             // So we don't update _prev at all, but we update _current here as we keep going until the next token is not trivia.
-            var triviaToken = _current;
+            var trivia = _current;
             _current = token;
 
-            _triviaTokens.Add(new TriviaToken(triviaToken.Span, triviaToken));
+            _triviaTokens.Add(new TriviaToken(trivia.Span, trivia));
         }
     }
 
@@ -364,8 +365,8 @@ internal class ParserImpl
     {
         if (!TryEatToken(tokenKind))
         {
-            var span = _prev!.Span;
-            _diagnostics.Add(span, DiagnosticLevel.Error, $"expected '{tokenKind}'");
+            //var span = _prev!.Span;
+            _diagnostics.Add(ShrinkToStartSpanAtCurrent(), DiagnosticLevel.Error, $"expected '{tokenKind}'");
             return false;
         }
         return true;
@@ -379,7 +380,7 @@ internal class ParserImpl
         }
         else
         {
-            return SimpleToken.Missing(tokenKind, ShrinkToEndSpanAtCurrent());
+            return SimpleToken.Missing(tokenKind, ShrinkToStartSpanAtCurrent());
         }
     }
 
@@ -388,17 +389,16 @@ internal class ParserImpl
         if (CheckToken(TokenKind.Identifier) && SimpleTokenHelper.IsContextualKeyword(contextualKeyword, GetLexeme(_current).ToString()))
         {
             Advance();
-            var token = AssertedPrev();
-            return SimpleToken.From(contextualKeyword, token);
+            return SimpleToken.From(contextualKeyword, AssertedPrev());
         }
         else
         {
-            return SimpleToken.Missing(contextualKeyword, ShrinkToEndSpanAtCurrent());
+            _diagnostics.Add(ShrinkToStartSpanAtCurrent(), DiagnosticLevel.Error, $"expected '{contextualKeyword}'");
+            return SimpleToken.Missing(contextualKeyword, ShrinkToStartSpanAtCurrent());
         }
     }
 
-    private TextSpan ShrinkToEndSpanAtCurrent() =>
-        _current?.Span.ShrinkToEnd() ?? new();
+    private TextSpan ShrinkToStartSpanAtCurrent() => _current?.Span.ShrinkToStart() ?? new();
 
     // TODO: Find usages of this to intern strings.
     private ReadOnlySpan<char> GetLexeme(Token token) => GetLexeme(token.Span);
