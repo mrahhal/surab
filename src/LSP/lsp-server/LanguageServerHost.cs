@@ -66,19 +66,15 @@ public class LanguageServerHost
         await Server.Initialize(default);
     }
 
-    private async Task InitializeProjectAsync(DocumentUri workspaceUri)
+    private Task InitializeProjectAsync(DocumentUri workspaceUri)
     {
-        var progress = await Server.WorkDoneManager.Create(
-            new WorkDoneProgressBegin
-            {
-                Title = "Initializing project...",
-            });
-
         var workspacePath = workspaceUri.GetFileSystemPath();
         var sourceFiles = Directory
             .GetFiles(workspacePath, "*.surab")
             .Select(x => SourceFile.Create(x, File.ReadAllText(x)))
             .ToList();
         SurabProject = SurabProject.Create(sourceFiles);
+
+        return Task.CompletedTask;
     }
 }
