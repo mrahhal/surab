@@ -57,11 +57,11 @@ public class SemanticTokensFullHandler(
 
     private IEnumerable<(int, int, int, SemanticTokenType?)> TokenizeRecursive(SyntaxNode node, Reasoner reasoner)
     {
-        foreach (var childItem in ConversionHelper.EnumerateBySpanStart(node))
+        foreach (var childItem in node.EnumerateBySpanStart())
         {
-            if (childItem.token != null)
+            if (childItem.Token != null)
             {
-                var childToken = childItem.token;
+                var childToken = childItem.Token;
                 var line = childToken.Span.Line.Start.Line;
                 var ch = childToken.Span.Line.Start.Char;
                 var length = childToken.Span.Size;
@@ -69,9 +69,9 @@ public class SemanticTokensFullHandler(
 
                 yield return (line, ch, length, tokenType);
             }
-            else if (childItem.node != null)
+            else if (childItem.Node != null)
             {
-                foreach (var item in TokenizeRecursive(childItem.node, reasoner))
+                foreach (var item in TokenizeRecursive(childItem.Node, reasoner))
                 {
                     yield return item;
                 }

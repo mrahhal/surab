@@ -570,6 +570,19 @@ public abstract class SyntaxNode(SyntaxNodeKind kind) : SyntaxEntity
         }
     }
 
+    /// <summary>
+    /// Yields back child nodes or tokens in span start order.
+    /// </summary>
+    public IEnumerable<(SyntaxNode? Node, SyntaxToken? Token)> EnumerateBySpanStart()
+    {
+        IEnumerable<(SyntaxNode? Node, SyntaxToken? Token, TextSpan Span)> items = [
+            .. ChildTokens.Select<SyntaxToken, (SyntaxNode? Node, SyntaxToken? Token, TextSpan span)>(t => (null, t, t.Span)),
+            .. ChildNodes.Select<SyntaxNode, (SyntaxNode? Node, SyntaxToken? Token, TextSpan span)>(n => (n, null, n.Span)),
+        ];
+
+        return items.OrderBy(x => x.Span.File.Start).Select(x => (x.Node, x.Token));
+    }
+
     public override string ToString()
     {
         return Tree.SourceFile.Text[Span.File.Start..Span.File.End];
