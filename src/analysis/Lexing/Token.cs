@@ -136,9 +136,9 @@ public class Token(TokenKind kind, TextSpan span, object? data)
             StringLiteral => "stringlit",
             Identifier => "ident",
 
-            Whitespace => "ws",
-            LineComment => "lc",
-            BlockComment => "bc",
+            Whitespace => "{ws}",
+            LineComment => "{lc}",
+            BlockComment => "{bc}",
 
             Unknown => "unknown",
 

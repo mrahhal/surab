@@ -1,4 +1,6 @@
 ﻿using System.Collections;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Surab.Analysis;
 
@@ -61,7 +63,8 @@ internal class Peeker<T>(IEnumerator<T> source) : IEnumerable<T>, IEnumerator<T>
     /// <summary>
     /// Peeks into the source's nth element. (n=0 is next element)
     /// </summary>
-    public bool TryPeek(int n, out T? result)
+    [DebuggerStepThrough]
+    public bool TryPeek(int n, [NotNullWhen(true)] out T? result)
     {
         ObjectDisposedException.ThrowIf(_enumerator == null, this);
 
@@ -80,7 +83,7 @@ internal class Peeker<T>(IEnumerator<T> source) : IEnumerable<T>, IEnumerator<T>
             }
         }
 
-        result = _peeks[n];
+        result = _peeks[n]!;
         return true;
     }
 

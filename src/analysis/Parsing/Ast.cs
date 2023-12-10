@@ -35,7 +35,8 @@ public enum SyntaxTokenKind
     BinaryOperator,
     Identifier,
     Literal,
-    Skipped,
+    Trivia,
+    Skipped, // Couldn't parse
 }
 
 public abstract class SyntaxToken(SyntaxTokenKind kind) : SyntaxEntity
@@ -445,6 +446,29 @@ public sealed class LiteralToken : SyntaxToken
 }
 
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
+public sealed class TriviaToken : SyntaxToken
+{
+    public TriviaToken(TextSpan span, Token token)
+        : base(SyntaxTokenKind.Trivia)
+    {
+        Span = span;
+        Token = token;
+    }
+
+    public Token Token { get; init; }
+
+    public override void Accept(SyntaxTreeVisitor visitor)
+    {
+        visitor.VisitTriviaToken(this);
+    }
+
+    public override string ToString()
+    {
+        return Token.ToString();
+    }
+}
+
+[DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
 public sealed class SkippedToken : SyntaxToken
 {
     public SkippedToken(TextSpan span, List<Token> tokens)
@@ -473,6 +497,8 @@ public abstract class SyntaxNode(SyntaxNodeKind kind) : SyntaxEntity
     // Set by the generated nodes.
     protected List<SyntaxToken?> _childTokens = default!;
     protected List<SyntaxNode?> _childNodes = default!;
+
+    protected List<TriviaToken> _triviaTokens = default!;
 
     public SyntaxNodeKind Kind { get; init; } = kind;
 
@@ -503,6 +529,8 @@ public abstract class SyntaxNode(SyntaxNodeKind kind) : SyntaxEntity
             }
         }
     }
+
+    public IEnumerable<TriviaToken> TriviaTokens => _triviaTokens;
 
     protected void SetChildrenParent()
     {
@@ -571,13 +599,14 @@ public abstract class SyntaxNode(SyntaxNodeKind kind) : SyntaxEntity
     }
 
     /// <summary>
-    /// Yields back child nodes or tokens in span start order.
+    /// Yields back child nodes or tokens (including trivia) in span start order.
     /// </summary>
     public IEnumerable<(SyntaxNode? Node, SyntaxToken? Token)> EnumerateBySpanStart()
     {
         IEnumerable<(SyntaxNode? Node, SyntaxToken? Token, TextSpan Span)> items = [
             .. ChildTokens.Select<SyntaxToken, (SyntaxNode? Node, SyntaxToken? Token, TextSpan span)>(t => (null, t, t.Span)),
             .. ChildNodes.Select<SyntaxNode, (SyntaxNode? Node, SyntaxToken? Token, TextSpan span)>(n => (n, null, n.Span)),
+            .. _triviaTokens.Select<SyntaxToken, (SyntaxNode? Node, SyntaxToken? Token, TextSpan span)>(t => (null, t, t.Span)),
         ];
 
         return items.OrderBy(x => x.Span.File.Start).Select(x => (x.Node, x.Token));

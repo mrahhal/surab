@@ -15,7 +15,7 @@ public static class Parser
     /// </summary>
     public static SyntaxTree ParseModule(SourceFile sourceFile)
     {
-        var tokens = Lexer.LexSkipTrivia(sourceFile.Text);
+        var tokens = Lexer.Lex(sourceFile.Text);
         var parser = new ParserImpl(sourceFile, tokens);
         return parser.ParseAsModule();
     }
@@ -30,7 +30,7 @@ public static class Parser
     /// </summary>
     public static SyntaxTree ParseDecl(SourceFile sourceFile)
     {
-        var tokens = Lexer.LexSkipTrivia(sourceFile.Text);
+        var tokens = Lexer.Lex(sourceFile.Text);
         var parser = new ParserImpl(sourceFile, tokens);
         return parser.ParseAsDecl();
     }
@@ -45,7 +45,7 @@ public static class Parser
     /// </summary>
     public static SyntaxTree ParseStmt(SourceFile sourceFile)
     {
-        var tokens = Lexer.LexSkipTrivia(sourceFile.Text);
+        var tokens = Lexer.Lex(sourceFile.Text);
         var parser = new ParserImpl(sourceFile, tokens);
         return parser.ParseAsStmt();
     }
@@ -60,7 +60,7 @@ public static class Parser
     /// </summary>
     public static SyntaxTree ParseExpr(SourceFile sourceFile)
     {
-        var tokens = Lexer.LexSkipTrivia(sourceFile.Text);
+        var tokens = Lexer.Lex(sourceFile.Text);
         var parser = new ParserImpl(sourceFile, tokens);
         return parser.ParseAsExpr();
     }
@@ -74,6 +74,7 @@ internal class ParserImpl
     private Token? _current;
     private Token? _prev;
     private readonly List<Token> _tokensConsumed = [];
+    private readonly List<TriviaToken> _triviaTokens = [];
     private DiagnosticBag _diagnostics = new();
 
     public ParserImpl(
@@ -99,17 +100,22 @@ internal class ParserImpl
     }
 
     /// <summary>
-    /// Advances current to point to the next token.
+    /// Advances current to point to the next token. Collects any trivia before and tracks consumed tokens.
     /// </summary>
     private void Advance()
     {
+        CollectAnyTrivia();
+
         _tokens.TryMoveNext(out var token);
-        if (_current != null)
-        {
-            _tokensConsumed.Add(_current);
-        }
         _prev = _current;
         _current = token;
+
+        if (_prev != null)
+        {
+            _tokensConsumed.Add(_prev);
+        }
+
+        CollectAnyTrivia();
     }
 
     /// <summary>
@@ -128,17 +134,37 @@ internal class ParserImpl
     private bool IsAtEnd() => _current == null;
 
     /// <summary>
-    /// Peek ahead by n tokens. n = 0 => next token.
+    /// Peek ahead by n tokens (skipping trivia). n = 0 => next token.
     /// </summary>
+    [DebuggerStepThrough]
     private Token? Peek(int n)
     {
-        if (_tokens.TryPeek(n, out var result))
+        var nonTriviaTokensSkipped = 0; // Counts non trivia tokens until we reach n.
+        var i = 0;
+
+        while (true)
         {
-            return result;
+            if (_tokens.TryPeek(i, out var result))
+            {
+                if (!result.Kind.IsTrivia())
+                {
+                    nonTriviaTokensSkipped++;
+                    if (nonTriviaTokensSkipped - 1 == n)
+                    {
+                        return result;
+                    }
+                }
+            }
+            else
+            {
+                return null;
+            }
+
+            i++;
         }
-        return null;
     }
 
+    [DebuggerStepThrough]
     private Token? P1() => Peek(0);
     //private Token? P2() => Peek(1);
 
@@ -154,7 +180,7 @@ internal class ParserImpl
             decls.Add(delcaration);
         }
 
-        var module = new ModuleNode(decls);
+        var module = new ModuleNode(decls, TakeTriviaTokens());
         return MakeSyntaxTree(module);
     }
 
@@ -212,19 +238,19 @@ internal class ParserImpl
     private DeclNode RecoverDecl()
     {
         var skipped = RecoverMain();
-        return new SkippedTokensDeclNode(skipped);
+        return new SkippedTokensDeclNode(skipped, TakeTriviaTokens());
     }
 
     private StmtNode RecoverStmt()
     {
         var skipped = RecoverMain();
-        return new SkippedTokensStmtNode(skipped);
+        return new SkippedTokensStmtNode(skipped, TakeTriviaTokens());
     }
 
     private ExprNode RecoverExpr()
     {
         var skipped = RecoverMain();
-        return new SkippedTokensExprNode(skipped);
+        return new SkippedTokensExprNode(skipped, TakeTriviaTokens());
     }
 
     private SkippedToken RecoverMain()
@@ -264,6 +290,27 @@ internal class ParserImpl
     {
         var tokens = _tokensConsumed.ToList();
         ResetTokensConsumed();
+        return tokens;
+    }
+
+    private void CollectAnyTrivia()
+    {
+        while (!IsAtEnd() && _current.Kind.IsTrivia())
+        {
+            _tokens.TryMoveNext(out var token);
+            // _prev and _current should always point to a non trivia outside of CollectAnyTrivia
+            // So we don't update _prev at all, but we update _current here as we keep going until the next token is not trivia.
+            var triviaToken = _current;
+            _current = token;
+
+            _triviaTokens.Add(new TriviaToken(triviaToken.Span, triviaToken));
+        }
+    }
+
+    private List<TriviaToken> TakeTriviaTokens()
+    {
+        var tokens = _triviaTokens.ToList();
+        _triviaTokens.Clear();
         return tokens;
     }
 
@@ -415,7 +462,7 @@ internal class ParserImpl
         if (value == null) return null;
         var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
-        return new ConstDeclNode(attrs, constToken, identifier, type, equalToken, value, semicolonToken);
+        return new ConstDeclNode(attrs, constToken, identifier, type, equalToken, value, semicolonToken, TakeTriviaTokens());
     }
 
     /// <summary>
@@ -439,7 +486,7 @@ internal class ParserImpl
             semicolonToken = TryEatSimpleToken(TokenKind.Semicolon);
         }
 
-        return new FnDeclNode(attrs, fnToken, sig, body, semicolonToken);
+        return new FnDeclNode(attrs, fnToken, sig, body, semicolonToken, TakeTriviaTokens());
     }
 
     private DeclMembersNode? ParseDeclMembers()
@@ -453,7 +500,7 @@ internal class ParserImpl
             members.Add(decl);
         }
 
-        return new(members);
+        return new DeclMembersNode(members, TakeTriviaTokens());
     }
 
     /// <summary>
@@ -470,7 +517,7 @@ internal class ParserImpl
         if (members == null) return null;
         var closedBraceToken = EatExpectedSimpleToken(TokenKind.RightBrace);
 
-        return new StructDeclNode(attrs, structToken, identifier, openBraceToken, members, closedBraceToken);
+        return new StructDeclNode(attrs, structToken, identifier, openBraceToken, members, closedBraceToken, TakeTriviaTokens());
     }
 
     /// <summary>
@@ -487,7 +534,7 @@ internal class ParserImpl
         if (members == null) return null;
         var closedBraceToken = EatExpectedSimpleToken(TokenKind.RightBrace);
 
-        return new ClassDeclNode(attrs, classToken, identifier, openBraceToken, members, closedBraceToken);
+        return new ClassDeclNode(attrs, classToken, identifier, openBraceToken, members, closedBraceToken, TakeTriviaTokens());
     }
 
     /// <summary>
@@ -503,7 +550,7 @@ internal class ParserImpl
         if (type == null) return null;
         var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
-        return new AliasDeclNode(attrs, aliasToken, identifier, asToken, type, semicolonToken);
+        return new AliasDeclNode(attrs, aliasToken, identifier, asToken, type, semicolonToken, TakeTriviaTokens());
     }
 
     /// <summary>
@@ -518,7 +565,7 @@ internal class ParserImpl
         var initializer = ParseEqualsValueClause();
         var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
-        return new FieldDeclNode(attrs, identifier, type, initializer, semicolonToken);
+        return new FieldDeclNode(attrs, identifier, type, initializer, semicolonToken, TakeTriviaTokens());
     }
 
     /// <summary>
@@ -532,7 +579,7 @@ internal class ParserImpl
         var body = ParseBlockExpr();
         if (body == null) return null;
 
-        return new MethodDeclNode(attrs, sig, body);
+        return new MethodDeclNode(attrs, sig, body, TakeTriviaTokens());
     }
 
     // Stmts
@@ -566,7 +613,7 @@ internal class ParserImpl
         var initializer = ParseEqualsValueClause();
         var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
-        return new VarStmtNode(varToken, identifier, type, initializer, semicolonToken);
+        return new VarStmtNode(varToken, identifier, type, initializer, semicolonToken, TakeTriviaTokens());
     }
 
     /// <summary>
@@ -578,7 +625,7 @@ internal class ParserImpl
         var expr = ParseExpr_();
         var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
-        return new ReturnStmtNode(returnToken, expr, semicolonToken);
+        return new ReturnStmtNode(returnToken, expr, semicolonToken, TakeTriviaTokens());
     }
 
     private StmtNode? ParseExprStmt()
@@ -588,8 +635,8 @@ internal class ParserImpl
         var semicolonToken = TryEatSimpleToken(TokenKind.Semicolon);
 
         return semicolonToken is null ?
-            new BareExprStmtNode(expr) :
-            new ExprStmtNode(expr, semicolonToken);
+            new BareExprStmtNode(expr, TakeTriviaTokens()) :
+            new ExprStmtNode(expr, semicolonToken, TakeTriviaTokens());
     }
 
     // Exprs
@@ -656,7 +703,7 @@ internal class ParserImpl
         if (expr == null) return null;
         var closedParenToken = EatExpectedSimpleToken(TokenKind.RightParen);
 
-        return new GroupingExprNode(openParenToken, expr, closedParenToken);
+        return new GroupingExprNode(openParenToken, expr, closedParenToken, TakeTriviaTokens());
     }
 
     private ExprNode? ParseIdentifierExpr()
@@ -664,7 +711,7 @@ internal class ParserImpl
         var identifier = ParseIdentifier();
         if (identifier == null) return null;
 
-        return new IdentifierExprNode(identifier);
+        return new IdentifierExprNode(identifier, TakeTriviaTokens());
     }
 
     /// <summary>
@@ -677,14 +724,14 @@ internal class ParserImpl
         var expr = ParseExprForPrecedence(Precedence.Prefix);
         if (expr == null) return null;
 
-        return new UnaryExprNode(op, expr);
+        return new UnaryExprNode(op, expr, TakeTriviaTokens());
     }
 
     private ExprNode? ParseLiteralExpr()
     {
         var literal = ParseLiteralToken();
 
-        return new LiteralExprNode(literal);
+        return new LiteralExprNode(literal, TakeTriviaTokens());
     }
 
     private LiteralToken ParseLiteralToken()
@@ -797,7 +844,7 @@ internal class ParserImpl
         var args = ParseArgsList();
         if (args == null) return null;
 
-        return new CallExprNode(left, args);
+        return new CallExprNode(left, args, TakeTriviaTokens());
     }
 
     private ExprNode? ParseAccessExpr(ExprNode left)
@@ -807,7 +854,7 @@ internal class ParserImpl
         var identifier = ParseIdentifier();
         if (identifier == null) return null;
 
-        return new AccessExprNode(left, dotToken, identifier);
+        return new AccessExprNode(left, dotToken, identifier, TakeTriviaTokens());
     }
 
     /// <summary>
@@ -819,7 +866,7 @@ internal class ParserImpl
         var rhs = ParseExprForPrecedence(precedence);
         if (rhs == null) return null;
 
-        return new AssignmentExprNode(left, equalToken, rhs);
+        return new AssignmentExprNode(left, equalToken, rhs, TakeTriviaTokens());
     }
 
     private ExprNode? ParseBinaryExpr(Precedence precedence, ExprNode left)
@@ -829,7 +876,7 @@ internal class ParserImpl
         var right = ParseExprForPrecedence(precedence);
         if (right == null) return null;
 
-        return new BinaryExprNode(left, op, right);
+        return new BinaryExprNode(left, op, right, TakeTriviaTokens());
     }
 
     /// <summary>
@@ -847,7 +894,7 @@ internal class ParserImpl
 
         var closedBraceToken = EatExpectedSimpleToken(TokenKind.RightBrace);
 
-        return new BlockExprNode(openBraceToken, stmts, closedBraceToken);
+        return new BlockExprNode(openBraceToken, stmts, closedBraceToken, TakeTriviaTokens());
     }
 
     /// <summary>
@@ -864,7 +911,7 @@ internal class ParserImpl
         var mapInitializer = ParseMapInitializer();
         if (mapInitializer == null) return null;
 
-        return new StructCreationExprNode(identifier, mapInitializer);
+        return new StructCreationExprNode(identifier, mapInitializer, TakeTriviaTokens());
     }
 
     /// <summary>
@@ -900,7 +947,7 @@ internal class ParserImpl
 
         var closedBraceToken = EatExpectedSimpleToken(TokenKind.RightBrace);
 
-        return new MapInitializerNode(openBraceToken, exprs, closedBraceToken);
+        return new MapInitializerNode(openBraceToken, exprs, closedBraceToken, TakeTriviaTokens());
     }
 
     // ---
@@ -916,7 +963,7 @@ internal class ParserImpl
         var expr = ParseExpr_();
         if (expr == null) return null;
 
-        return new EqualsValueClauseNode(equalToken, expr);
+        return new EqualsValueClauseNode(equalToken, expr, TakeTriviaTokens());
     }
 
     /// <summary>
@@ -933,7 +980,7 @@ internal class ParserImpl
         var type = ParseType();
         if (type == null) return (null, false);
 
-        return (new ColonTypeNode(colonToken, type), false);
+        return (new ColonTypeNode(colonToken, type, TakeTriviaTokens()), false);
     }
 
     private (ColonTypeNode? Node, bool Elided) ParseOptionalColonTy() => ParseColonTy_(optional: true);
@@ -973,7 +1020,7 @@ internal class ParserImpl
         if (identifier == null) return null;
         //var nullableToken = TryEatSimpleToken(TokenKind.Question);
 
-        return new NamedTypeNode(attrs, identifier);
+        return new NamedTypeNode(attrs, identifier, TakeTriviaTokens());
     }
 
     /// <summary>
@@ -987,7 +1034,7 @@ internal class ParserImpl
         if (paramTypes == null) return null;
         var returnType = ParseType();
 
-        return new FnTypeNode(attrs, fnToken, paramTypes, returnType);
+        return new FnTypeNode(attrs, fnToken, paramTypes, returnType, TakeTriviaTokens());
     }
 
     /// <summary>
@@ -1016,7 +1063,7 @@ internal class ParserImpl
 
         var closedParenToken = EatExpectedSimpleToken(TokenKind.RightParen);
 
-        return new ParamsListNode(openParenToken, @params, closedParenToken);
+        return new ParamsListNode(openParenToken, @params, closedParenToken, TakeTriviaTokens());
     }
 
     /// <summary>
@@ -1035,7 +1082,7 @@ internal class ParserImpl
             _ => EatExpectedSimpleToken(TokenKind.Comma),
         };
 
-        return new ParamNode(identifier, type, commaToken);
+        return new ParamNode(identifier, type, commaToken, TakeTriviaTokens());
     }
 
     /// <summary>
@@ -1065,7 +1112,7 @@ internal class ParserImpl
 
         var closedParenToken = EatExpectedSimpleToken(TokenKind.RightParen);
 
-        return new ParamTypesListNode(openParenToken, paramTypes, closedParenToken);
+        return new ParamTypesListNode(openParenToken, paramTypes, closedParenToken, TakeTriviaTokens());
     }
 
     /// <summary>
@@ -1081,7 +1128,7 @@ internal class ParserImpl
             _ => EatExpectedSimpleToken(TokenKind.Comma),
         };
 
-        return new ParamTypeNode(type, commaToken);
+        return new ParamTypeNode(type, commaToken, TakeTriviaTokens());
     }
 
     /// <summary>
@@ -1111,7 +1158,7 @@ internal class ParserImpl
 
         var closedParenToken = EatExpectedSimpleToken(TokenKind.RightParen);
 
-        return new ArgsListNode(openParenToken, args, closedParenToken);
+        return new ArgsListNode(openParenToken, args, closedParenToken, TakeTriviaTokens());
     }
 
     private ArgNode? ParseArg()
@@ -1124,7 +1171,7 @@ internal class ParserImpl
             _ => EatExpectedSimpleToken(TokenKind.Comma),
         };
 
-        return new ArgNode(expr, commaToken);
+        return new ArgNode(expr, commaToken, TakeTriviaTokens());
     }
 
     private FnSigNode? ParseFnSig()
@@ -1135,7 +1182,7 @@ internal class ParserImpl
         if (@params == null) return null;
         var returnType = ParseType();
 
-        return new FnSigNode(identifier, @params, returnType);
+        return new FnSigNode(identifier, @params, returnType, TakeTriviaTokens());
     }
 
     private IdentifierToken? ParseIdentifier()
@@ -1174,7 +1221,7 @@ internal class ParserImpl
         if (attrs == null)
             return null;
 
-        return new AttrsListNode(attrs);
+        return new AttrsListNode(attrs, TakeTriviaTokens());
     }
 
     /// <summary>
@@ -1195,7 +1242,7 @@ internal class ParserImpl
             if (args == null) return null;
         }
 
-        return new AttrNode(atToken, identifier, args);
+        return new AttrNode(atToken, identifier, args, TakeTriviaTokens());
     }
 }
 

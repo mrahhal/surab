@@ -96,11 +96,13 @@ public enum SyntaxNodeKind
 
 public partial class ModuleNode : SyntaxNode
 {
-    public ModuleNode(IEnumerable<DeclNode> decls)
+    public ModuleNode(IEnumerable<DeclNode> decls, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.Module)
     {
         _childTokens = new();
         _childNodes = decls.Cast<SyntaxNode?>().ToList();
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -116,11 +118,13 @@ public partial class ModuleNode : SyntaxNode
 
 public partial class ConstDeclNode : DeclNode
 {
-    public ConstDeclNode(AttrsListNode? attrs, SimpleToken constToken, IdentifierToken identifier, ColonTypeNode? type, SimpleToken equalToken, ExprNode value, SimpleToken semicolonToken)
+    public ConstDeclNode(AttrsListNode? attrs, SimpleToken constToken, IdentifierToken identifier, ColonTypeNode? type, SimpleToken equalToken, ExprNode value, SimpleToken semicolonToken, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.ConstDecl)
     {
         _childTokens = new() { constToken, identifier, equalToken, semicolonToken, };
         _childNodes = new() { attrs, type, value, };
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -145,11 +149,13 @@ public partial class ConstDeclNode : DeclNode
 
 public partial class FnDeclNode : DeclNode
 {
-    public FnDeclNode(AttrsListNode? attrs, SimpleToken fnToken, FnSigNode sig, BlockExprNode? body, SimpleToken? semicolonToken)
+    public FnDeclNode(AttrsListNode? attrs, SimpleToken fnToken, FnSigNode sig, BlockExprNode? body, SimpleToken? semicolonToken, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.FnDecl)
     {
         _childTokens = new() { fnToken, semicolonToken, };
         _childNodes = new() { attrs, sig, body, };
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -172,11 +178,13 @@ public partial class FnDeclNode : DeclNode
 
 public partial class DeclMembersNode : SyntaxNode
 {
-    public DeclMembersNode(IEnumerable<DeclNode> members)
+    public DeclMembersNode(IEnumerable<DeclNode> members, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.DeclMembers)
     {
         _childTokens = new();
         _childNodes = members.Cast<SyntaxNode?>().ToList();
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -192,11 +200,13 @@ public partial class DeclMembersNode : SyntaxNode
 
 public partial class AliasDeclNode : DeclNode
 {
-    public AliasDeclNode(AttrsListNode? attrs, SimpleToken aliasToken, IdentifierToken identifier, SimpleToken asToken, TypeNode type, SimpleToken semicolonToken)
+    public AliasDeclNode(AttrsListNode? attrs, SimpleToken aliasToken, IdentifierToken identifier, SimpleToken asToken, TypeNode type, SimpleToken semicolonToken, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.AliasDecl)
     {
         _childTokens = new() { aliasToken, identifier, asToken, semicolonToken, };
         _childNodes = new() { attrs, type, };
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -217,11 +227,13 @@ public partial class AliasDeclNode : DeclNode
 
 public partial class StructDeclNode : DeclNode
 {
-    public StructDeclNode(AttrsListNode? attrs, SimpleToken structToken, IdentifierToken identifier, SimpleToken openBraceToken, DeclMembersNode members, SimpleToken closedBraceToken)
+    public StructDeclNode(AttrsListNode? attrs, SimpleToken structToken, IdentifierToken identifier, SimpleToken openBraceToken, DeclMembersNode members, SimpleToken closedBraceToken, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.StructDecl)
     {
         _childTokens = new() { structToken, identifier, openBraceToken, closedBraceToken, };
         _childNodes = new() { attrs, members, };
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -242,11 +254,13 @@ public partial class StructDeclNode : DeclNode
 
 public partial class ClassDeclNode : DeclNode
 {
-    public ClassDeclNode(AttrsListNode? attrs, SimpleToken classToken, IdentifierToken identifier, SimpleToken openBraceToken, DeclMembersNode members, SimpleToken closedBraceToken)
+    public ClassDeclNode(AttrsListNode? attrs, SimpleToken classToken, IdentifierToken identifier, SimpleToken openBraceToken, DeclMembersNode members, SimpleToken closedBraceToken, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.ClassDecl)
     {
         _childTokens = new() { classToken, identifier, openBraceToken, closedBraceToken, };
         _childNodes = new() { attrs, members, };
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -267,11 +281,13 @@ public partial class ClassDeclNode : DeclNode
 
 public partial class FieldDeclNode : DeclNode
 {
-    public FieldDeclNode(AttrsListNode? attrs, IdentifierToken identifier, ColonTypeNode? type, EqualsValueClauseNode? initializer, SimpleToken semicolonToken)
+    public FieldDeclNode(AttrsListNode? attrs, IdentifierToken identifier, ColonTypeNode? type, EqualsValueClauseNode? initializer, SimpleToken semicolonToken, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.FieldDecl)
     {
         _childTokens = new() { identifier, semicolonToken, };
         _childNodes = new() { attrs, type, initializer, };
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -291,11 +307,13 @@ public partial class FieldDeclNode : DeclNode
 
 public partial class MethodDeclNode : DeclNode
 {
-    public MethodDeclNode(AttrsListNode? attrs, FnSigNode sig, BlockExprNode body)
+    public MethodDeclNode(AttrsListNode? attrs, FnSigNode sig, BlockExprNode body, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.MethodDecl)
     {
         _childTokens = new();
         _childNodes = new() { attrs, sig, body, };
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -313,11 +331,13 @@ public partial class MethodDeclNode : DeclNode
 
 public partial class SkippedTokensDeclNode : DeclNode
 {
-    public SkippedTokensDeclNode(SkippedToken skipped)
+    public SkippedTokensDeclNode(SkippedToken skipped, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.SkippedTokensDecl)
     {
         _childTokens = new() { skipped, };
         _childNodes = new();
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -333,11 +353,13 @@ public partial class SkippedTokensDeclNode : DeclNode
 
 public partial class VarStmtNode : StmtNode
 {
-    public VarStmtNode(SimpleToken varToken, IdentifierToken identifier, ColonTypeNode? type, EqualsValueClauseNode? initializer, SimpleToken semicolonToken)
+    public VarStmtNode(SimpleToken varToken, IdentifierToken identifier, ColonTypeNode? type, EqualsValueClauseNode? initializer, SimpleToken semicolonToken, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.VarStmt)
     {
         _childTokens = new() { varToken, identifier, semicolonToken, };
         _childNodes = new() { type, initializer, };
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -357,11 +379,13 @@ public partial class VarStmtNode : StmtNode
 
 public partial class ReturnStmtNode : StmtNode
 {
-    public ReturnStmtNode(SimpleToken returnToken, ExprNode? expr, SimpleToken semicolonToken)
+    public ReturnStmtNode(SimpleToken returnToken, ExprNode? expr, SimpleToken semicolonToken, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.ReturnStmt)
     {
         _childTokens = new() { returnToken, semicolonToken, };
         _childNodes = new() { expr, };
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -382,11 +406,13 @@ public partial class ReturnStmtNode : StmtNode
 /// </summary>
 public partial class ExprStmtNode : StmtNode
 {
-    public ExprStmtNode(ExprNode expr, SimpleToken semicolonToken)
+    public ExprStmtNode(ExprNode expr, SimpleToken semicolonToken, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.ExprStmt)
     {
         _childTokens = new() { semicolonToken, };
         _childNodes = new() { expr, };
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -406,11 +432,13 @@ public partial class ExprStmtNode : StmtNode
 /// </summary>
 public partial class BareExprStmtNode : StmtNode
 {
-    public BareExprStmtNode(ExprNode expr)
+    public BareExprStmtNode(ExprNode expr, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.BareExprStmt)
     {
         _childTokens = new();
         _childNodes = new() { expr, };
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -426,11 +454,13 @@ public partial class BareExprStmtNode : StmtNode
 
 public partial class SkippedTokensStmtNode : StmtNode
 {
-    public SkippedTokensStmtNode(SkippedToken skipped)
+    public SkippedTokensStmtNode(SkippedToken skipped, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.SkippedTokensStmt)
     {
         _childTokens = new() { skipped, };
         _childNodes = new();
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -446,11 +476,13 @@ public partial class SkippedTokensStmtNode : StmtNode
 
 public partial class BlockExprNode : ExprNode
 {
-    public BlockExprNode(SimpleToken openBraceToken, IEnumerable<StmtNode> stmts, SimpleToken closedBraceToken)
+    public BlockExprNode(SimpleToken openBraceToken, IEnumerable<StmtNode> stmts, SimpleToken closedBraceToken, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.BlockExpr)
     {
         _childTokens = new() { openBraceToken, closedBraceToken, };
         _childNodes = stmts.Cast<SyntaxNode?>().ToList();
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -468,11 +500,13 @@ public partial class BlockExprNode : ExprNode
 
 public partial class AssignmentExprNode : ExprNode
 {
-    public AssignmentExprNode(ExprNode lhs, SimpleToken equalToken, ExprNode rhs)
+    public AssignmentExprNode(ExprNode lhs, SimpleToken equalToken, ExprNode rhs, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.AssignmentExpr)
     {
         _childTokens = new() { equalToken, };
         _childNodes = new() { lhs, rhs, };
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -490,11 +524,13 @@ public partial class AssignmentExprNode : ExprNode
 
 public partial class UnaryExprNode : ExprNode
 {
-    public UnaryExprNode(UnaryOperatorToken op, ExprNode expr)
+    public UnaryExprNode(UnaryOperatorToken op, ExprNode expr, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.UnaryExpr)
     {
         _childTokens = new() { op, };
         _childNodes = new() { expr, };
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -511,11 +547,13 @@ public partial class UnaryExprNode : ExprNode
 
 public partial class BinaryExprNode : ExprNode
 {
-    public BinaryExprNode(ExprNode left, BinaryOperatorToken op, ExprNode right)
+    public BinaryExprNode(ExprNode left, BinaryOperatorToken op, ExprNode right, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.BinaryExpr)
     {
         _childTokens = new() { op, };
         _childNodes = new() { left, right, };
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -533,11 +571,13 @@ public partial class BinaryExprNode : ExprNode
 
 public partial class GroupingExprNode : ExprNode
 {
-    public GroupingExprNode(SimpleToken openParenToken, ExprNode expr, SimpleToken closedParenToken)
+    public GroupingExprNode(SimpleToken openParenToken, ExprNode expr, SimpleToken closedParenToken, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.GroupingExpr)
     {
         _childTokens = new() { openParenToken, closedParenToken, };
         _childNodes = new() { expr, };
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -558,11 +598,13 @@ public partial class GroupingExprNode : ExprNode
 /// </summary>
 public partial class CallExprNode : ExprNode
 {
-    public CallExprNode(ExprNode callee, ArgsListNode args)
+    public CallExprNode(ExprNode callee, ArgsListNode args, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.CallExpr)
     {
         _childTokens = new();
         _childNodes = new() { callee, args, };
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -582,11 +624,13 @@ public partial class CallExprNode : ExprNode
 /// </summary>
 public partial class AccessExprNode : ExprNode
 {
-    public AccessExprNode(ExprNode target, SimpleToken dotToken, IdentifierToken identifier)
+    public AccessExprNode(ExprNode target, SimpleToken dotToken, IdentifierToken identifier, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.AccessExpr)
     {
         _childTokens = new() { dotToken, identifier, };
         _childNodes = new() { target, };
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -604,11 +648,13 @@ public partial class AccessExprNode : ExprNode
 
 public partial class LiteralExprNode : ExprNode
 {
-    public LiteralExprNode(LiteralToken literal)
+    public LiteralExprNode(LiteralToken literal, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.LiteralExpr)
     {
         _childTokens = new() { literal, };
         _childNodes = new();
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -624,11 +670,13 @@ public partial class LiteralExprNode : ExprNode
 
 public partial class IdentifierExprNode : ExprNode
 {
-    public IdentifierExprNode(IdentifierToken identifier)
+    public IdentifierExprNode(IdentifierToken identifier, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.IdentifierExpr)
     {
         _childTokens = new() { identifier, };
         _childNodes = new();
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -644,11 +692,13 @@ public partial class IdentifierExprNode : ExprNode
 
 public partial class ThisExprNode : ExprNode
 {
-    public ThisExprNode(SimpleToken keywordToken)
+    public ThisExprNode(SimpleToken keywordToken, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.ThisExpr)
     {
         _childTokens = new() { keywordToken, };
         _childNodes = new();
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -664,11 +714,13 @@ public partial class ThisExprNode : ExprNode
 
 public partial class StructCreationExprNode : ExprNode
 {
-    public StructCreationExprNode(IdentifierToken identifier, MapInitializerNode mapInitializer)
+    public StructCreationExprNode(IdentifierToken identifier, MapInitializerNode mapInitializer, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.StructCreationExpr)
     {
         _childTokens = new() { identifier, };
         _childNodes = new() { mapInitializer, };
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -685,11 +737,13 @@ public partial class StructCreationExprNode : ExprNode
 
 public partial class MapInitializerNode : SyntaxNode
 {
-    public MapInitializerNode(SimpleToken openBraceToken, IEnumerable<ExprNode> exprs, SimpleToken closedBraceToken)
+    public MapInitializerNode(SimpleToken openBraceToken, IEnumerable<ExprNode> exprs, SimpleToken closedBraceToken, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.MapInitializer)
     {
         _childTokens = new() { openBraceToken, closedBraceToken, };
         _childNodes = exprs.Cast<SyntaxNode?>().ToList();
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -710,11 +764,13 @@ public partial class MapInitializerNode : SyntaxNode
 
 public partial class SkippedTokensExprNode : ExprNode
 {
-    public SkippedTokensExprNode(SkippedToken skipped)
+    public SkippedTokensExprNode(SkippedToken skipped, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.SkippedTokensExpr)
     {
         _childTokens = new() { skipped, };
         _childNodes = new();
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -730,11 +786,13 @@ public partial class SkippedTokensExprNode : ExprNode
 
 public partial class ParamsListNode : SyntaxNode
 {
-    public ParamsListNode(SimpleToken openParenToken, IEnumerable<ParamNode> @params, SimpleToken closedParenToken)
+    public ParamsListNode(SimpleToken openParenToken, IEnumerable<ParamNode> @params, SimpleToken closedParenToken, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.ParamsList)
     {
         _childTokens = new() { openParenToken, closedParenToken, };
         _childNodes = @params.Cast<SyntaxNode?>().ToList();
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -752,11 +810,13 @@ public partial class ParamsListNode : SyntaxNode
 
 public partial class ParamNode : SyntaxNode
 {
-    public ParamNode(IdentifierToken identifier, ColonTypeNode? type, SimpleToken? commaToken)
+    public ParamNode(IdentifierToken identifier, ColonTypeNode? type, SimpleToken? commaToken, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.Param)
     {
         _childTokens = new() { identifier, commaToken, };
         _childNodes = new() { type, };
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -777,11 +837,13 @@ public partial class ParamNode : SyntaxNode
 
 public partial class ParamTypesListNode : SyntaxNode
 {
-    public ParamTypesListNode(SimpleToken openParenToken, IEnumerable<ParamTypeNode> paramTypes, SimpleToken closedParenToken)
+    public ParamTypesListNode(SimpleToken openParenToken, IEnumerable<ParamTypeNode> paramTypes, SimpleToken closedParenToken, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.ParamTypesList)
     {
         _childTokens = new() { openParenToken, closedParenToken, };
         _childNodes = paramTypes.Cast<SyntaxNode?>().ToList();
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -799,11 +861,13 @@ public partial class ParamTypesListNode : SyntaxNode
 
 public partial class ParamTypeNode : SyntaxNode
 {
-    public ParamTypeNode(TypeNode type, SimpleToken? commaToken)
+    public ParamTypeNode(TypeNode type, SimpleToken? commaToken, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.ParamType)
     {
         _childTokens = new() { commaToken, };
         _childNodes = new() { type, };
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -820,11 +884,13 @@ public partial class ParamTypeNode : SyntaxNode
 
 public partial class ArgsListNode : SyntaxNode
 {
-    public ArgsListNode(SimpleToken openParenToken, IEnumerable<ArgNode> args, SimpleToken closedParenToken)
+    public ArgsListNode(SimpleToken openParenToken, IEnumerable<ArgNode> args, SimpleToken closedParenToken, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.ArgsList)
     {
         _childTokens = new() { openParenToken, closedParenToken, };
         _childNodes = args.Cast<SyntaxNode?>().ToList();
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -842,11 +908,13 @@ public partial class ArgsListNode : SyntaxNode
 
 public partial class ArgNode : SyntaxNode
 {
-    public ArgNode(ExprNode expr, SimpleToken? commaToken)
+    public ArgNode(ExprNode expr, SimpleToken? commaToken, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.Arg)
     {
         _childTokens = new() { commaToken, };
         _childNodes = new() { expr, };
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -863,11 +931,13 @@ public partial class ArgNode : SyntaxNode
 
 public partial class ColonTypeNode : SyntaxNode
 {
-    public ColonTypeNode(SimpleToken colonToken, TypeNode type)
+    public ColonTypeNode(SimpleToken colonToken, TypeNode type, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.ColonType)
     {
         _childTokens = new() { colonToken, };
         _childNodes = new() { type, };
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -884,11 +954,13 @@ public partial class ColonTypeNode : SyntaxNode
 
 public partial class NamedTypeNode : TypeNode
 {
-    public NamedTypeNode(AttrsListNode? attrs, IdentifierToken identifier)
+    public NamedTypeNode(AttrsListNode? attrs, IdentifierToken identifier, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.NamedType)
     {
         _childTokens = new() { identifier, };
         _childNodes = new() { attrs, };
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -905,11 +977,13 @@ public partial class NamedTypeNode : TypeNode
 
 public partial class FnTypeNode : TypeNode
 {
-    public FnTypeNode(AttrsListNode? attrs, SimpleToken fnToken, ParamTypesListNode paramTypes, TypeNode? returnType)
+    public FnTypeNode(AttrsListNode? attrs, SimpleToken fnToken, ParamTypesListNode paramTypes, TypeNode? returnType, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.FnType)
     {
         _childTokens = new() { fnToken, };
         _childNodes = new() { attrs, paramTypes, returnType, };
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -928,11 +1002,13 @@ public partial class FnTypeNode : TypeNode
 
 public partial class FnSigNode : SyntaxNode
 {
-    public FnSigNode(IdentifierToken identifier, ParamsListNode @params, TypeNode? returnType)
+    public FnSigNode(IdentifierToken identifier, ParamsListNode @params, TypeNode? returnType, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.FnSig)
     {
         _childTokens = new() { identifier, };
         _childNodes = new() { @params, returnType, };
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -950,11 +1026,13 @@ public partial class FnSigNode : SyntaxNode
 
 public partial class EqualsValueClauseNode : SyntaxNode
 {
-    public EqualsValueClauseNode(SimpleToken equalToken, ExprNode expr)
+    public EqualsValueClauseNode(SimpleToken equalToken, ExprNode expr, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.EqualsValueClause)
     {
         _childTokens = new() { equalToken, };
         _childNodes = new() { expr, };
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -971,11 +1049,13 @@ public partial class EqualsValueClauseNode : SyntaxNode
 
 public partial class AttrsListNode : SyntaxNode
 {
-    public AttrsListNode(IEnumerable<AttrNode> attrs)
+    public AttrsListNode(IEnumerable<AttrNode> attrs, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.AttrsList)
     {
         _childTokens = new();
         _childNodes = attrs.Cast<SyntaxNode?>().ToList();
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
@@ -991,11 +1071,13 @@ public partial class AttrsListNode : SyntaxNode
 
 public partial class AttrNode : SyntaxNode
 {
-    public AttrNode(SimpleToken atToken, IdentifierToken identifier, ArgsListNode? args)
+    public AttrNode(SimpleToken atToken, IdentifierToken identifier, ArgsListNode? args, List<TriviaToken> triviaTokens)
         : base(SyntaxNodeKind.Attr)
     {
         _childTokens = new() { atToken, identifier, };
         _childNodes = new() { args, };
+
+        _triviaTokens = triviaTokens;
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();

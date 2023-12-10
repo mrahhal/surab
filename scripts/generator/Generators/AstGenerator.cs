@@ -96,6 +96,8 @@ public class AstGenerator(
                     {
                         {{T(SyntaxNodeMemberStoredFields.All, storedField => OSetStoredChildren(node, storedField))}}
 
+                        _triviaTokens = triviaTokens;
+
                         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
                         SetChildrenParent();
                     }
@@ -124,6 +126,8 @@ public class AstGenerator(
 
                 @params += $"{m.TypeFull} {m.Name}{commaText}";
             }
+
+            @params += ", List<TriviaToken> triviaTokens";
 
             return @params;
         }

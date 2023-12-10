@@ -13,6 +13,23 @@ public class ParserTests
     }
 
     [Fact]
+    public void Trivia()
+    {
+        var src = "/* c */ const /* c */ /* c */ a /* c */ = /* c */ 2 /* c */; // c";
+        var tree = Parser.ParseModule(src);
+        var module = (ModuleNode)tree.Root;
+        tree.Diagnostics.Diagnostics.Should().BeEmpty();
+
+        module.Should().NotBeNull();
+        module.Decls.Should().HaveCount(1);
+        module.Decls.ElementAt(0).Should().BeOfType<ConstDeclNode>();
+        module.DescendantNodesAndSelf()
+            .SelectMany(x => x.TriviaTokens)
+            .Where(x => x.Token.Kind is TokenKind.LineComment or TokenKind.BlockComment)
+            .Should().HaveCount(7);
+    }
+
+    [Fact]
     public void Decl_Const()
     {
         var src = "const a = 2;";
