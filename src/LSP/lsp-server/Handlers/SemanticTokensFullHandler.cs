@@ -78,6 +78,7 @@ public class SemanticTokensFullHandler(
         {
             SimpleToken simpleToken => simpleToken.SimpleTokenKind switch
             {
+                SimpleTokenKind.At when simpleToken.Parent is AttrNode => SemanticTokenType.Decorator,
                 _ when simpleToken.IsKeyword => (SemanticTokenType?)SemanticTokenType.Keyword,
                 _ => null,
             },
@@ -89,6 +90,7 @@ public class SemanticTokensFullHandler(
                 ParamNode => SemanticTokenType.Parameter,
                 VarStmtNode => SemanticTokenType.Variable,
                 NamedTypeNode => SemanticTokenType.Type,
+                AttrNode => SemanticTokenType.Decorator,
                 IdentifierExprNode identifierExpr => GetTokenType(reasoner.LookupSymbol(identifierExpr)),
                 _ => null,
             },
