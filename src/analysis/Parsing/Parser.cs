@@ -984,29 +984,23 @@ internal class ParserImpl
     {
         var openBraceToken = EatAssertedSimpleToken(TokenKind.LeftBrace);
 
-        var exprs = new List<ExprNode>();
+        var items = new List<MapInitializerItemNode>();
 
         while (true)
         {
-            if (IsAtEnd() || CheckToken(TokenKind.RightBrace))
-            {
+            if (IsAtEnd() || CheckToken(TokenKind.RightBrace) || (!_current.Kind.CanStartExpr() && !CheckToken(TokenKind.Comma)))
                 break;
-            }
 
             // Will parse a whole single assignment expr.
-            exprs.Add(ParseExpr());
+            var expr = ParseExpr();
+            var commaToken = TryEatSimpleToken(TokenKind.Comma);
 
-            // TODO: Not doing anything with this comma token for now?
-            _ = _current?.Kind switch
-            {
-                TokenKind.RightBrace => null,
-                _ => EatExpectedSimpleToken(TokenKind.Comma),
-            };
+            items.Add(new MapInitializerItemNode(_tree, expr, commaToken));
         }
 
         var closedBraceToken = EatExpectedSimpleToken(TokenKind.RightBrace);
 
-        return new MapInitializerNode(_tree, openBraceToken, exprs, closedBraceToken);
+        return new MapInitializerNode(_tree, openBraceToken, items, closedBraceToken);
     }
 
     // ---
@@ -1162,11 +1156,7 @@ internal class ParserImpl
         Debug.Assert(!IsAtEnd() && (_current.Kind.CanStartType() || CheckToken(TokenKind.Comma)));
 
         var type = ParseType();
-        var commaToken = _current?.Kind switch
-        {
-            TokenKind.RightParen => null,
-            _ => EatExpectedSimpleToken(TokenKind.Comma),
-        };
+        var commaToken = TryEatSimpleToken(TokenKind.Comma);
 
         return new ParamTypeNode(_tree, type, commaToken);
     }
@@ -1186,11 +1176,7 @@ internal class ParserImpl
             if (IsAtEnd() || CheckToken(TokenKind.RightParen) || (!_current.Kind.CanStartExpr() && !CheckToken(TokenKind.Comma)))
                 break;
 
-            var arg = ParseArg();
-            if (arg == null)
-                break;
-
-            args.Add(arg);
+            args.Add(ParseArg());
         }
 
         var closedParenToken = EatExpectedSimpleToken(TokenKind.RightParen);

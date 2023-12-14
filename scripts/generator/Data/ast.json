@@ -505,14 +505,28 @@
           "Type": "SimpleToken"
         },
         {
-          "Name": "exprs",
-          "Type": "ExprNode",
-          "List": true,
-          "Comment": "Well formed: AssignmentExprNode"
+          "Name": "items",
+          "Type": "MapInitializerItemNode",
+          "List": true
         },
         {
           "Name": "closedBraceToken",
           "Type": "SimpleToken"
+        }
+      ]
+    },
+    {
+      "Name": "MapInitializerItem",
+      "Members": [
+        {
+          "Name": "expr",
+          "Type": "ExprNode",
+          "Comment": "Well formed: AssignmentExprNode"
+        },
+        {
+          "Name": "commaToken",
+          "Type": "SimpleToken",
+          "Optional": true
         }
       ]
     },

@@ -443,7 +443,7 @@ public class ParserTests
         var src = "Foo { a = 42, b = false }";
         var structCreationExprNode = ParseExpr(src).Should().BeOfType<StructCreationExprNode>().Subject;
         structCreationExprNode.Identifier.Value.Should().Be("Foo");
-        structCreationExprNode.MapInitializer.Exprs.Should().HaveCount(2);
+        structCreationExprNode.MapInitializer.Items.Should().HaveCount(2);
         structCreationExprNode.MapInitializer.WellFormedExprs.ElementAt(0).Lhs.Should().BeOfType<IdentifierExprNode>()
             .Which.Identifier.Value.Should().Be("a");
         structCreationExprNode.MapInitializer.WellFormedExprs.ElementAt(0).Rhs.Should().BeOfType<LiteralExprNode>()

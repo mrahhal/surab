@@ -362,7 +362,8 @@ public class Reasoner
     private Scope? ResolveScopeForIdentifier(IdentifierExprNode identifierExpr)
     {
         if (identifierExpr.Parent is AssignmentExprNode assignmentExpr &&
-            assignmentExpr.Parent is MapInitializerNode mapInitializer &&
+            assignmentExpr.Parent is MapInitializerItemNode mapInitializerItem &&
+            mapInitializerItem.Parent is MapInitializerNode mapInitializer &&
             mapInitializer.Parent is StructCreationExprNode structCreationExpr)
         {
             // Creating a struct: `S1 { a = 42 }`

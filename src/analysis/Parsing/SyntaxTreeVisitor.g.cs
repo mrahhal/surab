@@ -147,6 +147,11 @@ public abstract partial class SyntaxTreeVisitor
         Walk(node);
     }
 
+    public virtual void VisitMapInitializerItem(MapInitializerItemNode node)
+    {
+        Walk(node);
+    }
+
     public virtual void VisitParamsList(ParamsListNode node)
     {
         Walk(node);

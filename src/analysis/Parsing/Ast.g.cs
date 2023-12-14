@@ -79,6 +79,7 @@ public enum SyntaxNodeKind
     StructCreationExpr,
     MissingExpr,
     MapInitializer,
+    MapInitializerItem,
     ParamsList,
     Param,
     ParamTypesList,
@@ -705,26 +706,47 @@ public partial class MissingExprNode : ExprNode
 
 public partial class MapInitializerNode : SyntaxNode
 {
-    public MapInitializerNode(SyntaxTree tree, SimpleToken openBraceToken, IEnumerable<ExprNode> exprs, SimpleToken closedBraceToken)
+    public MapInitializerNode(SyntaxTree tree, SimpleToken openBraceToken, IEnumerable<MapInitializerItemNode> items, SimpleToken closedBraceToken)
         : base(tree, SyntaxNodeKind.MapInitializer)
     {
         _childTokens = new() { openBraceToken, closedBraceToken, };
-        _childNodes = exprs.Cast<SyntaxNode?>().ToList();
+        _childNodes = items.Cast<SyntaxNode?>().ToList();
 
         Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
         SetChildrenParent();
     }
 
     public SimpleToken OpenBraceToken => (SimpleToken)_childTokens[0]!;
-    /// <summary>
-    /// Well formed: AssignmentExprNode
-    /// </summary>
-    public IEnumerable<ExprNode> Exprs => _childNodes.Cast<ExprNode>();
+    public IEnumerable<MapInitializerItemNode> Items => _childNodes.Cast<MapInitializerItemNode>();
     public SimpleToken ClosedBraceToken => (SimpleToken)_childTokens[1]!;
 
     public override void Accept(SyntaxTreeVisitor visitor)
     {
         visitor.VisitMapInitializer(this);
+    }
+}
+
+public partial class MapInitializerItemNode : SyntaxNode
+{
+    public MapInitializerItemNode(SyntaxTree tree, ExprNode expr, SimpleToken? commaToken)
+        : base(tree, SyntaxNodeKind.MapInitializerItem)
+    {
+        _childTokens = new() { commaToken, };
+        _childNodes = new() { expr, };
+
+        Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+        SetChildrenParent();
+    }
+
+    /// <summary>
+    /// Well formed: AssignmentExprNode
+    /// </summary>
+    public ExprNode Expr => (ExprNode)_childNodes[0]!;
+    public SimpleToken? CommaToken => (SimpleToken?)_childTokens[0]!;
+
+    public override void Accept(SyntaxTreeVisitor visitor)
+    {
+        visitor.VisitMapInitializerItem(this);
     }
 }
 

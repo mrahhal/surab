@@ -735,10 +735,12 @@ public abstract class StmtNode(SyntaxTree tree, SyntaxNodeKind kind) : SyntaxNod
 
 public abstract class ExprNode(SyntaxTree tree, SyntaxNodeKind kind) : SyntaxNode(tree, kind)
 {
+    public bool IsMissing => this is MissingExprNode;
 }
 
 public abstract class TypeNode(SyntaxTree tree, SyntaxNodeKind kind) : SyntaxNode(tree, kind)
 {
+    public bool IsMissing => this is MissingTypeNode;
 }
 
 public partial class BareExprStmtNode
@@ -794,7 +796,7 @@ public partial class FnSigNode
 
 public partial class MapInitializerNode
 {
-    public IEnumerable<AssignmentExprNode> WellFormedExprs => Exprs.Cast<AssignmentExprNode>();
+    public IEnumerable<AssignmentExprNode> WellFormedExprs => Items.Select(x => x.Expr).Cast<AssignmentExprNode>();
 }
 
 public static class AttrsListNodeExtensions
