@@ -50,9 +50,17 @@ public class SurabSolver(LanguageServerHost host)
         var reasoner = Project.GetReasoner(sourceFile);
         var linePosition = ConversionHelper.FromTo(position);
         var node = GetNodeAt(sourceFile, linePosition)!;
-        var symbol = reasoner.LookupSymbol(node);
+        var symbol = reasoner.GetDeclaredSymbol(node) ?? reasoner.LookupSymbol(node);
         var type = default(TypeSymbol?);
-        if (symbol != null)
+        if (symbol is TypeSymbol typeSymbol)
+        {
+            type = typeSymbol;
+        }
+        else if (symbol is ISymbolHasType hasType)
+        {
+            type = hasType.Type;
+        }
+        else if (symbol != null)
         {
             type = reasoner.LookupType(node);
         }

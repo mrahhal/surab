@@ -202,8 +202,19 @@ public class Reasoner
             ArgNode n => LookupType(n.Expr),
             EqualsExprClauseNode n => LookupType(n.Expr),
 
+            // Should we support non expr nodes like these in LookupType?
+            DeclNode n => LookupTypeFromDeclaredSymbol(n),
+            VarStmtNode n => LookupTypeFromDeclaredSymbol(n),
+            ParamNode n => LookupTypeFromDeclaredSymbol(n),
+
             _ => ErrorTypeSymbol.Create(),
         };
+    }
+
+    private TypeSymbol LookupTypeFromDeclaredSymbol(SyntaxNode node)
+    {
+        var symbol = GetDeclaredSymbol(node) as ISymbolHasType;
+        return symbol?.Type ?? ErrorTypeSymbol.Create();
     }
 
     private TypeSymbol LookupType(BareExprStmtNode node)
@@ -378,7 +389,7 @@ public class Reasoner
     {
         return node switch
         {
-            VarStmtNode letStmt => LookupType(letStmt.Initializer),
+            VarStmtNode varStmt => LookupType(varStmt.Initializer),
             FieldDeclNode fieldDecl => LookupType(fieldDecl.Initializer),
             _ => null,
         };
