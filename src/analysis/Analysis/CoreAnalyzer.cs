@@ -211,7 +211,7 @@ internal class CoreAnalyzer(Reasoner reasoner) : SyntaxTreeVisitor
         var leftType = _reasoner.LookupType(node.Left);
         var rightType = _reasoner.LookupType(node.Right);
 
-        if (leftType == null || rightType == null)
+        if (leftType.IsError || rightType.IsError)
         {
             // Shouldn't report. Will be reported elsewhere.
         }

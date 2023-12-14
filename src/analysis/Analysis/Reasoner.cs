@@ -104,24 +104,19 @@ public class Reasoner
     public IEnumerable<Diagnostic> GetAllDiagnostics()
     {
         // Syntax
-        var errored = Tree.Diagnostics.Diagnostics.Any(x => x.Level >= DiagnosticLevel.Error);
-        if (errored)
-        {
-            // TODO: Shouldn't short circuit? We should be able to analyze part of a broken tree.
-            // Short circuit
-            return Tree.Diagnostics.Diagnostics;
-        }
+        var parserDiagnostics = Tree.Diagnostics.Diagnostics;
 
         // Semantic
         var semanticDiagnostics = CoreAnalyzer.Analyze(this);
-        return [.. Tree.Diagnostics.Diagnostics, .. semanticDiagnostics.Diagnostics];
+
+        return [.. parserDiagnostics, .. semanticDiagnostics.Diagnostics];
     }
 
     /// <summary>
     /// Looks up the <see cref="Symbol"/> that is referred to in the given node.
     /// If a symbol can't be found, `null` is returned.
     /// </summary>
-    public Symbol? LookupSymbol(SyntaxNode node)
+    public Symbol? LookupSymbol(SyntaxNode? node)
     {
         return node switch
         {
@@ -137,7 +132,7 @@ public class Reasoner
         };
     }
 
-    public Symbol? LookupSymbol(TypeNode typeNode)
+    public Symbol? LookupSymbol(TypeNode? typeNode)
     {
         return typeNode switch
         {
@@ -452,7 +447,7 @@ public class Reasoner
             sig.ReturnType == null ? BuiltinTypeSystem.None : LookupSymbol(sig.ReturnType).AsTypeSymbolOrError(),
             sig.Params.Params.Select(p =>
             {
-                return LookupSymbol(p.Type!.Type).AsTypeSymbolOrError();
+                return LookupSymbol(p.Type?.Type).AsTypeSymbolOrError();
             }));
     }
 

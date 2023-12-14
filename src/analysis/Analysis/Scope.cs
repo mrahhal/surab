@@ -134,15 +134,16 @@ internal abstract class Scope
     /// </summary>
     public ResolvedType ResolveType(TypeNode typeNode)
     {
-        var identifier = typeNode switch
-        {
-            NamedTypeNode namedTypeNode => namedTypeNode.Identifier,
-            _ => null,
-        };
+        //var identifier = typeNode switch
+        //{
+        //    NamedTypeNode namedTypeNode => namedTypeNode.Identifier,
+        //    _ => null,
+        //};
         var resolvedType = typeNode switch
         {
             NamedTypeNode namedTypeNode => LookupIdentifier(namedTypeNode.Identifier),
             FnTypeNode fnTypeNode => Reasoner.LookupSymbol(fnTypeNode),
+            MissingTypeNode => ErrorTypeSymbol.Create(),
             _ => throw new UnreachableException(),
         };
         return ResolvedType.Typed(resolvedType as TypeSymbol ?? ErrorTypeSymbol.Create());
