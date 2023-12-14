@@ -38,18 +38,20 @@ public class SemanticTokensFullHandler(
         var tree = _host.SurabProject.GetSyntaxTree(sourceFile);
         var reasoner = _host.SurabProject.GetReasoner(sourceFile);
 
-        foreach (var (line, ch, length, tokenType) in TokenizeRecursive(tree.Root, reasoner))
+        foreach (var (line, ch, length, tokenType, modifiers) in TokenizeRecursive(tree.Root, reasoner))
         {
             if (tokenType == null)
                 continue;
 
-            // TODO: Modifiers.
-            builder.Push(line, ch, length, tokenType);
+            builder.Push(line, ch, length, tokenType, modifiers);
         }
     }
 
-    private IEnumerable<(int, int, int, SemanticTokenType?)> TokenizeRecursive(SyntaxNode node, Reasoner reasoner)
+    private IEnumerable<(int, int, int, SemanticTokenType?, List<SemanticTokenModifier>)> TokenizeRecursive(SyntaxNode node, Reasoner reasoner)
     {
+        var triviaTokenBuilder = new TokenBuilder<SyntaxTrivia>();
+        var tokenTokenBuilder = new TokenBuilder<SyntaxToken>();
+
         foreach (var childItem in node.EnumerateBySpanStart())
         {
             if (childItem.Token != null)
@@ -58,14 +60,20 @@ public class SemanticTokensFullHandler(
 
                 foreach (var trivia in childToken.LeadingTrivia)
                 {
-                    yield return To(trivia.Span, GetTokenType(trivia, reasoner));
+                    triviaTokenBuilder.Init(trivia, reasoner);
+                    Process(triviaTokenBuilder);
+                    yield return To(trivia.Span, triviaTokenBuilder);
                 }
 
-                yield return To(childToken.Span, GetTokenType(childToken, reasoner));
+                tokenTokenBuilder.Init(childToken, reasoner);
+                Process(tokenTokenBuilder);
+                yield return To(childToken.Span, tokenTokenBuilder);
 
                 foreach (var trivia in childToken.TrailingTrivia)
                 {
-                    yield return To(trivia.Span, GetTokenType(trivia, reasoner));
+                    triviaTokenBuilder.Init(trivia, reasoner);
+                    Process(triviaTokenBuilder);
+                    yield return To(trivia.Span, triviaTokenBuilder);
                 }
             }
             else if (childItem.Node != null)
@@ -77,54 +85,100 @@ public class SemanticTokensFullHandler(
             }
         }
 
-        static (int, int, int, SemanticTokenType?) To(TextSpan span, SemanticTokenType? tokenType)
+        static (int, int, int, SemanticTokenType?, List<SemanticTokenModifier>) To<T>(TextSpan span, TokenBuilder<T> builder)
         {
             var line = span.Line.Start.Line;
             var ch = span.Line.Start.Char;
             var length = span.Size;
 
-            return (line, ch, length, tokenType);
+            return (line, ch, length, builder.Type, builder.Modifiers);
         }
     }
 
-    private static SemanticTokenType? GetTokenType(SyntaxTrivia trivia, Reasoner reasoner)
+    private static void Process(TokenBuilder<SyntaxTrivia> builder)
     {
-        return trivia.Kind switch
+        var trivia = builder.Item;
+        var type = trivia.Kind switch
         {
             SyntaxTriviaKind.LineComment or SyntaxTriviaKind.BlockComment => (SemanticTokenType?)SemanticTokenType.Comment,
             _ => null,
         };
+        // TODO: Add modifier for doc comment and the like.
+        builder.SetType(type);
     }
 
-    private static SemanticTokenType? GetTokenType(SyntaxToken token, Reasoner reasoner)
+    private static void Process(TokenBuilder<SyntaxToken> builder)
     {
-        return token switch
+        var token = builder.Item;
+        var reasoner = builder.Reasoner;
+
+        switch (token)
         {
-            SimpleToken simpleToken => simpleToken.SimpleTokenKind switch
-            {
-                SimpleTokenKind.At when simpleToken.Parent is AttrNode => SemanticTokenType.Decorator,
-                _ when simpleToken.IsKeyword => (SemanticTokenType?)SemanticTokenType.Keyword,
-                _ => null,
-            },
-            IdentifierToken identifierToken => identifierToken.Parent switch
-            {
-                FnSigNode sig => sig.Parent is FnDeclNode ? SemanticTokenType.Function : SemanticTokenType.Method,
-                StructDeclNode or StructCreationExprNode => SemanticTokenType.Struct,
-                FieldDeclNode => SemanticTokenType.Property,
-                ParamNode => SemanticTokenType.Parameter,
-                VarStmtNode => SemanticTokenType.Variable,
-                NamedTypeNode => SemanticTokenType.Type,
-                AttrNode => SemanticTokenType.Decorator,
-                IdentifierExprNode identifierExpr => GetTokenType(reasoner.LookupSymbol(identifierExpr)),
-                _ => null,
-            },
-            LiteralToken literalToken => literalToken.LiteralTokenKind switch
-            {
-                LiteralTokenKind.NumericInteger or LiteralTokenKind.NumericFloat => (SemanticTokenType?)SemanticTokenType.Number,
-                _ => null,
-            },
-            _ => null,
-        };
+            case SimpleToken simpleToken:
+                {
+                    builder.SetType(simpleToken.SimpleTokenKind switch
+                    {
+                        SimpleTokenKind.At when simpleToken.Parent is AttrNode => SemanticTokenType.Decorator,
+                        _ when simpleToken.IsKeyword => (SemanticTokenType?)SemanticTokenType.Keyword,
+                        _ => null,
+                    });
+                }
+                break;
+
+            case LiteralToken literalToken:
+                {
+                    builder.SetType(literalToken.LiteralTokenKind switch
+                    {
+                        LiteralTokenKind.NumericInteger or LiteralTokenKind.NumericFloat => (SemanticTokenType?)SemanticTokenType.Number,
+                        _ => null,
+                    });
+                }
+                break;
+
+            case IdentifierToken identifierToken:
+                {
+                    if (identifierToken.Parent is IdentifierExprNode identifierExpr)
+                    {
+                        var symbol = reasoner.LookupSymbol(identifierExpr);
+                        builder.SetType(GetTokenType(symbol));
+                    }
+                    else if (identifierToken.Parent is NamedTypeNode namedType)
+                    {
+                        var symbol = reasoner.LookupSymbol(namedType);
+                        builder.SetType(GetTokenType(symbol));
+
+                        if (symbol is TypeSymbol typeSymbol && typeSymbol.IsBuiltin)
+                        {
+                            builder.AddModifier(SemanticTokenModifier.DefaultLibrary);
+                        }
+                    }
+                    else if (identifierToken.DeclaresSymbol())
+                    {
+                        var symbol = reasoner.GetDeclaredSymbol(identifierToken);
+                        builder.SetType(GetTokenType(symbol));
+
+                        builder.AddModifier(SemanticTokenModifier.Declaration);
+                    }
+                    else
+                    {
+                        builder.SetType(identifierToken.Parent switch
+                        {
+                            FnSigNode sig => sig.Parent is FnDeclNode ? (SemanticTokenType?)SemanticTokenType.Function : SemanticTokenType.Method,
+                            StructDeclNode or StructCreationExprNode => SemanticTokenType.Struct,
+                            FieldDeclNode => SemanticTokenType.Property,
+                            ParamNode => SemanticTokenType.Parameter,
+                            VarStmtNode => SemanticTokenType.Variable,
+                            NamedTypeNode => SemanticTokenType.Type,
+                            AttrNode => SemanticTokenType.Decorator,
+                            _ => null,
+                        });
+                    }
+                }
+                break;
+
+            default:
+                break;
+        }
     }
 
     private static SemanticTokenType? GetTokenType(Symbol? symbol)
@@ -168,5 +222,36 @@ public class SemanticTokensFullHandler(
             },
             Full = true,
         };
+    }
+
+    private class TokenBuilder<T>
+    {
+        public T Item { get; private set; } = default!;
+        public Reasoner Reasoner { get; private set; } = default!;
+
+        public SemanticTokenType? Type { get; private set; }
+        public List<SemanticTokenModifier> Modifiers { get; private set; } = default!;
+
+        public void Init(T item, Reasoner reasoner)
+        {
+            Item = item;
+            Reasoner = reasoner;
+
+            Type = null;
+            Modifiers ??= [];
+            Modifiers.Clear();
+        }
+
+        public TokenBuilder<T> SetType(SemanticTokenType? type)
+        {
+            Type = type;
+            return this;
+        }
+
+        public TokenBuilder<T> AddModifier(SemanticTokenModifier modifier)
+        {
+            Modifiers.Add(modifier);
+            return this;
+        }
     }
 }

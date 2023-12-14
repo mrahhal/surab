@@ -419,6 +419,26 @@ public sealed class IdentifierToken : SyntaxToken
     }
 
     public override string ToString() => Value;
+
+    public bool DeclaresSymbol()
+    {
+        return (Parent?.DeclaresSymbol() ?? false) || Parent is FnSigNode;
+    }
+
+    public SyntaxNode? GetParentNodeThatDeclaresSymbol()
+    {
+        if (Parent?.DeclaresSymbol() ?? false)
+        {
+            return Parent;
+        }
+
+        if (Parent is FnSigNode sig)
+        {
+            return sig.Parent!; // fn or method
+        }
+
+        return null;
+    }
 }
 
 public enum LiteralTokenKind
@@ -722,6 +742,14 @@ public abstract class SyntaxNode : SyntaxEntity
     public override string ToString()
     {
         return Tree.SourceFile.Text[Span.File.GetRange()];
+    }
+
+    /// <summary>
+    /// Returns whether or not this node declares a symbol. i.e. Calling <see cref="Reasoner.GetDeclaredSymbol(SyntaxNode)"/> on this should never return `null`.
+    /// </summary>
+    public bool DeclaresSymbol()
+    {
+        return this is DeclNode or VarStmtNode or ParamNode;
     }
 }
 

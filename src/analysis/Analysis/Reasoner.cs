@@ -60,6 +60,12 @@ public class Reasoner
         return symbol;
     }
 
+    public Symbol? GetDeclaredSymbol(IdentifierToken identifierToken)
+    {
+        var node = identifierToken.GetParentNodeThatDeclaresSymbol();
+        return node == null ? null : GetDeclaredSymbol(node);
+    }
+
     /// <summary>
     /// Gets the first <see cref="Symbol"/> found when climbing up the tree starting and including the given node.
     /// </summary>
@@ -203,9 +209,7 @@ public class Reasoner
             EqualsExprClauseNode n => LookupType(n.Expr),
 
             // Should we support non expr nodes like these in LookupType?
-            DeclNode n => LookupTypeFromDeclaredSymbol(n),
-            VarStmtNode n => LookupTypeFromDeclaredSymbol(n),
-            ParamNode n => LookupTypeFromDeclaredSymbol(n),
+            _ when node?.DeclaresSymbol() ?? false => LookupTypeFromDeclaredSymbol(node),
 
             _ => ErrorTypeSymbol.Create(),
         };
