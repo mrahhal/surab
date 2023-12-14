@@ -1061,7 +1061,6 @@ internal class ParserImpl
             // Currently, can't figure out a good way to recover this better without doing a lot of lookaheads.
             TokenKind.AtBeforeIdentifier or TokenKind.Fn => ParseFnType(attrs),
             // IsAtEnd check is included here.
-            // TODO: Is the span shrinking here correct?
             _ => CreateMissingTypeNode(attrs),
         };
     }
