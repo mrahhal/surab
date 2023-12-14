@@ -79,7 +79,7 @@ internal class ParserImpl
     // To manage assigning trivia to tokens, we keep track of the trivia collected in this map for ease of consumption by tokens.
     // Each Advance will collect and fill leading list before, and collect and fill trailing list after moving to next non trivia token,
     // and then setting these in this map for the token to consume on creation using `ConsumeTrivia`.
-    private readonly Dictionary<int, (List<Token>? leading, List<Token>? trailing)> _tokenOffsetToTriviaMap = [];
+    private readonly Dictionary<int, (List<Token>? Leading, List<Token>? Trailing)> _tokenOffsetToTriviaMap = [];
 
     public ParserImpl(
         SourceFile sourceFile,
@@ -405,7 +405,7 @@ internal class ParserImpl
         }
         else
         {
-            var token = SimpleToken.CreateMissing(_tree, tokenKind, ShrinkToStartSpanAtCurrent());
+            var token = SimpleToken.CreateMissing(_tree, tokenKind, GetProperSpanForMissingThingAtCurrent());
             _diagnostics.Add(token.Span, DiagnosticLevel.Error, $"expected '{token}'");
             return token;
         }
@@ -422,7 +422,7 @@ internal class ParserImpl
         }
         else
         {
-            var token = SimpleToken.CreateMissing(_tree, contextualKeyword, ShrinkToStartSpanAtCurrent());
+            var token = SimpleToken.CreateMissing(_tree, contextualKeyword, GetProperSpanForMissingThingAtCurrent());
             _diagnostics.Add(token.Span, DiagnosticLevel.Error, $"expected '{contextualKeyword}'");
             return token;
         }
@@ -431,19 +431,33 @@ internal class ParserImpl
     private MissingTypeNode CreateMissingTypeNode(AttrsListNode? attrs)
     {
         // TODO: Is the span shrinking here correct?
-        var node = new MissingTypeNode(_tree, attrs == null ? ShrinkToStartSpanAtCurrent() : attrs.Span.ShrinkToEnd(), attrs);
+        var node = new MissingTypeNode(_tree, attrs == null ? GetProperSpanForMissingThingAtCurrent() : attrs.Span.ShrinkToEnd(), attrs);
         _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"expected type");
         return node;
     }
 
     private MissingExprNode CreateMissingExprNode()
     {
-        var node = new MissingExprNode(_tree, ShrinkToStartSpanAtCurrent());
+        var node = new MissingExprNode(_tree, GetProperSpanForMissingThingAtCurrent());
         _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"expected expression");
         return node;
     }
 
-    private TextSpan ShrinkToStartSpanAtCurrent() => _current?.Span.ShrinkToStart() ?? new();
+    private TextSpan GetProperSpanForMissingThingAtCurrent()
+    {
+        if (_current == null)
+            return new();
+
+        // Try to get a span at the start of the first leading trivia of the current token.
+        // e.g. This gives us a span at the newline to report a missing semicolon, instead of at the next token
+        // after it (which is probably on another line, more confusing).
+        if (_tokenOffsetToTriviaMap.TryGetValue(_current.Span.File.Start, out var t) && t.Leading != null)
+        {
+            return t.Leading[0].Span.ShrinkToStart();
+        }
+
+        return _current.Span.ShrinkToStart();
+    }
 
     // TODO: Find usages of this to intern strings.
     private ReadOnlySpan<char> GetLexeme(Token token) => GetLexeme(token.Span);
@@ -1209,7 +1223,7 @@ internal class ParserImpl
 
         IdentifierToken CreateMissingIdentifierToken()
         {
-            var token = IdentifierToken.CreateMissing(_tree, ShrinkToStartSpanAtCurrent());
+            var token = IdentifierToken.CreateMissing(_tree, GetProperSpanForMissingThingAtCurrent());
             _diagnostics.Add(token.Span, DiagnosticLevel.Error, $"expected an identifier");
             return token;
         }
