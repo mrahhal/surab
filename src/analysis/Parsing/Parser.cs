@@ -241,19 +241,30 @@ internal class ParserImpl
     private DeclNode RecoverDecl()
     {
         var skipped = RecoverMain();
-        return new SkippedTokensDeclNode(_tree, skipped);
+        var skippedNode = new SkippedTokensDeclNode(_tree, skipped);
+        ReportSkippedNode(skippedNode);
+        return skippedNode;
     }
 
     private DeclNode RecoverMemberDecl()
     {
         var skipped = RecoverMain();
-        return new SkippedTokensDeclNode(_tree, skipped);
+        var skippedNode = new SkippedTokensDeclNode(_tree, skipped);
+        ReportSkippedNode(skippedNode);
+        return skippedNode;
     }
 
     private StmtNode RecoverStmt()
     {
         var skipped = RecoverMain();
-        return new SkippedTokensStmtNode(_tree, skipped);
+        var skippedNode = new SkippedTokensStmtNode(_tree, skipped);
+        ReportSkippedNode(skippedNode);
+        return skippedNode;
+    }
+
+    private void ReportSkippedNode(SyntaxNode node)
+    {
+        _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"skipped unparsed tokens");
     }
 
     private List<SkippedToken> RecoverMain()
@@ -384,20 +395,9 @@ internal class ParserImpl
         return SimpleToken.Create(_tree, leading, trailing, prev);
     }
 
-    private bool EatExpectedToken(TokenKind tokenKind)
-    {
-        if (!TryEatToken(tokenKind))
-        {
-            //var span = _prev!.Span;
-            _diagnostics.Add(ShrinkToStartSpanAtCurrent(), DiagnosticLevel.Error, $"expected '{tokenKind}'");
-            return false;
-        }
-        return true;
-    }
-
     private SimpleToken EatExpectedSimpleToken(TokenKind tokenKind)
     {
-        if (EatExpectedToken(tokenKind))
+        if (TryEatToken(tokenKind))
         {
             var prev = AssertedPrev();
             var (leading, trailing) = ConsumeTrivia(prev);
@@ -405,7 +405,9 @@ internal class ParserImpl
         }
         else
         {
-            return SimpleToken.CreateMissing(_tree, tokenKind, ShrinkToStartSpanAtCurrent());
+            var token = SimpleToken.CreateMissing(_tree, tokenKind, ShrinkToStartSpanAtCurrent());
+            _diagnostics.Add(token.Span, DiagnosticLevel.Error, $"expected '{token}'");
+            return token;
         }
     }
 
@@ -420,9 +422,25 @@ internal class ParserImpl
         }
         else
         {
-            _diagnostics.Add(ShrinkToStartSpanAtCurrent(), DiagnosticLevel.Error, $"expected '{contextualKeyword}'");
-            return SimpleToken.CreateMissing(_tree, contextualKeyword, ShrinkToStartSpanAtCurrent());
+            var token = SimpleToken.CreateMissing(_tree, contextualKeyword, ShrinkToStartSpanAtCurrent());
+            _diagnostics.Add(token.Span, DiagnosticLevel.Error, $"expected '{contextualKeyword}'");
+            return token;
         }
+    }
+
+    private MissingTypeNode CreateMissingTypeNode(AttrsListNode? attrs)
+    {
+        // TODO: Is the span shrinking here correct?
+        var node = new MissingTypeNode(_tree, attrs == null ? ShrinkToStartSpanAtCurrent() : attrs.Span.ShrinkToEnd(), attrs);
+        _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"expected type");
+        return node;
+    }
+
+    private MissingExprNode CreateMissingExprNode()
+    {
+        var node = new MissingExprNode(_tree, ShrinkToStartSpanAtCurrent());
+        _diagnostics.Add(node.Span, DiagnosticLevel.Error, $"expected expression");
+        return node;
     }
 
     private TextSpan ShrinkToStartSpanAtCurrent() => _current?.Span.ShrinkToStart() ?? new();
@@ -683,7 +701,7 @@ internal class ParserImpl
     /// </summary>
     private ExprNode ParseExprForPrecedence(Precedence precedence)
     {
-        if (IsAtEnd()) return new MissingExprNode(_tree, ShrinkToStartSpanAtCurrent());
+        if (IsAtEnd()) return CreateMissingExprNode();
 
         // Struct creation takes priority.
         if (_current.Kind == TokenKind.Identifier && P1()?.Kind == TokenKind.LeftBrace)
@@ -694,7 +712,7 @@ internal class ParserImpl
         if (!Pratt.IsPrefixRule(_current.Kind))
         {
             // TODO: Should we try to perform a recovery of some kind?
-            return new MissingExprNode(_tree, ShrinkToStartSpanAtCurrent());
+            return CreateMissingExprNode();
         }
 
         var expr = ParsePrefixExpr();
@@ -725,7 +743,7 @@ internal class ParserImpl
             TokenKind.Identifier => ParseIdentifierExpr(),
             _ when token.Kind.IsUnary() => ParseUnaryExpr(),
             _ when token.Kind.IsLiteral() => ParseLiteralExpr(),
-            _ => new MissingExprNode(_tree, ShrinkToStartSpanAtCurrent()),
+            _ => CreateMissingExprNode(),
         };
     }
 
@@ -871,7 +889,7 @@ internal class ParserImpl
             TokenKind.Dot => ParseAccessExpr(left),
             TokenKind.Equal => ParseAssignmentExpr(targetPrecedence, left),
             _ when token.Kind.IsBinary() => ParseBinaryExpr(targetPrecedence, left),
-            _ => new MissingExprNode(_tree, ShrinkToStartSpanAtCurrent()),
+            _ => CreateMissingExprNode(),
         };
     }
 
@@ -1036,7 +1054,7 @@ internal class ParserImpl
             TokenKind.AtBeforeIdentifier or TokenKind.Fn => ParseFnType(attrs),
             // IsAtEnd check is included here.
             // TODO: Is the span shrinking here correct?
-            _ => new MissingTypeNode(_tree, attrs == null ? ShrinkToStartSpanAtCurrent() : attrs.Span.ShrinkToEnd(), attrs),
+            _ => CreateMissingTypeNode(attrs),
         };
     }
 
@@ -1191,9 +1209,9 @@ internal class ParserImpl
 
         IdentifierToken CreateMissingIdentifierToken()
         {
-            var span = ShrinkToStartSpanAtCurrent();
-            _diagnostics.Add(span, DiagnosticLevel.Error, $"expected an identifier");
-            return IdentifierToken.CreateMissing(_tree, span);
+            var token = IdentifierToken.CreateMissing(_tree, ShrinkToStartSpanAtCurrent());
+            _diagnostics.Add(token.Span, DiagnosticLevel.Error, $"expected an identifier");
+            return token;
         }
     }
 

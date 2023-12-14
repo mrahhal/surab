@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Security.Claims;
 
 namespace Surab.Analysis;
 
@@ -222,7 +223,37 @@ public sealed class SimpleToken : SyntaxToken
             },
         };
 
-    public override string ToString() => SimpleTokenKind.ToString();
+    public override string ToString()
+    {
+        return SimpleTokenKind switch
+        {
+            SimpleTokenKind.LeftParen => "(",
+            SimpleTokenKind.RightParen => ")",
+            SimpleTokenKind.LeftBrace => "{",
+            SimpleTokenKind.RightBrace => "}",
+            SimpleTokenKind.Comma => ",",
+            SimpleTokenKind.Dot => ".",
+            SimpleTokenKind.Semicolon => ";",
+            SimpleTokenKind.Colon => ":",
+            SimpleTokenKind.Question => "?",
+            SimpleTokenKind.Equal => "=",
+            SimpleTokenKind.At => "@",
+
+            SimpleTokenKind.Fn => "fn",
+            SimpleTokenKind.Struct => "struct",
+            SimpleTokenKind.Class => "class",
+            SimpleTokenKind.Alias => "alias",
+            SimpleTokenKind.New => "new",
+            SimpleTokenKind.This => "this",
+            SimpleTokenKind.True => "true",
+            SimpleTokenKind.False => "false",
+            SimpleTokenKind.Var => "let",
+            SimpleTokenKind.Const => "const",
+            SimpleTokenKind.Return => "return",
+
+            _ => throw new NotImplementedException(),
+        };
+    }
 
     public override void Accept(SyntaxTreeVisitor visitor)
     {
