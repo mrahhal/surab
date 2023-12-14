@@ -246,4 +246,13 @@ public static class TokenKindExtensions
         kind.IsUnary() ||
         kind.IsLiteral() ||
         kind is LeftParen or LeftBrace or This or Identifier;
+
+    public static bool CanStartParam(this TokenKind kind) =>
+        kind is Identifier ||
+        CanStartAttribute(kind); // TODO: Not parsing attrs for params right now?
+
+    public static bool CanStartType(this TokenKind kind) =>
+        kind is Fn ||
+        kind is Identifier ||
+        CanStartAttribute(kind);
 }

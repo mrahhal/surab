@@ -55,12 +55,18 @@ public class SemanticTokensFullHandler(
             if (childItem.Token != null)
             {
                 var childToken = childItem.Token;
-                var line = childToken.Span.Line.Start.Line;
-                var ch = childToken.Span.Line.Start.Char;
-                var length = childToken.Span.Size;
-                var tokenType = GetTokenType(childToken, reasoner);
 
-                yield return (line, ch, length, tokenType);
+                foreach (var trivia in childToken.LeadingTrivia)
+                {
+                    yield return To(trivia.Span, GetTokenType(trivia, reasoner));
+                }
+
+                yield return To(childToken.Span, GetTokenType(childToken, reasoner));
+
+                foreach (var trivia in childToken.TrailingTrivia)
+                {
+                    yield return To(trivia.Span, GetTokenType(trivia, reasoner));
+                }
             }
             else if (childItem.Node != null)
             {
@@ -70,6 +76,24 @@ public class SemanticTokensFullHandler(
                 }
             }
         }
+
+        static (int, int, int, SemanticTokenType?) To(TextSpan span, SemanticTokenType? tokenType)
+        {
+            var line = span.Line.Start.Line;
+            var ch = span.Line.Start.Char;
+            var length = span.Size;
+
+            return (line, ch, length, tokenType);
+        }
+    }
+
+    private static SemanticTokenType? GetTokenType(SyntaxTrivia trivia, Reasoner reasoner)
+    {
+        return trivia.Kind switch
+        {
+            SyntaxTriviaKind.LineComment or SyntaxTriviaKind.BlockComment => (SemanticTokenType?)SemanticTokenType.Comment,
+            _ => null,
+        };
     }
 
     private static SemanticTokenType? GetTokenType(SyntaxToken token, Reasoner reasoner)
@@ -99,7 +123,6 @@ public class SemanticTokensFullHandler(
                 LiteralTokenKind.NumericInteger or LiteralTokenKind.NumericFloat => (SemanticTokenType?)SemanticTokenType.Number,
                 _ => null,
             },
-            TriviaToken triviaToken when triviaToken.Token.Kind is TokenKind.LineComment or TokenKind.BlockComment => SemanticTokenType.Comment,
             _ => null,
         };
     }

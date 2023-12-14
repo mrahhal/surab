@@ -41,7 +41,7 @@ public class ReasonerTests
 
         var decl1 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().First();
         var decl2 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().Skip(1).Single();
-        var valueSymbol = reasoner.LookupSymbol(decl2.Value);
+        var valueSymbol = reasoner.LookupSymbol(decl2.Initializer!.Expr);
         reasoner.TryGetDeclaredSymbol(decl1, out var symbol).Should().BeTrue();
 
         valueSymbol.Should().NotBeNull().And.Be(symbol);
@@ -102,10 +102,10 @@ public class ReasonerTests
         //var decl3 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().Skip(2).First();
         var decl4 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().Skip(2).Single();
 
-        reasoner.LookupType(decl1.Value).Should().Be(BuiltinTypeSystem.i32);
-        reasoner.LookupType(decl2.Value).Should().Be(BuiltinTypeSystem.@char);
-        //reasoner.LookupType(decl3.Value).Should().Be(BuiltInTypeSystem.String);
-        reasoner.LookupType(decl4.Value).Should().Be(BuiltinTypeSystem.@bool);
+        reasoner.LookupType(decl1.Initializer!.Expr).Should().Be(BuiltinTypeSystem.i32);
+        reasoner.LookupType(decl2.Initializer!.Expr).Should().Be(BuiltinTypeSystem.@char);
+        //reasoner.LookupType(decl3.Initializer!.Expr).Should().Be(BuiltInTypeSystem.String);
+        reasoner.LookupType(decl4.Initializer!.Expr).Should().Be(BuiltinTypeSystem.@bool);
     }
 
     [Fact]

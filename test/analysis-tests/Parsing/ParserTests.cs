@@ -15,7 +15,10 @@ public class ParserTests
     [Fact]
     public void Trivia()
     {
-        var src = "/* c */ const /* c */ /* c */ a /* c */ = /* c */ 2 /* c */; // c";
+        var src = """
+            // some
+            /* c */ const /* c */ /* c */ a /* c */ = /* c */ 2 /* c */; // c
+            """;
         var tree = Parser.ParseModule(src);
         var module = (ModuleNode)tree.Root;
         tree.Diagnostics.Diagnostics.Should().BeEmpty();
@@ -24,9 +27,26 @@ public class ParserTests
         module.Decls.Should().HaveCount(1);
         module.Decls.ElementAt(0).Should().BeOfType<ConstDeclNode>();
         module.DescendantNodesAndSelf()
-            .SelectMany(x => x.TriviaTokens)
-            .Where(x => x.Token.Kind is TokenKind.LineComment or TokenKind.BlockComment)
-            .Should().HaveCount(7);
+            .SelectMany(x => x.ChildTokens.SelectMany(x => x.LeadingTrivia.Concat(x.TrailingTrivia)))
+            .Where(x => x.Kind is SyntaxTriviaKind.LineComment or SyntaxTriviaKind.BlockComment)
+            .Should().HaveCount(8);
+    }
+
+    [Fact]
+    public void Trivia_2()
+    {
+        var src = """
+            // some
+            alias Integer as i32;
+            """;
+        var tree = Parser.ParseModule(src);
+        var module = (ModuleNode)tree.Root;
+        tree.Diagnostics.Diagnostics.Should().BeEmpty();
+
+        module.Should().NotBeNull();
+        module.Decls.Should().HaveCount(1);
+        var aliasDecl = module.Decls.ElementAt(0).Should().BeOfType<AliasDeclNode>().Subject;
+        aliasDecl.AliasToken.LeadingTrivia.Should().HaveCount(2); // line comment + whitespace
     }
 
     [Fact]
@@ -69,7 +89,7 @@ public class ParserTests
     public void Decl_Fn_Faulty2()
     {
         var src = "fn some() /* some fn not complete */ fn main() {}";
-        ParseDecl(src).Should().NotBeNull();
+        ParseModule(src).Should().NotBeNull();
     }
 
     [Fact]
@@ -78,7 +98,7 @@ public class ParserTests
         var src = "var f: fn (i32, i32) i64;";
         var node = ParseStmt(src).Should().BeOfType<VarStmtNode>().Subject;
         var fnTypeNode = node.Type!.Type.Should().BeOfType<FnTypeNode>().Subject;
-        fnTypeNode.ParamTypes.ParamTypes.Should().HaveCount(2);
+        fnTypeNode.ParamTypes!.ParamTypes.Should().HaveCount(2);
         fnTypeNode.ParamTypes.ParamTypes.ElementAt(0).Type.Should().BeOfType<NamedTypeNode>();
         fnTypeNode.ParamTypes.ParamTypes.ElementAt(0).CommaToken.Should().NotBeNull();
         fnTypeNode.ParamTypes.ParamTypes.ElementAt(1).Type.Should().BeOfType<NamedTypeNode>();
@@ -92,7 +112,7 @@ public class ParserTests
         var src = "var f: @extern fn (i32, i32) i64;";
         var node = ParseStmt(src).Should().BeOfType<VarStmtNode>().Subject;
         var fnTypeNode = node.Type!.Type.Should().BeOfType<FnTypeNode>().Subject;
-        fnTypeNode.ParamTypes.ParamTypes.Should().HaveCount(2);
+        fnTypeNode.ParamTypes!.ParamTypes.Should().HaveCount(2);
         fnTypeNode.Attrs.Should().NotBeNull();
         fnTypeNode.Attrs!.Attrs.Should().HaveCount(1);
     }
@@ -593,7 +613,7 @@ public class ParserTests
     {
         var src = "saunk ;";
         var node = ParseDecl(src).Should().BeOfType<SkippedTokensDeclNode>().Subject;
-        node.Skipped.Tokens.Should().HaveCount(2);
+        node.Skipped.Should().HaveCount(2);
     }
 
     [Fact]
@@ -623,24 +643,31 @@ public class ParserTests
     private static ModuleNode ParseModule(string src)
     {
         var tree = Parser.ParseModule(src);
-        return (ModuleNode)tree.Root;
+        return ValidateNode((ModuleNode)tree.Root);
     }
 
     private static DeclNode ParseDecl(string src)
     {
         var tree = Parser.ParseDecl(src);
-        return (DeclNode)tree.Root;
+        return ValidateNode((DeclNode)tree.Root);
     }
 
     private static StmtNode ParseStmt(string src)
     {
         var tree = Parser.ParseStmt(src);
-        return (StmtNode)tree.Root;
+        return ValidateNode((StmtNode)tree.Root);
     }
 
     private static ExprNode ParseExpr(string src)
     {
         var tree = Parser.ParseExpr(src);
-        return (ExprNode)tree.Root;
+        return ValidateNode((ExprNode)tree.Root);
+    }
+
+    private static T ValidateNode<T>(T node)
+        where T: SyntaxNode
+    {
+        // Nothing to validate for now? Tree being set doesn't need to be validated anymore since it's required in the ctor.
+        return node;
     }
 }

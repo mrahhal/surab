@@ -205,7 +205,7 @@ public class Reasoner
             BareExprStmtNode n => LookupType(n),
             ExprNode n => LookupType(n),
             ArgNode n => LookupType(n.Expr),
-            EqualsValueClauseNode n => LookupType(n.Expr),
+            EqualsExprClauseNode n => LookupType(n.Expr),
 
             _ => ErrorTypeSymbol.Create(),
         };
@@ -462,7 +462,8 @@ public class Reasoner
         return new FnTypeKey(
             isExtern,
             fnType.ReturnType == null ? BuiltinTypeSystem.None : LookupSymbol(fnType.ReturnType).AsTypeSymbolOrError(),
-            fnType.ParamTypes.ParamTypes.Select(p =>
+            // TODO: Should be able to handle ParamTypes being null better.
+            fnType.ParamTypes == null ? [ErrorTypeSymbol.Create()] : fnType.ParamTypes.ParamTypes.Select(p =>
             {
                 return LookupSymbol(p.Type).AsTypeSymbolOrError();
             }));
