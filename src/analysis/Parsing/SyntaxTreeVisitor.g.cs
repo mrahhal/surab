@@ -22,7 +22,7 @@ public abstract partial class SyntaxTreeVisitor
         Walk(node);
     }
 
-    public virtual void VisitDeclMembers(DeclMembersNode node)
+    public virtual void VisitMethodDecl(MethodDeclNode node)
     {
         Walk(node);
     }
@@ -42,12 +42,12 @@ public abstract partial class SyntaxTreeVisitor
         Walk(node);
     }
 
-    public virtual void VisitFieldDecl(FieldDeclNode node)
+    public virtual void VisitDeclMembers(DeclMembersNode node)
     {
         Walk(node);
     }
 
-    public virtual void VisitMethodDecl(MethodDeclNode node)
+    public virtual void VisitFieldDecl(FieldDeclNode node)
     {
         Walk(node);
     }
@@ -137,12 +137,12 @@ public abstract partial class SyntaxTreeVisitor
         Walk(node);
     }
 
-    public virtual void VisitMapInitializer(MapInitializerNode node)
+    public virtual void VisitMissingExpr(MissingExprNode node)
     {
         Walk(node);
     }
 
-    public virtual void VisitSkippedTokensExpr(SkippedTokensExprNode node)
+    public virtual void VisitMapInitializer(MapInitializerNode node)
     {
         Walk(node);
     }
@@ -192,12 +192,17 @@ public abstract partial class SyntaxTreeVisitor
         Walk(node);
     }
 
+    public virtual void VisitMissingType(MissingTypeNode node)
+    {
+        Walk(node);
+    }
+
     public virtual void VisitFnSig(FnSigNode node)
     {
         Walk(node);
     }
 
-    public virtual void VisitEqualsValueClause(EqualsValueClauseNode node)
+    public virtual void VisitEqualsExprClause(EqualsExprClauseNode node)
     {
         Walk(node);
     }

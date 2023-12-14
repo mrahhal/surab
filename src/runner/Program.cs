@@ -88,6 +88,7 @@ var src = """
 var sourceFile = SourceFile.FromText(src);
 
 var project = SurabProject.Create([sourceFile]);
+var tree = project.GetSyntaxTree(sourceFile);
 var reasoner = project.GetReasoner(sourceFile);
 
 var diags = reasoner.GetAllDiagnostics();

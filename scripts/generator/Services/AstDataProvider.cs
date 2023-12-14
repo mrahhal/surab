@@ -8,6 +8,7 @@ public class SyntaxNode
     public required string TypeName { get; set; }
     public required string Base { get; set; }
     public required string? Comment { get; set; }
+    public required bool? TakesSpan { get; set; }
     public required List<SyntaxNodeMember> Members { get; set; }
 }
 

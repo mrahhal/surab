@@ -95,13 +95,11 @@ public class AstGenerator(
                 public partial class {{node.TypeName}} : {{node.Base}}{{hasMainIdentifierInterface}}
                 {
                     public {{node.TypeName}}({{OCtorParams(node)}})
-                        : base(SyntaxNodeKind.{{node.Name}})
+                        : base(tree, SyntaxNodeKind.{{node.Name}})
                     {
                         {{T(SyntaxNodeMemberStoredFields.All, storedField => OSetStoredChildren(node, storedField))}}
 
-                        _triviaTokens = triviaTokens;
-
-                        Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+                        Span = {{(node.TakesSpan == true ? "span" : "Helper.ComputeSpanningSpan(ChildNodes, ChildTokens)")}};
                         SetChildrenParent();
                     }
 
@@ -118,21 +116,24 @@ public class AstGenerator(
 
         static string OCtorParams(SyntaxNode node)
         {
-            var @params = string.Empty;
+            var @params = new SeparatedTextBuilder();
+
+            @params.Add("SyntaxTree tree");
+
+            if (node.TakesSpan == true)
+            {
+                @params.Add("TextSpan span");
+            }
 
             for (int i = 0; i < node.Members.Count; i++)
             {
                 var m = node.Members[i];
                 var isLast = i == node.Members.Count - 1;
 
-                var commaText = isLast ? "" : ", ";
-
-                @params += $"{m.TypeFull} {m.Name}{commaText}";
+                @params.Add($"{m.TypeFull} {m.Name}");
             }
 
-            @params += ", List<TriviaToken> triviaTokens";
-
-            return @params;
+            return @params.Build();
         }
 
         static string OSetStoredChildren(SyntaxNode node, SyntaxNodeMemberStoredField storedField)

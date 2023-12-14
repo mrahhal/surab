@@ -70,8 +70,6 @@ public abstract partial class SyntaxTreeVisitor
 
     public virtual void VisitLiteralToken(LiteralToken literalToken) { }
 
-    public virtual void VisitTriviaToken(TriviaToken triviaToken) { }
-
     public virtual void VisitSkippedToken(SkippedToken skippedToken) { }
 
     // Rest of the impl is in the generated Visitor.g.cs file.

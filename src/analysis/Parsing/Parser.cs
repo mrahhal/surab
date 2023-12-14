@@ -1,5 +1,4 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Surab.Analysis;
@@ -74,9 +73,13 @@ internal class ParserImpl
     private readonly Peeker<Token> _tokens;
     private Token? _current;
     private Token? _prev;
-    private readonly List<Token> _tokensConsumed = [];
-    private readonly List<TriviaToken> _triviaTokens = [];
     private DiagnosticBag _diagnostics = new();
+    private readonly SyntaxTree _tree;
+
+    // To manage assigning trivia to tokens, we keep track of the trivia collected in this map for ease of consumption by tokens.
+    // Each Advance will collect and fill leading list before, and collect and fill trailing list after moving to next non trivia token,
+    // and then setting these in this map for the token to consume on creation using `ConsumeTrivia`.
+    private readonly Dictionary<int, (List<Token>? leading, List<Token>? trailing)> _tokenOffsetToTriviaMap = [];
 
     public ParserImpl(
         SourceFile sourceFile,
@@ -85,6 +88,7 @@ internal class ParserImpl
         _src = sourceFile.Text;
         _sourceFile = sourceFile;
         _tokens = new(tokens);
+        _tree = new(sourceFile);
 
         // So that the parser starts with the first token in current.
         Advance();
@@ -92,12 +96,15 @@ internal class ParserImpl
 
     public SyntaxTree MakeSyntaxTree(SyntaxNode root)
     {
+        Debug.Assert(IsAtEnd() && _tokenOffsetToTriviaMap.Count == 0);
+
         var diagnostics = _diagnostics;
         _diagnostics = new();
 
-        var tree = new SyntaxTree(_sourceFile, root, diagnostics);
-        SyntaxTreeSetter.Apply(tree);
-        return tree;
+        _tree.Root = root;
+        _tree.Diagnostics = diagnostics;
+
+        return _tree;
     }
 
     /// <summary>
@@ -105,18 +112,42 @@ internal class ParserImpl
     /// </summary>
     private void Advance()
     {
-        CollectAnyTrivia();
+        List<Token>? leadingTriviaTokens;
 
-        _tokens.TryMoveNext(out var token);
-        _prev = _current;
-        _current = token;
-
-        if (_prev != null)
+        if (_current == null && _tokens.TryPeek(0, out _))
         {
-            _tokensConsumed.Add(_prev);
+            // First call to Advance. CollectAllIncomingTriviaTokens depends on _current being filled.
+            _tokens.TryMoveNext(out var token);
+            _current = token;
+
+            leadingTriviaTokens = CollectAllIncomingTriviaTokens();
+        }
+        else
+        {
+            _tokens.TryMoveNext(out var token);
+            _prev = _current;
+            _current = token;
+
+            leadingTriviaTokens = CollectAllIncomingTriviaTokens();
         }
 
-        CollectAnyTrivia();
+        var trailingTriviaTokens = default(List<Token>?);
+
+        // this.Peek() skips trivia.
+        if (Peek(0) == null)
+        {
+            // We're at end. Try to collect any remaining trivia. We'll make it the trailing trivia of the current token.
+
+            //_tokens.TryMoveNext(out var token);
+            //_current = token;
+
+            trailingTriviaTokens = CollectRestOfTriviaTokensAfterCurrentWithoutMoving();
+        }
+
+        if (_current != null)
+        {
+            _tokenOffsetToTriviaMap.Add(_current.Span.File.Start, (leadingTriviaTokens, trailingTriviaTokens));
+        }
     }
 
     /// <summary>
@@ -167,11 +198,16 @@ internal class ParserImpl
 
     [DebuggerStepThrough]
     private Token? P1() => Peek(0);
-    //private Token? P2() => Peek(1);
 
     // ---
 
     public SyntaxTree ParseAsModule()
+    {
+        var module = ParseModule();
+        return MakeSyntaxTree(module);
+    }
+
+    private ModuleNode ParseModule()
     {
         var decls = new List<DeclNode>();
 
@@ -181,8 +217,7 @@ internal class ParserImpl
             decls.Add(delcaration);
         }
 
-        var module = new ModuleNode(decls, TakeTriviaTokens());
-        return MakeSyntaxTree(module);
+        return new ModuleNode(_tree, decls);
     }
 
     public SyntaxTree ParseAsDecl()
@@ -191,32 +226,10 @@ internal class ParserImpl
         return MakeSyntaxTree(decl);
     }
 
-    private DeclNode ParseDecl()
-    {
-        var decl = ParseDecl_();
-        if (decl != null)
-        {
-            ResetTokensConsumed();
-            return decl;
-        }
-        return RecoverDecl();
-    }
-
     public SyntaxTree ParseAsStmt()
     {
         var stmt = ParseStmt();
         return MakeSyntaxTree(stmt);
-    }
-
-    private StmtNode ParseStmt()
-    {
-        var stmt = ParseStmt_();
-        if (stmt != null)
-        {
-            ResetTokensConsumed();
-            return stmt;
-        }
-        return RecoverStmt();
     }
 
     public SyntaxTree ParseAsExpr()
@@ -225,94 +238,100 @@ internal class ParserImpl
         return MakeSyntaxTree(expr);
     }
 
-    private ExprNode ParseExpr()
-    {
-        var expr = ParseExpr_();
-        if (expr != null)
-        {
-            ResetTokensConsumed();
-            return expr;
-        }
-        return RecoverExpr();
-    }
-
     private DeclNode RecoverDecl()
     {
         var skipped = RecoverMain();
-        return new SkippedTokensDeclNode(skipped, TakeTriviaTokens());
+        return new SkippedTokensDeclNode(_tree, skipped);
+    }
+
+    private DeclNode RecoverMemberDecl()
+    {
+        var skipped = RecoverMain();
+        return new SkippedTokensDeclNode(_tree, skipped);
     }
 
     private StmtNode RecoverStmt()
     {
         var skipped = RecoverMain();
-        return new SkippedTokensStmtNode(skipped, TakeTriviaTokens());
+        return new SkippedTokensStmtNode(_tree, skipped);
     }
 
-    private ExprNode RecoverExpr()
+    private List<SkippedToken> RecoverMain()
     {
-        var skipped = RecoverMain();
-        return new SkippedTokensExprNode(skipped, TakeTriviaTokens());
-    }
+        if (IsAtEnd())
+            return [];
 
-    private SkippedToken RecoverMain()
-    {
+        var list = new List<SkippedToken>();
+
         // Keep advancing till we find a good place to stop.
+        // TODO: Split recovery mode between decl, stmt, etc?
 
         while (true)
         {
             Advance();
+            var prev = AssertedPrev();
+            var (leading, trailing) = ConsumeTrivia(prev);
+            list.Add(new SkippedToken(_tree, leading, trailing, prev));
+
             if (IsAtEnd()) break;
 
-            if (_prev?.Kind is TokenKind.Semicolon)
-            {
-                break;
-            }
-
-            var current = AssertedCurrent();
-            if (current.Kind.CanStartDecl() || current.Kind.CanStartStmt())
+            if (prev.Kind is TokenKind.Semicolon ||
+                _current.Kind.CanStartDecl() ||
+                _current.Kind.CanStartStmt())
             {
                 break;
             }
         }
 
-        var tokens = TakeTokensConsumed();
-        var span = TextSpan.FromTo(tokens.First().Span, tokens.Last().Span);
-
-        return new SkippedToken(span, tokens);
+        return list;
     }
 
-    private void ResetTokensConsumed()
+    /// <summary>
+    /// Keeps moving to next as long as _current is a trivia token. Returns collected trivia tokens.
+    /// </summary>
+    private List<Token>? CollectAllIncomingTriviaTokens()
     {
-        _tokensConsumed.Clear();
-    }
-
-    // This happens in one of the recovery of the three main items: decls, stmts, exprs.
-    private List<Token> TakeTokensConsumed()
-    {
-        var tokens = _tokensConsumed.ToList();
-        ResetTokensConsumed();
-        return tokens;
-    }
-
-    private void CollectAnyTrivia()
-    {
+        var list = default(List<Token>?);
         while (!IsAtEnd() && _current.Kind.IsTrivia())
         {
             _tokens.TryMoveNext(out var token);
-            // _prev and _current should always point to a non trivia outside of CollectAnyTrivia
+            // _prev and _current should always point to a non trivia outside of CollectAnyTrivia.
             // So we don't update _prev at all, but we update _current here as we keep going until the next token is not trivia.
-            var trivia = _current;
+            var triviaToken = _current;
             _current = token;
 
-            _triviaTokens.Add(new TriviaToken(trivia.Span, trivia));
+            (list ??= []).Add(triviaToken);
         }
+        return list;
     }
 
-    private List<TriviaToken> TakeTriviaTokens()
+    private List<Token>? CollectRestOfTriviaTokensAfterCurrentWithoutMoving()
     {
-        var tokens = _triviaTokens.ToList();
-        _triviaTokens.Clear();
-        return tokens;
+        Debug.Assert(Peek(0) == null);
+
+        var list = default(List<Token>?);
+        var i = 0;
+        while (_tokens.TryPeek(i, out var triviaToken))
+        {
+            Debug.Assert(triviaToken.Kind.IsTrivia());
+            (list ??= []).Add(triviaToken);
+            i++;
+        }
+        return list;
+    }
+
+    /// <summary>
+    /// Consume the trivia associated to the given token. Every token must call this method.
+    /// </summary>
+    private (List<Token> LeadingTriviaTokens, List<Token> TrailingTriviaTokens) ConsumeTrivia(Token token)
+    {
+        var offset = token.Span.File.Start;
+        Debug.Assert(_tokenOffsetToTriviaMap.ContainsKey(offset));
+
+        var (leadingTriviaTokens, trailingTriviaTokens) = _tokenOffsetToTriviaMap[offset];
+        _tokenOffsetToTriviaMap.Remove(offset);
+
+        return (leadingTriviaTokens ?? [], trailingTriviaTokens ?? []);
     }
 
     // ---
@@ -342,7 +361,9 @@ internal class ParserImpl
     {
         if (TryEatToken(tokenKind))
         {
-            return SimpleToken.From(AssertedPrev());
+            var prev = AssertedPrev();
+            var (leading, trailing) = ConsumeTrivia(prev);
+            return SimpleToken.Create(_tree, leading, trailing, prev);
         }
         return null;
     }
@@ -358,7 +379,9 @@ internal class ParserImpl
     private SimpleToken EatAssertedSimpleToken(TokenKind tokenKind)
     {
         EatAssertedToken(tokenKind);
-        return SimpleToken.From(AssertedPrev());
+        var prev = AssertedPrev();
+        var (leading, trailing) = ConsumeTrivia(prev);
+        return SimpleToken.Create(_tree, leading, trailing, prev);
     }
 
     private bool EatExpectedToken(TokenKind tokenKind)
@@ -376,11 +399,13 @@ internal class ParserImpl
     {
         if (EatExpectedToken(tokenKind))
         {
-            return SimpleToken.From(AssertedPrev());
+            var prev = AssertedPrev();
+            var (leading, trailing) = ConsumeTrivia(prev);
+            return SimpleToken.Create(_tree, leading, trailing, prev);
         }
         else
         {
-            return SimpleToken.Missing(tokenKind, ShrinkToStartSpanAtCurrent());
+            return SimpleToken.CreateMissing(_tree, tokenKind, ShrinkToStartSpanAtCurrent());
         }
     }
 
@@ -389,12 +414,14 @@ internal class ParserImpl
         if (CheckToken(TokenKind.Identifier) && SimpleTokenHelper.IsContextualKeyword(contextualKeyword, GetLexeme(_current).ToString()))
         {
             Advance();
-            return SimpleToken.From(contextualKeyword, AssertedPrev());
+            var prev = AssertedPrev();
+            var (leading, trailing) = ConsumeTrivia(prev);
+            return SimpleToken.Create(_tree, leading, trailing, contextualKeyword, prev);
         }
         else
         {
             _diagnostics.Add(ShrinkToStartSpanAtCurrent(), DiagnosticLevel.Error, $"expected '{contextualKeyword}'");
-            return SimpleToken.Missing(contextualKeyword, ShrinkToStartSpanAtCurrent());
+            return SimpleToken.CreateMissing(_tree, contextualKeyword, ShrinkToStartSpanAtCurrent());
         }
     }
 
@@ -413,11 +440,13 @@ internal class ParserImpl
     // -----
 
     /// <summary>
-    /// Parses outer level decl.
+    /// Parses any non member decl.
     /// </summary>
-    private DeclNode? ParseDecl_()
+    private DeclNode ParseDecl()
     {
-        var attrs = TryParseAttrsList();
+        // Parse decl, and if we don't know what kind at all, do recovery.
+
+        var attrs = ParseOptionalAttrsList();
 
         return _current?.Kind switch
         {
@@ -427,13 +456,13 @@ internal class ParserImpl
             TokenKind.Class => ParseClassDecl(attrs),
             TokenKind.Alias => ParseAliasDecl(attrs),
 
-            _ => null,
+            _ => RecoverDecl(),
         };
     }
 
-    private DeclNode? ParseInnerDecl()
+    private DeclNode ParseMemberDecl()
     {
-        var attrs = TryParseAttrsList();
+        var attrs = ParseOptionalAttrsList();
 
         return _current?.Kind switch
         {
@@ -443,26 +472,22 @@ internal class ParserImpl
             // `identifier()`
             TokenKind.Identifier when P1()?.Kind is TokenKind.LeftParen => ParseMethodDecl(attrs),
 
-            _ => null,
+            _ => RecoverMemberDecl(),
         };
     }
 
     /// <summary>
     /// Parses `const identifier = expr;`
     /// </summary>
-    private DeclNode? ParseConstDecl(AttrsListNode? attrs)
+    private DeclNode ParseConstDecl(AttrsListNode? attrs)
     {
         var constToken = EatAssertedSimpleToken(TokenKind.Const);
         var identifier = ParseIdentifier();
-        if (identifier == null) return null;
-        var (type, elided) = ParseOptionalColonTy();
-        if (!elided && type == null) return null;
-        var equalToken = EatExpectedSimpleToken(TokenKind.Equal);
-        var value = ParseExpr_();
-        if (value == null) return null;
+        var type = ParseOptionalColonType();
+        var initializer = ParseOptionalEqualsExprClause();
         var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
-        return new ConstDeclNode(attrs, constToken, identifier, type, equalToken, value, semicolonToken, TakeTriviaTokens());
+        return new ConstDeclNode(_tree, attrs, constToken, identifier, type, initializer, semicolonToken);
     }
 
     /// <summary>
@@ -470,11 +495,28 @@ internal class ParserImpl
     /// - `fn identifier(param1, param2) : Type { ... }`
     /// - `fn identifier(param1, param2) : Type;`
     /// </summary>
-    private DeclNode? ParseFnDecl(AttrsListNode? attrs)
+    private DeclNode ParseFnDecl(AttrsListNode? attrs)
     {
         var fnToken = EatAssertedSimpleToken(TokenKind.Fn);
         var sig = ParseFnSig();
-        if (sig == null) return null;
+        var (body, semicolonToken) = ParseFnBlockOrSemicolon();
+
+        return new FnDeclNode(_tree, attrs, fnToken, sig, body, semicolonToken);
+    }
+
+    /// <summary>
+    /// Parses `identifier(param1, param2)`
+    /// </summary>
+    private DeclNode ParseMethodDecl(AttrsListNode? attrs)
+    {
+        var sig = ParseFnSig();
+        var (body, semicolonToken) = ParseFnBlockOrSemicolon();
+
+        return new MethodDeclNode(_tree, attrs, sig, body, semicolonToken);
+    }
+
+    private (BlockExprNode?, SimpleToken?) ParseFnBlockOrSemicolon()
+    {
         var body = default(BlockExprNode?);
         var semicolonToken = default(SimpleToken?);
         if (CheckToken(TokenKind.LeftBrace))
@@ -485,171 +527,163 @@ internal class ParserImpl
         {
             semicolonToken = TryEatSimpleToken(TokenKind.Semicolon);
         }
-
-        return new FnDeclNode(attrs, fnToken, sig, body, semicolonToken, TakeTriviaTokens());
-    }
-
-    private DeclMembersNode? ParseDeclMembers()
-    {
-        var members = new List<DeclNode>();
-
-        while (!IsAtEnd() && !CheckToken(TokenKind.RightBrace))
-        {
-            var decl = ParseInnerDecl();
-            if (decl == null) return null;
-            members.Add(decl);
-        }
-
-        return new DeclMembersNode(members, TakeTriviaTokens());
+        return (body, semicolonToken);
     }
 
     /// <summary>
     /// Parses `struct Name { ... }`
     /// </summary>
-    private DeclNode? ParseStructDecl(AttrsListNode? attrs)
+    private DeclNode ParseStructDecl(AttrsListNode? attrs)
     {
         var structToken = EatAssertedSimpleToken(TokenKind.Struct);
         var identifier = ParseIdentifier();
-        if (identifier == null) return null;
-
         var openBraceToken = EatExpectedSimpleToken(TokenKind.LeftBrace);
         var members = ParseDeclMembers();
-        if (members == null) return null;
         var closedBraceToken = EatExpectedSimpleToken(TokenKind.RightBrace);
 
-        return new StructDeclNode(attrs, structToken, identifier, openBraceToken, members, closedBraceToken, TakeTriviaTokens());
+        return new StructDeclNode(_tree, attrs, structToken, identifier, openBraceToken, members, closedBraceToken);
     }
 
     /// <summary>
     /// Parses `class Name { ... }`
     /// </summary>
-    private DeclNode? ParseClassDecl(AttrsListNode? attrs)
+    private DeclNode ParseClassDecl(AttrsListNode? attrs)
     {
         var classToken = EatAssertedSimpleToken(TokenKind.Class);
         var identifier = ParseIdentifier();
-        if (identifier == null) return null;
-
         var openBraceToken = EatExpectedSimpleToken(TokenKind.LeftBrace);
         var members = ParseDeclMembers();
-        if (members == null) return null;
         var closedBraceToken = EatExpectedSimpleToken(TokenKind.RightBrace);
 
-        return new ClassDeclNode(attrs, classToken, identifier, openBraceToken, members, closedBraceToken, TakeTriviaTokens());
+        return new ClassDeclNode(_tree, attrs, classToken, identifier, openBraceToken, members, closedBraceToken);
+    }
+
+    private DeclMembersNode ParseDeclMembers()
+    {
+        var members = new List<DeclNode>();
+
+        while (!IsAtEnd() && !CheckToken(TokenKind.RightBrace))
+        {
+            var decl = ParseMemberDecl();
+            members.Add(decl);
+        }
+
+        return new DeclMembersNode(_tree, members);
     }
 
     /// <summary>
     /// Parses `alias Foo as Bar;`
     /// </summary>
-    private DeclNode? ParseAliasDecl(AttrsListNode? attrs)
+    private DeclNode ParseAliasDecl(AttrsListNode? attrs)
     {
         var aliasToken = EatAssertedSimpleToken(TokenKind.Alias);
         var identifier = ParseIdentifier();
-        if (identifier == null) return null;
         var asToken = EatExpectedContextualKeywordToken(ContextualKeyword.As);
         var type = ParseType();
-        if (type == null) return null;
         var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
-        return new AliasDeclNode(attrs, aliasToken, identifier, asToken, type, semicolonToken, TakeTriviaTokens());
+        return new AliasDeclNode(_tree, attrs, aliasToken, identifier, asToken, type, semicolonToken);
     }
 
     /// <summary>
     /// Parses `identifier: Type = expr;`
+    /// Requirements: current is Identifier
     /// </summary>
-    private DeclNode? ParseFieldDecl(AttrsListNode? attrs)
+    private DeclNode ParseFieldDecl(AttrsListNode? attrs)
     {
-        var identifier = ParseIdentifier();
-        if (identifier == null) return null;
-        var (type, elided) = ParseOptionalColonTy();
-        if (!elided && type == null) return null;
-        var initializer = ParseEqualsValueClause();
+        var identifier = ParseAssertedIdentifier();
+        var type = ParseOptionalColonType();
+        var initializer = ParseOptionalEqualsExprClause();
         var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
-        return new FieldDeclNode(attrs, identifier, type, initializer, semicolonToken, TakeTriviaTokens());
-    }
-
-    /// <summary>
-    /// Parses `identifier(param1, param2)`
-    /// </summary>
-    private DeclNode? ParseMethodDecl(AttrsListNode? attrs)
-    {
-        var sig = ParseFnSig();
-        if (sig == null) return null;
-        // TODO: Need to accept null body (and semicolon) to report errors.
-        var body = ParseBlockExpr();
-        if (body == null) return null;
-
-        return new MethodDeclNode(attrs, sig, body, TakeTriviaTokens());
+        return new FieldDeclNode(_tree, attrs, identifier, type, initializer, semicolonToken);
     }
 
     // Stmts
     // -----
 
-    private StmtNode? ParseStmt_()
+    /// <summary>
+    /// Parses any stmt.
+    /// Requirements: not at end.
+    /// </summary>
+    private StmtNode ParseStmt()
     {
-        if (IsAtEnd()) return null;
-        var current = _current;
+        // Parse stmt, and if we don't know what kind at all, do recovery.
 
-        return current.Kind switch
+        return _current?.Kind switch
         {
             TokenKind.Var => ParseVarStmt(),
             TokenKind.Return => ParseReturnStmt(),
-            _ when current.Kind.CanStartExpr() => ParseExprStmt(),
+            _ when _current != null && _current.Kind.CanStartExpr() => ParseExprStmt(),
 
-            _ => null,
+            // We have no idea what the shape is, so do stmt level recovery.
+            _ => RecoverStmt(),
         };
     }
 
     /// <summary>
-    /// Parses `var a: Type? = expr;`
+    /// Parses `var a: Type = expr;`
     /// </summary>
-    private StmtNode? ParseVarStmt()
+    private StmtNode ParseVarStmt()
     {
         var varToken = EatAssertedSimpleToken(TokenKind.Var);
         var identifier = ParseIdentifier();
-        if (identifier == null) return null;
-        var (type, elided) = ParseOptionalColonTy();
-        if (!elided && type == null) return null;
-        var initializer = ParseEqualsValueClause();
+        var type = ParseOptionalColonType();
+        var initializer = ParseOptionalEqualsExprClause();
         var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
-        return new VarStmtNode(varToken, identifier, type, initializer, semicolonToken, TakeTriviaTokens());
+        return new VarStmtNode(_tree, varToken, identifier, type, initializer, semicolonToken);
     }
 
     /// <summary>
     /// Parses `return expr;`
     /// </summary>
-    private StmtNode? ParseReturnStmt()
+    private StmtNode ParseReturnStmt()
     {
         var returnToken = EatAssertedSimpleToken(TokenKind.Return);
-        var expr = ParseExpr_();
-        var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
+        ExprNode? expr;
+        SimpleToken semicolonToken;
+        if (CheckToken(TokenKind.Semicolon))
+        {
+            expr = null;
+            semicolonToken = EatAssertedSimpleToken(TokenKind.Semicolon);
+        }
+        else
+        {
+            expr = ParseExpr();
+            semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
+        }
 
-        return new ReturnStmtNode(returnToken, expr, semicolonToken, TakeTriviaTokens());
+        return new ReturnStmtNode(_tree, returnToken, expr, semicolonToken);
     }
 
-    private StmtNode? ParseExprStmt()
+    private StmtNode ParseExprStmt()
     {
-        var expr = ParseExpr_();
-        if (expr == null) return null;
+        var expr = ParseExpr();
         var semicolonToken = TryEatSimpleToken(TokenKind.Semicolon);
 
         return semicolonToken is null ?
-            new BareExprStmtNode(expr, TakeTriviaTokens()) :
-            new ExprStmtNode(expr, semicolonToken, TakeTriviaTokens());
+            new BareExprStmtNode(_tree, expr) :
+            new ExprStmtNode(_tree, expr, semicolonToken);
     }
 
     // Exprs
     // -----
 
-    private ExprNode? ParseExpr_() => ParseExprForPrecedence(Precedence.None);
+    /// <summary>
+    /// Parses any expr.
+    /// </summary>
+    private ExprNode ParseExpr()
+    {
+        return ParseExprForPrecedence(Precedence.None);
+    }
 
     /// <summary>
     /// Keeps parsing right exprs as long as the next precedence is greater than the given `precedence`.
     /// </summary>
-    private ExprNode? ParseExprForPrecedence(Precedence precedence)
+    private ExprNode ParseExprForPrecedence(Precedence precedence)
     {
-        if (IsAtEnd()) return null;
+        if (IsAtEnd()) return new MissingExprNode(_tree, ShrinkToStartSpanAtCurrent());
 
         // Struct creation takes priority.
         if (_current.Kind == TokenKind.Identifier && P1()?.Kind == TokenKind.LeftBrace)
@@ -659,11 +693,11 @@ internal class ParserImpl
 
         if (!Pratt.IsPrefixRule(_current.Kind))
         {
-            return null;
+            // TODO: Should we try to perform a recovery of some kind?
+            return new MissingExprNode(_tree, ShrinkToStartSpanAtCurrent());
         }
 
         var expr = ParsePrefixExpr();
-        if (expr == null) return null;
 
         while (!IsAtEnd())
         {
@@ -676,13 +710,12 @@ internal class ParserImpl
             }
 
             expr = ParseInfixExpr(rule, expr);
-            if (expr == null) return null;
         }
 
         return expr;
     }
 
-    private ExprNode? ParsePrefixExpr()
+    private ExprNode ParsePrefixExpr()
     {
         var token = AssertedCurrent();
         return token.Kind switch
@@ -692,46 +725,45 @@ internal class ParserImpl
             TokenKind.Identifier => ParseIdentifierExpr(),
             _ when token.Kind.IsUnary() => ParseUnaryExpr(),
             _ when token.Kind.IsLiteral() => ParseLiteralExpr(),
-            _ => throw new UnreachableException(),
+            _ => new MissingExprNode(_tree, ShrinkToStartSpanAtCurrent()),
         };
     }
 
-    private ExprNode? ParseGroupingExpr()
+    private ExprNode ParseGroupingExpr()
     {
         var openParenToken = EatAssertedSimpleToken(TokenKind.LeftParen);
-        var expr = ParseExpr_();
-        if (expr == null) return null;
+        var expr = ParseExpr();
         var closedParenToken = EatExpectedSimpleToken(TokenKind.RightParen);
 
-        return new GroupingExprNode(openParenToken, expr, closedParenToken, TakeTriviaTokens());
+        return new GroupingExprNode(_tree, openParenToken, expr, closedParenToken);
     }
 
-    private ExprNode? ParseIdentifierExpr()
+    private ExprNode ParseIdentifierExpr()
     {
-        var identifier = ParseIdentifier();
-        if (identifier == null) return null;
+        var identifier = ParseAssertedIdentifier();
 
-        return new IdentifierExprNode(identifier, TakeTriviaTokens());
+        return new IdentifierExprNode(_tree, identifier);
     }
 
     /// <summary>
     /// Parses `!a`
     /// </summary>
-    private ExprNode? ParseUnaryExpr()
+    private ExprNode ParseUnaryExpr()
     {
         Advance();
-        var op = UnaryOperatorToken.From(AssertedPrev());
+        var prev = AssertedPrev();
+        var (leading, trailing) = ConsumeTrivia(prev);
+        var op = UnaryOperatorToken.Create(_tree, leading, trailing, prev);
         var expr = ParseExprForPrecedence(Precedence.Prefix);
-        if (expr == null) return null;
 
-        return new UnaryExprNode(op, expr, TakeTriviaTokens());
+        return new UnaryExprNode(_tree, op, expr);
     }
 
-    private ExprNode? ParseLiteralExpr()
+    private ExprNode ParseLiteralExpr()
     {
         var literal = ParseLiteralToken();
 
-        return new LiteralExprNode(literal, TakeTriviaTokens());
+        return new LiteralExprNode(_tree, literal);
     }
 
     private LiteralToken ParseLiteralToken()
@@ -742,7 +774,7 @@ internal class ParserImpl
             TokenKind.NumericLiteral => ParseLiteralNumeric(),
             TokenKind.CharLiteral => ParseLiteralChar(),
             TokenKind.StringLiteral => ParseLiteralString(),
-            _ => throw new Exception("unexpected literal"),
+            _ => throw new UnreachableException("unexpected literal"),
         };
     }
 
@@ -750,10 +782,11 @@ internal class ParserImpl
     {
         Advance();
         var token = AssertedPrev();
+        var (leading, trailing) = ConsumeTrivia(token);
         return token.Kind switch
         {
-            TokenKind.False => LiteralToken.FromBool(token, false),
-            TokenKind.True => LiteralToken.FromBool(token, true),
+            TokenKind.False => LiteralToken.FromBool(_tree, leading, trailing, token, false),
+            TokenKind.True => LiteralToken.FromBool(_tree, leading, trailing, token, true),
             _ => throw new UnreachableException(),
         };
     }
@@ -763,22 +796,25 @@ internal class ParserImpl
         Advance();
         var token = AssertedPrev();
         var lexeme = GetLexeme(token);
+        var (leading, trailing) = ConsumeTrivia(token);
 
         var type = default(string?);
         if (_current?.Kind == TokenKind.NumericLiteralType)
         {
             Advance();
-            type = GetLexeme(AssertedPrev()).ToString();
+            var prev = AssertedPrev();
+            (_, trailing) = ConsumeTrivia(prev);
+            type = GetLexeme(prev).ToString();
         }
 
         LiteralToken literalToken;
         if (ulong.TryParse(lexeme, out var ulongValue))
         {
-            literalToken = LiteralToken.FromNumericInteger(token, ulongValue);
+            literalToken = LiteralToken.FromNumericInteger(_tree, leading, trailing, token, ulongValue);
         }
         else if (double.TryParse(lexeme, out var doubleValue))
         {
-            literalToken = LiteralToken.FromNumericFloat(token, doubleValue);
+            literalToken = LiteralToken.FromNumericFloat(_tree, leading, trailing, token, doubleValue);
         }
         else
         {
@@ -793,16 +829,17 @@ internal class ParserImpl
     {
         Advance();
         var token = AssertedPrev();
+        var (leading, trailing) = ConsumeTrivia(token);
         var data = (CharLiteralTokenData)token.Data!;
         if (data.IsTerminated)
         {
             var lexeme = GetLexeme(token);
             var ch = lexeme[1];
-            return LiteralToken.FromChar(token, ch);
+            return LiteralToken.FromChar(_tree, leading, trailing, token, ch);
         }
         else
         {
-            return LiteralToken.FromChar(token, null);
+            return LiteralToken.FromChar(_tree, leading, trailing, token, null);
         }
     }
 
@@ -810,19 +847,20 @@ internal class ParserImpl
     {
         Advance();
         var token = AssertedPrev();
+        var (leading, trailing) = ConsumeTrivia(token);
         var data = (StringLiteralTokenData)token.Data!;
         if (data.IsTerminated)
         {
             var lexeme = GetLexeme(token);
-            return LiteralToken.FromString(token, lexeme[1..^1].ToString());
+            return LiteralToken.FromString(_tree, leading, trailing, token, lexeme[1..^1].ToString());
         }
         else
         {
-            return LiteralToken.FromString(token, null);
+            return LiteralToken.FromString(_tree, leading, trailing, token, null);
         }
     }
 
-    private ExprNode? ParseInfixExpr(InfixRule rule, ExprNode left)
+    private ExprNode ParseInfixExpr(InfixRule rule, ExprNode left)
     {
         var token = AssertedCurrent();
         var targetPrecedence = rule.AdjustedPreference();
@@ -833,56 +871,54 @@ internal class ParserImpl
             TokenKind.Dot => ParseAccessExpr(left),
             TokenKind.Equal => ParseAssignmentExpr(targetPrecedence, left),
             _ when token.Kind.IsBinary() => ParseBinaryExpr(targetPrecedence, left),
-            _ => throw new UnreachableException(),
+            _ => new MissingExprNode(_tree, ShrinkToStartSpanAtCurrent()),
         };
     }
 
-    private ExprNode? ParseCallExpr(ExprNode left)
+    private ExprNode ParseCallExpr(ExprNode left)
     {
         // Inside the args list of a call expr, parsing will continue until we hit the closing paren,
-        // so we don't pass the precedence (otherwise parsing will prematurely stop since a call has the strongest precedence).
+        // so we don't pass over the precedence here, otherwise parsing will prematurely stop since a call has the strongest precedence.
         var args = ParseArgsList();
-        if (args == null) return null;
 
-        return new CallExprNode(left, args, TakeTriviaTokens());
+        return new CallExprNode(_tree, left, args);
     }
 
-    private ExprNode? ParseAccessExpr(ExprNode left)
+    private ExprNode ParseAccessExpr(ExprNode left)
     {
         // In an access expr, we always parse one identifier, so we don't pass the precedence.
         var dotToken = EatAssertedSimpleToken(TokenKind.Dot);
         var identifier = ParseIdentifier();
-        if (identifier == null) return null;
 
-        return new AccessExprNode(left, dotToken, identifier, TakeTriviaTokens());
+        return new AccessExprNode(_tree, left, dotToken, identifier);
     }
 
     /// <summary>
     /// Parses `left = right`
     /// </summary>
-    private ExprNode? ParseAssignmentExpr(Precedence precedence, ExprNode left)
+    private ExprNode ParseAssignmentExpr(Precedence precedence, ExprNode left)
     {
         var equalToken = EatAssertedSimpleToken(TokenKind.Equal);
         var rhs = ParseExprForPrecedence(precedence);
-        if (rhs == null) return null;
 
-        return new AssignmentExprNode(left, equalToken, rhs, TakeTriviaTokens());
+        return new AssignmentExprNode(_tree, left, equalToken, rhs);
     }
 
-    private ExprNode? ParseBinaryExpr(Precedence precedence, ExprNode left)
+    private ExprNode ParseBinaryExpr(Precedence precedence, ExprNode left)
     {
         Advance();
-        var op = BinaryOperatorToken.From(AssertedPrev());
+        var prev = AssertedPrev();
+        var (leading, trailing) = ConsumeTrivia(prev);
+        var op = BinaryOperatorToken.Create(_tree, leading, trailing, prev);
         var right = ParseExprForPrecedence(precedence);
-        if (right == null) return null;
 
-        return new BinaryExprNode(left, op, right, TakeTriviaTokens());
+        return new BinaryExprNode(_tree, left, op, right);
     }
 
     /// <summary>
     /// Parses `{ ... }`
     /// </summary>
-    private BlockExprNode? ParseBlockExpr()
+    private BlockExprNode ParseBlockExpr()
     {
         var openBraceToken = EatAssertedSimpleToken(TokenKind.LeftBrace);
         var stmts = new List<StmtNode>();
@@ -894,48 +930,39 @@ internal class ParserImpl
 
         var closedBraceToken = EatExpectedSimpleToken(TokenKind.RightBrace);
 
-        return new BlockExprNode(openBraceToken, stmts, closedBraceToken, TakeTriviaTokens());
+        return new BlockExprNode(_tree, openBraceToken, stmts, closedBraceToken);
     }
 
     /// <summary>
     /// Parses `Struct1 { a = b, c = d }`
     /// Requirements: current is Identifier and next is LeftParen.
     /// </summary>
-    private StructCreationExprNode? ParseStructCreationExpr()
+    private StructCreationExprNode ParseStructCreationExpr()
     {
-        Debug.Assert(CheckToken(TokenKind.Identifier));
-
-        var identifier = ParseIdentifier();
-        Debug.Assert(identifier != null);
-
+        var identifier = ParseAssertedIdentifier();
         var mapInitializer = ParseMapInitializer();
-        if (mapInitializer == null) return null;
 
-        return new StructCreationExprNode(identifier, mapInitializer, TakeTriviaTokens());
+        return new StructCreationExprNode(_tree, identifier, mapInitializer);
     }
 
     /// <summary>
     /// Parses `{ a = b, c = d }`
     /// Requirements: current is LeftParen.
-    private MapInitializerNode? ParseMapInitializer()
+    private MapInitializerNode ParseMapInitializer()
     {
         var openBraceToken = EatAssertedSimpleToken(TokenKind.LeftBrace);
+
         var exprs = new List<ExprNode>();
 
         while (true)
         {
-            if (IsAtEnd()) return null;
-
-            if (CheckToken(TokenKind.RightBrace))
+            if (IsAtEnd() || CheckToken(TokenKind.RightBrace))
             {
                 break;
             }
 
             // Will parse a whole single assignment expr.
-            var expr = ParseExpr_();
-            if (expr == null) return null;
-
-            exprs.Add(expr);
+            exprs.Add(ParseExpr());
 
             // TODO: Not doing anything with this comma token for now?
             _ = _current?.Kind switch
@@ -947,103 +974,99 @@ internal class ParserImpl
 
         var closedBraceToken = EatExpectedSimpleToken(TokenKind.RightBrace);
 
-        return new MapInitializerNode(openBraceToken, exprs, closedBraceToken, TakeTriviaTokens());
+        return new MapInitializerNode(_tree, openBraceToken, exprs, closedBraceToken);
     }
 
     // ---
 
-    private EqualsValueClauseNode? ParseEqualsValueClause()
+    private EqualsExprClauseNode? ParseOptionalEqualsExprClause()
     {
-        // Some common patterns where code doesn't add an initializer at all.
-        // In these cases, return null directly instead of adding a diag for expected equal token.
-        if (_current?.Kind is not TokenKind.Equal and
-            (TokenKind.Semicolon or TokenKind.RightParen)) return null;
-
-        var equalToken = EatExpectedSimpleToken(TokenKind.Equal);
-        var expr = ParseExpr_();
-        if (expr == null) return null;
-
-        return new EqualsValueClauseNode(equalToken, expr, TakeTriviaTokens());
-    }
-
-    /// <summary>
-    /// Parses `: Type?`
-    /// </summary>
-    private (ColonTypeNode? Node, bool Elided) ParseColonTy_(bool optional)
-    {
-        if (optional && !CheckToken(TokenKind.Colon))
+        if (_current == null || (_current.Kind is not TokenKind.Equal && !_current.Kind.CanStartExpr()))
         {
-            return (null, true);
+            return null;
         }
 
-        var colonToken = EatExpectedSimpleToken(TokenKind.Colon);
-        var type = ParseType();
-        if (type == null) return (null, false);
+        var equalToken = EatExpectedSimpleToken(TokenKind.Equal);
+        var expr = ParseExpr();
 
-        return (new ColonTypeNode(colonToken, type, TakeTriviaTokens()), false);
+        return new EqualsExprClauseNode(_tree, equalToken, expr);
     }
 
-    private (ColonTypeNode? Node, bool Elided) ParseOptionalColonTy() => ParseColonTy_(optional: true);
-
     /// <summary>
-    /// Parses `: Type?`
+    /// Parses `: Type`
     /// </summary>
-    private ColonTypeNode? ParseColonTy()
+    private ColonTypeNode? ParseOptionalColonType()
     {
-        return ParseColonTy_(false).Node;
+        if (!CheckToken(TokenKind.Colon))
+        {
+            return null;
+        }
+
+        var colonToken = EatAssertedSimpleToken(TokenKind.Colon);
+        var type = ParseType();
+
+        return new ColonTypeNode(_tree, colonToken, type);
+    }
+
+    private TypeNode? ParseOptionalType()
+    {
+        var type = default(TypeNode?);
+        if (_current?.Kind.CanStartType() ?? false)
+        {
+            type = ParseType();
+        }
+        return type;
     }
 
     /// <summary>
-    /// Parses the various Type syntax.
+    /// Parses the various type syntax.
     /// - `NamedType`
     /// - `@extern fn (i32) i32`
     /// </summary>
-    private TypeNode? ParseType()
+    private TypeNode ParseType()
     {
-        var attrs = TryParseAttrsList();
+        var attrs = ParseOptionalAttrsList();
 
-        if (_current == null) return null;
-        return _current.Kind switch
+        return _current?.Kind switch
         {
             TokenKind.Identifier => ParseNamedType(attrs),
             // Note that in the faulty: `fn some() /* not complete */ fn main() {}`
             // The parser will think the next fn keyword (for main) the start of the fn return type of some.
             // Currently, can't figure out a good way to recover this better without doing a lot of lookaheads.
             TokenKind.AtBeforeIdentifier or TokenKind.Fn => ParseFnType(attrs),
-            _ => null,
+            // IsAtEnd check is included here.
+            // TODO: Is the span shrinking here correct?
+            _ => new MissingTypeNode(_tree, attrs == null ? ShrinkToStartSpanAtCurrent() : attrs.Span.ShrinkToEnd(), attrs),
         };
     }
 
     /// <summary>
     /// Parses `NamedType`
     /// </summary>
-    private NamedTypeNode? ParseNamedType(AttrsListNode? attrs)
+    private NamedTypeNode ParseNamedType(AttrsListNode? attrs)
     {
-        var identifier = ParseIdentifier();
-        if (identifier == null) return null;
-        //var nullableToken = TryEatSimpleToken(TokenKind.Question);
+        var identifier = ParseAssertedIdentifier();
 
-        return new NamedTypeNode(attrs, identifier, TakeTriviaTokens());
+        return new NamedTypeNode(_tree, attrs, identifier);
     }
 
     /// <summary>
     /// Parses `@extern fn (Type1, Type2) Type3`
     /// Requirements: current is Fn.
     /// </summary>
-    private FnTypeNode? ParseFnType(AttrsListNode? attrs)
+    private FnTypeNode ParseFnType(AttrsListNode? attrs)
     {
         var fnToken = EatAssertedSimpleToken(TokenKind.Fn);
         var paramTypes = ParseParamTypesList();
-        if (paramTypes == null) return null;
-        var returnType = ParseType();
+        var returnType = ParseOptionalType();
 
-        return new FnTypeNode(attrs, fnToken, paramTypes, returnType, TakeTriviaTokens());
+        return new FnTypeNode(_tree, attrs, fnToken, paramTypes, returnType);
     }
 
     /// <summary>
     /// Parses `(ident1: Type, ident2: Type)`
     /// </summary>
-    private ParamsListNode? ParseParamsList()
+    private ParamsListNode ParseParamsList()
     {
         var openParenToken = EatExpectedSimpleToken(TokenKind.LeftParen);
 
@@ -1051,47 +1074,36 @@ internal class ParserImpl
 
         while (true)
         {
-            if (IsAtEnd()) return null;
-
-            if (CheckToken(TokenKind.RightParen))
-            {
+            if (IsAtEnd() || CheckToken(TokenKind.RightParen) || (!_current.Kind.CanStartParam() && !CheckToken(TokenKind.Comma)))
                 break;
-            }
 
-            var param = ParseParam();
-            if (param == null) return null;
-
-            @params.Add(param);
+            @params.Add(ParseParam());
         }
 
         var closedParenToken = EatExpectedSimpleToken(TokenKind.RightParen);
 
-        return new ParamsListNode(openParenToken, @params, closedParenToken, TakeTriviaTokens());
+        return new ParamsListNode(_tree, openParenToken, @params, closedParenToken);
     }
 
     /// <summary>
     /// Parses `field identifier: Type,`
     /// </summary>
-    private ParamNode? ParseParam()
+    private ParamNode ParseParam()
     {
+        Debug.Assert(!IsAtEnd() && (_current.Kind.CanStartParam() || CheckToken(TokenKind.Comma)));
+
         //var fieldToken = TryEatSimpleToken(TokenKind.Field);
         var identifier = ParseIdentifier();
-        if (identifier == null) return null;
-        var (type, elided) = ParseOptionalColonTy();
-        if (!elided && type == null) return null;
-        var commaToken = _current?.Kind switch
-        {
-            TokenKind.RightParen => null,
-            _ => EatExpectedSimpleToken(TokenKind.Comma),
-        };
+        var type = ParseOptionalColonType();
+        var commaToken = TryEatSimpleToken(TokenKind.Comma);
 
-        return new ParamNode(identifier, type, commaToken, TakeTriviaTokens());
+        return new ParamNode(_tree, identifier, type, commaToken);
     }
 
     /// <summary>
     /// Parses `(Type, Type)`
     /// </summary>
-    private ParamTypesListNode? ParseParamTypesList()
+    private ParamTypesListNode ParseParamTypesList()
     {
         var openParenToken = EatExpectedSimpleToken(TokenKind.LeftParen);
 
@@ -1099,45 +1111,39 @@ internal class ParserImpl
 
         while (true)
         {
-            if (IsAtEnd()) return null;
-
-            if (CheckToken(TokenKind.RightParen))
-            {
+            if (IsAtEnd() || CheckToken(TokenKind.RightParen) || (!_current.Kind.CanStartType() && !CheckToken(TokenKind.Comma)))
                 break;
-            }
 
-            var paramType = ParseParamType();
-            if (paramType == null) return null;
-
-            paramTypes.Add(paramType);
+            paramTypes.Add(ParseParamType());
         }
 
         var closedParenToken = EatExpectedSimpleToken(TokenKind.RightParen);
 
-        return new ParamTypesListNode(openParenToken, paramTypes, closedParenToken, TakeTriviaTokens());
+        return new ParamTypesListNode(_tree, openParenToken, paramTypes, closedParenToken);
     }
 
     /// <summary>
     /// Parses `Type,`
     /// </summary>
-    private ParamTypeNode? ParseParamType()
+    private ParamTypeNode ParseParamType()
     {
+        Debug.Assert(!IsAtEnd() && (_current.Kind.CanStartType() || CheckToken(TokenKind.Comma)));
+
         var type = ParseType();
-        if (type == null) return null;
         var commaToken = _current?.Kind switch
         {
             TokenKind.RightParen => null,
             _ => EatExpectedSimpleToken(TokenKind.Comma),
         };
 
-        return new ParamTypeNode(type, commaToken, TakeTriviaTokens());
+        return new ParamTypeNode(_tree, type, commaToken);
     }
 
     /// <summary>
     /// Parses `(expr1, expr2)`
     /// Requirements: current is LeftParen.
     /// </summary>
-    private ArgsListNode? ParseArgsList()
+    private ArgsListNode ParseArgsList()
     {
         var openParenToken = EatAssertedSimpleToken(TokenKind.LeftParen);
 
@@ -1145,64 +1151,77 @@ internal class ParserImpl
 
         while (true)
         {
-            if (IsAtEnd()) return null;
-
-            if (CheckToken(TokenKind.RightParen))
-            {
+            if (IsAtEnd() || CheckToken(TokenKind.RightParen) || (!_current.Kind.CanStartExpr() && !CheckToken(TokenKind.Comma)))
                 break;
-            }
 
             var arg = ParseArg();
-            if (arg == null) return null;
+            if (arg == null)
+                break;
 
             args.Add(arg);
         }
 
         var closedParenToken = EatExpectedSimpleToken(TokenKind.RightParen);
 
-        return new ArgsListNode(openParenToken, args, closedParenToken, TakeTriviaTokens());
+        return new ArgsListNode(_tree, openParenToken, args, closedParenToken);
     }
 
-    private ArgNode? ParseArg()
+    private ArgNode ParseArg()
     {
-        var expr = ParseExpr_();
-        if (expr == null) return null;
-        var commaToken = _current?.Kind switch
-        {
-            TokenKind.RightParen => null,
-            _ => EatExpectedSimpleToken(TokenKind.Comma),
-        };
+        Debug.Assert(!IsAtEnd() && (_current.Kind.CanStartExpr() || CheckToken(TokenKind.Comma)));
 
-        return new ArgNode(expr, commaToken, TakeTriviaTokens());
+        var expr = ParseExpr();
+        var commaToken = TryEatSimpleToken(TokenKind.Comma);
+
+        return new ArgNode(_tree, expr, commaToken);
     }
 
-    private FnSigNode? ParseFnSig()
+    private FnSigNode ParseFnSig()
     {
         var identifier = ParseIdentifier();
-        if (identifier == null) return null;
         var @params = ParseParamsList();
-        if (@params == null) return null;
-        var returnType = ParseType();
+        var returnType = ParseOptionalType();
 
-        return new FnSigNode(identifier, @params, returnType, TakeTriviaTokens());
+        return new FnSigNode(_tree, identifier, @params, returnType);
     }
 
-    private IdentifierToken? ParseIdentifier()
+    private IdentifierToken ParseIdentifier()
     {
-        if (TryEatToken(TokenKind.Identifier))
-        {
-            var token = AssertedPrev();
-            var lexeme = GetLexeme(token);
+        return ParseOptionalIdentifier() ?? CreateMissingIdentifierToken();
 
-            return new IdentifierToken(token.Span, lexeme.ToString());
+        IdentifierToken CreateMissingIdentifierToken()
+        {
+            var span = ShrinkToStartSpanAtCurrent();
+            _diagnostics.Add(span, DiagnosticLevel.Error, $"expected an identifier");
+            return IdentifierToken.CreateMissing(_tree, span);
         }
-        return null;
+    }
+
+    private IdentifierToken? ParseOptionalIdentifier()
+    {
+        if (!TryEatToken(TokenKind.Identifier))
+        {
+            return null;
+        }
+
+        var token = AssertedPrev();
+        var lexeme = GetLexeme(token);
+
+        var (leading, trailing) = ConsumeTrivia(token);
+        return IdentifierToken.Create(_tree, leading, trailing, token.Span, lexeme.ToString());
+    }
+
+    private IdentifierToken ParseAssertedIdentifier()
+    {
+        var identifier = ParseOptionalIdentifier();
+        Debug.Assert(identifier != null);
+        return identifier;
     }
 
     /// <summary>
     /// Parses `@attr1 @attr2(false) ...`
     /// </summary>
-    private AttrsListNode? TryParseAttrsList()
+    private AttrsListNode? ParseOptionalAttrsList()
     {
         var attrs = default(List<AttrNode>?);
 
@@ -1214,7 +1233,6 @@ internal class ParserImpl
             }
 
             var attr = ParseAttr();
-            if (attr == null) return null;
 
             attrs ??= [];
             attrs.Add(attr);
@@ -1223,47 +1241,24 @@ internal class ParserImpl
         if (attrs == null)
             return null;
 
-        return new AttrsListNode(attrs, TakeTriviaTokens());
+        return new AttrsListNode(_tree, attrs);
     }
 
     /// <summary>
     /// Parses `@attr` or `@attr(...)`
     /// Requirements: current is AtBeforeIdentifier.
     /// </summary>
-    private AttrNode? ParseAttr()
+    private AttrNode ParseAttr()
     {
         var atToken = EatAssertedSimpleToken(TokenKind.AtBeforeIdentifier);
-
-        var identifier = ParseIdentifier();
-        Debug.Assert(identifier != null);
+        var identifier = ParseAssertedIdentifier();
 
         var args = default(ArgsListNode?);
         if (CheckToken(TokenKind.LeftParen))
         {
             args = ParseArgsList();
-            if (args == null) return null;
         }
 
-        return new AttrNode(atToken, identifier, args, TakeTriviaTokens());
-    }
-}
-
-file class SyntaxTreeSetter(SyntaxTree tree) : SyntaxTreeVisitor
-{
-    public static void Apply(SyntaxTree tree)
-    {
-        var setter = new SyntaxTreeSetter(tree);
-        setter.Visit(tree.Root);
-    }
-
-    public override void Visit(SyntaxNode node)
-    {
-        node.Tree = tree;
-        Walk(node);
-    }
-
-    public override void Visit(SyntaxToken token)
-    {
-        token.Tree = tree;
+        return new AttrNode(_tree, atToken, identifier, args);
     }
 }
