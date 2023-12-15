@@ -27,12 +27,15 @@
     "watch": "tsc -b -w"
   },
   "contributes": {
-    "languages": [{
-      "id": "surab",
-      "extensions": [
-        ".surab"
-      ]
-    }]
+    "languages": [
+      {
+        "id": "surab",
+        "extensions": [
+          ".surab"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ]
   },
   "configurationDefaults": {
     "surab": {
@@ -40,7 +43,6 @@
     }
   },
   "activationEvents": [
-    "onLanguage:surab",
     "workspaceContains:*/surab-project.json"
   ]
 }
