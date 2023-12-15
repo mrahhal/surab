@@ -35,6 +35,13 @@
         ],
         "configuration": "./language-configuration.json"
       }
+    ],
+    "grammars": [
+      {
+        "language": "surab",
+        "scopeName": "source.surab",
+        "path": "./syntaxes/surab.tmLanguage.json"
+      }
     ]
   },
   "configurationDefaults": {

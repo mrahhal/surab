@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+
+  "name": "Surab",
+  "scopeName": "source.surab",
+  "patterns": [
+    {
+      "include": "#keyword"
+    }
+  ],
+  "repository": {
+    "keyword": {
+      "match": "fn|struct|alias|true|false|var|const|return",
+      "name": "keyword.control.surab"
+    }
+  }
+}
