@@ -34,6 +34,9 @@
           ".surab"
         ],
         "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "surab-markdown-injection"
       }
     ],
     "grammars": [
@@ -41,6 +44,17 @@
         "language": "surab",
         "scopeName": "source.surab",
         "path": "./syntaxes/surab.tmLanguage.json"
+      },
+      {
+        "language": "surab-markdown-injection",
+        "scopeName": "markdown.surab.codeblock",
+        "path": "./syntaxes/surab.markdown.injection.tmLanguage.json",
+        "injectTo": [
+          "text.html.markdown"
+        ],
+        "embeddedLanguages": {
+          "meta.embedded.block.surab": "surab"
+        }
       }
     ]
   },
