@@ -130,6 +130,9 @@ public class SemanticTokensFullHandler(
                     builder.SetType(literalToken.LiteralTokenKind switch
                     {
                         LiteralTokenKind.NumericInteger or LiteralTokenKind.NumericFloat => (SemanticTokenType?)SemanticTokenType.Number,
+                        LiteralTokenKind.Bool => SemanticTokenType.Keyword,
+                        LiteralTokenKind.Char => SemanticTokenType.String,
+                        // Strings need to be handled for interpolation.
                         _ => null,
                     });
                 }
