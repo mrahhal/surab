@@ -10,8 +10,8 @@ General:
 ```cs
 @import("another_file.surab")
 
-alias Integer i32;
-alias SomeDelegate fn (i32) i32;
+alias Integer as i32;
+alias SomeDelegate as fn (i32) i32;
 
 const SOME_CONSTANT = 2;
 
@@ -40,7 +40,7 @@ fn main() {
 
 @public
 struct BitSize {
-  bits: Number;
+    bits: Number;
 }
 
 class Greeter {
