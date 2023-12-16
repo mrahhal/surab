@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <RootNamespace>Surab.Analysis</RootNamespace>
-  </PropertyGroup>
+	<PropertyGroup>
+		<RootNamespace>Surab.Analysis</RootNamespace>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\analysis\analysis.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\analysis\analysis.csproj" />
+	</ItemGroup>
 
 </Project>

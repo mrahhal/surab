@@ -22,17 +22,17 @@ Targets:
 - Full fidelity analyzer
 - Repl
 - Additional language features:
-  - Auto fields in class ctor
-  - Mutable
-  - Default function param value
-  - Extension everything (useful for records)
-  - Block expressions (with a non semi coloned last expressed to denote block return result)
-  - Traits
-  - Tuples
-  - Records (not values by default)
-  - Algebraic types
-  - Generics
-  - Extensions
+	- Auto fields in class ctor
+	- Mutable
+	- Default function param value
+	- Extension everything (useful for records)
+	- Block expressions (with a non semi coloned last expressed to denote block return result)
+	- Traits
+	- Tuples
+	- Records (not values by default)
+	- Algebraic types
+	- Generics
+	- Extensions
 
 Stretch phase:
 
@@ -46,7 +46,7 @@ Stretch phase:
 - Garbage collector will have to solve the cyclic reference problem
 - Everything is private by default
 - Mutable feature instead of read/write accessors?
-  - Immutable reference doesn't mean it won't change. It means mutation is more explicit and intentional.
+	- Immutable reference doesn't mean it won't change. It means mutation is more explicit and intentional.
 - Classes drive behavior, Records drive pure data (and can be either by value or by ref)
 - Entry point is always a file named main or lib (like rust) and has the same module as the project
 

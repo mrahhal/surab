@@ -7,5 +7,5 @@
 /// <param name="SourceFile">The source file of the location.</param>
 /// <param name="Span">The span of the location.</param>
 public readonly record struct TextLocation(
-    SourceFile SourceFile,
-    TextSpan Span);
+	SourceFile SourceFile,
+	TextSpan Span);

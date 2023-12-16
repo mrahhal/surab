@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <RootNamespace>Surab</RootNamespace>
-  </PropertyGroup>
+	<PropertyGroup>
+		<RootNamespace>Surab</RootNamespace>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\compilation\compilation.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\compilation\compilation.csproj" />
+	</ItemGroup>
 
 </Project>

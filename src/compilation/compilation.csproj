@@ -1,17 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <RootNamespace>Surab.Compilation</RootNamespace>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
+	<PropertyGroup>
+		<RootNamespace>Surab.Compilation</RootNamespace>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\analysis\analysis.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\analysis\analysis.csproj" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="libLLVM" Version="16.0.6" />
-    <PackageReference Include="LLVMSharp" Version="16.0.0" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="libLLVM" Version="16.0.6" />
+		<PackageReference Include="LLVMSharp" Version="16.0.0" />
+	</ItemGroup>
 
 </Project>

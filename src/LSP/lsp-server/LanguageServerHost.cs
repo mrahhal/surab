@@ -11,71 +11,71 @@ namespace Surab.LSPServer;
 
 public class LanguageServerHost
 {
-    private readonly Serilog.Core.Logger _serilogLogger;
-    private ILogger<LanguageServerHost> _logger = null!;
+	private readonly Serilog.Core.Logger _serilogLogger;
+	private ILogger<LanguageServerHost> _logger = null!;
 
-    private LanguageServerHost(Serilog.Core.Logger logger)
-    {
-        _serilogLogger = logger;
-    }
+	private LanguageServerHost(Serilog.Core.Logger logger)
+	{
+		_serilogLogger = logger;
+	}
 
-    public LanguageServer Server { get; private set; } = null!;
+	public LanguageServer Server { get; private set; } = null!;
 
-    public SurabProject SurabProject { get; private set; } = null!;
+	public SurabProject SurabProject { get; private set; } = null!;
 
-    public static LanguageServerHost Create(Serilog.Core.Logger logger)
-    {
-        return new LanguageServerHost(logger);
-    }
+	public static LanguageServerHost Create(Serilog.Core.Logger logger)
+	{
+		return new LanguageServerHost(logger);
+	}
 
-    public async Task StartAsync()
-    {
-        var services = new ServiceCollection();
-        services.AddSingleton(this);
+	public async Task StartAsync()
+	{
+		var services = new ServiceCollection();
+		services.AddSingleton(this);
 
-        var options = new LanguageServerOptions()
-            .ConfigureLogging(b => b.AddSerilog(_serilogLogger, dispose: true))
-            .WithServices(services =>
-            {
-                services.AddSingleton<SurabSolver>();
-            })
-            .WithInput(Console.OpenStandardInput())
-            .WithOutput(Console.OpenStandardOutput())
-            .WithConfigurationItem(new ConfigurationItem
-            {
-                Section = "surab",
-            })
-            .OnInitialize(async (_, @params, _) =>
-            {
-                var workspaceUri = @params.RootUri;
-                if (workspaceUri is null)
-                    return;
+		var options = new LanguageServerOptions()
+			.ConfigureLogging(b => b.AddSerilog(_serilogLogger, dispose: true))
+			.WithServices(services =>
+			{
+				services.AddSingleton<SurabSolver>();
+			})
+			.WithInput(Console.OpenStandardInput())
+			.WithOutput(Console.OpenStandardOutput())
+			.WithConfigurationItem(new ConfigurationItem
+			{
+				Section = "surab",
+			})
+			.OnInitialize(async (_, @params, _) =>
+			{
+				var workspaceUri = @params.RootUri;
+				if (workspaceUri is null)
+					return;
 
-                _logger.LogInformation("Workspace: {Workspace}", workspaceUri.GetFileSystemPath());
+				_logger.LogInformation("Workspace: {Workspace}", workspaceUri.GetFileSystemPath());
 
-                await InitializeProjectAsync(workspaceUri);
-            })
-            .WithHandler<TextDocumentSyncHandler>()
-            .WithHandler<SemanticTokensFullHandler>()
-            .WithHandler<DefinitionHandler>()
-            .WithHandler<DeclarationHandler>()
-            .WithHandler<HoverHandler>();
+				await InitializeProjectAsync(workspaceUri);
+			})
+			.WithHandler<TextDocumentSyncHandler>()
+			.WithHandler<SemanticTokensFullHandler>()
+			.WithHandler<DefinitionHandler>()
+			.WithHandler<DeclarationHandler>()
+			.WithHandler<HoverHandler>();
 
-        Server = LanguageServer.Create(options, services.BuildServiceProvider());
-        _logger = Server.Services.GetRequiredService<ILogger<LanguageServerHost>>();
+		Server = LanguageServer.Create(options, services.BuildServiceProvider());
+		_logger = Server.Services.GetRequiredService<ILogger<LanguageServerHost>>();
 
-        await Server.Initialize(default);
-    }
+		await Server.Initialize(default);
+	}
 
-    private Task InitializeProjectAsync(DocumentUri workspaceUri)
-    {
-        var workspacePath = workspaceUri.GetFileSystemPath();
-        var sourceFiles = Directory
-            .GetFiles(workspacePath, "*.surab")
-            .Select(x => SourceFile.Create(x, File.ReadAllText(x)))
-            .ToList();
-        SurabProject = SurabProject.Create(sourceFiles);
+	private Task InitializeProjectAsync(DocumentUri workspaceUri)
+	{
+		var workspacePath = workspaceUri.GetFileSystemPath();
+		var sourceFiles = Directory
+			.GetFiles(workspacePath, "*.surab")
+			.Select(x => SourceFile.Create(x, File.ReadAllText(x)))
+			.ToList();
+		SurabProject = SurabProject.Create(sourceFiles);
 
-        return Task.CompletedTask;
-    }
+		return Task.CompletedTask;
+	}
 }

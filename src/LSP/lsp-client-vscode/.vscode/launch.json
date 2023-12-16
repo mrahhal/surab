@@ -1,18 +1,22 @@
 {
-  "version": "0.2.0",
-  "configurations": [
-    // A launch configuration that compiles the extension and then opens it inside a new extension host.
-    {
-      "type": "extensionHost",
-      "request": "launch",
-      "name": "LSP Client",
-      "runtimeExecutable": "${execPath}",
-      "args": ["--extensionDevelopmentPath=${workspaceRoot}"],
-      "outFiles": ["${workspaceRoot}/out/**/*.js"],
-      "preLaunchTask": {
-        "type": "npm",
-        "script": "watch"
-      }
-    }
-  ]
+	"version": "0.2.0",
+	"configurations": [
+		// A launch configuration that compiles the extension and then opens it inside a new extension host.
+		{
+			"type": "extensionHost",
+			"request": "launch",
+			"name": "LSP Client",
+			"runtimeExecutable": "${execPath}",
+			"args": [
+				"--extensionDevelopmentPath=${workspaceRoot}"
+			],
+			"outFiles": [
+				"${workspaceRoot}/out/**/*.js"
+			],
+			"preLaunchTask": {
+				"type": "npm",
+				"script": "watch"
+			}
+		}
+	]
 }

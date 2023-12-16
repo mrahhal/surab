@@ -1,12 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <RootNamespace>Surab.Runner</RootNamespace>
-    <OutputType>Exe</OutputType>
-  </PropertyGroup>
+	<PropertyGroup>
+		<RootNamespace>Surab.Runner</RootNamespace>
+		<OutputType>Exe</OutputType>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\compilation\compilation.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\compilation\compilation.csproj" />
+	</ItemGroup>
 
 </Project>

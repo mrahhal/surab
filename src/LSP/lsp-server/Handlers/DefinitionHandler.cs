@@ -6,22 +6,22 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Surab.LSPServer.Handlers;
 
 public class DefinitionHandler(
-    ILogger<DefinitionHandler> logger,
-    SurabSolver solver) : DefinitionHandlerBase
+	ILogger<DefinitionHandler> logger,
+	SurabSolver solver) : DefinitionHandlerBase
 {
-    private readonly ILogger _logger = logger;
-    private readonly SurabSolver _solver = solver;
+	private readonly ILogger _logger = logger;
+	private readonly SurabSolver _solver = solver;
 
-    public override Task<LocationOrLocationLinks?> Handle(DefinitionParams request, CancellationToken cancellationToken)
-    {
-        return Task.FromResult(_solver.GetDefinitionRef(request.TextDocument, request.Position));
-    }
+	public override Task<LocationOrLocationLinks?> Handle(DefinitionParams request, CancellationToken cancellationToken)
+	{
+		return Task.FromResult(_solver.GetDefinitionRef(request.TextDocument, request.Position));
+	}
 
-    protected override DefinitionRegistrationOptions CreateRegistrationOptions(DefinitionCapability capability, ClientCapabilities clientCapabilities)
-    {
-        return new()
-        {
-            DocumentSelector = LanguageServerHelper.CreateSurabDocumentSelector(),
-        };
-    }
+	protected override DefinitionRegistrationOptions CreateRegistrationOptions(DefinitionCapability capability, ClientCapabilities clientCapabilities)
+	{
+		return new()
+		{
+			DocumentSelector = LanguageServerHelper.CreateSurabDocumentSelector(),
+		};
+	}
 }

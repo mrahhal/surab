@@ -1,18 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <RootNamespace>Surab.LSPServer</RootNamespace>
-    <OutputType>Exe</OutputType>
-    <AssemblyName>surab-lsp-server</AssemblyName>
-  </PropertyGroup>
+	<PropertyGroup>
+		<RootNamespace>Surab.LSPServer</RootNamespace>
+		<OutputType>Exe</OutputType>
+		<AssemblyName>surab-lsp-server</AssemblyName>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\analysis\analysis.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\..\analysis\analysis.csproj" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="OmniSharp.Extensions.LanguageServer" Version="0.19.9" />
-    <PackageReference Include="Serilog.Extensions.Logging.File" Version="3.0.0" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="OmniSharp.Extensions.LanguageServer" Version="0.19.9" />
+		<PackageReference Include="Serilog.Extensions.Logging.File" Version="3.0.0" />
+	</ItemGroup>
 
 </Project>

@@ -1,766 +1,766 @@
 {
-  "Nodes": [
-    {
-      "Name": "Module",
-      "Members": [
-        {
-          "Name": "decls",
-          "Type": "DeclNode",
-          "List": true
-        }
-      ]
-    },
-    {
-      "Name": "ConstDecl",
-      "Base": "DeclNode",
-      "Members": [
-        {
-          "Name": "attrs",
-          "Type": "AttrsListNode",
-          "Optional": true
-        },
-        {
-          "Name": "constToken",
-          "Type": "SimpleToken"
-        },
-        {
-          "Name": "identifier",
-          "Type": "IdentifierToken"
-        },
-        {
-          "Name": "type",
-          "Type": "ColonTypeNode",
-          "Optional": true
-        },
-        {
-          "Name": "initializer",
-          "Type": "EqualsExprClauseNode",
-          "Optional": true,
-          "Comment": "Well formed: Literal"
-        },
-        {
-          "Name": "semicolonToken",
-          "Type": "SimpleToken"
-        }
-      ]
-    },
-    {
-      "Name": "FnDecl",
-      "Base": "DeclNode",
-      "Members": [
-        {
-          "Name": "attrs",
-          "Type": "AttrsListNode",
-          "Optional": true
-        },
-        {
-          "Name": "fnToken",
-          "Type": "SimpleToken"
-        },
-        {
-          "Name": "sig",
-          "Type": "FnSigNode"
-        },
-        {
-          "Name": "body",
-          "Type": "BlockExprNode",
-          "Optional": true
-        },
-        {
-          "Name": "semicolonToken",
-          "Type": "SimpleToken",
-          "Optional": true,
-          "Comment": "Exists when body is null."
-        }
-      ]
-    },
-    {
-      "Name": "MethodDecl",
-      "Base": "DeclNode",
-      "Members": [
-        {
-          "Name": "attrs",
-          "Type": "AttrsListNode",
-          "Optional": true
-        },
-        {
-          "Name": "sig",
-          "Type": "FnSigNode"
-        },
-        {
-          "Name": "body",
-          "Type": "BlockExprNode",
-          "Optional": true
-        },
-        {
-          "Name": "semicolonToken",
-          "Type": "SimpleToken",
-          "Optional": true
-        }
-      ]
-    },
-    {
-      "Name": "AliasDecl",
-      "Base": "DeclNode",
-      "Members": [
-        {
-          "Name": "attrs",
-          "Type": "AttrsListNode",
-          "Optional": true
-        },
-        {
-          "Name": "aliasToken",
-          "Type": "SimpleToken"
-        },
-        {
-          "Name": "identifier",
-          "Type": "IdentifierToken"
-        },
-        {
-          "Name": "asToken",
-          "Type": "SimpleToken"
-        },
-        {
-          "Name": "type",
-          "Type": "TypeNode"
-        },
-        {
-          "Name": "semicolonToken",
-          "Type": "SimpleToken"
-        }
-      ]
-    },
-    {
-      "Name": "StructDecl",
-      "Base": "DeclNode",
-      "Members": [
-        {
-          "Name": "attrs",
-          "Type": "AttrsListNode",
-          "Optional": true
-        },
-        {
-          "Name": "structToken",
-          "Type": "SimpleToken"
-        },
-        {
-          "Name": "identifier",
-          "Type": "IdentifierToken"
-        },
-        {
-          "Name": "openBraceToken",
-          "Type": "SimpleToken"
-        },
-        {
-          "Name": "members",
-          "Type": "DeclMembersNode"
-        },
-        {
-          "Name": "closedBraceToken",
-          "Type": "SimpleToken"
-        }
-      ]
-    },
-    {
-      "Name": "ClassDecl",
-      "Base": "DeclNode",
-      "Members": [
-        {
-          "Name": "attrs",
-          "Type": "AttrsListNode",
-          "Optional": true
-        },
-        {
-          "Name": "classToken",
-          "Type": "SimpleToken"
-        },
-        {
-          "Name": "identifier",
-          "Type": "IdentifierToken"
-        },
-        {
-          "Name": "openBraceToken",
-          "Type": "SimpleToken"
-        },
-        {
-          "Name": "members",
-          "Type": "DeclMembersNode"
-        },
-        {
-          "Name": "closedBraceToken",
-          "Type": "SimpleToken"
-        }
-      ]
-    },
-    {
-      "Name": "DeclMembers",
-      "Members": [
-        {
-          "Name": "members",
-          "Type": "DeclNode",
-          "List": true
-        }
-      ]
-    },
-    {
-      "Name": "FieldDecl",
-      "Base": "DeclNode",
-      "Members": [
-        {
-          "Name": "attrs",
-          "Type": "AttrsListNode",
-          "Optional": true
-        },
-        {
-          "Name": "identifier",
-          "Type": "IdentifierToken"
-        },
-        {
-          "Name": "type",
-          "Type": "ColonTypeNode",
-          "Optional": true
-        },
-        {
-          "Name": "initializer",
-          "Type": "EqualsExprClauseNode",
-          "Optional": true
-        },
-        {
-          "Name": "semicolonToken",
-          "Type": "SimpleToken"
-        }
-      ]
-    },
-    {
-      "Name": "SkippedTokensDecl",
-      "Base": "DeclNode",
-      "Members": [
-        {
-          "Name": "skipped",
-          "Type": "SkippedToken",
-          "List": true
-        }
-      ]
-    },
-    {
-      "Name": "VarStmt",
-      "Base": "StmtNode",
-      "Members": [
-        {
-          "Name": "varToken",
-          "Type": "SimpleToken"
-        },
-        {
-          "Name": "identifier",
-          "Type": "IdentifierToken"
-        },
-        {
-          "Name": "type",
-          "Type": "ColonTypeNode",
-          "Optional": true
-        },
-        {
-          "Name": "initializer",
-          "Type": "EqualsExprClauseNode",
-          "optional": true
-        },
-        {
-          "Name": "semicolonToken",
-          "Type": "SimpleToken"
-        }
-      ]
-    },
-    {
-      "Name": "ReturnStmt",
-      "Base": "StmtNode",
-      "Members": [
-        {
-          "Name": "returnToken",
-          "Type": "SimpleToken"
-        },
-        {
-          "Name": "expr",
-          "Type": "ExprNode",
-          "optional": true
-        },
-        {
-          "Name": "semicolonToken",
-          "Type": "SimpleToken"
-        }
-      ]
-    },
-    {
-      "Name": "ExprStmt",
-      "Base": "StmtNode",
-      "Comment": "An expression statement (`expr();`).",
-      "Members": [
-        {
-          "Name": "expr",
-          "Type": "ExprNode"
-        },
-        {
-          "Name": "semicolonToken",
-          "Type": "SimpleToken"
-        }
-      ]
-    },
-    {
-      "Name": "BareExprStmt",
-      "Base": "StmtNode",
-      "Comment": "An expression statement without the trailing semicolon (`expr()`).",
-      "Members": [
-        {
-          "Name": "expr",
-          "Type": "ExprNode"
-        }
-      ]
-    },
-    {
-      "Name": "SkippedTokensStmt",
-      "Base": "StmtNode",
-      "Members": [
-        {
-          "Name": "skipped",
-          "Type": "SkippedToken",
-          "List": true
-        }
-      ]
-    },
-    {
-      "Name": "BlockExpr",
-      "Base": "ExprNode",
-      "Members": [
-        {
-          "Name": "openBraceToken",
-          "Type": "SimpleToken"
-        },
-        {
-          "Name": "stmts",
-          "Type": "StmtNode",
-          "List": true
-        },
-        {
-          "Name": "closedBraceToken",
-          "Type": "SimpleToken"
-        }
-      ]
-    },
-    {
-      "Name": "AssignmentExpr",
-      "Base": "ExprNode",
-      "Members": [
-        {
-          "Name": "lhs",
-          "Type": "ExprNode"
-        },
-        {
-          "Name": "equalToken",
-          "Type": "SimpleToken"
-        },
-        {
-          "Name": "rhs",
-          "Type": "ExprNode"
-        }
-      ]
-    },
-    {
-      "Name": "UnaryExpr",
-      "Base": "ExprNode",
-      "Members": [
-        {
-          "Name": "op",
-          "Type": "UnaryOperatorToken"
-        },
-        {
-          "Name": "expr",
-          "Type": "ExprNode"
-        }
-      ]
-    },
-    {
-      "Name": "BinaryExpr",
-      "Base": "ExprNode",
-      "Members": [
-        {
-          "Name": "left",
-          "Type": "ExprNode"
-        },
-        {
-          "Name": "op",
-          "Type": "BinaryOperatorToken"
-        },
-        {
-          "Name": "right",
-          "Type": "ExprNode"
-        }
-      ]
-    },
-    {
-      "Name": "GroupingExpr",
-      "Base": "ExprNode",
-      "Members": [
-        {
-          "Name": "openParenToken",
-          "Type": "SimpleToken"
-        },
-        {
-          "Name": "expr",
-          "Type": "ExprNode"
-        },
-        {
-          "Name": "closedParenToken",
-          "Type": "SimpleToken"
-        }
-      ]
-    },
-    {
-      "Name": "CallExpr",
-      "Base": "ExprNode",
-      "Comment": "A function/method call (`callee(args)`).",
-      "Members": [
-        {
-          "Name": "callee",
-          "Type": "ExprNode"
-        },
-        {
-          "Name": "args",
-          "Type": "ArgsListNode"
-        }
-      ]
-    },
-    {
-      "Name": "AccessExpr",
-      "Base": "ExprNode",
-      "Comment": "A member access (`target.identifier`).",
-      "Members": [
-        {
-          "Name": "target",
-          "Type": "ExprNode"
-        },
-        {
-          "Name": "dotToken",
-          "Type": "SimpleToken"
-        },
-        {
-          "Name": "identifier",
-          "Type": "IdentifierToken"
-        }
-      ]
-    },
-    {
-      "Name": "LiteralExpr",
-      "Base": "ExprNode",
-      "Members": [
-        {
-          "Name": "literal",
-          "Type": "LiteralToken"
-        }
-      ]
-    },
-    {
-      "Name": "IdentifierExpr",
-      "Base": "ExprNode",
-      "Members": [
-        {
-          "Name": "identifier",
-          "Type": "IdentifierToken"
-        }
-      ]
-    },
-    {
-      "Name": "ThisExpr",
-      "Base": "ExprNode",
-      "Members": [
-        {
-          "Name": "keywordToken",
-          "Type": "SimpleToken"
-        }
-      ]
-    },
-    {
-      "Name": "StructCreationExpr", // Should be renamed to a more general ObjectCreationExpr?
-      "Base": "ExprNode",
-      "Members": [
-        {
-          "Name": "identifier",
-          "Type": "IdentifierToken"
-        },
-        {
-          "Name": "mapInitializer",
-          "Type": "MapInitializerNode"
-        }
-      ]
-    },
-    {
-      "Name": "MissingExpr",
-      "Base": "ExprNode",
-      "TakesSpan": true,
-      "Members": []
-    },
-    {
-      "Name": "MapInitializer",
-      "Members": [
-        {
-          "Name": "openBraceToken",
-          "Type": "SimpleToken"
-        },
-        {
-          "Name": "items",
-          "Type": "MapInitializerItemNode",
-          "List": true
-        },
-        {
-          "Name": "closedBraceToken",
-          "Type": "SimpleToken"
-        }
-      ]
-    },
-    {
-      "Name": "MapInitializerItem",
-      "Members": [
-        {
-          "Name": "expr",
-          "Type": "ExprNode",
-          "Comment": "Well formed: AssignmentExprNode"
-        },
-        {
-          "Name": "commaToken",
-          "Type": "SimpleToken",
-          "Optional": true
-        }
-      ]
-    },
-    {
-      "Name": "ParamsList",
-      "Members": [
-        {
-          "Name": "openParenToken",
-          "Type": "SimpleToken"
-        },
-        {
-          "Name": "@params",
-          "Type": "ParamNode",
-          "List": true
-        },
-        {
-          "Name": "closedParenToken",
-          "Type": "SimpleToken"
-        }
-      ]
-    },
-    {
-      "Name": "Param",
-      "Members": [
-        //{
-        //  "Name": "fieldToken",
-        //  "Type": "SimpleToken",
-        //  "Optional": true
-        //},
-        {
-          "Name": "identifier",
-          "Type": "IdentifierToken"
-        },
-        {
-          "Name": "type",
-          "Type": "ColonTypeNode",
-          "Optional": true,
-          "Comment": "Well formed: Has value"
-        },
-        {
-          "Name": "commaToken",
-          "Type": "SimpleToken",
-          "Optional": true
-        }
-      ]
-    },
-    {
-      "Name": "ParamTypesList",
-      "Members": [
-        {
-          "Name": "openParenToken",
-          "Type": "SimpleToken"
-        },
-        {
-          "Name": "paramTypes",
-          "Type": "ParamTypeNode",
-          "List": true
-        },
-        {
-          "Name": "closedParenToken",
-          "Type": "SimpleToken"
-        }
-      ]
-    },
-    {
-      "Name": "ParamType",
-      "Members": [
-        {
-          "Name": "type",
-          "Type": "TypeNode"
-        },
-        {
-          "Name": "commaToken",
-          "Type": "SimpleToken",
-          "Optional": true
-        }
-      ]
-    },
-    {
-      "Name": "ArgsList",
-      "Members": [
-        {
-          "Name": "openParenToken",
-          "Type": "SimpleToken"
-        },
-        {
-          "Name": "args",
-          "Type": "ArgNode",
-          "List": true
-        },
-        {
-          "Name": "closedParenToken",
-          "Type": "SimpleToken"
-        }
-      ]
-    },
-    {
-      "Name": "Arg",
-      "Members": [
-        {
-          "Name": "expr",
-          "Type": "ExprNode"
-        },
-        {
-          "Name": "commaToken",
-          "Type": "SimpleToken",
-          "Optional": true
-        }
-      ]
-    },
-    {
-      "Name": "ColonType",
-      "Members": [
-        {
-          "Name": "colonToken",
-          "Type": "SimpleToken"
-        },
-        {
-          "Name": "type",
-          "Type": "TypeNode"
-        }
-      ]
-    },
-    {
-      "Name": "NamedType",
-      "Base": "TypeNode",
-      "Members": [
-        {
-          "Name": "attrs",
-          "Type": "AttrsListNode",
-          "Optional": true
-        },
-        {
-          "Name": "identifier",
-          "Type": "IdentifierToken"
-        }
-      ]
-    },
-    {
-      "Name": "FnType",
-      "Base": "TypeNode",
-      "Members": [
-        {
-          "Name": "attrs",
-          "Type": "AttrsListNode",
-          "Optional": true
-        },
-        {
-          "Name": "fnToken",
-          "Type": "SimpleToken"
-        },
-        {
-          "Name": "paramTypes",
-          "Type": "ParamTypesListNode",
-          "Optional": true,
-          "WellFormedRequired": true
-        },
-        {
-          "Name": "returnType",
-          "Type": "TypeNode",
-          "Optional": true
-        }
-      ]
-    },
-    {
-      "Name": "MissingType",
-      "Base": "TypeNode",
-      "TakesSpan": true,
-      "Members": [
-        {
-          "Name": "attrs",
-          "Type": "AttrsListNode",
-          "Optional": true
-        }
-      ]
-    },
-    {
-      "Name": "FnSig",
-      "Members": [
-        {
-          "Name": "identifier",
-          "Type": "IdentifierToken"
-        },
-        {
-          "Name": "@params",
-          "Type": "ParamsListNode"
-        },
-        {
-          "Name": "returnType",
-          "Type": "TypeNode",
-          "Optional": true
-        }
-      ]
-    },
-    {
-      "Name": "EqualsExprClause",
-      "Members": [
-        {
-          "Name": "equalToken",
-          "Type": "SimpleToken"
-        },
-        {
-          "Name": "expr",
-          "Type": "ExprNode"
-        }
-      ]
-    },
-    {
-      "Name": "AttrsList",
-      "Members": [
-        {
-          "Name": "attrs",
-          "Type": "AttrNode",
-          "List": true
-        }
-      ]
-    },
-    {
-      "Name": "Attr",
-      "Members": [
-        {
-          "Name": "atToken",
-          "Type": "SimpleToken"
-        },
-        {
-          "Name": "identifier",
-          "Type": "IdentifierToken"
-        },
-        {
-          "Name": "args",
-          "Type": "ArgsListNode",
-          "Optional": true
-        }
-      ]
-    }
-  ]
+	"Nodes": [
+		{
+			"Name": "Module",
+			"Members": [
+				{
+					"Name": "decls",
+					"Type": "DeclNode",
+					"List": true
+				}
+			]
+		},
+		{
+			"Name": "ConstDecl",
+			"Base": "DeclNode",
+			"Members": [
+				{
+					"Name": "attrs",
+					"Type": "AttrsListNode",
+					"Optional": true
+				},
+				{
+					"Name": "constToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "identifier",
+					"Type": "IdentifierToken"
+				},
+				{
+					"Name": "type",
+					"Type": "ColonTypeNode",
+					"Optional": true
+				},
+				{
+					"Name": "initializer",
+					"Type": "EqualsExprClauseNode",
+					"Optional": true,
+					"Comment": "Well formed: Literal"
+				},
+				{
+					"Name": "semicolonToken",
+					"Type": "SimpleToken"
+				}
+			]
+		},
+		{
+			"Name": "FnDecl",
+			"Base": "DeclNode",
+			"Members": [
+				{
+					"Name": "attrs",
+					"Type": "AttrsListNode",
+					"Optional": true
+				},
+				{
+					"Name": "fnToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "sig",
+					"Type": "FnSigNode"
+				},
+				{
+					"Name": "body",
+					"Type": "BlockExprNode",
+					"Optional": true
+				},
+				{
+					"Name": "semicolonToken",
+					"Type": "SimpleToken",
+					"Optional": true,
+					"Comment": "Exists when body is null."
+				}
+			]
+		},
+		{
+			"Name": "MethodDecl",
+			"Base": "DeclNode",
+			"Members": [
+				{
+					"Name": "attrs",
+					"Type": "AttrsListNode",
+					"Optional": true
+				},
+				{
+					"Name": "sig",
+					"Type": "FnSigNode"
+				},
+				{
+					"Name": "body",
+					"Type": "BlockExprNode",
+					"Optional": true
+				},
+				{
+					"Name": "semicolonToken",
+					"Type": "SimpleToken",
+					"Optional": true
+				}
+			]
+		},
+		{
+			"Name": "AliasDecl",
+			"Base": "DeclNode",
+			"Members": [
+				{
+					"Name": "attrs",
+					"Type": "AttrsListNode",
+					"Optional": true
+				},
+				{
+					"Name": "aliasToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "identifier",
+					"Type": "IdentifierToken"
+				},
+				{
+					"Name": "asToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "type",
+					"Type": "TypeNode"
+				},
+				{
+					"Name": "semicolonToken",
+					"Type": "SimpleToken"
+				}
+			]
+		},
+		{
+			"Name": "StructDecl",
+			"Base": "DeclNode",
+			"Members": [
+				{
+					"Name": "attrs",
+					"Type": "AttrsListNode",
+					"Optional": true
+				},
+				{
+					"Name": "structToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "identifier",
+					"Type": "IdentifierToken"
+				},
+				{
+					"Name": "openBraceToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "members",
+					"Type": "DeclMembersNode"
+				},
+				{
+					"Name": "closedBraceToken",
+					"Type": "SimpleToken"
+				}
+			]
+		},
+		{
+			"Name": "ClassDecl",
+			"Base": "DeclNode",
+			"Members": [
+				{
+					"Name": "attrs",
+					"Type": "AttrsListNode",
+					"Optional": true
+				},
+				{
+					"Name": "classToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "identifier",
+					"Type": "IdentifierToken"
+				},
+				{
+					"Name": "openBraceToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "members",
+					"Type": "DeclMembersNode"
+				},
+				{
+					"Name": "closedBraceToken",
+					"Type": "SimpleToken"
+				}
+			]
+		},
+		{
+			"Name": "DeclMembers",
+			"Members": [
+				{
+					"Name": "members",
+					"Type": "DeclNode",
+					"List": true
+				}
+			]
+		},
+		{
+			"Name": "FieldDecl",
+			"Base": "DeclNode",
+			"Members": [
+				{
+					"Name": "attrs",
+					"Type": "AttrsListNode",
+					"Optional": true
+				},
+				{
+					"Name": "identifier",
+					"Type": "IdentifierToken"
+				},
+				{
+					"Name": "type",
+					"Type": "ColonTypeNode",
+					"Optional": true
+				},
+				{
+					"Name": "initializer",
+					"Type": "EqualsExprClauseNode",
+					"Optional": true
+				},
+				{
+					"Name": "semicolonToken",
+					"Type": "SimpleToken"
+				}
+			]
+		},
+		{
+			"Name": "SkippedTokensDecl",
+			"Base": "DeclNode",
+			"Members": [
+				{
+					"Name": "skipped",
+					"Type": "SkippedToken",
+					"List": true
+				}
+			]
+		},
+		{
+			"Name": "VarStmt",
+			"Base": "StmtNode",
+			"Members": [
+				{
+					"Name": "varToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "identifier",
+					"Type": "IdentifierToken"
+				},
+				{
+					"Name": "type",
+					"Type": "ColonTypeNode",
+					"Optional": true
+				},
+				{
+					"Name": "initializer",
+					"Type": "EqualsExprClauseNode",
+					"optional": true
+				},
+				{
+					"Name": "semicolonToken",
+					"Type": "SimpleToken"
+				}
+			]
+		},
+		{
+			"Name": "ReturnStmt",
+			"Base": "StmtNode",
+			"Members": [
+				{
+					"Name": "returnToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "expr",
+					"Type": "ExprNode",
+					"optional": true
+				},
+				{
+					"Name": "semicolonToken",
+					"Type": "SimpleToken"
+				}
+			]
+		},
+		{
+			"Name": "ExprStmt",
+			"Base": "StmtNode",
+			"Comment": "An expression statement (`expr();`).",
+			"Members": [
+				{
+					"Name": "expr",
+					"Type": "ExprNode"
+				},
+				{
+					"Name": "semicolonToken",
+					"Type": "SimpleToken"
+				}
+			]
+		},
+		{
+			"Name": "BareExprStmt",
+			"Base": "StmtNode",
+			"Comment": "An expression statement without the trailing semicolon (`expr()`).",
+			"Members": [
+				{
+					"Name": "expr",
+					"Type": "ExprNode"
+				}
+			]
+		},
+		{
+			"Name": "SkippedTokensStmt",
+			"Base": "StmtNode",
+			"Members": [
+				{
+					"Name": "skipped",
+					"Type": "SkippedToken",
+					"List": true
+				}
+			]
+		},
+		{
+			"Name": "BlockExpr",
+			"Base": "ExprNode",
+			"Members": [
+				{
+					"Name": "openBraceToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "stmts",
+					"Type": "StmtNode",
+					"List": true
+				},
+				{
+					"Name": "closedBraceToken",
+					"Type": "SimpleToken"
+				}
+			]
+		},
+		{
+			"Name": "AssignmentExpr",
+			"Base": "ExprNode",
+			"Members": [
+				{
+					"Name": "lhs",
+					"Type": "ExprNode"
+				},
+				{
+					"Name": "equalToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "rhs",
+					"Type": "ExprNode"
+				}
+			]
+		},
+		{
+			"Name": "UnaryExpr",
+			"Base": "ExprNode",
+			"Members": [
+				{
+					"Name": "op",
+					"Type": "UnaryOperatorToken"
+				},
+				{
+					"Name": "expr",
+					"Type": "ExprNode"
+				}
+			]
+		},
+		{
+			"Name": "BinaryExpr",
+			"Base": "ExprNode",
+			"Members": [
+				{
+					"Name": "left",
+					"Type": "ExprNode"
+				},
+				{
+					"Name": "op",
+					"Type": "BinaryOperatorToken"
+				},
+				{
+					"Name": "right",
+					"Type": "ExprNode"
+				}
+			]
+		},
+		{
+			"Name": "GroupingExpr",
+			"Base": "ExprNode",
+			"Members": [
+				{
+					"Name": "openParenToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "expr",
+					"Type": "ExprNode"
+				},
+				{
+					"Name": "closedParenToken",
+					"Type": "SimpleToken"
+				}
+			]
+		},
+		{
+			"Name": "CallExpr",
+			"Base": "ExprNode",
+			"Comment": "A function/method call (`callee(args)`).",
+			"Members": [
+				{
+					"Name": "callee",
+					"Type": "ExprNode"
+				},
+				{
+					"Name": "args",
+					"Type": "ArgsListNode"
+				}
+			]
+		},
+		{
+			"Name": "AccessExpr",
+			"Base": "ExprNode",
+			"Comment": "A member access (`target.identifier`).",
+			"Members": [
+				{
+					"Name": "target",
+					"Type": "ExprNode"
+				},
+				{
+					"Name": "dotToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "identifier",
+					"Type": "IdentifierToken"
+				}
+			]
+		},
+		{
+			"Name": "LiteralExpr",
+			"Base": "ExprNode",
+			"Members": [
+				{
+					"Name": "literal",
+					"Type": "LiteralToken"
+				}
+			]
+		},
+		{
+			"Name": "IdentifierExpr",
+			"Base": "ExprNode",
+			"Members": [
+				{
+					"Name": "identifier",
+					"Type": "IdentifierToken"
+				}
+			]
+		},
+		{
+			"Name": "ThisExpr",
+			"Base": "ExprNode",
+			"Members": [
+				{
+					"Name": "keywordToken",
+					"Type": "SimpleToken"
+				}
+			]
+		},
+		{
+			"Name": "StructCreationExpr", // Should be renamed to a more general ObjectCreationExpr?
+			"Base": "ExprNode",
+			"Members": [
+				{
+					"Name": "identifier",
+					"Type": "IdentifierToken"
+				},
+				{
+					"Name": "mapInitializer",
+					"Type": "MapInitializerNode"
+				}
+			]
+		},
+		{
+			"Name": "MissingExpr",
+			"Base": "ExprNode",
+			"TakesSpan": true,
+			"Members": []
+		},
+		{
+			"Name": "MapInitializer",
+			"Members": [
+				{
+					"Name": "openBraceToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "items",
+					"Type": "MapInitializerItemNode",
+					"List": true
+				},
+				{
+					"Name": "closedBraceToken",
+					"Type": "SimpleToken"
+				}
+			]
+		},
+		{
+			"Name": "MapInitializerItem",
+			"Members": [
+				{
+					"Name": "expr",
+					"Type": "ExprNode",
+					"Comment": "Well formed: AssignmentExprNode"
+				},
+				{
+					"Name": "commaToken",
+					"Type": "SimpleToken",
+					"Optional": true
+				}
+			]
+		},
+		{
+			"Name": "ParamsList",
+			"Members": [
+				{
+					"Name": "openParenToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "@params",
+					"Type": "ParamNode",
+					"List": true
+				},
+				{
+					"Name": "closedParenToken",
+					"Type": "SimpleToken"
+				}
+			]
+		},
+		{
+			"Name": "Param",
+			"Members": [
+				//{
+				//	"Name": "fieldToken",
+				//	"Type": "SimpleToken",
+				//	"Optional": true
+				//},
+				{
+					"Name": "identifier",
+					"Type": "IdentifierToken"
+				},
+				{
+					"Name": "type",
+					"Type": "ColonTypeNode",
+					"Optional": true,
+					"Comment": "Well formed: Has value"
+				},
+				{
+					"Name": "commaToken",
+					"Type": "SimpleToken",
+					"Optional": true
+				}
+			]
+		},
+		{
+			"Name": "ParamTypesList",
+			"Members": [
+				{
+					"Name": "openParenToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "paramTypes",
+					"Type": "ParamTypeNode",
+					"List": true
+				},
+				{
+					"Name": "closedParenToken",
+					"Type": "SimpleToken"
+				}
+			]
+		},
+		{
+			"Name": "ParamType",
+			"Members": [
+				{
+					"Name": "type",
+					"Type": "TypeNode"
+				},
+				{
+					"Name": "commaToken",
+					"Type": "SimpleToken",
+					"Optional": true
+				}
+			]
+		},
+		{
+			"Name": "ArgsList",
+			"Members": [
+				{
+					"Name": "openParenToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "args",
+					"Type": "ArgNode",
+					"List": true
+				},
+				{
+					"Name": "closedParenToken",
+					"Type": "SimpleToken"
+				}
+			]
+		},
+		{
+			"Name": "Arg",
+			"Members": [
+				{
+					"Name": "expr",
+					"Type": "ExprNode"
+				},
+				{
+					"Name": "commaToken",
+					"Type": "SimpleToken",
+					"Optional": true
+				}
+			]
+		},
+		{
+			"Name": "ColonType",
+			"Members": [
+				{
+					"Name": "colonToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "type",
+					"Type": "TypeNode"
+				}
+			]
+		},
+		{
+			"Name": "NamedType",
+			"Base": "TypeNode",
+			"Members": [
+				{
+					"Name": "attrs",
+					"Type": "AttrsListNode",
+					"Optional": true
+				},
+				{
+					"Name": "identifier",
+					"Type": "IdentifierToken"
+				}
+			]
+		},
+		{
+			"Name": "FnType",
+			"Base": "TypeNode",
+			"Members": [
+				{
+					"Name": "attrs",
+					"Type": "AttrsListNode",
+					"Optional": true
+				},
+				{
+					"Name": "fnToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "paramTypes",
+					"Type": "ParamTypesListNode",
+					"Optional": true,
+					"WellFormedRequired": true
+				},
+				{
+					"Name": "returnType",
+					"Type": "TypeNode",
+					"Optional": true
+				}
+			]
+		},
+		{
+			"Name": "MissingType",
+			"Base": "TypeNode",
+			"TakesSpan": true,
+			"Members": [
+				{
+					"Name": "attrs",
+					"Type": "AttrsListNode",
+					"Optional": true
+				}
+			]
+		},
+		{
+			"Name": "FnSig",
+			"Members": [
+				{
+					"Name": "identifier",
+					"Type": "IdentifierToken"
+				},
+				{
+					"Name": "@params",
+					"Type": "ParamsListNode"
+				},
+				{
+					"Name": "returnType",
+					"Type": "TypeNode",
+					"Optional": true
+				}
+			]
+		},
+		{
+			"Name": "EqualsExprClause",
+			"Members": [
+				{
+					"Name": "equalToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "expr",
+					"Type": "ExprNode"
+				}
+			]
+		},
+		{
+			"Name": "AttrsList",
+			"Members": [
+				{
+					"Name": "attrs",
+					"Type": "AttrNode",
+					"List": true
+				}
+			]
+		},
+		{
+			"Name": "Attr",
+			"Members": [
+				{
+					"Name": "atToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "identifier",
+					"Type": "IdentifierToken"
+				},
+				{
+					"Name": "args",
+					"Type": "ArgsListNode",
+					"Optional": true
+				}
+			]
+		}
+	]
 }

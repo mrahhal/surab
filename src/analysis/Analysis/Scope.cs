@@ -8,254 +8,254 @@ namespace Surab.Analysis;
 /// </summary>
 internal abstract class Scope
 {
-    public Scope? Parent { get; private set; }
+	public Scope? Parent { get; private set; }
 
-    public Reasoner Reasoner { get; internal set; } = default!;
+	public Reasoner Reasoner { get; internal set; } = default!;
 
-    /// <summary>
-    /// Sets the parent scope of this scope.
-    /// </summary>
-    public void SetParent(Scope? parent)
-    {
-        Parent = parent;
-    }
+	/// <summary>
+	/// Sets the parent scope of this scope.
+	/// </summary>
+	public void SetParent(Scope? parent)
+	{
+		Parent = parent;
+	}
 
-    /// <summary>
-    /// Looks up an identifier starting from this scope and walking up.
-    /// </summary>
-    public Symbol? LookupIdentifier(IdentifierToken identifier)
-    {
-        return LookupWalkingUp(b => b.LookupIdentifierHere(identifier));
-    }
+	/// <summary>
+	/// Looks up an identifier starting from this scope and walking up.
+	/// </summary>
+	public Symbol? LookupIdentifier(IdentifierToken identifier)
+	{
+		return LookupWalkingUp(b => b.LookupIdentifierHere(identifier));
+	}
 
-    /// <summary>
-    /// Looks up `this` starting from this scope and walking up.
-    /// </summary>
-    public TypeSymbol? LookupThis()
-    {
-        return LookupWalkingUp(b => b.LookupThisHere());
-    }
+	/// <summary>
+	/// Looks up `this` starting from this scope and walking up.
+	/// </summary>
+	public TypeSymbol? LookupThis()
+	{
+		return LookupWalkingUp(b => b.LookupThisHere());
+	}
 
-    /// <summary>
-    /// Looks up any type decl starting from this scope and walking up.
-    /// </summary>
-    public TypeSymbol? LookupTypeDecl()
-    {
-        return LookupWalkingUp(b => b.LookupTypeDeclHere());
-    }
+	/// <summary>
+	/// Looks up any type decl starting from this scope and walking up.
+	/// </summary>
+	public TypeSymbol? LookupTypeDecl()
+	{
+		return LookupWalkingUp(b => b.LookupTypeDeclHere());
+	}
 
-    private T? LookupWalkingUp<T>(Func<Scope, T> func)
-    {
-        var current = this;
-        while (current != null)
-        {
-            var result = func(current);
-            if (result != null)
-            {
-                return result;
-            }
+	private T? LookupWalkingUp<T>(Func<Scope, T> func)
+	{
+		var current = this;
+		while (current != null)
+		{
+			var result = func(current);
+			if (result != null)
+			{
+				return result;
+			}
 
-            current = current.Parent;
-        }
+			current = current.Parent;
+		}
 
-        return default;
-    }
+		return default;
+	}
 
-    // TODO: Seperate this into LookupIdentifierForType and LookupIdentifierForInstance?
-    /// <summary>
-    /// Looks up an identifier in this scope.
-    /// </summary>
-    public virtual Symbol? LookupIdentifierHere(string identifier) => null;
+	// TODO: Seperate this into LookupIdentifierForType and LookupIdentifierForInstance?
+	/// <summary>
+	/// Looks up an identifier in this scope.
+	/// </summary>
+	public virtual Symbol? LookupIdentifierHere(string identifier) => null;
 
-    /// <summary>
-    /// Looks up an identifier that's exported in this scope. Currently only applies to <see cref="ModuleScope"/>.
-    /// </summary>
-    public virtual Symbol? LookupExportedIdentifier(string identifier) => null;
+	/// <summary>
+	/// Looks up an identifier that's exported in this scope. Currently only applies to <see cref="ModuleScope"/>.
+	/// </summary>
+	public virtual Symbol? LookupExportedIdentifier(string identifier) => null;
 
-    public Symbol? LookupIdentifierHere(IdentifierToken identifier) => LookupIdentifierHere(identifier.Value);
+	public Symbol? LookupIdentifierHere(IdentifierToken identifier) => LookupIdentifierHere(identifier.Value);
 
-    /// <summary>
-    /// Looks up `this` in this scope.
-    /// </summary>
-    public virtual TypeSymbol? LookupThisHere() => null;
+	/// <summary>
+	/// Looks up `this` in this scope.
+	/// </summary>
+	public virtual TypeSymbol? LookupThisHere() => null;
 
-    /// <summary>
-    /// Looks up any type decl in this scope.
-    /// </summary>
-    public virtual TypeSymbol? LookupTypeDeclHere() => null;
+	/// <summary>
+	/// Looks up any type decl in this scope.
+	/// </summary>
+	public virtual TypeSymbol? LookupTypeDeclHere() => null;
 
-    protected static T? LookupIdentifierIn<T>(T symbol, string identifier)
-        where T : Symbol
-    {
-        if (symbol.Identifier?.Value == identifier)
-        {
-            return symbol;
-        }
-        return null;
-    }
+	protected static T? LookupIdentifierIn<T>(T symbol, string identifier)
+		where T : Symbol
+	{
+		if (symbol.Identifier?.Value == identifier)
+		{
+			return symbol;
+		}
+		return null;
+	}
 
-    protected static T? LookupIdentifierIn<T>(ImmutableArray<T> array, string identifier)
-        where T : Symbol
-    {
-        // Move from bottom to top trying to match the identifier.
-        for (var i = array.Length - 1; i >= 0; i--)
-        {
-            var item = array[i];
-            if (item.Identifier?.Value == identifier)
-            {
-                return item;
-            }
-        }
-        return null;
-    }
+	protected static T? LookupIdentifierIn<T>(ImmutableArray<T> array, string identifier)
+		where T : Symbol
+	{
+		// Move from bottom to top trying to match the identifier.
+		for (var i = array.Length - 1; i >= 0; i--)
+		{
+			var item = array[i];
+			if (item.Identifier?.Value == identifier)
+			{
+				return item;
+			}
+		}
+		return null;
+	}
 
-    /// <summary>
-    /// Resolves a type, binding the type node to its type symbol.
-    /// This method never returns `null`. If resolving fails a special <see cref="ErrorTypeSymbol"/> will be returned.
-    /// </summary>
-    public ResolvedType ResolveType(SyntaxNode node, TypeNode? typeNode)
-    {
-        if (typeNode != null)
-        {
-            return ResolveType(typeNode);
-        }
-        else
-        {
-            var boundType = Reasoner.InferTypeOfDeclaringNode(node);
-            return ResolvedType.Inferred(boundType ?? ErrorTypeSymbol.Create());
-        }
-    }
+	/// <summary>
+	/// Resolves a type, binding the type node to its type symbol.
+	/// This method never returns `null`. If resolving fails a special <see cref="ErrorTypeSymbol"/> will be returned.
+	/// </summary>
+	public ResolvedType ResolveType(SyntaxNode node, TypeNode? typeNode)
+	{
+		if (typeNode != null)
+		{
+			return ResolveType(typeNode);
+		}
+		else
+		{
+			var boundType = Reasoner.InferTypeOfDeclaringNode(node);
+			return ResolvedType.Inferred(boundType ?? ErrorTypeSymbol.Create());
+		}
+	}
 
-    public ResolvedType ResolveType(SyntaxNode node, ColonTypeNode? colonType) => ResolveType(node, colonType?.Type);
+	public ResolvedType ResolveType(SyntaxNode node, ColonTypeNode? colonType) => ResolveType(node, colonType?.Type);
 
-    /// <summary>
-    /// Resolves a type, binding the type node to its type symbol.
-    /// This method never returns `null`. If resolving fails a special <see cref="ErrorTypeSymbol"/> will be returned.
-    /// </summary>
-    public ResolvedType ResolveType(TypeNode typeNode)
-    {
-        //var identifier = typeNode switch
-        //{
-        //    NamedTypeNode namedTypeNode => namedTypeNode.Identifier,
-        //    _ => null,
-        //};
-        var resolvedType = typeNode switch
-        {
-            NamedTypeNode namedTypeNode => LookupIdentifier(namedTypeNode.Identifier),
-            FnTypeNode fnTypeNode => Reasoner.LookupSymbol(fnTypeNode),
-            MissingTypeNode => ErrorTypeSymbol.Create(),
-            _ => throw new UnreachableException(),
-        };
-        return ResolvedType.Typed(resolvedType as TypeSymbol ?? ErrorTypeSymbol.Create());
-    }
+	/// <summary>
+	/// Resolves a type, binding the type node to its type symbol.
+	/// This method never returns `null`. If resolving fails a special <see cref="ErrorTypeSymbol"/> will be returned.
+	/// </summary>
+	public ResolvedType ResolveType(TypeNode typeNode)
+	{
+		//var identifier = typeNode switch
+		//{
+		//    NamedTypeNode namedTypeNode => namedTypeNode.Identifier,
+		//    _ => null,
+		//};
+		var resolvedType = typeNode switch
+		{
+			NamedTypeNode namedTypeNode => LookupIdentifier(namedTypeNode.Identifier),
+			FnTypeNode fnTypeNode => Reasoner.LookupSymbol(fnTypeNode),
+			MissingTypeNode => ErrorTypeSymbol.Create(),
+			_ => throw new UnreachableException(),
+		};
+		return ResolvedType.Typed(resolvedType as TypeSymbol ?? ErrorTypeSymbol.Create());
+	}
 
-    /// <summary>
-    /// Returns whether or not this scope should end with the given node.
-    /// </summary>
-    /// <remarks>
-    /// Some scopes (such as a local scope) should be extended to live beyond their associated node.
-    ///
-    /// The default implementation always returns `true` so that the scope ends with its associated node.
-    /// This is overriden in a local scope for example to make it live longer.
-    /// </remarks>
-    internal virtual bool ShouldEndScope(SyntaxNode node)
-    {
-        return true;
-    }
+	/// <summary>
+	/// Returns whether or not this scope should end with the given node.
+	/// </summary>
+	/// <remarks>
+	/// Some scopes (such as a local scope) should be extended to live beyond their associated node.
+	///
+	/// The default implementation always returns `true` so that the scope ends with its associated node.
+	/// This is overriden in a local scope for example to make it live longer.
+	/// </remarks>
+	internal virtual bool ShouldEndScope(SyntaxNode node)
+	{
+		return true;
+	}
 }
 
 // TODO: preludeReasoner should become an array of reasoners from imported modules.
 internal class ModuleScope(ModuleNode module, Reasoner? preludeReasoner) : Scope
 {
-    private ImmutableArray<Symbol> _decls;
+	private ImmutableArray<Symbol> _decls;
 
-    private readonly ModuleNode _module = module;
-    private readonly Reasoner? _preludeReasoner = preludeReasoner;
+	private readonly ModuleNode _module = module;
+	private readonly Reasoner? _preludeReasoner = preludeReasoner;
 
-    public ImmutableArray<Symbol> Decls
-    {
-        get
-        {
-            if (_decls.IsDefault)
-            {
-                ImmutableInterlocked.InterlockedCompareExchange(ref _decls, BuildDecls(), default);
-            }
+	public ImmutableArray<Symbol> Decls
+	{
+		get
+		{
+			if (_decls.IsDefault)
+			{
+				ImmutableInterlocked.InterlockedCompareExchange(ref _decls, BuildDecls(), default);
+			}
 
-            return _decls;
-        }
-    }
+			return _decls;
+		}
+	}
 
-    public override Symbol? LookupIdentifierHere(string identifier)
-    {
-        return
-            LookupIdentifierIn(Decls, identifier) ??
-            _preludeReasoner?.LookupExportedSymbolByName(identifier);
-    }
+	public override Symbol? LookupIdentifierHere(string identifier)
+	{
+		return
+			LookupIdentifierIn(Decls, identifier) ??
+			_preludeReasoner?.LookupExportedSymbolByName(identifier);
+	}
 
-    public override Symbol? LookupExportedIdentifier(string identifier)
-    {
-        return LookupIdentifierIn(Decls, identifier);
-    }
+	public override Symbol? LookupExportedIdentifier(string identifier)
+	{
+		return LookupIdentifierIn(Decls, identifier);
+	}
 
-    private ImmutableArray<Symbol> BuildDecls()
-    {
-        var builder = ImmutableArray.CreateBuilder<Symbol>();
-        foreach (var decl in _module.Decls)
-        {
-            if (Reasoner.TryGetDeclaredSymbol(decl, out var symbol))
-            {
-                builder.Add(symbol);
-            }
-        }
-        return builder.ToImmutable();
-    }
+	private ImmutableArray<Symbol> BuildDecls()
+	{
+		var builder = ImmutableArray.CreateBuilder<Symbol>();
+		foreach (var decl in _module.Decls)
+		{
+			if (Reasoner.TryGetDeclaredSymbol(decl, out var symbol))
+			{
+				builder.Add(symbol);
+			}
+		}
+		return builder.ToImmutable();
+	}
 }
 
 internal class TypeDeclScope(NamedTypeSymbol symbol) : Scope
 {
-    protected readonly NamedTypeSymbol _symbol = symbol;
+	protected readonly NamedTypeSymbol _symbol = symbol;
 
-    public override Symbol? LookupIdentifierHere(string identifier)
-    {
-        return LookupIdentifierIn(_symbol.Members, identifier);
-    }
+	public override Symbol? LookupIdentifierHere(string identifier)
+	{
+		return LookupIdentifierIn(_symbol.Members, identifier);
+	}
 
-    public override TypeSymbol? LookupThisHere()
-    {
-        return _symbol;
-    }
+	public override TypeSymbol? LookupThisHere()
+	{
+		return _symbol;
+	}
 
-    public override TypeSymbol? LookupTypeDeclHere()
-    {
-        return _symbol;
-    }
+	public override TypeSymbol? LookupTypeDeclHere()
+	{
+		return _symbol;
+	}
 }
 
 internal class StructDeclScope(
-    StructDeclNode structDecl,
-    StructTypeSymbol symbol) : TypeDeclScope(symbol)
+	StructDeclNode structDecl,
+	StructTypeSymbol symbol) : TypeDeclScope(symbol)
 {
-    private readonly StructDeclNode _structDecl = structDecl;
+	private readonly StructDeclNode _structDecl = structDecl;
 }
 
 internal class ClassDeclScope(
-    ClassDeclNode classDecl,
-    NamedTypeSymbol symbol) : TypeDeclScope(symbol)
+	ClassDeclNode classDecl,
+	NamedTypeSymbol symbol) : TypeDeclScope(symbol)
 {
-    private readonly ClassDeclNode _classDecl = classDecl;
+	private readonly ClassDeclNode _classDecl = classDecl;
 }
 
 internal class FnScope(
-    FnSigNode fnSig,
-    FnSymbol fnSymbol) : Scope
+	FnSigNode fnSig,
+	FnSymbol fnSymbol) : Scope
 {
-    private readonly FnSigNode _fnSig = fnSig;
-    private readonly FnSymbol _fnSymbol = fnSymbol;
+	private readonly FnSigNode _fnSig = fnSig;
+	private readonly FnSymbol _fnSymbol = fnSymbol;
 
-    public override Symbol? LookupIdentifierHere(string identifier)
-    {
-        return LookupIdentifierIn(_fnSymbol.Params, identifier);
-    }
+	public override Symbol? LookupIdentifierHere(string identifier)
+	{
+		return LookupIdentifierIn(_fnSymbol.Params, identifier);
+	}
 }
 
 /// <summary>
@@ -266,16 +266,16 @@ internal class FnScope(
 /// </remarks>
 internal class LocalScope(LocalSymbol symbol) : Scope
 {
-    private readonly LocalSymbol _symbol = symbol;
+	private readonly LocalSymbol _symbol = symbol;
 
-    public override Symbol? LookupIdentifierHere(string identifier)
-    {
-        return LookupIdentifierIn(_symbol, identifier);
-    }
+	public override Symbol? LookupIdentifierHere(string identifier)
+	{
+		return LookupIdentifierIn(_symbol, identifier);
+	}
 
-    internal override bool ShouldEndScope(SyntaxNode node)
-    {
-        // A local scope lives until its containing block ends.
-        return node is BlockExprNode;
-    }
+	internal override bool ShouldEndScope(SyntaxNode node)
+	{
+		// A local scope lives until its containing block ends.
+		return node is BlockExprNode;
+	}
 }

@@ -2,71 +2,71 @@
 
 public class BlockExprTests
 {
-    [Theory]
-    [InlineData("2")]
-    [InlineData("{ 2 }")]
-    [InlineData("{ { 4; } 2 }")]
-    [InlineData("{ { 4; }; 2 }")]
-    [InlineData("{ var a = { 2 }; a }")]
-    public void Test_1(string snippet)
-    {
-        var output = IntegrationRunner.Run($$"""
-            fn main() {
-                var a = {{snippet}};
-                print_i32(a);
-            }
-            """);
+	[Theory]
+	[InlineData("2")]
+	[InlineData("{ 2 }")]
+	[InlineData("{ { 4; } 2 }")]
+	[InlineData("{ { 4; }; 2 }")]
+	[InlineData("{ var a = { 2 }; a }")]
+	public void Test_1(string snippet)
+	{
+		var output = IntegrationRunner.Run($$"""
+			fn main() {
+				var a = {{snippet}};
+				print_i32(a);
+			}
+			""");
 
-        var expectedOutput = "2".NL();
+		var expectedOutput = "2".NL();
 
-        output.Should().Be(expectedOutput);
-    }
+		output.Should().Be(expectedOutput);
+	}
 
-    [Theory]
-    [InlineData("{ { 2 } }")]
-    [InlineData("{ { 4 }; 2 }")]
-    public void Test_Fail_1(string snippet)
-    {
-        IntegrationRunner.Run($$"""
-            fn main() {
-                var a = {{snippet}};
-                print_i32(a);
-            }
-            """, fails: true);
-    }
+	[Theory]
+	[InlineData("{ { 2 } }")]
+	[InlineData("{ { 4 }; 2 }")]
+	public void Test_Fail_1(string snippet)
+	{
+		IntegrationRunner.Run($$"""
+			fn main() {
+				var a = {{snippet}};
+				print_i32(a);
+			}
+			""", fails: true);
+	}
 
-    [Fact]
-    public void Test_2()
-    {
-        var output = IntegrationRunner.Run("""
-            fn main() {
-                var a = 2;
-                print_i32(a);
-            }
-            """);
+	[Fact]
+	public void Test_2()
+	{
+		var output = IntegrationRunner.Run("""
+			fn main() {
+				var a = 2;
+				print_i32(a);
+			}
+			""");
 
-        var expectedOutput = "2".NL();
+		var expectedOutput = "2".NL();
 
-        output.Should().Be(expectedOutput);
-    }
+		output.Should().Be(expectedOutput);
+	}
 
-    [Fact]
-    public void Test_3()
-    {
-        var output = IntegrationRunner.Run("""
-            fn main() {
-                { }
-                {
-                    var a = 4;
-                }
-                var a = 2;
-                print_i32(a);
-                { }
-            }
-            """);
+	[Fact]
+	public void Test_3()
+	{
+		var output = IntegrationRunner.Run("""
+			fn main() {
+				{ }
+				{
+					var a = 4;
+				}
+				var a = 2;
+				print_i32(a);
+				{ }
+			}
+			""");
 
-        var expectedOutput = "2".NL();
+		var expectedOutput = "2".NL();
 
-        output.Should().Be(expectedOutput);
-    }
+		output.Should().Be(expectedOutput);
+	}
 }

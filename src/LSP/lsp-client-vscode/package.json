@@ -1,69 +1,69 @@
 {
-  "name": "surab-lsp-client-vscode",
-  "description": "The LSP VS Code Client for Surab.",
-  "author": "Mohammad Rahhal",
-  "license": "MIT",
-  "version": "0.0.1",
-  "publisher": "mrahhal",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/mrahhal/surab"
-  },
-  "engines": {
-    "vscode": "^1.75.0"
-  },
-  "main": "./out/extension",
-  "dependencies": {
-    "vscode-languageclient": "^8.1.0"
-  },
-  "devDependencies": {
-    "@types/node": "^20.10.4",
-    "@types/vscode": "^1.75.1",
-    "@vscode/test-electron": "^2.2.3",
-    "typescript": "^5.3.3"
-  },
-  "scripts": {
-    "compile": "tsc -b",
-    "watch": "tsc -b -w"
-  },
-  "contributes": {
-    "languages": [
-      {
-        "id": "surab",
-        "extensions": [
-          ".surab"
-        ],
-        "configuration": "./language-configuration.json"
-      },
-      {
-        "id": "surab-markdown-injection"
-      }
-    ],
-    "grammars": [
-      {
-        "language": "surab",
-        "scopeName": "source.surab",
-        "path": "./syntaxes/surab.tmLanguage.json"
-      },
-      {
-        "language": "surab-markdown-injection",
-        "scopeName": "markdown.surab.codeblock",
-        "path": "./syntaxes/surab.markdown.injection.tmLanguage.json",
-        "injectTo": [
-          "text.html.markdown"
-        ],
-        "embeddedLanguages": {
-          "meta.embedded.block.surab": "surab"
-        }
-      }
-    ]
-  },
-  "configurationDefaults": {
-    "surab": {
-      "editor.semanticHighlighting.enabled": true
-    }
-  },
-  "activationEvents": [
-    "workspaceContains:*/surab-project.json"
-  ]
+	"name": "surab-lsp-client-vscode",
+	"description": "The LSP VS Code Client for Surab.",
+	"author": "Mohammad Rahhal",
+	"license": "MIT",
+	"version": "0.0.1",
+	"publisher": "mrahhal",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/mrahhal/surab"
+	},
+	"engines": {
+		"vscode": "^1.75.0"
+	},
+	"main": "./out/extension",
+	"dependencies": {
+		"vscode-languageclient": "^8.1.0"
+	},
+	"devDependencies": {
+		"@types/node": "^20.10.4",
+		"@types/vscode": "^1.75.1",
+		"@vscode/test-electron": "^2.2.3",
+		"typescript": "^5.3.3"
+	},
+	"scripts": {
+		"compile": "tsc -b",
+		"watch": "tsc -b -w"
+	},
+	"contributes": {
+		"languages": [
+			{
+				"id": "surab",
+				"extensions": [
+					".surab"
+				],
+				"configuration": "./language-configuration.json"
+			},
+			{
+				"id": "surab-markdown-injection"
+			}
+		],
+		"grammars": [
+			{
+				"language": "surab",
+				"scopeName": "source.surab",
+				"path": "./syntaxes/surab.tmLanguage.json"
+			},
+			{
+				"language": "surab-markdown-injection",
+				"scopeName": "markdown.surab.codeblock",
+				"path": "./syntaxes/surab.markdown.injection.tmLanguage.json",
+				"injectTo": [
+					"text.html.markdown"
+				],
+				"embeddedLanguages": {
+					"meta.embedded.block.surab": "surab"
+				}
+			}
+		]
+	},
+	"configurationDefaults": {
+		"surab": {
+			"editor.semanticHighlighting.enabled": true
+		}
+	},
+	"activationEvents": [
+		"workspaceContains:*/surab-project.json"
+	]
 }

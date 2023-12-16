@@ -6,17 +6,17 @@
 use std::io::Write;
 
 #[no_mangle]
-pub extern fn surabrt_print_i32(v: i32) {
+pub extern "C" fn surabrt_print_i32(v: i32) {
     println!("{}", v);
 }
 
 #[no_mangle]
-pub extern fn surabrt_print_f64(v: f64) {
+pub extern "C" fn surabrt_print_f64(v: f64) {
     println!("{}", v);
 }
 
 #[no_mangle]
-pub extern fn surabrt_print_bool(b: bool) {
+pub extern "C" fn surabrt_print_bool(b: bool) {
     println!("{}", b);
 }
 
@@ -37,7 +37,7 @@ pub struct S2 {
 }
 
 #[no_mangle]
-pub extern fn print_from_rust(s2: S2) {
+pub extern "C" fn print_from_rust(s2: S2) {
     println!("==========");
     println!("From rust: ");
     println!("{:?}", s2);

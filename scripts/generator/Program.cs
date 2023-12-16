@@ -12,20 +12,20 @@ await Generate();
 
 async Task Generate()
 {
-    await GenerateAst();
-    await GenerateAstVisitors();
+	await GenerateAst();
+	await GenerateAstVisitors();
 }
 
 async Task GenerateAst()
 {
-    var generatedFilePath = Path.Combine(srcFolderPath, "analysis/Parsing/Ast.g.cs");
-    var generator = provider.GetRequiredService<AstGenerator>();
-    await generator.GenerateToAsync(generatedFilePath);
+	var generatedFilePath = Path.Combine(srcFolderPath, "analysis/Parsing/Ast.g.cs");
+	var generator = provider.GetRequiredService<AstGenerator>();
+	await generator.GenerateToAsync(generatedFilePath);
 }
 
 async Task GenerateAstVisitors()
 {
-    var generatedFilePath = Path.Combine(srcFolderPath, "analysis/Parsing/SyntaxTreeVisitor.g.cs");
-    var generator = provider.GetRequiredService<AstVisitorsGenerator>();
-    await generator.GenerateToAsync(generatedFilePath);
+	var generatedFilePath = Path.Combine(srcFolderPath, "analysis/Parsing/SyntaxTreeVisitor.g.cs");
+	var generator = provider.GetRequiredService<AstVisitorsGenerator>();
+	await generator.GenerateToAsync(generatedFilePath);
 }

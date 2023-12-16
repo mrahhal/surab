@@ -30,17 +30,17 @@ struct bool { }
 
 @public
 fn print_i32(value: i32) {
-    surabrt_print_i32(value);
+	surabrt_print_i32(value);
 }
 
 @public
 fn print_f64(value: f64) {
-    surabrt_print_f64(value);
+	surabrt_print_f64(value);
 }
 
 @public
 fn print_bool(value: bool) {
-    surabrt_print_bool(value);
+	surabrt_print_bool(value);
 }
 
 // ---

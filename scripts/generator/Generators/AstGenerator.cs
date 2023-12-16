@@ -3,28 +3,28 @@ using MR.AttributeDI;
 
 [AddToServices(Lifetime.Transient)]
 public class AstGenerator(
-    AstDataProvider astDataProvider) : GeneratorBase
+	AstDataProvider astDataProvider) : GeneratorBase
 {
-    public AstProcessedData Data { get; } = astDataProvider.Data;
+	public AstProcessedData Data { get; } = astDataProvider.Data;
 
-    protected override Task GenerateCoreAsync()
-    {
-        GenerateHeader();
-        GenerateMain();
+	protected override Task GenerateCoreAsync()
+	{
+		GenerateHeader();
+		GenerateMain();
 
-        return Task.CompletedTask;
-    }
+		return Task.CompletedTask;
+	}
 
-    private void GenerateHeader()
-    {
-        _sb.Append("""
+	private void GenerateHeader()
+	{
+		_sb.Append("""
             namespace Surab.Analysis;
             """.NL(2));
-    }
+	}
 
-    private void GenerateMain()
-    {
-        _sb.Append("""
+	private void GenerateMain()
+	{
+		_sb.Append("""
             file static class Helper
             {
                 public static TextSpan ComputeSpanningSpan(IEnumerable<SyntaxNode?> nodes, IEnumerable<SyntaxToken?> tokens)
@@ -70,28 +70,28 @@ public class AstGenerator(
             }
             """.NL(2));
 
-        _sb.Append($$"""
+		_sb.Append($$"""
             public enum SyntaxNodeKind
             {
                 {{T(Data.Nodes, n => $"{INDENT}{n.Name},")}}
             }
             """.NL(2));
 
-        for (var i = 0; i < Data.Nodes.Count; i++)
-        {
-            var node = Data.Nodes[i];
-            var isLast = i == Data.Nodes.Count - 1;
+		for (var i = 0; i < Data.Nodes.Count; i++)
+		{
+			var node = Data.Nodes[i];
+			var isLast = i == Data.Nodes.Count - 1;
 
-            var comment = node.Comment.ToDocComment();
-            if (!string.IsNullOrWhiteSpace(comment))
-            {
-                _sb.Append(comment.NL());
-            }
+			var comment = node.Comment.ToDocComment();
+			if (!string.IsNullOrWhiteSpace(comment))
+			{
+				_sb.Append(comment.NL());
+			}
 
-            var nodeHasMainIdentifier = node.Members.Where(x => x.Type == "IdentifierToken").Count() == 1;
-            var hasMainIdentifierInterface = nodeHasMainIdentifier ? ", ISyntaxNodeHasMainIdentifier" : string.Empty;
+			var nodeHasMainIdentifier = node.Members.Where(x => x.Type == "IdentifierToken").Count() == 1;
+			var hasMainIdentifierInterface = nodeHasMainIdentifier ? ", ISyntaxNodeHasMainIdentifier" : string.Empty;
 
-            _sb.Append($$"""
+			_sb.Append($$"""
                 public partial class {{node.TypeName}} : {{node.Base}}{{hasMainIdentifierInterface}}
                 {
                     public {{node.TypeName}}({{OCtorParams(node)}})
@@ -110,76 +110,76 @@ public class AstGenerator(
                     }
                 }
                 """.NL(isLast ? 1 : 2));
-        }
+		}
 
-        // ---
+		// ---
 
-        static string OCtorParams(SyntaxNode node)
-        {
-            var @params = new SeparatedTextBuilder();
+		static string OCtorParams(SyntaxNode node)
+		{
+			var @params = new SeparatedTextBuilder();
 
-            @params.Add("SyntaxTree tree");
+			@params.Add("SyntaxTree tree");
 
-            if (node.TakesSpan == true)
-            {
-                @params.Add("TextSpan span");
-            }
+			if (node.TakesSpan == true)
+			{
+				@params.Add("TextSpan span");
+			}
 
-            for (int i = 0; i < node.Members.Count; i++)
-            {
-                var m = node.Members[i];
-                var isLast = i == node.Members.Count - 1;
+			for (int i = 0; i < node.Members.Count; i++)
+			{
+				var m = node.Members[i];
+				var isLast = i == node.Members.Count - 1;
 
-                @params.Add($"{m.TypeFull} {m.Name}");
-            }
+				@params.Add($"{m.TypeFull} {m.Name}");
+			}
 
-            return @params.Build();
-        }
+			return @params.Build();
+		}
 
-        static string OSetStoredChildren(SyntaxNode node, SyntaxNodeMemberStoredField storedField)
-        {
-            var members = node.Members.Where(x => x.StoredField == storedField).ToList();
+		static string OSetStoredChildren(SyntaxNode node, SyntaxNodeMemberStoredField storedField)
+		{
+			var members = node.Members.Where(x => x.StoredField == storedField).ToList();
 
-            var sb = new StringBuilder();
-            sb.Append($"{INDENT}{INDENT}{storedField.Name} = ");
+			var sb = new StringBuilder();
+			sb.Append($"{INDENT}{INDENT}{storedField.Name} = ");
 
-            if (members.Count == 0)
-            {
-                sb.Append("new()");
-            }
-            else if (members[0].List)
-            {
-                var m = members[0];
-                sb.Append($"{m.Name}.Cast<{m.StoredField.TypeName}?>().ToList()");
-            }
-            else
-            {
-                sb.Append($"new() {{ {T(members, m => $"{m.Name}, ", false)} }}");
-            }
+			if (members.Count == 0)
+			{
+				sb.Append("new()");
+			}
+			else if (members[0].List)
+			{
+				var m = members[0];
+				sb.Append($"{m.Name}.Cast<{m.StoredField.TypeName}?>().ToList()");
+			}
+			else
+			{
+				sb.Append($"new() {{ {T(members, m => $"{m.Name}, ", false)} }}");
+			}
 
-            return sb.Append(';').ToString();
-        }
+			return sb.Append(';').ToString();
+		}
 
-        static string OMembers(SyntaxNode node)
-        {
-            var sb = new StringBuilder();
+		static string OMembers(SyntaxNode node)
+		{
+			var sb = new StringBuilder();
 
-            foreach (var m in node.Members)
-            {
-                var retText = m.List ?
-                    $"{m.StoredField.Name}.Cast<{m.Type}>()" :
-                    $"({m.TypeWithOptional}){m.StoredField.Name}[{m.Index}]!";
-                var comment = m.Comment.ToDocComment(INDENT);
-                if (!string.IsNullOrWhiteSpace(comment))
-                {
-                    sb.Append(comment.NL());
-                }
+			foreach (var m in node.Members)
+			{
+				var retText = m.List ?
+					$"{m.StoredField.Name}.Cast<{m.Type}>()" :
+					$"({m.TypeWithOptional}){m.StoredField.Name}[{m.Index}]!";
+				var comment = m.Comment.ToDocComment(INDENT);
+				if (!string.IsNullOrWhiteSpace(comment))
+				{
+					sb.Append(comment.NL());
+				}
 
-                sb.Append(INDENT);
-                sb.Append($"public {m.TypeFull} {m.NamePascal} => {retText};".NL());
-            }
+				sb.Append(INDENT);
+				sb.Append($"public {m.TypeFull} {m.NamePascal} => {retText};".NL());
+			}
 
-            return sb.ToString();
-        }
-    }
+			return sb.ToString();
+		}
+	}
 }
