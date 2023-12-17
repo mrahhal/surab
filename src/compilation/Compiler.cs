@@ -408,9 +408,27 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 	{
 		var (_, value) = Get(node.Variable);
 		Visit(node.Expr);
-		var (_, rhs) = _stack.Pop().Unwrap(LLVM);
+		var rhsUnit = _stack.Pop();
 
-		LLVM.Builder.BuildStore(rhs, value);
+		var leftType = ((ISymbolHasType)node.Variable).Type;
+		var rightType = node.Expr.Type;
+
+		// REVIEW: We want to call memcpy instead of store when it's a struct and rhs is wrapped.
+		// This is better than loading into a struct value and then storing it back (effectively emulating memcpy). But even more importantly, this
+		// is necessary for sret to be compiled properly.
+		// Is this logic here good enough?
+		// NOTE: This doesn't mean we'll memcpy the struct data for an actual struct ptr. An actual struct ptr will not have match StructTypeSymbol. (it'll be a ptr symbol)
+		if (leftType is StructTypeSymbol && rightType is StructTypeSymbol && rhsUnit.IsWrapped)
+		{
+			var (_, rhs) = rhsUnit;
+			var size = Target.GetAbiSize(node.Expr.Type);
+			LLVM.CallIntrinsic_memcpy_i64(value, rhs, size.Bytes);
+		}
+		else
+		{
+			var (_, rhs) = rhsUnit.Unwrap(LLVM);
+			LLVM.Builder.BuildStore(rhs, value);
+		}
 	}
 
 	public override void VisitFieldLoadExpr(LoweredFieldLoadExpr node)
@@ -441,6 +459,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 		var fieldLLVMType = LLVMTarget.LowerType(node.Field.Type);
 
 		var ptrToField = LLVM.Builder.BuildStructGEP2(targetType, targetPtr, (uint)fieldSection.SectionIndex);
+		// TODO: Might need to do the same as in VisitVariableStoreExpr and call memcpy instead in certain cases.
 		LLVM.Builder.BuildStore(rhs, ptrToField);
 	}
 
