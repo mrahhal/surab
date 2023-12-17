@@ -18,8 +18,8 @@ public class AstVisitorsGenerator(
 	private void GenerateHeader()
 	{
 		_sb.Append("""
-            namespace Surab.Analysis;
-            """.NL(2));
+			namespace Surab.Analysis;
+			""".NL(2));
 	}
 
 	private class VisitorGenerator(
@@ -35,11 +35,11 @@ public class AstVisitorsGenerator(
 		public void Generate()
 		{
 			_sb.Append($$"""
-                public abstract partial class {{Name}}
-                {
-                    {{T(Data.Nodes, n => $"{OVisit(n)}")}}
-                }
-                """.NL());
+				public abstract partial class {{Name}}
+				{
+					{{T(Data.Nodes, n => $"{OVisit(n)}")}}
+				}
+				""".NL());
 		}
 
 		static string OVisit(SyntaxNode node)
@@ -48,11 +48,11 @@ public class AstVisitorsGenerator(
 
 			//var camelTypeName = node.TypeName.ToCamelCase();
 			sb.Append($$"""
-                {{INDENT}}public virtual void Visit{{node.Name}}({{node.TypeName}} node)
-                {{INDENT}}{
-                {{INDENT}}{{INDENT}}Walk(node);
-                {{INDENT}}}
-                """.NL());
+				{{INDENT}}public virtual void Visit{{node.Name}}({{node.TypeName}} node)
+				{{INDENT}}{
+				{{INDENT}}{{INDENT}}Walk(node);
+				{{INDENT}}}
+				""".NL());
 
 			return sb.ToString();
 		}

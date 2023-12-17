@@ -18,64 +18,64 @@ public class AstGenerator(
 	private void GenerateHeader()
 	{
 		_sb.Append("""
-            namespace Surab.Analysis;
-            """.NL(2));
+			namespace Surab.Analysis;
+			""".NL(2));
 	}
 
 	private void GenerateMain()
 	{
 		_sb.Append("""
-            file static class Helper
-            {
-                public static TextSpan ComputeSpanningSpan(IEnumerable<SyntaxNode?> nodes, IEnumerable<SyntaxToken?> tokens)
-                {
-                    TextSpan? lo = null;
-                    TextSpan? hi = null;
+			file static class Helper
+			{
+				public static TextSpan ComputeSpanningSpan(IEnumerable<SyntaxNode?> nodes, IEnumerable<SyntaxToken?> tokens)
+				{
+					TextSpan? lo = null;
+					TextSpan? hi = null;
 
-                    foreach (var x in nodes)
-                    {
-                        if (x != null) ProcessForSpanningSpan(x, ref lo, ref hi);
-                    }
-                    foreach (var x in tokens)
-                    {
-                        if (x != null) ProcessForSpanningSpan(x, ref lo, ref hi);
-                    }
+					foreach (var x in nodes)
+					{
+						if (x != null) ProcessForSpanningSpan(x, ref lo, ref hi);
+					}
+					foreach (var x in tokens)
+					{
+						if (x != null) ProcessForSpanningSpan(x, ref lo, ref hi);
+					}
 
-                    return lo.HasValue ?
-                        TextSpan.FromTo(lo.Value, hi!.Value) :
-                        new TextSpan();
-                }
+					return lo.HasValue ?
+						TextSpan.FromTo(lo.Value, hi!.Value) :
+						new TextSpan();
+				}
 
-                public static void ProcessForSpanningSpan(
-                    SyntaxEntity entity,
-                    ref TextSpan? lo,
-                    ref TextSpan? hi)
-                {
-                    var current = entity.Span;
-                    if (!lo.HasValue)
-                    {
-                        lo = hi = current;
-                        return;
-                    }
+				public static void ProcessForSpanningSpan(
+					SyntaxEntity entity,
+					ref TextSpan? lo,
+					ref TextSpan? hi)
+				{
+					var current = entity.Span;
+					if (!lo.HasValue)
+					{
+						lo = hi = current;
+						return;
+					}
 
-                    if (lo.Value.File.Start > current.File.Start)
-                    {
-                        lo = current;
-                    }
-                    if (hi!.Value.File.End < current.File.End)
-                    {
-                        hi = current;
-                    }
-                }
-            }
-            """.NL(2));
+					if (lo.Value.File.Start > current.File.Start)
+					{
+						lo = current;
+					}
+					if (hi!.Value.File.End < current.File.End)
+					{
+						hi = current;
+					}
+				}
+			}
+			""".NL(2));
 
 		_sb.Append($$"""
-            public enum SyntaxNodeKind
-            {
-                {{T(Data.Nodes, n => $"{INDENT}{n.Name},")}}
-            }
-            """.NL(2));
+			public enum SyntaxNodeKind
+			{
+				{{T(Data.Nodes, n => $"{INDENT}{n.Name},")}}
+			}
+			""".NL(2));
 
 		for (var i = 0; i < Data.Nodes.Count; i++)
 		{
@@ -92,24 +92,24 @@ public class AstGenerator(
 			var hasMainIdentifierInterface = nodeHasMainIdentifier ? ", ISyntaxNodeHasMainIdentifier" : string.Empty;
 
 			_sb.Append($$"""
-                public partial class {{node.TypeName}} : {{node.Base}}{{hasMainIdentifierInterface}}
-                {
-                    public {{node.TypeName}}({{OCtorParams(node)}})
-                        : base(tree, SyntaxNodeKind.{{node.Name}})
-                    {
-                        {{T(SyntaxNodeMemberStoredFields.All, storedField => OSetStoredChildren(node, storedField))}}
+				public partial class {{node.TypeName}} : {{node.Base}}{{hasMainIdentifierInterface}}
+				{
+					public {{node.TypeName}}({{OCtorParams(node)}})
+						: base(tree, SyntaxNodeKind.{{node.Name}})
+					{
+						{{T(SyntaxNodeMemberStoredFields.All, storedField => OSetStoredChildren(node, storedField))}}
 
-                        Span = {{(node.TakesSpan == true ? "span" : "Helper.ComputeSpanningSpan(ChildNodes, ChildTokens)")}};
-                        SetChildrenParent();
-                    }
+						Span = {{(node.TakesSpan == true ? "span" : "Helper.ComputeSpanningSpan(ChildNodes, ChildTokens)")}};
+						SetChildrenParent();
+					}
 
-                {{OMembers(node)}}
-                    public override void Accept(SyntaxTreeVisitor visitor)
-                    {
-                        visitor.Visit{{node.Name}}(this);
-                    }
-                }
-                """.NL(isLast ? 1 : 2));
+				{{OMembers(node)}}
+					public override void Accept(SyntaxTreeVisitor visitor)
+					{
+						visitor.Visit{{node.Name}}(this);
+					}
+				}
+				""".NL(isLast ? 1 : 2));
 		}
 
 		// ---

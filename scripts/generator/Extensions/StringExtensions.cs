@@ -12,10 +12,10 @@ public static class StringExtensions
 	public static string ToDocComment(this string? comment, string indent = "")
 	{
 		return string.IsNullOrWhiteSpace(comment) ? string.Empty : $"""
-            {indent}/// <summary>
-            {indent}/// {comment}
-            {indent}/// </summary>
-            """;
+			{indent}/// <summary>
+			{indent}/// {comment}
+			{indent}/// </summary>
+			""";
 	}
 
 	public static string ToPascalCase(this string source)

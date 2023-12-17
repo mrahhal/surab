@@ -31,9 +31,9 @@ public class SemanticTokensFullHandler(
 	}
 
 	private void Tokenize(
-		   SemanticTokensBuilder builder,
-		   SourceFile sourceFile,
-		   CancellationToken cancellationToken)
+		SemanticTokensBuilder builder,
+		SourceFile sourceFile,
+		CancellationToken cancellationToken)
 	{
 		var tree = _host.SurabProject.GetSyntaxTree(sourceFile);
 		var reasoner = _host.SurabProject.GetReasoner(sourceFile);

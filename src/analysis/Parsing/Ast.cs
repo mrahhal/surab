@@ -1,6 +1,5 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Security.Claims;
 
 namespace Surab.Analysis;
 
@@ -53,8 +52,8 @@ public enum SyntaxTokenKind
 
 public abstract class SyntaxToken : SyntaxEntity
 {
-	private ImmutableArray<SyntaxTrivia> _leadingTrivia = [];
-	private ImmutableArray<SyntaxTrivia> _trailingTrivia = [];
+	private readonly ImmutableArray<SyntaxTrivia> _leadingTrivia = [];
+	private readonly ImmutableArray<SyntaxTrivia> _trailingTrivia = [];
 
 	public SyntaxToken(SyntaxTree tree, SyntaxTokenKind kind, List<Token> leadingTriviaTokens, List<Token> trailingTriviaTokens) : base(tree)
 	{
