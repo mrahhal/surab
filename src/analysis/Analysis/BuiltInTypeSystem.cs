@@ -20,9 +20,10 @@ public static class BuiltinTypeSystem
 	public static StructTypeSymbol f32 { get; private set; } = null!;
 	public static StructTypeSymbol f64 { get; private set; } = null!;
 
-	public static StructTypeSymbol @char { get; private set; } = null!;
-
 	public static StructTypeSymbol @bool { get; private set; } = null!;
+
+	public static StructTypeSymbol @char { get; private set; } = null!;
+	public static StructTypeSymbol @string { get; private set; } = null!;
 
 	internal static void TryRegisterBuiltinSymbol(Symbol symbol)
 	{
@@ -66,13 +67,17 @@ public static class BuiltinTypeSystem
 					_numericTypes.Add(structTypeSymbol);
 					break;
 
+				case "bool":
+					@bool = structTypeSymbol;
+					_builtinTypes.Add(structTypeSymbol);
+					break;
+
 				case "char":
 					@char = structTypeSymbol;
 					_builtinTypes.Add(structTypeSymbol);
 					break;
-
-				case "bool":
-					@bool = structTypeSymbol;
+				case "string":
+					@string = structTypeSymbol;
 					_builtinTypes.Add(structTypeSymbol);
 					break;
 

@@ -303,9 +303,9 @@ public class Reasoner
 		{
 			LiteralTokenKind.NumericInteger => LookupNumericInteger(),
 			LiteralTokenKind.NumericFloat => LookupNumericFloat(),
-			LiteralTokenKind.Char => BuiltinTypeSystem.@char,
-			//LiteralTokenKind.String => BuiltInTypeSystem.String,
 			LiteralTokenKind.Bool => BuiltinTypeSystem.@bool,
+			LiteralTokenKind.Char => BuiltinTypeSystem.@char,
+			LiteralTokenKind.String => BuiltinTypeSystem.@string,
 
 			_ => throw new UnreachableException(),
 		};

@@ -47,6 +47,8 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 			return new(0.AsBytes(), 0.AsBytes());
 		if (type == BuiltinTypeSystem.@char || type == BuiltinTypeSystem.@bool)
 			return new(1.AsBytes(), 1.AsBytes());
+		if (type == BuiltinTypeSystem.@string)
+			return new(PtrWidth, PtrWidth);
 		if (type == BuiltinTypeSystem.i32 || type == BuiltinTypeSystem.u32)
 			return new(4.AsBytes(), 4.AsBytes());
 		if (type == BuiltinTypeSystem.i64 || type == BuiltinTypeSystem.u64)

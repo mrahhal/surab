@@ -23,10 +23,13 @@ struct f32 { }
 struct f64 { }
 
 @public
+struct bool { }
+
+@public
 struct char { }
 
 @public
-struct bool { }
+struct string { }
 
 @public
 fn print_i32(value: i32) {
@@ -55,3 +58,6 @@ fn surabrt_print_f64(value: f64);
 
 @public @extern
 fn surabrt_print_bool(value: bool);
+
+@public @extern
+fn surabrt_print_string(value: string);

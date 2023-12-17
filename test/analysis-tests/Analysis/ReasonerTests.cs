@@ -91,20 +91,20 @@ public class ReasonerTests
 		var src = """
 			const a = 2;
 			const c = '2';
-			//const b = "2";
+			const b = "2";
 			const d = true;
 			""";
 		var tree = Parser.ParseModule(src);
 		var reasoner = Reasoner.Create(tree);
 
-		var decl1 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().First();
-		var decl2 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().Skip(1).First();
-		//var decl3 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().Skip(2).First();
-		var decl4 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().Skip(2).Single();
+		var decl1 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().ElementAt(0);
+		var decl2 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().ElementAt(1);
+		var decl3 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().ElementAt(2);
+		var decl4 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().ElementAt(3);
 
 		reasoner.LookupType(decl1.Initializer!.Expr).Should().Be(BuiltinTypeSystem.i32);
 		reasoner.LookupType(decl2.Initializer!.Expr).Should().Be(BuiltinTypeSystem.@char);
-		//reasoner.LookupType(decl3.Initializer!.Expr).Should().Be(BuiltInTypeSystem.String);
+		reasoner.LookupType(decl3.Initializer!.Expr).Should().Be(BuiltinTypeSystem.@string);
 		reasoner.LookupType(decl4.Initializer!.Expr).Should().Be(BuiltinTypeSystem.@bool);
 	}
 

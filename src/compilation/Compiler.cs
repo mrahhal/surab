@@ -536,6 +536,15 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 				}
 				break;
 
+			case LiteralTokenKind.String:
+				{
+					Debug.Assert(node.Literal.TryGetStringValue(out var v));
+					var llvmType = LLVMTypeRef.CreatePointer(LLVMTypeRef.Void, 0);
+					var llvmValue = LLVM.Builder.BuildGlobalStringPtr(v!);
+					_stack.Push(LLVMUnit.Unwrapped(llvmType, llvmValue));
+				}
+				break;
+
 			default:
 				// TODO: Add to SemanticAnalyzer.
 				throw new NotImplementedException("Should not be here.");
@@ -700,6 +709,8 @@ internal abstract class LLVMTarget
 			return LLVMTypeRef.Void;
 		if (type == BuiltinTypeSystem.@char || type == BuiltinTypeSystem.@bool)
 			return LLVMTypeRef.Int1;
+		if (type == BuiltinTypeSystem.@string)
+			return LLVMTypeRef.CreatePointer(LLVMTypeRef.Void, 0);
 
 		if (type == BuiltinTypeSystem.i32 || type == BuiltinTypeSystem.u32)
 			return LLVMTypeRef.Int32;

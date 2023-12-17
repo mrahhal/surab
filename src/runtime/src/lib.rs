@@ -3,7 +3,10 @@
 //! This lib includes infrastructure called from Surab.
 //! All properly exported symbols will have "surabrt_" as a prefix.
 
-use std::io::Write;
+use std::{
+    ffi::{c_char, CStr},
+    io::Write,
+};
 
 #[no_mangle]
 pub extern "C" fn surabrt_print_i32(v: i32) {
@@ -18,6 +21,12 @@ pub extern "C" fn surabrt_print_f64(v: f64) {
 #[no_mangle]
 pub extern "C" fn surabrt_print_bool(b: bool) {
     println!("{}", b);
+}
+
+#[no_mangle]
+pub extern "C" fn surabrt_print_string(v: *const c_char) {
+    let str = unsafe { CStr::from_ptr(v) }.to_str().unwrap();
+    println!("{}", str);
 }
 
 // For print! to flush.
@@ -53,10 +62,7 @@ pub extern "C" fn print_from_rust(s2: S2) {
 
 #[no_mangle]
 pub extern "C" fn get_s3_from_rust() -> S3 {
-    S3 {
-        a: 76.0,
-        b: 73.0,
-    }
+    S3 { a: 76.0, b: 73.0 }
 }
 
 #[no_mangle]

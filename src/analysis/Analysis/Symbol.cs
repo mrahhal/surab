@@ -348,6 +348,7 @@ public abstract class TypeSymbol : Symbol
 
 		if (type == BuiltinTypeSystem.None) return TypeTag.ZeroSized;
 		if (type == BuiltinTypeSystem.@char) return TypeTag.Char;
+		if (type == BuiltinTypeSystem.@string) return TypeTag.Ptr;
 		if (BuiltinTypeSystem.IsNumeric(type)) return TypeTag.Numeric;
 		if (type == BuiltinTypeSystem.@bool) return TypeTag.Bool;
 		if (type is StructTypeSymbol) return TypeTag.Struct;
