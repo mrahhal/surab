@@ -270,10 +270,10 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 
 		if (sret.HasValue)
 		{
-			var size = Target.GetAbiSize(fnType.ReturnType);
+			var (size, alignment) = Target.GetLayout(fnType.ReturnType);
 
 			var sretAlloc = LLVM.Builder.BuildAlloca(sret.Value);
-			sretAlloc.SetAlignment((uint)size.Bytes);
+			sretAlloc.SetAlignment((uint)alignment.Bytes);
 			args.Add(sretAlloc);
 
 			llvmIndex++;
