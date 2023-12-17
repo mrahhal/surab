@@ -1,26 +1,45 @@
-﻿using LLVMSharp.Interop;
+﻿using System.Diagnostics;
+using LLVMSharp.Interop;
 using LLVMInterop = LLVMSharp.Interop.LLVM;
 
 namespace Surab.Compilation.LLVM;
 
-internal sealed class LLVMCompilationContext(
-	LLVMModuleRef module,
-	LLVMBuilderRef builder,
-	LLVMTargetMachineRef targetMachine,
-	LLVMTargetDataRef targetData,
-	LLVMPassManagerRef passManager)
+internal enum LLVMIntrinsic
 {
-	public LLVMModuleRef Module { get; } = module;
+	memcpy_i64,
+}
+
+internal sealed class LLVMCompilationContext
+{
+	private readonly Dictionary<LLVMIntrinsic, LLVMUnit> _intrinsicToValue = [];
+
+	private LLVMCompilationContext(
+		LLVMModuleRef module,
+		LLVMBuilderRef builder,
+		LLVMTargetMachineRef targetMachine,
+		LLVMTargetDataRef targetData,
+		LLVMPassManagerRef passManager)
+	{
+		Module = module;
+		Builder = builder;
+		TargetMachine = targetMachine;
+		TargetData = targetData;
+		PassManager = passManager;
+
+		DeclareIntrinsics();
+	}
+
+	public LLVMModuleRef Module { get; }
 
 	public LLVMContextRef Context => Module.Context;
 
-	public LLVMBuilderRef Builder { get; } = builder;
+	public LLVMBuilderRef Builder { get; }
 
-	public LLVMTargetMachineRef TargetMachine { get; } = targetMachine;
+	public LLVMTargetMachineRef TargetMachine { get; }
 
-	public LLVMTargetDataRef TargetData { get; } = targetData;
+	public LLVMTargetDataRef TargetData { get; }
 
-	public LLVMPassManagerRef PassManager { get; } = passManager;
+	public LLVMPassManagerRef PassManager { get; }
 
 	public static LLVMCompilationContext Create()
 	{
@@ -88,5 +107,31 @@ internal sealed class LLVMCompilationContext(
 	public void Verify()
 	{
 		Module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction);
+	}
+
+	public void CallIntrinsic_memcpy_i64(LLVMValueRef dest, LLVMValueRef src, int length)
+	{
+		var (fnType, fnValue) = GetIntrinsic(LLVMIntrinsic.memcpy_i64);
+		Builder.BuildCall2(
+			fnType, fnValue,
+			[dest, src, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int64, (ulong)length), LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, 0)]);
+	}
+
+	private LLVMUnit GetIntrinsic(LLVMIntrinsic intrinsic)
+	{
+		return _intrinsicToValue[intrinsic];
+	}
+
+	private void DeclareIntrinsics()
+	{
+		Debug.Assert(_intrinsicToValue.Count == 0);
+
+		var fnType = LLVMTypeRef.CreateFunction(
+			LLVMTypeRef.Void,
+			[LLVMTypeRef.CreatePointer(LLVMTypeRef.Void, 0), LLVMTypeRef.CreatePointer(LLVMTypeRef.Void, 0), LLVMTypeRef.Int64, LLVMTypeRef.Int1]);
+		var fnValue = Module.AddFunction(
+			"llvm.memcpy.p0.p0.i64",
+			fnType);
+		_intrinsicToValue[LLVMIntrinsic.memcpy_i64] = LLVMUnit.Unwrapped(fnType, fnValue);
 	}
 }
