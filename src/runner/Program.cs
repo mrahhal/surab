@@ -32,7 +32,19 @@ var src = """
 	}
 
 	@extern
+	struct S3 {
+		a: f64;
+		b: f64;
+	}
+
+	@extern
 	fn print_from_rust(s2: S2);
+
+	@extern
+	fn get_s3_from_rust() S3;
+
+	@extern
+	fn print_s3_from_rust(s3: S3);
 
 	fn noop() { }
 
@@ -83,6 +95,9 @@ var src = """
 
 		var fn_ptr: Delegate1 = print_from_rust;
 		fn_ptr(s2);
+
+		var s3_from_rust = get_s3_from_rust();
+		print_s3_from_rust(s3_from_rust);
 	}
 	""";
 var sourceFile = SourceFile.FromText(src);

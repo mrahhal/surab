@@ -8,6 +8,11 @@ namespace Surab.Compilation.LLVM;
 /// </summary>
 internal static class LLVMExtensions
 {
+	public static unsafe LLVMAttributeRef CreateTypeAttribute(this LLVMContextRef @this, AttributeKind kind, LLVMTypeRef type)
+	{
+		return LLVMInterop.CreateTypeAttribute(@this, (uint)kind, type);
+	}
+
 	public static unsafe LLVMAttributeRef CreateEnumAttribute(this LLVMContextRef @this, AttributeKind kind, ulong val = default)
 	{
 		return LLVMInterop.CreateEnumAttribute(@this, (uint)kind, val);

@@ -36,10 +36,33 @@ pub struct S2 {
     pub a: f64,
 }
 
+#[repr(C)]
+#[derive(Debug)]
+pub struct S3 {
+    pub a: f64,
+    pub b: f64,
+}
+
 #[no_mangle]
 pub extern "C" fn print_from_rust(s2: S2) {
     println!("==========");
     println!("From rust: ");
     println!("{:?}", s2);
+    println!("==========");
+}
+
+#[no_mangle]
+pub extern "C" fn get_s3_from_rust() -> S3 {
+    S3 {
+        a: 76.0,
+        b: 73.0,
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn print_s3_from_rust(s3: S3) {
+    println!("==========");
+    println!("From rust (S3): ");
+    println!("{:?}", s3);
     println!("==========");
 }

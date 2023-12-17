@@ -323,8 +323,17 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 		var returnValue = LLVM.Builder.BuildCall2(llvmFnType, llvmFnValue, [.. args]);
 		attrs.Apply((index, attr) => returnValue.AddCallSiteAttributeAtIndex(index, attr));
 
-		// Always push a value, even if void, since this gets popped in VisitExprStmt.
-		_stack.Push(LLVMUnit.Unwrapped(llvmFnType.ReturnType, returnValue));
+		if (sret.HasValue)
+		{
+			// Adaptation for sret. Load the sret ptr and push to the stack to simulate a return value.
+			var sretPtr = args[0];
+			_stack.Push(LLVMUnit.Wrapped(sret.Value, sretPtr));
+		}
+		else
+		{
+			// Always push a value, even if void, since this gets popped in VisitExprStmt.
+			_stack.Push(LLVMUnit.Unwrapped(llvmFnType.ReturnType, returnValue));
+		}
 	}
 
 	public override void VisitUnaryExpr(LoweredUnaryExpr node)
@@ -745,7 +754,7 @@ internal abstract class LLVMTarget
 
 		if (sret.HasValue)
 		{
-			@params.Add(returnType);
+			@params.Add(LLVMTypeRef.CreatePointer(LowerType(fnType.ReturnType), 0));
 			llvmIndex++;
 		}
 
@@ -798,7 +807,7 @@ internal abstract class LLVMTarget
 		var sret = IsReturnSRet(fnType);
 		if (sret)
 		{
-			attrs.AddParam(llvmIndex, LLVM.Context.CreateEnumAttribute(AttributeKind.StructRet, default));
+			attrs.AddParam(llvmIndex, LLVM.Context.CreateTypeAttribute(AttributeKind.StructRet, returnType));
 			llvmIndex++;
 		}
 
