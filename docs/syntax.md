@@ -1,10 +1,5 @@
 # Syntax
 
-To fix:
-
-- Compilation unit vs Modules
-- Mutable
-
 General:
 
 ```cs
