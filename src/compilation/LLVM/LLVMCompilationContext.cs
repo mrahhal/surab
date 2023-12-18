@@ -73,12 +73,7 @@ internal sealed class LLVMCompilationContext
 
 		LLVMPassManagerRef CreatePassManager()
 		{
-			// Create a function pass manager for this engine
 			var passManager = module.CreateFunctionPassManager();
-
-			// Set up the optimizer pipeline.  Start with registering info about how the
-			// target lays out data structures.
-			// LLVM.DisposeTargetData(LLVM.GetExecutionEngineTargetData(engine));
 
 			// Provide basic AliasAnalysis support for GVN.
 			passManager.AddBasicAliasAnalysisPass();
@@ -97,6 +92,22 @@ internal sealed class LLVMCompilationContext
 
 			// Simplify the control flow graph (deleting unreachable blocks, etc).
 			passManager.AddCFGSimplificationPass();
+
+			//passManager.AddConstantMergePass();
+
+			//passManager.AddCorrelatedValuePropagationPass();
+
+			//passManager.AddDCEPass();
+
+			//passManager.AddDeadArgEliminationPass();
+
+			//passManager.AddDeadStoreEliminationPass();
+
+			//passManager.AddDemoteMemoryToRegisterPass();
+
+			//passManager.AddFunctionAttrsPass();
+
+			//passManager.AddFunctionInliningPass();
 
 			passManager.InitializeFunctionPassManager();
 

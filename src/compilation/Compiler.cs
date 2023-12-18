@@ -72,6 +72,8 @@ internal sealed class ModuleCompiler(CompilationContext context, LoweredTree low
 		Visit(_loweredTree.Root);
 
 		LLVM.Module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction);
+		//LLVM.PassManager.FinalizeFunctionPassManager();
+		//LLVM.PassManager.Run(LLVM.Module);
 	}
 
 	public override void VisitFnDecl(LoweredFnDecl node)
@@ -163,7 +165,8 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 		{
 			throw new Exception("LLVM function verification failed.");
 		}
-		//LLVM.PassManager.RunFunctionPassManager(_llvmFn.Value);
+
+		//LLVM.PassManager.RunFunctionPassManager(_llvmUnit.Value);
 	}
 
 	private void SetupParams(IEnumerable<ParamSymbol> @params)
