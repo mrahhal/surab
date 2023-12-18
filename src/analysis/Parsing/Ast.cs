@@ -804,6 +804,11 @@ public partial class BlockExprNode
 	}
 }
 
+public partial class FnTypeNode
+{
+	public IEnumerable<ParamTypeNode>? ParamTypes => ParamTypesList?.ParamTypes;
+}
+
 public partial class FnSigNode
 {
 	public AttrsListNode? Attrs => Parent switch
@@ -813,12 +818,38 @@ public partial class FnSigNode
 		_ => throw new UnreachableException(),
 	};
 
+	public IEnumerable<ParamNode> Params => ParamsList.Params;
+
 	public bool FnHasBody => Parent switch
 	{
 		FnDeclNode fnDecl => fnDecl.Body != null,
 		MethodDeclNode fnDecl => fnDecl.Body != null,
 		_ => throw new UnreachableException(),
 	};
+}
+
+public partial class ModuleNode
+{
+	public IEnumerable<DeclNode> Decls => DeclsList.Decls;
+}
+
+public partial class ConstDeclNode
+{
+}
+
+public partial class StructDeclNode
+{
+	public IEnumerable<DeclNode> Members => DeclsList.Decls;
+}
+
+public partial class ClassDeclNode
+{
+	public IEnumerable<DeclNode> Members => DeclsList.Decls;
+}
+
+public partial class CallExprNode
+{
+	public IEnumerable<ArgNode> Args => ArgsList.Args;
 }
 
 public partial class MapInitializerNode

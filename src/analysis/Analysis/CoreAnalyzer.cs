@@ -24,40 +24,53 @@ internal class CoreAnalyzer(Reasoner reasoner) : SyntaxTreeVisitor
 
 	public override void VisitConstDecl(ConstDeclNode node)
 	{
-		// Temp: Should be allowed only in top level.
-		if (node.Parent is not ModuleNode)
-		{
-			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a const decl is allowed only in top level");
-		}
+		VerifyDeclIsTopLevel(node);
 
 		base.VisitConstDecl(node);
 	}
 
 	public override void VisitFnDecl(FnDeclNode node)
 	{
-		// Temp: Should be allowed only in top level.
-		if (node.Parent is not ModuleNode)
-		{
-			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a function decl is allowed only in top level");
-		}
+		VerifyDeclIsTopLevel(node);
 
 		base.VisitFnDecl(node);
 	}
 
+	public override void VisitStructDecl(StructDeclNode node)
+	{
+		VerifyDeclIsTopLevel(node);
+
+		base.VisitStructDecl(node);
+	}
+
 	public override void VisitClassDecl(ClassDeclNode node)
 	{
-		// Temp: Should be allowed only in top level.
-		if (node.Parent is not ModuleNode)
-		{
-			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a class decl is allowed only in top level");
-		}
+		VerifyDeclIsTopLevel(node);
 
 		base.VisitClassDecl(node);
 	}
 
+	private void VerifyDeclIsTopLevel(SyntaxNode node)
+	{
+		var name = node switch
+		{
+			ConstDeclNode => "const",
+			FnDeclNode => "fn",
+			StructDeclNode => "struct",
+			ClassDeclNode => "class",
+			_ => throw new UnreachableException(),
+		};
+
+		// Temp: Should be allowed only in top level.
+		if (node.Parent is not DeclsListNode declsList || declsList.Parent is not ModuleNode)
+		{
+			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a {name} decl is allowed only in top level");
+		}
+	}
+
 	public override void VisitFieldDecl(FieldDeclNode node)
 	{
-		if (node.Parent is not DeclMembersNode declMembersNode || declMembersNode.Parent is not StructDeclNode or ClassDeclNode)
+		if (node.Parent is not DeclsListNode declsList || declsList.Parent is not StructDeclNode or ClassDeclNode)
 		{
 			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a field decl is not allowed in this context");
 		}
@@ -67,7 +80,7 @@ internal class CoreAnalyzer(Reasoner reasoner) : SyntaxTreeVisitor
 
 	public override void VisitMethodDecl(MethodDeclNode node)
 	{
-		if (node.Parent is not ClassDeclNode)
+		if (node.Parent is not DeclsListNode declsList || declsList.Parent is not ClassDeclNode)
 		{
 			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a method decl is not allowed in this context");
 		}
@@ -282,10 +295,10 @@ internal class CoreAnalyzer(Reasoner reasoner) : SyntaxTreeVisitor
 		}
 		else if (calleeType is FnTypeSymbol fnSymbol)
 		{
-			var args = node.Args.Args.ToList();
+			var args = node.Args.ToList();
 			if (fnSymbol.ParamTypes.Length != args.Count)
 			{
-				_diagnostics.Add(node.Args.Span, DiagnosticLevel.Error, $"invalid invocation: wrong number of arguments");
+				_diagnostics.Add(node.ArgsList.Span, DiagnosticLevel.Error, $"invalid invocation: wrong number of arguments");
 			}
 			else
 			{

@@ -4,9 +4,8 @@
 			"Name": "Module",
 			"Members": [
 				{
-					"Name": "decls",
-					"Type": "DeclNode",
-					"List": true
+					"Name": "declsList",
+					"Type": "DeclsListNode"
 				}
 			]
 		},
@@ -152,8 +151,8 @@
 					"Type": "SimpleToken"
 				},
 				{
-					"Name": "members",
-					"Type": "DeclMembersNode"
+					"Name": "declsList",
+					"Type": "DeclsListNode"
 				},
 				{
 					"Name": "closedBraceToken",
@@ -183,8 +182,8 @@
 					"Type": "SimpleToken"
 				},
 				{
-					"Name": "members",
-					"Type": "DeclMembersNode"
+					"Name": "declsList",
+					"Type": "DeclsListNode"
 				},
 				{
 					"Name": "closedBraceToken",
@@ -193,10 +192,10 @@
 			]
 		},
 		{
-			"Name": "DeclMembers",
+			"Name": "DeclsList",
 			"Members": [
 				{
-					"Name": "members",
+					"Name": "decls",
 					"Type": "DeclNode",
 					"List": true
 				}
@@ -423,7 +422,7 @@
 					"Type": "ExprNode"
 				},
 				{
-					"Name": "args",
+					"Name": "argsList",
 					"Type": "ArgsListNode"
 				}
 			]
@@ -679,7 +678,7 @@
 					"Type": "SimpleToken"
 				},
 				{
-					"Name": "paramTypes",
+					"Name": "paramTypesList",
 					"Type": "ParamTypesListNode",
 					"Optional": true,
 					"WellFormedRequired": true
@@ -711,7 +710,7 @@
 					"Type": "IdentifierToken"
 				},
 				{
-					"Name": "@params",
+					"Name": "paramsList",
 					"Type": "ParamsListNode"
 				},
 				{
@@ -756,7 +755,7 @@
 					"Type": "IdentifierToken"
 				},
 				{
-					"Name": "args",
+					"Name": "argsList",
 					"Type": "ArgsListNode",
 					"Optional": true
 				}

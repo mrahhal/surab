@@ -217,7 +217,7 @@ internal class ParserImpl
 			decls.Add(delcaration);
 		}
 
-		return new ModuleNode(_tree, decls);
+		return new ModuleNode(_tree, new DeclsListNode(_tree, decls));
 	}
 
 	public SyntaxTree ParseAsDecl()
@@ -590,7 +590,7 @@ internal class ParserImpl
 		return new ClassDeclNode(_tree, attrs, classToken, identifier, openBraceToken, members, closedBraceToken);
 	}
 
-	private DeclMembersNode ParseDeclMembers()
+	private DeclsListNode ParseDeclMembers()
 	{
 		var members = new List<DeclNode>();
 
@@ -600,7 +600,7 @@ internal class ParserImpl
 			members.Add(decl);
 		}
 
-		return new DeclMembersNode(_tree, members);
+		return new DeclsListNode(_tree, members);
 	}
 
 	/// <summary>

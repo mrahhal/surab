@@ -325,7 +325,7 @@ internal class Lowerer
 			node,
 			fnType,
 			symbol,
-			LowerWithCast(node.Args.Args.Select(arg => arg.Expr)));
+			LowerWithCast(node.Args.Select(arg => arg.Expr)));
 	}
 
 	private LoweredNode Lower(LiteralExprNode node)

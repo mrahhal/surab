@@ -98,11 +98,12 @@ public class ParserTests
 		var src = "var f: fn (i32, i32) i64;";
 		var node = ParseStmt(src).Should().BeOfType<VarStmtNode>().Subject;
 		var fnTypeNode = node.Type!.Type.Should().BeOfType<FnTypeNode>().Subject;
-		fnTypeNode.ParamTypes!.ParamTypes.Should().HaveCount(2);
-		fnTypeNode.ParamTypes.ParamTypes.ElementAt(0).Type.Should().BeOfType<NamedTypeNode>();
-		fnTypeNode.ParamTypes.ParamTypes.ElementAt(0).CommaToken.Should().NotBeNull();
-		fnTypeNode.ParamTypes.ParamTypes.ElementAt(1).Type.Should().BeOfType<NamedTypeNode>();
-		fnTypeNode.ParamTypes.ParamTypes.ElementAt(1).CommaToken.Should().BeNull();
+		var paramTypes = fnTypeNode.ParamTypes!;
+		paramTypes.Should().HaveCount(2);
+		paramTypes.ElementAt(0).Type.Should().BeOfType<NamedTypeNode>();
+		paramTypes.ElementAt(0).CommaToken.Should().NotBeNull();
+		paramTypes.ElementAt(1).Type.Should().BeOfType<NamedTypeNode>();
+		paramTypes.ElementAt(1).CommaToken.Should().BeNull();
 		fnTypeNode.ReturnType.Should().BeOfType<NamedTypeNode>();
 	}
 
@@ -112,7 +113,7 @@ public class ParserTests
 		var src = "var f: @extern fn (i32, i32) i64;";
 		var node = ParseStmt(src).Should().BeOfType<VarStmtNode>().Subject;
 		var fnTypeNode = node.Type!.Type.Should().BeOfType<FnTypeNode>().Subject;
-		fnTypeNode.ParamTypes!.ParamTypes.Should().HaveCount(2);
+		fnTypeNode.ParamTypes!.Should().HaveCount(2);
 		fnTypeNode.Attrs.Should().NotBeNull();
 		fnTypeNode.Attrs!.Attrs.Should().HaveCount(1);
 	}
@@ -129,10 +130,10 @@ public class ParserTests
 		var attrs = node.Attrs!.Attrs;
 		attrs.Should().HaveCount(2);
 		attrs.ElementAt(0).Identifier.Value.Should().Be("public");
-		attrs.ElementAt(0).Args.Should().BeNull();
+		attrs.ElementAt(0).ArgsList.Should().BeNull();
 		attrs.ElementAt(1).Identifier.Value.Should().Be("some");
-		attrs.ElementAt(1).Args.Should().NotBeNull();
-		attrs.ElementAt(1).Args!.Args.ElementAt(0).Expr.Should().BeOfType<LiteralExprNode>();
+		attrs.ElementAt(1).ArgsList.Should().NotBeNull();
+		attrs.ElementAt(1).ArgsList!.Args.ElementAt(0).Expr.Should().BeOfType<LiteralExprNode>();
 	}
 
 	[Fact]
@@ -170,9 +171,9 @@ public class ParserTests
 	{
 		var src = "struct S1 { a: u32 = 2; f() {} }";
 		var node = ParseDecl(src).Should().BeOfType<StructDeclNode>().Subject;
-		node.Members.Members.Should().HaveCount(2);
-		node.Members.Members.ElementAt(0).Should().BeOfType<FieldDeclNode>();
-		node.Members.Members.ElementAt(1).Should().BeOfType<MethodDeclNode>();
+		node.Members.Should().HaveCount(2);
+		node.Members.ElementAt(0).Should().BeOfType<FieldDeclNode>();
+		node.Members.ElementAt(1).Should().BeOfType<MethodDeclNode>();
 	}
 
 	[Fact]
@@ -180,7 +181,7 @@ public class ParserTests
 	{
 		var src = "struct S1 { a: u32; f() {} }";
 		var node = ParseDecl(src).Should().BeOfType<StructDeclNode>().Subject;
-		node.Members.Members.Should().HaveCount(2);
+		node.Members.Should().HaveCount(2);
 	}
 
 	[Fact]
@@ -188,7 +189,7 @@ public class ParserTests
 	{
 		var src = "class S1 { a = 2; f() {} }";
 		var node = ParseDecl(src).Should().BeOfType<ClassDeclNode>().Subject;
-		node.Members.Members.Should().HaveCount(2);
+		node.Members.Should().HaveCount(2);
 	}
 
 	[Fact]
@@ -469,8 +470,8 @@ public class ParserTests
 		// Syntax error, but should still lead to a proper FnDeclNode.
 		var src = "fn a(b /* : number */) {}";
 		var node = ParseDecl(src).Should().BeOfType<FnDeclNode>().Subject;
-		node.Sig.Params.Params.Should().HaveCount(1);
-		node.Sig.Params.Params.ElementAt(0).Type.Should().BeNull();
+		node.Sig.Params.Should().HaveCount(1);
+		node.Sig.Params.ElementAt(0).Type.Should().BeNull();
 	}
 
 	[Fact]
@@ -478,7 +479,7 @@ public class ParserTests
 	{
 		var src = "fn a() {}";
 		var node = ParseDecl(src).Should().BeOfType<FnDeclNode>().Subject;
-		node.Sig.Params.Params.Should().HaveCount(0);
+		node.Sig.Params.Should().HaveCount(0);
 	}
 
 	[Fact]
@@ -486,7 +487,7 @@ public class ParserTests
 	{
 		var src = "fn a(b: number) {}";
 		var node = ParseDecl(src).Should().BeOfType<FnDeclNode>().Subject;
-		node.Sig.Params.Params.Should().HaveCount(1);
+		node.Sig.Params.Should().HaveCount(1);
 	}
 
 	[Fact]
@@ -494,7 +495,7 @@ public class ParserTests
 	{
 		var src = "fn a(b: number, c: number) {}";
 		var node = ParseDecl(src).Should().BeOfType<FnDeclNode>().Subject;
-		node.Sig.Params.Params.Should().HaveCount(2);
+		node.Sig.Params.Should().HaveCount(2);
 	}
 
 	[Fact]
@@ -502,7 +503,7 @@ public class ParserTests
 	{
 		var src = "a()";
 		var node = ParseExpr(src).Should().BeOfType<CallExprNode>().Subject;
-		node.Args.Args.Should().HaveCount(0);
+		node.Args.Should().HaveCount(0);
 	}
 
 	[Fact]
@@ -510,7 +511,7 @@ public class ParserTests
 	{
 		var src = "a(b)";
 		var node = ParseExpr(src).Should().BeOfType<CallExprNode>().Subject;
-		node.Args.Args.Should().HaveCount(1);
+		node.Args.Should().HaveCount(1);
 	}
 
 	[Fact]
@@ -518,7 +519,7 @@ public class ParserTests
 	{
 		var src = "a(b, c)";
 		var node = ParseExpr(src).Should().BeOfType<CallExprNode>().Subject;
-		node.Args.Args.Should().HaveCount(2);
+		node.Args.Should().HaveCount(2);
 	}
 
 	[Fact]
@@ -526,8 +527,8 @@ public class ParserTests
 	{
 		var src = "a(41 + 1)";
 		var node = ParseExpr(src).Should().BeOfType<CallExprNode>().Subject;
-		node.Args.Args.Should().HaveCount(1);
-		node.Args.Args.ElementAt(0).Expr.Should().BeOfType<BinaryExprNode>();
+		node.Args.Should().HaveCount(1);
+		node.Args.ElementAt(0).Expr.Should().BeOfType<BinaryExprNode>();
 	}
 
 	[Fact]
@@ -535,8 +536,8 @@ public class ParserTests
 	{
 		var src = "a(b = 2 + 1)";
 		var node = ParseExpr(src).Should().BeOfType<CallExprNode>().Subject;
-		node.Args.Args.Should().HaveCount(1);
-		node.Args.Args.ElementAt(0).Expr.Should().BeOfType<AssignmentExprNode>();
+		node.Args.Should().HaveCount(1);
+		node.Args.ElementAt(0).Expr.Should().BeOfType<AssignmentExprNode>();
 	}
 
 	[Fact]
@@ -544,8 +545,8 @@ public class ParserTests
 	{
 		var src = "a(b = c = d)";
 		var node = ParseExpr(src).Should().BeOfType<CallExprNode>().Subject;
-		node.Args.Args.Should().HaveCount(1);
-		var assignment1 = node.Args.Args.ElementAt(0).Expr.Should().BeOfType<AssignmentExprNode>().Subject;
+		node.Args.Should().HaveCount(1);
+		var assignment1 = node.Args.ElementAt(0).Expr.Should().BeOfType<AssignmentExprNode>().Subject;
 		assignment1.Lhs.Should().BeOfType<IdentifierExprNode>().Subject.Identifier.Value.Should().Be("b");
 		var assignment2 = assignment1.Rhs.Should().BeOfType<AssignmentExprNode>().Subject;
 		assignment2.Lhs.Should().BeOfType<IdentifierExprNode>().Subject.Identifier.Value.Should().Be("c");
@@ -557,8 +558,8 @@ public class ParserTests
 	{
 		var src = "a(b())";
 		var node = ParseExpr(src).Should().BeOfType<CallExprNode>().Subject;
-		node.Args.Args.Should().HaveCount(1);
-		node.Args.Args.ElementAt(0).Expr.Should().BeOfType<CallExprNode>();
+		node.Args.Should().HaveCount(1);
+		node.Args.ElementAt(0).Expr.Should().BeOfType<CallExprNode>();
 	}
 
 	[Fact]

@@ -462,7 +462,7 @@ public class Reasoner
 		return new FnTypeKey(
 			isExtern,
 			sig.ReturnType == null ? BuiltinTypeSystem.None : LookupSymbol(sig.ReturnType).AsTypeSymbolOrError(),
-			sig.Params.Params.Select(p =>
+			sig.Params.Select(p =>
 			{
 				return LookupSymbol(p.Type?.Type).AsTypeSymbolOrError();
 			}));
@@ -475,7 +475,7 @@ public class Reasoner
 			isExtern,
 			fnType.ReturnType == null ? BuiltinTypeSystem.None : LookupSymbol(fnType.ReturnType).AsTypeSymbolOrError(),
 			// TODO: Should be able to handle ParamTypes being null better.
-			fnType.ParamTypes == null ? [ErrorTypeSymbol.Create()] : fnType.ParamTypes.ParamTypes.Select(p =>
+			fnType.ParamTypes == null ? [ErrorTypeSymbol.Create()] : fnType.ParamTypes.Select(p =>
 			{
 				return LookupSymbol(p.Type).AsTypeSymbolOrError();
 			}));

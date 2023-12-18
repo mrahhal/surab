@@ -7,7 +7,7 @@ namespace Surab.Analysis;
 
 public abstract partial class SyntaxTreeVisitor
 {
-    public virtual void VisitModule(ModuleNode node)
+	public virtual void VisitModule(ModuleNode node)
     {
         Walk(node);
     }
@@ -42,7 +42,7 @@ public abstract partial class SyntaxTreeVisitor
         Walk(node);
     }
 
-    public virtual void VisitDeclMembers(DeclMembersNode node)
+    public virtual void VisitDeclsList(DeclsListNode node)
     {
         Walk(node);
     }

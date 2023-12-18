@@ -168,7 +168,7 @@ public sealed class FnSymbol : Symbol, ISymbolHasType
 	private ImmutableArray<ParamSymbol> BuildParams()
 	{
 		var builder = ImmutableArray.CreateBuilder<ParamSymbol>();
-		foreach (var paramNode in _node.Params.Params)
+		foreach (var paramNode in _node.Params)
 		{
 			if (Scope.Reasoner.TryGetDeclaredSymbol(paramNode, out var symbol))
 			{
@@ -564,7 +564,7 @@ public class StructTypeSymbol : NamedTypeSymbol
 	internal override IEnumerable<SyntaxNode> EnumerateMembers()
 	{
 		Debug.Assert(DeclaringNode != null, "Unreachable in built in types.");
-		foreach (var member in DeclaringNode.Members.Members)
+		foreach (var member in DeclaringNode.Members)
 		{
 			yield return member;
 		}
@@ -582,7 +582,7 @@ public class ClassTypeSymbol : NamedTypeSymbol
 	internal override IEnumerable<SyntaxNode> EnumerateMembers()
 	{
 		Debug.Assert(DeclaringNode != null, "Unreachable in built in types.");
-		foreach (var member in DeclaringNode.Members.Members)
+		foreach (var member in DeclaringNode.Members)
 		{
 			yield return member;
 		}
