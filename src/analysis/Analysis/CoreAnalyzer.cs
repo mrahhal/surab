@@ -153,16 +153,16 @@ internal class CoreAnalyzer(Reasoner reasoner) : SyntaxTreeVisitor
 
 		// TODO (SemanticAnalyzer): Invalid target of assignment.
 		/*switch (node.Lhs)
-        {
-            //case AccessExprNode accessExprNode:
-            //    break;
-            case IdentifierExprNode identifierExprNode:
-                break;
+		{
+			//case AccessExprNode accessExprNode:
+			//    break;
+			case IdentifierExprNode identifierExprNode:
+				break;
 
-            default:
-                Debug.Assert(false, "Invalid target of assignment.");
-                throw new NotImplementedException();
-        }*/
+			default:
+				Debug.Assert(false, "Invalid target of assignment.");
+				throw new NotImplementedException();
+		}*/
 
 		base.VisitAssignmentExpr(node);
 	}

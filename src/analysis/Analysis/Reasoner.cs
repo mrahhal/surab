@@ -377,6 +377,7 @@ public class Reasoner
 	private Scope? ResolveScopeForIdentifier(IdentifierExprNode identifierExpr)
 	{
 		if (identifierExpr.Parent is AssignmentExprNode assignmentExpr &&
+			assignmentExpr.Lhs == identifierExpr &&
 			assignmentExpr.Parent is MapInitializerItemNode mapInitializerItem &&
 			mapInitializerItem.Parent is MapInitializerNode mapInitializer &&
 			mapInitializer.Parent is StructCreationExprNode structCreationExpr)
