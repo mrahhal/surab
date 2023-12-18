@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using LLVMSharp;
 using LLVMSharp.Interop;
 using Surab.Analysis;
 using Surab.Compilation.LLVM;
@@ -460,7 +461,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 		var (targetType, targetPtr) = _stack.Pop();
 
 		Visit(node.Expr);
-		var (_, rhs) = _stack.Pop().Unwrap(LLVM);
+		var rhsUnit = _stack.Pop();
 
 		// TODO: Optimize somehow to remove the need to compute the struct layout again here.
 		var structLayout = Target.GetStructLayout((StructTypeSymbol)node.Field.Parent!);
@@ -468,8 +469,22 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 		var fieldLLVMType = LLVMTarget.LowerType(node.Field.Type);
 
 		var ptrToField = LLVM.Builder.BuildStructGEP2(targetType, targetPtr, (uint)fieldSection.SectionIndex);
-		// TODO: Might need to do the same as in VisitVariableStoreExpr and call memcpy instead in certain cases.
-		LLVM.Builder.BuildStore(rhs, ptrToField);
+
+		var leftType = node.Field.Type;
+		var rightType = node.Expr.Type;
+
+		// Same as in VisitVariableStoreExpr.
+		if (leftType is StructTypeSymbol && rightType is StructTypeSymbol && rhsUnit.IsWrapped)
+		{
+			var (_, rhs) = rhsUnit;
+			var size = Target.GetAbiSize(node.Expr.Type);
+			LLVM.CallIntrinsic_memcpy_i64(ptrToField, rhs, size.Bytes);
+		}
+		else
+		{
+			var (_, rhs) = rhsUnit.Unwrap(LLVM);
+			LLVM.Builder.BuildStore(rhs, ptrToField);
+		}
 	}
 
 	public override void VisitStructCreationExpr(LoweredStructCreationExpr node)
