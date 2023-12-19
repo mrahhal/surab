@@ -21,7 +21,7 @@ public class LanguageServerHost
 
 	public LanguageServer Server { get; private set; } = null!;
 
-	public SurabProject SurabProject { get; private set; } = null!;
+	public SurabProject Project { get; private set; } = null!;
 
 	public static LanguageServerHost Create(Serilog.Core.Logger logger)
 	{
@@ -56,6 +56,7 @@ public class LanguageServerHost
 				await InitializeProjectAsync(workspaceUri);
 			})
 			.WithHandler<TextDocumentSyncHandler>()
+			.WithHandler<DidChangeWatchedFilesHandler>()
 			.WithHandler<SemanticTokensFullHandler>()
 			.WithHandler<DefinitionHandler>()
 			.WithHandler<DeclarationHandler>()
@@ -74,7 +75,7 @@ public class LanguageServerHost
 			.GetFiles(workspacePath, "*.surab")
 			.Select(x => SourceFile.Create(x, File.ReadAllText(x)))
 			.ToList();
-		SurabProject = SurabProject.Create(sourceFiles);
+		Project = SurabProject.Create(sourceFiles);
 
 		return Task.CompletedTask;
 	}

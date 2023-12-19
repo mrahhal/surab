@@ -42,20 +42,21 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 		ArgumentNullException.ThrowIfNull(type);
 
 		type = type.UnwrapAliases();
+		var tag = type.KnownTypeTag;
 
-		if (type == BuiltinTypeSystem.None)
+		if (tag == KnownTypeTag.None)
 			return new(0.AsBytes(), 0.AsBytes());
-		if (type == BuiltinTypeSystem.@char || type == BuiltinTypeSystem.@bool)
+		if (tag == KnownTypeTag.@char || tag == KnownTypeTag.@bool)
 			return new(1.AsBytes(), 1.AsBytes());
-		if (type == BuiltinTypeSystem.@string)
+		if (tag == KnownTypeTag.@string)
 			return new(PtrWidth, PtrWidth);
-		if (type == BuiltinTypeSystem.i32 || type == BuiltinTypeSystem.u32)
+		if (tag == KnownTypeTag.i32 || tag == KnownTypeTag.u32)
 			return new(4.AsBytes(), 4.AsBytes());
-		if (type == BuiltinTypeSystem.i64 || type == BuiltinTypeSystem.u64)
+		if (tag == KnownTypeTag.i64 || tag == KnownTypeTag.u64)
 			return new(8.AsBytes(), 8.AsBytes());
-		if (type == BuiltinTypeSystem.f32)
+		if (tag == KnownTypeTag.f32)
 			return new(4.AsBytes(), 4.AsBytes());
-		if (type == BuiltinTypeSystem.f64)
+		if (tag == KnownTypeTag.f64)
 			return new(8.AsBytes(), 8.AsBytes());
 
 		if (type is StructTypeSymbol structType)
@@ -81,7 +82,7 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 	{
 		ArgumentNullException.ThrowIfNull(structType);
 
-		if (structType.IsBuiltin)
+		if (structType.IsBuiltin())
 		{
 			return new StructLayout(GetLayout(structType), []);
 		}
@@ -128,10 +129,11 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 	public IntegerSign GetIntegerSign(TypeSymbol type)
 	{
 		type = type.UnwrapAliases();
+		var tag = type.KnownTypeTag;
 
-		if (type == BuiltinTypeSystem.i32 || type == BuiltinTypeSystem.i64)
+		if (tag == KnownTypeTag.i32 || tag == KnownTypeTag.i64)
 			return IntegerSign.Signed;
-		if (type == BuiltinTypeSystem.u32 || type == BuiltinTypeSystem.u64)
+		if (tag == KnownTypeTag.u32 || tag == KnownTypeTag.u64)
 			return IntegerSign.Unsigned;
 
 		throw new UnreachableException();

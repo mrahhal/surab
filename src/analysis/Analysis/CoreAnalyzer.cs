@@ -22,6 +22,22 @@ internal class CoreAnalyzer(Reasoner reasoner) : SyntaxTreeVisitor
 		Visit(_reasoner.Tree.Root);
 	}
 
+	public override void VisitImport(ImportNode node)
+	{
+		if (node.ModulePath is not LiteralExprNode literalExpr || literalExpr.Literal.LiteralTokenKind != LiteralTokenKind.String)
+		{
+			_diagnostics.Add(node.ModulePath.Span, DiagnosticLevel.Error, $"expected a string for the module path to import");
+		}
+		else if (_reasoner.ResolveImportedFileReasoner(node) == null)
+		{
+			_diagnostics.Add(node.ModulePath.Span, DiagnosticLevel.Error, $"failed to resolve imported module");
+		}
+
+		// TODO: Need a way to try resolve an import that connects back to the SurabProject somehow.
+
+		base.VisitImport(node);
+	}
+
 	public override void VisitConstDecl(ConstDeclNode node)
 	{
 		VerifyDeclIsTopLevel(node);
@@ -203,13 +219,13 @@ internal class CoreAnalyzer(Reasoner reasoner) : SyntaxTreeVisitor
 		{
 			case UnaryOperatorTokenKind.Pos:
 			case UnaryOperatorTokenKind.Neg:
-				if (!BuiltinTypeSystem.IsNumeric(exprType))
+				if (!exprType.IsNumeric())
 				{
 					_diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a numeric type");
 				}
 				break;
 			case UnaryOperatorTokenKind.Not:
-				if (exprType != BuiltinTypeSystem.@bool)
+				if (exprType.KnownTypeTag != KnownTypeTag.@bool)
 				{
 					_diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a bool type");
 				}
@@ -245,14 +261,14 @@ internal class CoreAnalyzer(Reasoner reasoner) : SyntaxTreeVisitor
 				case BinaryOperatorTokenKind.BitAnd:
 				case BinaryOperatorTokenKind.BitOr:
 				case BinaryOperatorTokenKind.BitXor:
-					if (!BuiltinTypeSystem.IsNumeric(exprType))
+					if (!exprType.IsNumeric())
 					{
 						_diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a numeric type");
 					}
 					break;
 				case BinaryOperatorTokenKind.And:
 				case BinaryOperatorTokenKind.Or:
-					if (exprType != BuiltinTypeSystem.@bool)
+					if (exprType.KnownTypeTag != KnownTypeTag.@bool)
 					{
 						_diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a bool type");
 					}
@@ -265,7 +281,7 @@ internal class CoreAnalyzer(Reasoner reasoner) : SyntaxTreeVisitor
 				case BinaryOperatorTokenKind.Le:
 				case BinaryOperatorTokenKind.Gt:
 				case BinaryOperatorTokenKind.Ge:
-					if (!BuiltinTypeSystem.IsNumeric(exprType))
+					if (!exprType.IsNumeric())
 					{
 						_diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a numeric type");
 					}

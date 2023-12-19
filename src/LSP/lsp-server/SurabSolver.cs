@@ -1,26 +1,35 @@
-﻿using OmniSharp.Extensions.LanguageServer.Protocol;
+﻿using Microsoft.Extensions.Logging;
+using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Server;
 using Surab.Analysis;
 
 namespace Surab.LSPServer;
 
-public class SurabSolver(LanguageServerHost host)
+public class SurabSolver(
+	ILogger<SurabSolver> logger,
+	LanguageServerHost host)
 {
+	private readonly ILogger _logger = logger;
 	private readonly LanguageServerHost _host = host;
 
 	public LanguageServerHost Host => _host;
 
 	public LanguageServer Server => Host.Server;
 
-	public SurabProject Project => Host.SurabProject;
+	public SurabProject Project => Host.Project;
 
 	public SourceFile? GetSourceFile(TextDocumentIdentifier identifier) => GetSourceFile(identifier.Uri);
 
 	public SourceFile? GetSourceFile(DocumentUri uri)
 	{
 		var filePath = uri.GetFileSystemPath();
-		return Host.SurabProject.SourceFiles.FirstOrDefault(x => x.Path == filePath);
+		var sourceFile = Host.Project.GetSourceFile(filePath);
+		if (sourceFile == null)
+		{
+			_logger.LogInformation("Didn't find SourceFile with path {FilePath}.", filePath);
+		}
+		return sourceFile;
 	}
 
 	/// <summary>
@@ -79,7 +88,7 @@ public class SurabSolver(LanguageServerHost host)
 			var span = symbol.DeclaringNode?.GetMainIdentifierToken()?.Span ?? symbol.DeclaringNode?.Span ?? new();
 			var locations = new LocationOrLocationLinks(new LocationOrLocationLink(new Location
 			{
-				Uri = textDocument.Uri, // TODO
+				Uri = DocumentUri.FromFileSystemPath(symbol.DeclaringNode!.Tree.SourceFile.Path!),
 				Range = ConversionHelper.FromTo(span),
 			}));
 			return locations;

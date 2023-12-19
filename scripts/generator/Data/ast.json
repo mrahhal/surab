@@ -4,8 +4,40 @@
 			"Name": "Module",
 			"Members": [
 				{
+					"Name": "importsList",
+					"Type": "ImportsListNode"
+				},
+				{
 					"Name": "declsList",
 					"Type": "DeclsListNode"
+				}
+			]
+		},
+		{
+			"Name": "ImportsList",
+			"Members": [
+				{
+					"Name": "imports",
+					"Type": "ImportNode",
+					"List": true
+				}
+			]
+		},
+		{
+			"Name": "Import",
+			"Members": [
+				{
+					"Name": "importToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "modulePath",
+					"Type": "ExprNode",
+					"Comment": "Well formed: String literal"
+				},
+				{
+					"Name": "semicolonToken",
+					"Type": "SimpleToken"
 				}
 			]
 		},

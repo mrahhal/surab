@@ -8,8 +8,24 @@ public class ParserTests
 		var src = "const a = 2;";
 		var module = ParseModule(src);
 		module.Should().NotBeNull();
+		module.Imports.Should().BeEmpty();
 		module.Decls.Should().HaveCount(1);
 		module.Decls.ElementAt(0).Should().BeOfType<ConstDeclNode>();
+	}
+
+	[Fact]
+	public void ModuleWithImports()
+	{
+		var src = """
+			import "a.surab";
+			import "b.surab";
+
+			const a = 2;
+			""";
+		var module = ParseModule(src);
+		module.Should().NotBeNull();
+		module.Imports.Should().HaveCount(2);
+		module.Decls.Should().HaveCount(1);
 	}
 
 	[Fact]

@@ -207,19 +207,6 @@ internal class ParserImpl
 		return MakeSyntaxTree(module);
 	}
 
-	private ModuleNode ParseModule()
-	{
-		var decls = new List<DeclNode>();
-
-		while (!IsAtEnd())
-		{
-			var delcaration = ParseDecl();
-			decls.Add(delcaration);
-		}
-
-		return new ModuleNode(_tree, new DeclsListNode(_tree, decls));
-	}
-
 	public SyntaxTree ParseAsDecl()
 	{
 		var decl = ParseDecl();
@@ -379,20 +366,20 @@ internal class ParserImpl
 		return null;
 	}
 
-	private void EatAssertedToken(TokenKind tokenKind)
+	private Token EatAssertedToken(TokenKind tokenKind)
 	{
 		if (!TryEatToken(tokenKind))
 		{
 			throw new Exception($"Expected an asserted token {tokenKind}.");
 		}
+		return AssertedPrev();
 	}
 
 	private SimpleToken EatAssertedSimpleToken(TokenKind tokenKind)
 	{
-		EatAssertedToken(tokenKind);
-		var prev = AssertedPrev();
-		var (leading, trailing) = ConsumeTrivia(prev);
-		return SimpleToken.Create(_tree, leading, trailing, prev);
+		var token = EatAssertedToken(tokenKind);
+		var (leading, trailing) = ConsumeTrivia(token);
+		return SimpleToken.Create(_tree, leading, trailing, token);
 	}
 
 	private SimpleToken EatExpectedSimpleToken(TokenKind tokenKind)
@@ -411,14 +398,25 @@ internal class ParserImpl
 		}
 	}
 
+	private bool CheckContextualKeyword(ContextualKeyword contextualKeyword)
+	{
+		return CheckToken(TokenKind.Identifier) && SimpleTokenHelper.IsContextualKeyword(contextualKeyword, GetLexeme(_current));
+	}
+
+	private SimpleToken EatAssertedContextualKeywordToken(ContextualKeyword contextualKeyword)
+	{
+		Debug.Assert(CheckContextualKeyword(contextualKeyword));
+		Advance();
+		var prev = AssertedPrev();
+		var (leading, trailing) = ConsumeTrivia(prev);
+		return SimpleToken.Create(_tree, leading, trailing, contextualKeyword, prev);
+	}
+
 	private SimpleToken EatExpectedContextualKeywordToken(ContextualKeyword contextualKeyword)
 	{
-		if (CheckToken(TokenKind.Identifier) && SimpleTokenHelper.IsContextualKeyword(contextualKeyword, GetLexeme(_current).ToString()))
+		if (CheckContextualKeyword(contextualKeyword))
 		{
-			Advance();
-			var prev = AssertedPrev();
-			var (leading, trailing) = ConsumeTrivia(prev);
-			return SimpleToken.Create(_tree, leading, trailing, contextualKeyword, prev);
+			return EatAssertedContextualKeywordToken(contextualKeyword);
 		}
 		else
 		{
@@ -466,6 +464,54 @@ internal class ParserImpl
 	{
 		var (start, end) = span.File;
 		return _src.AsSpan()[start..end];
+	}
+
+	// ---
+
+	private ModuleNode ParseModule()
+	{
+		var importsList = ParseImportsList();
+		var declsList = ParseDeclsList();
+
+		return new ModuleNode(_tree, importsList, declsList);
+	}
+
+	private ImportsListNode ParseImportsList()
+	{
+		var imports = new List<ImportNode>();
+
+		while (!IsAtEnd() && CheckContextualKeyword(ContextualKeyword.Import))
+		{
+			imports.Add(ParseImport());
+		}
+
+		return new ImportsListNode(_tree, imports);
+	}
+
+	/// <summary>
+	/// Parses `import "..."`
+	/// Requirements: current is Identifier (import)
+	/// </summary>
+	private ImportNode ParseImport()
+	{
+		var importToken = EatAssertedContextualKeywordToken(ContextualKeyword.Import);
+		var expr = ParseExpr();
+		var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
+
+		return new ImportNode(_tree, importToken, expr, semicolonToken);
+	}
+
+	private DeclsListNode ParseDeclsList()
+	{
+		var decls = new List<DeclNode>();
+
+		while (!IsAtEnd())
+		{
+			var delcaration = ParseDecl();
+			decls.Add(delcaration);
+		}
+
+		return new DeclsListNode(_tree, decls);
 	}
 
 	// Decls

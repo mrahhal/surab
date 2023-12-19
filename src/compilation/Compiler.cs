@@ -17,8 +17,7 @@ public sealed class Compiler
 	{
 		var llvm = LLVMCompilationContext.Create();
 
-		// Need to compile the prelude too.
-		List<Reasoner> reasoners = [Prelude.GetReasoner(), .. project.GetAllReasoners()];
+		var reasoners = project.GetAllReasoners().ToList();
 
 		_context = new CompilationContext(reasoners, target, llvm, options);
 	}
@@ -151,7 +150,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 
 		if (!_returnSeen)
 		{
-			if (FnSymbol.IsMain && FnSymbol.ReturnType == BuiltinTypeSystem.None)
+			if (FnSymbol.IsMain && FnSymbol.ReturnType.KnownTypeTag == KnownTypeTag.None)
 			{
 				LLVM.Builder.BuildRet(LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, 0));
 			}
@@ -355,7 +354,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 
 		LLVMValueRef BuildNeg()
 		{
-			if (BuiltinTypeSystem.IsNumericInteger(node.Type))
+			if (node.Type.IsNumericInteger())
 			{
 				return LLVM.Builder.BuildNeg(value);
 			}
@@ -385,7 +384,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 
 		LLVMValueRef BuildAdd()
 		{
-			if (BuiltinTypeSystem.IsNumericInteger(node.Type))
+			if (node.Type.IsNumericInteger())
 			{
 				return LLVM.Builder.BuildAdd(leftValue, rightValue);
 			}
@@ -397,7 +396,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 
 		LLVMValueRef BuildSub()
 		{
-			if (BuiltinTypeSystem.IsNumericInteger(node.Type))
+			if (node.Type.IsNumericInteger())
 			{
 				return LLVM.Builder.BuildSub(leftValue, rightValue);
 			}
@@ -704,7 +703,7 @@ internal abstract class LLVMTarget
 	// TODO: Support different calling conventions. Right now it's always Win64 cc.
 	public LLVMTypeRef LowerFnReturnType(FnTypeSymbol fnType)
 	{
-		if (fnType.ReturnType == BuiltinTypeSystem.None)
+		if (fnType.ReturnType.KnownTypeTag == KnownTypeTag.None)
 			return LLVMTypeRef.Void;
 
 		Debug.Assert(!Target.GetAbiSize(fnType.ReturnType).IsZeroSized);
@@ -722,21 +721,22 @@ internal abstract class LLVMTarget
 	public LLVMTypeRef LowerType(TypeSymbol type)
 	{
 		type = type.UnwrapAliases();
+		var tag = type.KnownTypeTag;
 
-		if (type == BuiltinTypeSystem.None)
+		if (tag == KnownTypeTag.None)
 			return LLVMTypeRef.Void;
-		if (type == BuiltinTypeSystem.@char || type == BuiltinTypeSystem.@bool)
+		if (tag == KnownTypeTag.@char || tag == KnownTypeTag.@bool)
 			return LLVMTypeRef.Int1;
-		if (type == BuiltinTypeSystem.@string)
+		if (tag == KnownTypeTag.@string)
 			return LLVMTypeRef.CreatePointer(LLVMTypeRef.Void, 0);
 
-		if (type == BuiltinTypeSystem.i32 || type == BuiltinTypeSystem.u32)
+		if (tag == KnownTypeTag.i32 || tag == KnownTypeTag.u32)
 			return LLVMTypeRef.Int32;
-		if (type == BuiltinTypeSystem.i64 || type == BuiltinTypeSystem.u64)
+		if (tag == KnownTypeTag.i64 || tag == KnownTypeTag.u64)
 			return LLVMTypeRef.Int64;
-		if (type == BuiltinTypeSystem.f32)
+		if (tag == KnownTypeTag.f32)
 			return LLVMTypeRef.Float;
-		if (type == BuiltinTypeSystem.f64)
+		if (tag == KnownTypeTag.f64)
 			return LLVMTypeRef.Double;
 
 		if (type is StructTypeSymbol structType)
@@ -895,7 +895,7 @@ internal abstract class x86_64WindowsLLVMTarget(CompilationContext context) : LL
 		var classification = Target.Classify(returnType);
 		return classification switch
 		{
-			Classification.Integer => returnType.IsScalar ? LowerType(returnType) : LLVMTypeRef.CreateInt((uint)Target.GetAbiSize(returnType).Bits),
+			Classification.Integer => returnType.IsScalar() ? LowerType(returnType) : LLVMTypeRef.CreateInt((uint)Target.GetAbiSize(returnType).Bits),
 			//win_i128 =>
 			Classification.Memory => LLVMTypeRef.Void,
 			Classification.SSE => LowerType(returnType),
@@ -909,7 +909,7 @@ internal abstract class x86_64WindowsLLVMTarget(CompilationContext context) : LL
 
 		return Target.Classify(type) switch
 		{
-			Classification.Integer => type.IsScalar ? LLVMTypeLowering.ByValue : LLVMTypeLowering.AbiInt,
+			Classification.Integer => type.IsScalar() ? LLVMTypeLowering.ByValue : LLVMTypeLowering.AbiInt,
 			//win_i128 =>
 			Classification.Memory => LLVMTypeLowering.ByMutRef,
 			Classification.SSE => LLVMTypeLowering.ByValue,

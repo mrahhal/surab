@@ -80,6 +80,7 @@ public abstract class SyntaxToken : SyntaxEntity
 public enum ContextualKeyword
 {
 	As,
+	Import,
 }
 
 internal static class SimpleTokenHelper
@@ -87,11 +88,12 @@ internal static class SimpleTokenHelper
 	public static readonly Dictionary<ContextualKeyword, string> ContextualKeywordsMap = new()
 	{
 		{ ContextualKeyword.As, "as" },
+		{ ContextualKeyword.Import, "import" },
 	};
 
-	public static bool IsContextualKeyword(ContextualKeyword contextualKeyword, string str)
+	public static bool IsContextualKeyword(ContextualKeyword contextualKeyword, ReadOnlySpan<char> str)
 	{
-		if (ContextualKeywordsMap.TryGetValue(contextualKeyword, out var value) && str == value)
+		if (ContextualKeywordsMap.TryGetValue(contextualKeyword, out var value) && MemoryExtensions.Equals(str, value.AsSpan(), StringComparison.Ordinal))
 		{
 			return true;
 		}
@@ -129,6 +131,7 @@ public enum SimpleTokenKind
 	Return,
 
 	AsKeyword,
+	ImportKeyword,
 }
 
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} [{SimpleTokenKind}] {ToString()}")]
@@ -218,6 +221,7 @@ public sealed class SimpleToken : SyntaxToken
 			SimpleTokenKind = contextualKeyword switch
 			{
 				ContextualKeyword.As => SimpleTokenKind.AsKeyword,
+				ContextualKeyword.Import => SimpleTokenKind.ImportKeyword,
 				_ => throw new UnreachableException(),
 			},
 		};
@@ -770,6 +774,28 @@ public abstract class TypeNode(SyntaxTree tree, SyntaxNodeKind kind) : SyntaxNod
 	public bool IsMissing => this is MissingTypeNode;
 }
 
+// ---
+
+public partial class ModuleNode
+{
+	public IEnumerable<ImportNode> Imports => ImportsList.Imports;
+
+	public IEnumerable<DeclNode> Decls => DeclsList.Decls;
+}
+
+public partial class ImportNode
+{
+	public string WellFormedModulePath
+	{
+		get
+		{
+			var succeeded = ((LiteralExprNode)ModulePath).Literal.TryGetStringValue(out var value);
+			Debug.Assert(succeeded);
+			return value!;
+		}
+	}
+}
+
 public partial class BareExprStmtNode
 {
 	private bool? _isTreatedAsStmt;
@@ -826,11 +852,6 @@ public partial class FnSigNode
 		MethodDeclNode fnDecl => fnDecl.Body != null,
 		_ => throw new UnreachableException(),
 	};
-}
-
-public partial class ModuleNode
-{
-	public IEnumerable<DeclNode> Decls => DeclsList.Decls;
 }
 
 public partial class ConstDeclNode
