@@ -1,0 +1,4 @@
+@public
+fn add(v: i32) i32 {
+	v + 2
+}

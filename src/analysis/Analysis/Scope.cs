@@ -164,12 +164,13 @@ internal abstract class Scope
 	}
 }
 
-// TODO: preludeReasoner should become an array of reasoners from imported modules.
-internal class ModuleScope(ModuleNode module, Reasoner? preludeReasoner) : Scope
+internal class ModuleScope(ModuleNode module, Reasoner moduleReasoner, Reasoner? preludeReasoner) : Scope
 {
 	private ImmutableArray<Symbol> _decls;
 
 	private readonly ModuleNode _module = module;
+	private readonly Reasoner _moduleReasoner = moduleReasoner;
+
 	private readonly Reasoner? _preludeReasoner = preludeReasoner;
 
 	public ImmutableArray<Symbol> Decls
@@ -189,7 +190,26 @@ internal class ModuleScope(ModuleNode module, Reasoner? preludeReasoner) : Scope
 	{
 		return
 			LookupIdentifierIn(Decls, identifier) ??
-			_preludeReasoner?.LookupExportedSymbolByName(identifier);
+			LookupInImports(identifier);
+	}
+
+	private Symbol? LookupInImports(string identifier)
+	{
+		var imports = _module.Imports.ToList();
+		for (var i = imports.Count - 1; i >= 0; i--)
+		{
+			var import = imports[i];
+			var targetReasoner = _moduleReasoner.ResolveImportedFileReasoner(import);
+			var result = targetReasoner?.LookupExportedSymbolByName(identifier);
+
+			if (result != null)
+			{
+				return result;
+			}
+		}
+
+		// If nothing else works, try resolve from the prelude.
+		return _preludeReasoner?.LookupExportedSymbolByName(identifier);
 	}
 
 	public override Symbol? LookupExportedIdentifier(string identifier)

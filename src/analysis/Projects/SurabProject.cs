@@ -15,12 +15,14 @@ public class SurabProject
 	private readonly List<SourceFile> _sourceFiles;
 	private readonly Dictionary<SourceFile, SourceFileState> _sourceFileToStateMap = [];
 
+	private readonly ModuleResolver _moduleResolver;
 	private readonly ReasoningContext _reasoningContext = new();
 
 	private Reasoner _preludeReasoner = default!;
 
 	private SurabProject(IEnumerable<SourceFile> sourceFiles)
 	{
+		_moduleResolver = new(this);
 		_sourceFiles = sourceFiles.ToList();
 	}
 
@@ -38,6 +40,8 @@ public class SurabProject
 	internal ReasoningContext ReasoningContext => _reasoningContext;
 
 	internal Reasoner PreludeReasoner => _preludeReasoner;
+
+	internal ModuleResolver ModuleResolver => _moduleResolver;
 
 	public SourceFile? GetSourceFile(string path)
 	{

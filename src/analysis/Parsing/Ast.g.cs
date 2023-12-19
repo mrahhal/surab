@@ -52,6 +52,8 @@ file static class Helper
 public enum SyntaxNodeKind
 {
 	Module,
+    ImportsList,
+    Import,
     ConstDecl,
     FnDecl,
     MethodDecl,
@@ -98,21 +100,67 @@ public enum SyntaxNodeKind
 
 public partial class ModuleNode : SyntaxNode
 {
-	public ModuleNode(SyntaxTree tree, DeclsListNode declsList)
+	public ModuleNode(SyntaxTree tree, ImportsListNode importsList, DeclsListNode declsList)
 		: base(tree, SyntaxNodeKind.Module)
 	{
 		_childTokens = new();
-        _childNodes = new() { declsList, };
+        _childNodes = new() { importsList, declsList, };
 
 		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
-    public DeclsListNode DeclsList => (DeclsListNode)_childNodes[0]!;
+    public ImportsListNode ImportsList => (ImportsListNode)_childNodes[0]!;
+    public DeclsListNode DeclsList => (DeclsListNode)_childNodes[1]!;
 
 	public override void Accept(SyntaxTreeVisitor visitor)
 	{
 		visitor.VisitModule(this);
+	}
+}
+
+public partial class ImportsListNode : SyntaxNode
+{
+	public ImportsListNode(SyntaxTree tree, IEnumerable<ImportNode> imports)
+		: base(tree, SyntaxNodeKind.ImportsList)
+	{
+		_childTokens = new();
+        _childNodes = imports.Cast<SyntaxNode?>().ToList();
+
+		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		SetChildrenParent();
+	}
+
+    public IEnumerable<ImportNode> Imports => _childNodes.Cast<ImportNode>();
+
+	public override void Accept(SyntaxTreeVisitor visitor)
+	{
+		visitor.VisitImportsList(this);
+	}
+}
+
+public partial class ImportNode : SyntaxNode
+{
+	public ImportNode(SyntaxTree tree, SimpleToken importToken, ExprNode modulePath, SimpleToken semicolonToken)
+		: base(tree, SyntaxNodeKind.Import)
+	{
+		_childTokens = new() { importToken, semicolonToken, };
+        _childNodes = new() { modulePath, };
+
+		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		SetChildrenParent();
+	}
+
+    public SimpleToken ImportToken => (SimpleToken)_childTokens[0]!;
+    /// <summary>
+    /// Well formed: String literal
+    /// </summary>
+    public ExprNode ModulePath => (ExprNode)_childNodes[0]!;
+    public SimpleToken SemicolonToken => (SimpleToken)_childTokens[1]!;
+
+	public override void Accept(SyntaxTreeVisitor visitor)
+	{
+		visitor.VisitImport(this);
 	}
 }
 

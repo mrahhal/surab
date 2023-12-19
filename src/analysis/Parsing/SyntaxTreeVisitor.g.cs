@@ -12,6 +12,16 @@ public abstract partial class SyntaxTreeVisitor
         Walk(node);
     }
 
+    public virtual void VisitImportsList(ImportsListNode node)
+    {
+        Walk(node);
+    }
+
+    public virtual void VisitImport(ImportNode node)
+    {
+        Walk(node);
+    }
+
     public virtual void VisitConstDecl(ConstDeclNode node)
     {
         Walk(node);

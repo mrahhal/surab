@@ -22,6 +22,22 @@ internal class CoreAnalyzer(Reasoner reasoner) : SyntaxTreeVisitor
 		Visit(_reasoner.Tree.Root);
 	}
 
+	public override void VisitImport(ImportNode node)
+	{
+		if (node.ModulePath is not LiteralExprNode literalExpr || literalExpr.Literal.LiteralTokenKind != LiteralTokenKind.String)
+		{
+			_diagnostics.Add(node.ModulePath.Span, DiagnosticLevel.Error, $"expected a string for the module path to import");
+		}
+		else if (_reasoner.ResolveImportedFileReasoner(node) == null)
+		{
+			_diagnostics.Add(node.ModulePath.Span, DiagnosticLevel.Error, $"failed to resolve imported module");
+		}
+
+		// TODO: Need a way to try resolve an import that connects back to the SurabProject somehow.
+
+		base.VisitImport(node);
+	}
+
 	public override void VisitConstDecl(ConstDeclNode node)
 	{
 		VerifyDeclIsTopLevel(node);

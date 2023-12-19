@@ -1,3 +1,5 @@
+import "./add.surab";
+
 alias Delegate1 as @extern fn (S2);
 
 /* c */ const /* c */ /* c */ a /* c */ = /* c */ 2 /* c */; // c
@@ -64,4 +66,6 @@ fn main() {
 
 	var fn_ptr: Delegate1 = print_from_rust;
 	fn_ptr(s2);
+
+	add(42);
 }
