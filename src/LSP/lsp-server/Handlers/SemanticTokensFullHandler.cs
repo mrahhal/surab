@@ -10,18 +10,19 @@ namespace Surab.LSPServer.Handlers;
 public class SemanticTokensFullHandler(
 	ILogger<SemanticTokensFullHandler> logger,
 	ILanguageServerConfiguration configuration,
-	LanguageServerHost host) : SemanticTokensFullHandlerBase
+	SurabSolver solver) : SemanticTokensFullHandlerBase
 {
 	private readonly ILogger _logger = logger;
 	private readonly ILanguageServerConfiguration _configuration = configuration;
-	private readonly LanguageServerHost _host = host;
+	private readonly SurabSolver _solver = solver;
 
 	public override Task<SemanticTokens?> Handle(SemanticTokensParams request, CancellationToken cancellationToken)
 	{
 		_logger.LogInformation("[SemanticTokensParams]");
 
-		var filePath = request.TextDocument.Uri.GetFileSystemPath();
-		var sourceFile = _host.SurabProject.SourceFiles.First(x => x.Path == filePath);
+		var sourceFile = _solver.GetSourceFile(request.TextDocument.Uri);
+		if (sourceFile == null)
+			return Task.FromResult((SemanticTokens?)null);
 
 		var document = GetSemanticTokensDocument();
 		var builder = document.Create();
@@ -35,8 +36,8 @@ public class SemanticTokensFullHandler(
 		SourceFile sourceFile,
 		CancellationToken cancellationToken)
 	{
-		var tree = _host.SurabProject.GetSyntaxTree(sourceFile);
-		var reasoner = _host.SurabProject.GetReasoner(sourceFile);
+		var tree = _solver.Project.GetSyntaxTree(sourceFile);
+		var reasoner = _solver.Project.GetReasoner(sourceFile);
 
 		foreach (var (line, ch, length, tokenType, modifiers) in TokenizeRecursive(tree.Root, reasoner))
 		{
@@ -150,7 +151,7 @@ public class SemanticTokensFullHandler(
 						var symbol = reasoner.LookupSymbol(namedType);
 						builder.SetType(GetTokenType(symbol));
 
-						if (symbol is TypeSymbol typeSymbol && typeSymbol.IsBuiltin)
+						if (symbol is TypeSymbol typeSymbol && typeSymbol.IsBuiltin())
 						{
 							builder.AddModifier(SemanticTokenModifier.DefaultLibrary);
 						}

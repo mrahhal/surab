@@ -37,6 +37,7 @@ public class TextDocumentSyncHandler(
 		var sourceFile = _solver.GetSourceFile(notification.TextDocument)!;
 		sourceFile.UpdateText(notification.ContentChanges.First().Text);
 
+		// TODO: Shouldn't be here. Should post a reanalyze event to be processed asynchronously (the goal of this is a PublishDiagnostics event).
 		await ReAnalyzeAsync(notification.TextDocument);
 
 		return Unit.Value;
