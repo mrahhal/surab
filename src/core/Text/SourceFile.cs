@@ -11,8 +11,9 @@ public class SourceFile
 		Text = text;
 	}
 
+	// TODO: Should this be a uri instead?
 	/// <summary>
-	/// The file system path of the source file.
+	/// The file system path of the source file. Always absolute.
 	/// </summary>
 	public string? Path { get; }
 

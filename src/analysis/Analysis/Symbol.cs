@@ -34,7 +34,7 @@ public abstract class Symbol
 
 	/// <summary>
 	/// The node in the tree representing this symbol.
-	/// This can be `null` when the declaration isn't in the src (built-in type, synthesized, external package, etc).
+	/// This can be `null` when the declaration isn't in the src (synthesized, etc).
 	/// </summary>
 	public virtual SyntaxNode? DeclaringNode => null;
 
@@ -311,15 +311,21 @@ public sealed class LocalSymbol : Symbol, ISymbolHasType
 	}
 }
 
-public enum TypeTag
+public enum KnownTypeTag
 {
-	Invalid,
-	ZeroSized,
-	Numeric,
-	Char,
-	Bool,
-	Struct,
-	Ptr,
+	None,
+
+	i32,
+	i64,
+	u32,
+	u64,
+	f32,
+	f64,
+
+	@bool,
+
+	@char,
+	@string,
 }
 
 /// <summary>
@@ -334,28 +340,7 @@ public abstract class TypeSymbol : Symbol
 
 	public bool IsError => this is ErrorTypeSymbol;
 
-	public bool IsBuiltin => BuiltinTypeSystem.IsBuiltin(this);
-
-	public bool IsScalar => GetTag() switch
-	{
-		TypeTag.Numeric or TypeTag.Char or TypeTag.Bool or TypeTag.Ptr => true,
-		_ => false,
-	};
-
-	public TypeTag GetTag()
-	{
-		var type = UnwrapAliases();
-
-		if (type == BuiltinTypeSystem.None) return TypeTag.ZeroSized;
-		if (type == BuiltinTypeSystem.@char) return TypeTag.Char;
-		if (type == BuiltinTypeSystem.@string) return TypeTag.Ptr;
-		if (BuiltinTypeSystem.IsNumeric(type)) return TypeTag.Numeric;
-		if (type == BuiltinTypeSystem.@bool) return TypeTag.Bool;
-		if (type is StructTypeSymbol) return TypeTag.Struct;
-		if (type is FnTypeSymbol) return TypeTag.Ptr;
-
-		throw new UnreachableException();
-	}
+	public KnownTypeTag? KnownTypeTag { get; internal set; }
 
 	public virtual ImmutableArray<Symbol> Members
 	{

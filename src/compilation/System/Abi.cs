@@ -25,19 +25,19 @@ internal static class Abi
 			var size = target.GetLayout(type).Size;
 			Debug.Assert(!size.IsZeroSized, "Classify shouldn't be called with zero sized types.");
 
-			return type.GetTag() switch
+			return type.GetRuntimeKind() switch
 			{
-				TypeTag.Bool or
-				TypeTag.Char or
-				TypeTag.Ptr or
-				TypeTag.Struct
+				RuntimeTypeKind.Bool or
+				RuntimeTypeKind.Char or
+				RuntimeTypeKind.Ptr or
+				RuntimeTypeKind.Struct
 				=> size.Bytes switch
 				{
 					1 or 2 or 4 or 8 => Classification.Integer,
 					_ => Classification.Memory,
 				},
 
-				TypeTag.Numeric
+				RuntimeTypeKind.Numeric
 				=> Classification.SSE,
 
 				_ => throw new UnreachableException(),

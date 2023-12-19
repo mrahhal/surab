@@ -204,8 +204,7 @@ public class LowererTests
 
 	private static LoweredTree Lower(string src)
 	{
-		var tree = Parser.ParseModule(src);
-		var reasoner = Reasoner.Create(tree);
+		var (_, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 		return Lowerer.Lower(reasoner);
 	}
 }

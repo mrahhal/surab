@@ -11,35 +11,32 @@ public class Reasoner
 {
 	private readonly Dictionary<SyntaxNode, Scope> _nodeToScopeMap = [];
 	private readonly Dictionary<SyntaxNode, Symbol> _nodeToSymbolMap = [];
-	// TODO: Should be moved to some place above a reasoner so they're shared between different reasoners?
-	private readonly Dictionary<FnTypeKey, FnTypeSymbol> _unnamedFnTypeMap = [];
 
-	private Reasoner(SyntaxTree tree)
+	// Only set if this is the prelude reasoner. Needs some good refactoring.
+	private Dictionary<KnownTypeTag, TypeSymbol>? _knownTypeTagToTypeSymbolMap;
+
+	private Reasoner(SurabProject project, SyntaxTree tree)
 	{
 		Tree = tree;
+		Project = project;
 	}
 
-	static Reasoner()
-	{
-		// The first moment we touch a Reasoner in any way, we'll need to load the prelude.
-		Prelude.Load();
-	}
-
-	/// <summary>
-	/// Can be called from test environments to ensure prelude is loaded.
-	/// </summary>
-	internal static void EnsurePreludeLoaded()
-	{
-		// noop, just to ensure the static ctor runs.
-	}
+	public SurabProject Project { get; }
 
 	public SyntaxTree Tree { get; }
 
 	public SourceFile SourceFile => Tree.SourceFile;
 
-	internal static Reasoner Create(SyntaxTree tree, bool isPrelude = false)
+	private ReasoningContext ReasoningContext => Project.ReasoningContext;
+
+	internal static Reasoner Create(SurabProject project, SyntaxTree tree)
 	{
-		return Builder.Build(tree, isPrelude);
+		return Builder.Build(project, tree);
+	}
+
+	internal static Reasoner CreatePrelude(SurabProject project, SyntaxTree tree)
+	{
+		return Builder.Build(project, tree, isPrelude: true);
 	}
 
 	/// <summary>
@@ -297,41 +294,41 @@ public class Reasoner
 		}
 	}
 
-	private static TypeSymbol LookupType(LiteralExprNode node)
+	private TypeSymbol LookupType(LiteralExprNode node)
 	{
 		return node.Literal.LiteralTokenKind switch
 		{
 			LiteralTokenKind.NumericInteger => LookupNumericInteger(),
 			LiteralTokenKind.NumericFloat => LookupNumericFloat(),
-			LiteralTokenKind.Bool => BuiltinTypeSystem.@bool,
-			LiteralTokenKind.Char => BuiltinTypeSystem.@char,
-			LiteralTokenKind.String => BuiltinTypeSystem.@string,
+			LiteralTokenKind.Bool => Project.ResolveKnownTypeSymbol(KnownTypeTag.@bool),
+			LiteralTokenKind.Char => Project.ResolveKnownTypeSymbol(KnownTypeTag.@char),
+			LiteralTokenKind.String => Project.ResolveKnownTypeSymbol(KnownTypeTag.@string),
 
 			_ => throw new UnreachableException(),
 		};
 
 		TypeSymbol LookupNumericInteger()
 		{
-			var explicitType = BuiltinTypeSystem.GetNumericTypeFromString(node.Literal.NumericType);
+			var explicitType = Project.ResolveKnownTypeSymbolFromName(node.Literal.NumericType);
 			if (explicitType != null)
 				return explicitType;
 
 			// TODO: How to account for integers that might end up being signed?
 			Debug.Assert(node.Literal.TryGetNumericIntegerValue(out var value));
 			if (value <= int.MaxValue)
-				return BuiltinTypeSystem.i32;
+				return Project.ResolveKnownTypeSymbol(KnownTypeTag.i32);
 			else
-				return BuiltinTypeSystem.i64;
+				return Project.ResolveKnownTypeSymbol(KnownTypeTag.i64);
 		}
 
 		TypeSymbol LookupNumericFloat()
 		{
-			var explicitType = BuiltinTypeSystem.GetNumericTypeFromString(node.Literal.NumericType);
+			var explicitType = Project.ResolveKnownTypeSymbolFromName(node.Literal.NumericType);
 			if (explicitType != null)
 				return explicitType;
 
 			// Floats are inferred as f64 by default.
-			return BuiltinTypeSystem.f64;
+			return Project.ResolveKnownTypeSymbol(KnownTypeTag.f64);
 		}
 	}
 
@@ -437,13 +434,7 @@ public class Reasoner
 
 	private FnTypeSymbol GetOrCreateUnnamedFnType(FnTypeKey key)
 	{
-		if (_unnamedFnTypeMap.TryGetValue(key, out var symbol))
-		{
-			return symbol;
-		}
-
-		symbol = CreateUnnamedFnTypeSymbol(key);
-		return _unnamedFnTypeMap[key] = symbol;
+		return ReasoningContext.UnnamedFnTypeMap.GetOrAdd(key, CreateUnnamedFnTypeSymbol);
 	}
 
 	private FnTypeSymbol GetNamedFnTypeSymbol(AliasDeclNode aliasDecl)
@@ -461,7 +452,7 @@ public class Reasoner
 		var isExtern = sig.Attrs.HasAttr(KnownAttrs.Extern);
 		return new FnTypeKey(
 			isExtern,
-			sig.ReturnType == null ? BuiltinTypeSystem.None : LookupSymbol(sig.ReturnType).AsTypeSymbolOrError(),
+			sig.ReturnType == null ? Project.ResolveKnownTypeSymbol(KnownTypeTag.None) : LookupSymbol(sig.ReturnType).AsTypeSymbolOrError(),
 			sig.Params.Select(p =>
 			{
 				return LookupSymbol(p.Type?.Type).AsTypeSymbolOrError();
@@ -473,7 +464,7 @@ public class Reasoner
 		var isExtern = fnType.Attrs.HasAttr(KnownAttrs.Extern);
 		return new FnTypeKey(
 			isExtern,
-			fnType.ReturnType == null ? BuiltinTypeSystem.None : LookupSymbol(fnType.ReturnType).AsTypeSymbolOrError(),
+			fnType.ReturnType == null ? Project.ResolveKnownTypeSymbol(KnownTypeTag.None) : LookupSymbol(fnType.ReturnType).AsTypeSymbolOrError(),
 			// TODO: Should be able to handle ParamTypes being null better.
 			fnType.ParamTypes == null ? [ErrorTypeSymbol.Create()] : fnType.ParamTypes.Select(p =>
 			{
@@ -481,22 +472,47 @@ public class Reasoner
 			}));
 	}
 
-	private class Builder(SyntaxTree tree, bool isPrelude) : SyntaxTreeVisitor
+	internal Reasoner? ResolveImportedFileReasoner(ImportNode import)
+	{
+		if (import.ModulePath is not LiteralExprNode literalExpr || !literalExpr.Literal.TryGetStringValue(out var modulePath) || modulePath == null)
+			return null;
+
+		var targetSourceFile = Project.ModuleResolver.ResolveModule(SourceFile, modulePath);
+		if (targetSourceFile == null)
+			return null;
+
+		return Project.GetReasoner(targetSourceFile);
+	}
+
+	internal TypeSymbol ResolveKnownTypeSymbol(KnownTypeTag tag)
+	{
+		Debug.Assert(_knownTypeTagToTypeSymbolMap != null, "This should only be called on a prelude reasoner.");
+
+		var found = _knownTypeTagToTypeSymbolMap.TryGetValue(tag, out var typeSymbol);
+		Debug.Assert(found);
+
+		return typeSymbol!;
+	}
+
+	private class Builder(SurabProject project, SyntaxTree tree, bool isPrelude) : SyntaxTreeVisitor
 	{
 		private class TempTypeContext
 		{
 			public int FieldCounter = 0;
 		}
 
-		private readonly Reasoner _reasoner = new(tree);
-		private readonly Dictionary<SyntaxNode, Symbol> _nodeToSymbolMap = [];
+		private readonly Reasoner _reasoner = new(project, tree);
 		private Scope? _parentScope;
 		private Symbol? _parentSymbol;
 		private TempTypeContext? _typeContext;
 
-		public static Reasoner Build(SyntaxTree tree, bool isPrelude)
+		public static Reasoner Build(SurabProject project, SyntaxTree tree, bool isPrelude = false)
 		{
-			var builder = new Builder(tree, isPrelude);
+			var builder = new Builder(project, tree, isPrelude);
+			if (isPrelude)
+			{
+				builder._reasoner._knownTypeTagToTypeSymbolMap = [];
+			}
 			builder.Build();
 			return builder._reasoner;
 		}
@@ -506,7 +522,7 @@ public class Reasoner
 			if (isPrelude)
 			{
 				// For the prelude, we'll especially go over the top level decls first to fill in BuiltinTypeSystem first thing before doing anything else.
-				// Lots of other processes here depends on BuiltinTypeSystem being initialized.
+				// Lots of other processes depends on these known types to be created first.
 
 				Debug.Assert(tree.Root is ModuleNode);
 				var moduleNode = (ModuleNode)tree.Root;
@@ -514,7 +530,16 @@ public class Reasoner
 				{
 					var symbol = GetOrCreateSymbolOnNode(decl);
 					Debug.Assert(symbol != null);
-					BuiltinTypeSystem.TryRegisterBuiltinSymbol(symbol);
+
+					if (symbol is TypeSymbol typeSymbol)
+					{
+						var tag = KnownTypes.GetTag(typeSymbol.Name);
+						typeSymbol.KnownTypeTag = tag;
+						if (tag != null)
+						{
+							_reasoner._knownTypeTagToTypeSymbolMap![tag.Value] = typeSymbol;
+						}
+					}
 				}
 			}
 
@@ -571,17 +596,13 @@ public class Reasoner
 		private Symbol? CreateSymbol(SyntaxNode node)
 		{
 			var symbol = GetOrCreateSymbolOnNode(node);
-			if (symbol != null)
-			{
-				symbol.SetParent(_parentSymbol);
-				_reasoner._nodeToSymbolMap[node] = symbol;
-			}
+			symbol?.SetParent(_parentSymbol);
 			return symbol;
 		}
 
 		private Symbol? GetOrCreateSymbolOnNode(SyntaxNode node)
 		{
-			if (_nodeToSymbolMap.TryGetValue(node, out var symbol))
+			if (_reasoner._nodeToSymbolMap.TryGetValue(node, out var symbol))
 				return symbol;
 
 			symbol = node switch
@@ -603,7 +624,7 @@ public class Reasoner
 
 			if (symbol != null)
 			{
-				_nodeToSymbolMap[node] = symbol;
+				_reasoner._nodeToSymbolMap[node] = symbol;
 			}
 
 			return symbol;
@@ -627,18 +648,23 @@ public class Reasoner
 			{
 				// Temporarily give non prelude modules the prelude reasoner to lookup exported symbols.
 				// Later, this should be given as part of the imported modules.
-				ModuleNode n => new ModuleScope(n, isPrelude ? null : Prelude.GetReasoner()),
+				ModuleNode n => CreateModuleScope(n),
 				StructDeclNode n => new StructDeclScope(n, (StructTypeSymbol)symbol!),
 				ClassDeclNode n => new ClassDeclScope(n, (NamedTypeSymbol)symbol!),
 				FnDeclNode n => new FnScope(n.Sig, (FnSymbol)symbol!),
 				MethodDeclNode n => new FnScope(n.Sig, (FnSymbol)symbol!),
 
-				// Create a new scope on each new var. This is to effectively allow shadowing vars.
+				// Create a new local scope on each new var that will leave until the end of the enclosing block.
 				VarStmtNode => new LocalScope((LocalSymbol)symbol!),
 				// TODO: const?
 
 				_ => null,
 			};
+		}
+
+		private ModuleScope CreateModuleScope(ModuleNode node)
+		{
+			return new ModuleScope(node, _reasoner, isPrelude ? null : project.PreludeReasoner);
 		}
 
 		private static TempTypeContext? CreateTypeContext(SyntaxNode node)

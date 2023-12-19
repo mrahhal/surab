@@ -1,4 +1,6 @@
-﻿namespace Surab.Analysis;
+﻿using Microsoft.VisualBasic;
+
+namespace Surab.Analysis;
 
 public class ReasonerTests
 {
@@ -8,8 +10,7 @@ public class ReasonerTests
 		var src = """
 			const a = 2;
 			""";
-		var tree = Parser.ParseModule(src);
-		var reasoner = Reasoner.Create(tree);
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
 		var decl = tree.Root.DescendantNodes().OfType<ConstDeclNode>().Single();
 		reasoner.TryGetDeclaredSymbol(decl, out var symbol).Should().BeTrue();
@@ -22,8 +23,7 @@ public class ReasonerTests
 		var src = """
 			const a = 2;
 			""";
-		var tree = Parser.ParseModule(src);
-		var reasoner = Reasoner.Create(tree);
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
 		reasoner.TryGetScope(tree.Root, out var symbol).Should().BeTrue();
 		symbol.Should().BeOfType<ModuleScope>();
@@ -36,8 +36,7 @@ public class ReasonerTests
 			const a = 2;
 			const b = a;
 			""";
-		var tree = Parser.ParseModule(src);
-		var reasoner = Reasoner.Create(tree);
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
 		var decl1 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().First();
 		var decl2 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().Skip(1).Single();
@@ -54,8 +53,7 @@ public class ReasonerTests
 			struct S1 { a: i32 = 42; }
 			fn f() { var s = S1 { }; var a = s.a; }
 			""";
-		var tree = Parser.ParseModule(src);
-		var reasoner = Reasoner.Create(tree);
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
 		var varStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Skip(1).Single();
 		var accessExpr = varStmt.Initializer!.Expr;
@@ -71,8 +69,7 @@ public class ReasonerTests
 			struct S1 { a: i32; }
 			fn f() { var s = S1 { a = 42 }; }
 			""";
-		var tree = Parser.ParseModule(src);
-		var reasoner = Reasoner.Create(tree);
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
 		var varStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Single();
 		var structCreationExpr = (StructCreationExprNode)varStmt.Initializer!.Expr;
@@ -82,7 +79,8 @@ public class ReasonerTests
 		var fieldType = reasoner.LookupType(mapInitializer.WellFormedExprs.ElementAt(0).Lhs);
 
 		fieldSymbol.Should().NotBeNull().And.BeAssignableTo<FieldSymbol>();
-		fieldType.Should().NotBeNull().And.Be(BuiltinTypeSystem.i32);
+		fieldType.Should().NotBeNull();
+		fieldType.KnownTypeTag.Should().Be(KnownTypeTag.i32);
 	}
 
 	[Fact]
@@ -94,18 +92,17 @@ public class ReasonerTests
 			const b = "2";
 			const d = true;
 			""";
-		var tree = Parser.ParseModule(src);
-		var reasoner = Reasoner.Create(tree);
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
 		var decl1 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().ElementAt(0);
 		var decl2 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().ElementAt(1);
 		var decl3 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().ElementAt(2);
 		var decl4 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().ElementAt(3);
 
-		reasoner.LookupType(decl1.Initializer!.Expr).Should().Be(BuiltinTypeSystem.i32);
-		reasoner.LookupType(decl2.Initializer!.Expr).Should().Be(BuiltinTypeSystem.@char);
-		reasoner.LookupType(decl3.Initializer!.Expr).Should().Be(BuiltinTypeSystem.@string);
-		reasoner.LookupType(decl4.Initializer!.Expr).Should().Be(BuiltinTypeSystem.@bool);
+		reasoner.LookupType(decl1.Initializer!.Expr).KnownTypeTag.Should().Be(KnownTypeTag.i32);
+		reasoner.LookupType(decl2.Initializer!.Expr).KnownTypeTag.Should().Be(KnownTypeTag.@char);
+		reasoner.LookupType(decl3.Initializer!.Expr).KnownTypeTag.Should().Be(KnownTypeTag.@string);
+		reasoner.LookupType(decl4.Initializer!.Expr).KnownTypeTag.Should().Be(KnownTypeTag.@bool);
 	}
 
 	[Fact]
@@ -116,12 +113,11 @@ public class ReasonerTests
 				var a = { 2 };
 			}
 			""";
-		var tree = Parser.ParseModule(src);
-		var reasoner = Reasoner.Create(tree);
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
 		var letStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Single();
 		var initializerSymbol = reasoner.LookupType(letStmt.Initializer!);
-		initializerSymbol.Should().Be(BuiltinTypeSystem.i32);
+		initializerSymbol.KnownTypeTag.Should().Be(KnownTypeTag.i32);
 	}
 
 	[Fact]
@@ -130,8 +126,7 @@ public class ReasonerTests
 		var src = """
 			alias Integer as i32;
 			""";
-		var tree = Parser.ParseModule(src);
-		var reasoner = Reasoner.Create(tree);
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
 		var aliasDecl = tree.Root.DescendantNodes().OfType<AliasDeclNode>().Single();
 		reasoner.TryGetDeclaredSymbol(aliasDecl, out var symbol).Should().BeTrue();
@@ -145,12 +140,11 @@ public class ReasonerTests
 			alias Integer as i32;
 			alias AnotherInteger as Integer;
 			""";
-		var tree = Parser.ParseModule(src);
-		var reasoner = Reasoner.Create(tree);
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
 		var anotherIntegerAliasDecl = tree.Root.DescendantNodes().OfType<AliasDeclNode>().ElementAt(1);
 		var symbol = (AliasTypeSymbol)reasoner.GetDeclaredSymbol(anotherIntegerAliasDecl)!;
-		symbol.UnwrapAliases().Should().Be(BuiltinTypeSystem.i32);
+		symbol.UnwrapAliases().KnownTypeTag.Should().Be(KnownTypeTag.i32);
 	}
 
 	[Fact]
@@ -160,13 +154,12 @@ public class ReasonerTests
 			alias Integer as i32;
 			alias AnotherInteger as Integer;
 			""";
-		var tree = Parser.ParseModule(src);
-		var reasoner = Reasoner.Create(tree);
+		var (project, tree, reasoner) = AnalysisTestUtils.CreateProjectAndTreeAndReasoner(src);
 
 		var anotherIntegerAliasDecl = tree.Root.DescendantNodes().OfType<AliasDeclNode>().ElementAt(1);
 		var symbol = (AliasTypeSymbol)reasoner.GetDeclaredSymbol(anotherIntegerAliasDecl)!;
-		symbol.IsAssignableFrom(BuiltinTypeSystem.i32);
-		BuiltinTypeSystem.i32.IsAssignableFrom(symbol);
+		symbol.IsAssignableFrom(project.ResolveKnownTypeSymbol(KnownTypeTag.i32));
+		project.ResolveKnownTypeSymbol(KnownTypeTag.i32).IsAssignableFrom(symbol);
 	}
 
 	[Fact]
@@ -176,8 +169,7 @@ public class ReasonerTests
 			alias Delegate1 as fn (i32) f64;
 			alias Delegate2 as fn (i32) f64;
 			""";
-		var tree = Parser.ParseModule(src);
-		var reasoner = Reasoner.Create(tree);
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
 		var aliasDecl1 = tree.Root.DescendantNodes().OfType<AliasDeclNode>().ElementAt(0);
 		var aliasDecl2 = tree.Root.DescendantNodes().OfType<AliasDeclNode>().ElementAt(1);
@@ -196,12 +188,11 @@ public class ReasonerTests
 				f1();
 			}
 			""";
-		var tree = Parser.ParseModule(src);
-		var reasoner = Reasoner.Create(tree);
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
 		var callExpr = tree.Root.DescendantNodes().OfType<CallExprNode>().Single();
 		var callType = reasoner.LookupType(callExpr);
-		callType.Should().Be(BuiltinTypeSystem.i32);
+		callType.KnownTypeTag.Should().Be(KnownTypeTag.i32);
 	}
 
 	[Fact]
@@ -215,12 +206,11 @@ public class ReasonerTests
 				f();
 			}
 			""";
-		var tree = Parser.ParseModule(src);
-		var reasoner = Reasoner.Create(tree);
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
 		var callExpr = tree.Root.DescendantNodes().OfType<CallExprNode>().Single();
 		var callType = reasoner.LookupType(callExpr);
-		callType.Should().Be(BuiltinTypeSystem.i32);
+		callType.KnownTypeTag.Should().Be(KnownTypeTag.i32);
 	}
 
 	[Fact]
@@ -230,13 +220,13 @@ public class ReasonerTests
 			struct S1 { a: i32 = 42; }
 			fn f() { var s = S1 { }; var a = s.a; }
 			""";
-		var tree = Parser.ParseModule(src);
-		var reasoner = Reasoner.Create(tree);
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
 		var varStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Skip(1).Single();
 		var accessExpr = varStmt.Initializer!.Expr;
 		var fieldType = reasoner.LookupType(accessExpr);
-		fieldType.Should().NotBeNull().And.Be(BuiltinTypeSystem.i32);
+		fieldType.Should().NotBeNull();
+		fieldType.KnownTypeTag.Should().Be(KnownTypeTag.i32);
 	}
 
 	[Fact]
@@ -245,13 +235,12 @@ public class ReasonerTests
 		var src = """
 			fn f() { var n = 32f32; }
 			""";
-		var tree = Parser.ParseModule(src);
-		var reasoner = Reasoner.Create(tree);
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
 		var varStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Single();
 		var literalExpr = varStmt.Initializer!.Expr;
 		var numericType = reasoner.LookupType(literalExpr);
-		numericType.Should().Be(BuiltinTypeSystem.f32);
+		numericType.KnownTypeTag.Should().Be(KnownTypeTag.f32);
 	}
 
 	[Fact]
@@ -262,8 +251,7 @@ public class ReasonerTests
 				var a: Unknown = 2;
 			}
 			""";
-		var tree = Parser.ParseModule(src);
-		var reasoner = Reasoner.Create(tree);
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
 		var letStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Single();
 		reasoner.TryGetDeclaredSymbol(letStmt, out var symbol).Should().BeTrue();
@@ -275,40 +263,39 @@ public class ReasonerTests
 	[Fact]
 	public void Symbol_InferType_NumericInteger_i32()
 	{
-		ExpectLocalInferredTypeFromExpr("2", BuiltinTypeSystem.i32);
+		ExpectLocalInferredTypeFromExpr("2", KnownTypeTag.i32);
 	}
 
 	[Fact]
 	public void Symbol_InferType_NumericFloat_f64()
 	{
-		ExpectLocalInferredTypeFromExpr("2.0", BuiltinTypeSystem.f64);
+		ExpectLocalInferredTypeFromExpr("2.0", KnownTypeTag.f64);
 	}
 
 	[Fact]
 	public void Symbol_InferType_Block()
 	{
-		ExpectLocalInferredTypeFromExpr("{ 2 }", BuiltinTypeSystem.i32);
+		ExpectLocalInferredTypeFromExpr("{ 2 }", KnownTypeTag.i32);
 	}
 
-	private void ExpectLocalInferredTypeFromExpr(string expr, TypeSymbol expectedType)
+	private void ExpectLocalInferredTypeFromExpr(string expr, KnownTypeTag expectedTypeTag)
 	{
 		var src = $$"""
 			fn f() {
 				var a = {{expr}};
 			}
 			""";
-		ExpectLocalInferredType(src, expectedType);
+		ExpectLocalInferredType(src, expectedTypeTag);
 	}
 
-	private void ExpectLocalInferredType(string src, TypeSymbol expectedType)
+	private void ExpectLocalInferredType(string src, KnownTypeTag expectedTypeTag)
 	{
-		var tree = Parser.ParseModule(src);
-		var reasoner = Reasoner.Create(tree);
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
 		var letStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Single();
 		reasoner.TryGetDeclaredSymbol(letStmt, out var symbol).Should().BeTrue();
 		var localSymbol = symbol.Should().BeOfType<LocalSymbol>().Subject;
-		localSymbol.Type.Should().Be(expectedType);
+		localSymbol.Type.KnownTypeTag.Should().Be(expectedTypeTag);
 		localSymbol.IsTypeInferred.Should().BeTrue();
 	}
 
@@ -320,13 +307,12 @@ public class ReasonerTests
 				a = true;
 			}
 			""";
-		var tree = Parser.ParseModule(src);
-		var reasoner = Reasoner.Create(tree);
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
 		var fieldDecl = tree.Root.DescendantNodes().OfType<FieldDeclNode>().Single();
 		reasoner.TryGetDeclaredSymbol(fieldDecl, out var symbol).Should().BeTrue();
 		var fieldSymbol = (FieldSymbol)symbol!;
-		fieldSymbol.Type.Should().Be(BuiltinTypeSystem.@bool);
+		fieldSymbol.Type.KnownTypeTag.Should().Be(KnownTypeTag.@bool);
 		fieldSymbol.IsTypeInferred.Should().BeTrue();
 	}
 
@@ -336,13 +322,12 @@ public class ReasonerTests
 		var src = """
 			fn f() { }
 			""";
-		var tree = Parser.ParseModule(src);
-		var reasoner = Reasoner.Create(tree);
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
 		var fnDecl = tree.Root.DescendantNodes().OfType<FnDeclNode>().Single();
 		reasoner.TryGetDeclaredSymbol(fnDecl, out var symbol).Should().BeTrue();
 		var fnSymbol = symbol.Should().BeOfType<FnSymbol>().Subject;
-		fnSymbol.ReturnType.Should().Be(BuiltinTypeSystem.None);
+		fnSymbol.ReturnType.KnownTypeTag.Should().Be(KnownTypeTag.None);
 	}
 
 	[Fact]
@@ -353,8 +338,7 @@ public class ReasonerTests
 			fn f2(a: i32, b: i32) i64 { return 2.0; }
 			fn f3(a: i32, b: i32) { }
 			""";
-		var tree = Parser.ParseModule(src);
-		var reasoner = Reasoner.Create(tree);
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
 		var f1Node = tree.Root.DescendantNodes().OfType<FnDeclNode>().ElementAt(0);
 		var f1Symbol = (FnSymbol)reasoner.GetDeclaredSymbol(f1Node)!;
@@ -375,8 +359,7 @@ public class ReasonerTests
 			@extern fn f2(a: i32, b: i32) i64 { return 2.0; }
 			fn f3(a: i32, b: i32) i64 { return 3.0; }
 			""";
-		var tree = Parser.ParseModule(src);
-		var reasoner = Reasoner.Create(tree);
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
 		var f1Node = tree.Root.DescendantNodes().OfType<FnDeclNode>().ElementAt(0);
 		var f1Symbol = (FnSymbol)reasoner.GetDeclaredSymbol(f1Node)!;
@@ -399,8 +382,7 @@ public class ReasonerTests
 				var f3: fn (i32, i32);
 			}
 			""";
-		var tree = Parser.ParseModule(src);
-		var reasoner = Reasoner.Create(tree);
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
 		var f1Node = tree.Root.DescendantNodes().OfType<VarStmtNode>().ElementAt(0);
 		var f1Symbol = (LocalSymbol)reasoner.GetDeclaredSymbol(f1Node)!;
@@ -427,8 +409,7 @@ public class ReasonerTests
 				var f2: fn (i32, Integer2, Integer2) Float;
 			}
 			""";
-		var tree = Parser.ParseModule(src);
-		var reasoner = Reasoner.Create(tree);
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
 		var f1Node = tree.Root.DescendantNodes().OfType<VarStmtNode>().ElementAt(0);
 		var f1Symbol = (LocalSymbol)reasoner.GetDeclaredSymbol(f1Node)!;
@@ -446,8 +427,7 @@ public class ReasonerTests
 			fn f1(a: Unknown) { }
 			fn f2(a: Unknown) { }
 			""";
-		var tree = Parser.ParseModule(src);
-		var reasoner = Reasoner.Create(tree);
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
 		var fnDeclNode1 = tree.Root.DescendantNodes().OfType<FnDeclNode>().ElementAt(0);
 		var fnSymbol1 = (FnSymbol)reasoner.GetDeclaredSymbol(fnDeclNode1)!;
@@ -463,8 +443,7 @@ public class ReasonerTests
 		var src = """
 			@extern fn f();
 			""";
-		var tree = Parser.ParseModule(src);
-		var reasoner = Reasoner.Create(tree);
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
 		var fnDecl = tree.Root.DescendantNodes().OfType<FnDeclNode>().Single();
 		reasoner.TryGetDeclaredSymbol(fnDecl, out var symbol).Should().BeTrue();
@@ -479,8 +458,7 @@ public class ReasonerTests
 			struct S1 { }
 			fn f() { }
 			""";
-		var tree = Parser.ParseModule(src);
-		var reasoner = Reasoner.Create(tree);
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
 		var fnDecl = tree.Root.DescendantNodes().OfType<FnDeclNode>().Single();
 		reasoner.TryGetDeclaredSymbol(fnDecl, out var symbol).Should().BeTrue();

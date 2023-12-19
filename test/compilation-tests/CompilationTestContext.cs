@@ -30,12 +30,12 @@ public class CompilationTestContext
 				c: char;
 			}
 			""";
-
-		var tree = Parser.ParseModule(src);
-		var reasoner = Reasoner.Create(tree);
+		//var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
+		var (project, sourceFile) = AnalysisTestUtils.CreateProject(src);
+		var reasoner = project.GetReasoner(sourceFile);
 
 		var llvm = LLVMCompilationContext.Create();
-		var reasoners = new List<Reasoner> { Prelude.GetReasoner(), reasoner };
+		var reasoners = project.GetAllReasoners().ToList();
 
 		var target = new x86_64WindowsMSVCTarget();
 		var context = new CompilationContext(reasoners, target, llvm, CompilationOptions.CreateDefault());
