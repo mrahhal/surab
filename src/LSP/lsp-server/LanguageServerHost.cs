@@ -56,6 +56,7 @@ public class LanguageServerHost
 				await InitializeProjectAsync(workspaceUri);
 			})
 			.WithHandler<TextDocumentSyncHandler>()
+			.WithHandler<DidChangeWatchedFilesHandler>()
 			.WithHandler<SemanticTokensFullHandler>()
 			.WithHandler<DefinitionHandler>()
 			.WithHandler<DeclarationHandler>()

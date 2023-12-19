@@ -9,16 +9,49 @@ namespace Surab.LSPServer.Handlers;
 
 public class DidChangeWatchedFilesHandler(
 	ILogger<DidChangeWatchedFilesHandler> logger,
-	LanguageServerHost host) : DidChangeWatchedFilesHandlerBase
+	SurabSolver solver) : DidChangeWatchedFilesHandlerBase
 {
 	private readonly ILogger _logger = logger;
-	private readonly LanguageServerHost _host = host;
+	private readonly SurabSolver _solver = solver;
 
 	public override Task<Unit> Handle(DidChangeWatchedFilesParams request, CancellationToken cancellationToken)
 	{
 		_logger.LogInformation("[DidChangeWatchedFilesParams]");
 
-		// TODO
+		foreach (var change in request.Changes)
+		{
+			switch (change.Type)
+			{
+				case FileChangeType.Created:
+					{
+						var path = change.Uri.GetFileSystemPath();
+						var sourceFile = SourceFile.Create(path, File.ReadAllText(path));
+						_solver.Project.AddSourceFile(sourceFile);
+					}
+					break;
+
+				case FileChangeType.Changed:
+					{
+						// Nothing to do here. This is covered by DidChangeTextDocumentParams.
+					}
+					break;
+
+				case FileChangeType.Deleted:
+					{
+						var sourceFile = _solver.GetSourceFile(change.Uri);
+						if (sourceFile != null)
+						{
+							_solver.Project.RemoveSourceFile(sourceFile);
+						}
+					}
+					break;
+				default:
+					break;
+			}
+		}
+
+		// TODO: Shouldn't be here.
+		_solver.Project.EnsureAnalyzed();
 
 		return Unit.Task;
 	}
