@@ -5,6 +5,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\analysis-tests\analysis-tests.csproj" />
 		<ProjectReference Include="..\..\src\compilation\compilation.csproj" />
 	</ItemGroup>
 
