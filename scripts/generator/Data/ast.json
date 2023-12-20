@@ -582,11 +582,6 @@
 		{
 			"Name": "Param",
 			"Members": [
-				//{
-				//	"Name": "fieldToken",
-				//	"Type": "SimpleToken",
-				//	"Optional": true
-				//},
 				{
 					"Name": "identifier",
 					"Type": "IdentifierToken"

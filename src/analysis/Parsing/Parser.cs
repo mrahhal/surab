@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace Surab.Analysis;
 
@@ -1034,6 +1035,8 @@ internal class ParserImpl
 
 		while (true)
 		{
+			VerifyLoopIsNotPossiblyInfinite(items, threshold: 1_000_000);
+
 			if (IsAtEnd() || CheckToken(TokenKind.RightBrace) || (!_current.Kind.CanStartExpr() && !CheckToken(TokenKind.Comma)))
 				break;
 
@@ -1145,6 +1148,8 @@ internal class ParserImpl
 
 		while (true)
 		{
+			VerifyLoopIsNotPossiblyInfinite(@params);
+
 			if (IsAtEnd() || CheckToken(TokenKind.RightParen) || (!_current.Kind.CanStartParam() && !CheckToken(TokenKind.Comma)))
 				break;
 
@@ -1157,13 +1162,12 @@ internal class ParserImpl
 	}
 
 	/// <summary>
-	/// Parses `field identifier: Type,`
+	/// Parses `identifier: Type,`
 	/// </summary>
 	private ParamNode ParseParam()
 	{
 		Debug.Assert(!IsAtEnd() && (_current.Kind.CanStartParam() || CheckToken(TokenKind.Comma)));
 
-		//var fieldToken = TryEatSimpleToken(TokenKind.Field);
 		var identifier = ParseIdentifier();
 		var type = ParseOptionalColonType();
 		var commaToken = TryEatSimpleToken(TokenKind.Comma);
@@ -1182,6 +1186,8 @@ internal class ParserImpl
 
 		while (true)
 		{
+			VerifyLoopIsNotPossiblyInfinite(paramTypes);
+
 			if (IsAtEnd() || CheckToken(TokenKind.RightParen) || (!_current.Kind.CanStartType() && !CheckToken(TokenKind.Comma)))
 				break;
 
@@ -1218,6 +1224,8 @@ internal class ParserImpl
 
 		while (true)
 		{
+			VerifyLoopIsNotPossiblyInfinite(args);
+
 			if (IsAtEnd() || CheckToken(TokenKind.RightParen) || (!_current.Kind.CanStartExpr() && !CheckToken(TokenKind.Comma)))
 				break;
 
@@ -1290,6 +1298,8 @@ internal class ParserImpl
 
 		while (true)
 		{
+			VerifyLoopIsNotPossiblyInfinite(attrs);
+
 			if (!CheckToken(TokenKind.AtBeforeIdentifier))
 			{
 				break;
@@ -1323,5 +1333,13 @@ internal class ParserImpl
 		}
 
 		return new AttrNode(_tree, atToken, identifier, args);
+	}
+
+	private void VerifyLoopIsNotPossiblyInfinite<T>(IReadOnlyList<T>? list, int threshold = 1_000, [CallerMemberName] string memberName = null!)
+	{
+		if (list != null && list.Count > threshold)
+		{
+			throw new Exception($"Possibly infinite loop adding to a list: {memberName}");
+		}
 	}
 }
