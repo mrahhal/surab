@@ -8,227 +8,227 @@ namespace Surab.Analysis;
 public abstract partial class SyntaxTreeVisitor
 {
 	public virtual void VisitModule(ModuleNode node)
-    {
-        Walk(node);
-    }
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitImportsList(ImportsListNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitImportsList(ImportsListNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitImport(ImportNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitImport(ImportNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitConstDecl(ConstDeclNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitConstDecl(ConstDeclNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitFnDecl(FnDeclNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitFnDecl(FnDeclNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitMethodDecl(MethodDeclNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitMethodDecl(MethodDeclNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitAliasDecl(AliasDeclNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitAliasDecl(AliasDeclNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitStructDecl(StructDeclNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitStructDecl(StructDeclNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitClassDecl(ClassDeclNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitClassDecl(ClassDeclNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitDeclsList(DeclsListNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitDeclsList(DeclsListNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitFieldDecl(FieldDeclNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitFieldDecl(FieldDeclNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitSkippedTokensDecl(SkippedTokensDeclNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitSkippedTokensDecl(SkippedTokensDeclNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitVarStmt(VarStmtNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitVarStmt(VarStmtNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitReturnStmt(ReturnStmtNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitReturnStmt(ReturnStmtNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitExprStmt(ExprStmtNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitExprStmt(ExprStmtNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitBareExprStmt(BareExprStmtNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitBareExprStmt(BareExprStmtNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitSkippedTokensStmt(SkippedTokensStmtNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitSkippedTokensStmt(SkippedTokensStmtNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitBlockExpr(BlockExprNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitBlockExpr(BlockExprNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitAssignmentExpr(AssignmentExprNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitAssignmentExpr(AssignmentExprNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitUnaryExpr(UnaryExprNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitUnaryExpr(UnaryExprNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitBinaryExpr(BinaryExprNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitBinaryExpr(BinaryExprNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitGroupingExpr(GroupingExprNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitGroupingExpr(GroupingExprNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitCallExpr(CallExprNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitCallExpr(CallExprNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitAccessExpr(AccessExprNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitAccessExpr(AccessExprNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitLiteralExpr(LiteralExprNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitLiteralExpr(LiteralExprNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitIdentifierExpr(IdentifierExprNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitIdentifierExpr(IdentifierExprNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitThisExpr(ThisExprNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitThisExpr(ThisExprNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitStructCreationExpr(StructCreationExprNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitStructCreationExpr(StructCreationExprNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitMissingExpr(MissingExprNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitMissingExpr(MissingExprNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitMapInitializer(MapInitializerNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitMapInitializer(MapInitializerNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitMapInitializerItem(MapInitializerItemNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitMapInitializerItem(MapInitializerItemNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitParamsList(ParamsListNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitParamsList(ParamsListNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitParam(ParamNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitParam(ParamNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitParamTypesList(ParamTypesListNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitParamTypesList(ParamTypesListNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitParamType(ParamTypeNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitParamType(ParamTypeNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitArgsList(ArgsListNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitArgsList(ArgsListNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitArg(ArgNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitArg(ArgNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitColonType(ColonTypeNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitColonType(ColonTypeNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitNamedType(NamedTypeNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitNamedType(NamedTypeNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitFnType(FnTypeNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitFnType(FnTypeNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitMissingType(MissingTypeNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitMissingType(MissingTypeNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitFnSig(FnSigNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitFnSig(FnSigNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitEqualsExprClause(EqualsExprClauseNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitEqualsExprClause(EqualsExprClauseNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitAttrsList(AttrsListNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitAttrsList(AttrsListNode node)
+	{
+		Walk(node);
+	}
 
-    public virtual void VisitAttr(AttrNode node)
-    {
-        Walk(node);
-    }
+	public virtual void VisitAttr(AttrNode node)
+	{
+		Walk(node);
+	}
 }
