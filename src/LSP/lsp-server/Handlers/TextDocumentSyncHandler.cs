@@ -6,6 +6,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server.Capabilities;
+using OmniSharp.Extensions.LanguageServer.Protocol.Window;
 
 namespace Surab.LSPServer.Handlers;
 
@@ -52,27 +53,40 @@ public class TextDocumentSyncHandler(
 				Percentage = 10,
 			});
 
-		var sourceFile = _solver.GetSourceFile(textDocument)!;
-
-		_solver.Project.EnsureAnalyzed();
-
-		progress.OnNext("Collecting diags...", 70, null);
-
-		foreach (var fileDiagnostics in _solver.Project.GetProjectDiagnostics())
+		try
 		{
-			_solver.Server.PublishDiagnostics(new PublishDiagnosticsParams
+			var sourceFile = _solver.GetSourceFile(textDocument)!;
+
+			_solver.Project.EnsureAnalyzed();
+
+			progress.OnNext("Collecting diags...", 70, null);
+
+			foreach (var fileDiagnostics in _solver.Project.GetProjectDiagnostics())
 			{
-				Uri = DocumentUri.FromFileSystemPath(fileDiagnostics.SourceFile.Path!),
-				Diagnostics = Container.From(fileDiagnostics.Diagnostics.Select(d => new OmniSharp.Extensions.LanguageServer.Protocol.Models.Diagnostic
+				_solver.Server.PublishDiagnostics(new PublishDiagnosticsParams
 				{
-					Range = ConversionHelper.FromTo(d.Span),
-					Severity = ConversionHelper.FromTo(d.Level),
-					Message = d.Message,
-				})),
+					Uri = DocumentUri.FromFileSystemPath(fileDiagnostics.SourceFile.Path!),
+					Diagnostics = Container.From(fileDiagnostics.Diagnostics.Select(d => new OmniSharp.Extensions.LanguageServer.Protocol.Models.Diagnostic
+					{
+						Range = ConversionHelper.FromTo(d.Span),
+						Severity = ConversionHelper.FromTo(d.Level),
+						Message = d.Message,
+					})),
+				});
+			}
+		}
+		catch
+		{
+			_solver.Server.ShowMessage(new ShowMessageParams
+			{
+				Message = "Failed while analyzing.",
+				Type = MessageType.Error,
 			});
 		}
-
-		progress.OnCompleted();
+		finally
+		{
+			progress.OnCompleted();
+		}
 	}
 
 	public override Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken token)
