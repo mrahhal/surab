@@ -1168,11 +1168,12 @@ internal class ParserImpl
 	{
 		Debug.Assert(!IsAtEnd() && (_current.Kind.CanStartParam() || CheckToken(TokenKind.Comma)));
 
+		var attrs = ParseOptionalAttrsList();
 		var identifier = ParseIdentifier();
 		var type = ParseOptionalColonType();
 		var commaToken = TryEatSimpleToken(TokenKind.Comma);
 
-		return new ParamNode(_tree, identifier, type, commaToken);
+		return new ParamNode(_tree, attrs, identifier, type, commaToken);
 	}
 
 	/// <summary>
