@@ -38,6 +38,8 @@ public abstract class Symbol
 	/// </summary>
 	public virtual SyntaxNode? DeclaringNode => null;
 
+	public virtual SourceFile? DeclaringSourceFile => DeclaringNode?.Tree.SourceFile;
+
 	public virtual IdentifierToken? Identifier => null;
 
 	public virtual string? Name => Identifier?.Value;

@@ -88,7 +88,7 @@ public class SurabSolver(
 			var span = symbol.DeclaringNode?.GetMainIdentifierToken()?.Span ?? symbol.DeclaringNode?.Span ?? new();
 			var locations = new LocationOrLocationLinks(new LocationOrLocationLink(new Location
 			{
-				Uri = DocumentUri.FromFileSystemPath(symbol.DeclaringNode!.Tree.SourceFile.Path!),
+				Uri = DocumentUri.FromFileSystemPath(symbol.DeclaringSourceFile!.Path!),
 				Range = ConversionHelper.FromTo(span),
 			}));
 			return locations;
