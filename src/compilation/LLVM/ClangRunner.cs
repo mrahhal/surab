@@ -21,13 +21,13 @@ internal static class ClangRunner
 
 		var nativeLibs = string.Join(' ', AdditionalLibs.Split(' ').Select(x => $"-l{x}"));
 		var arguments = $$"""
-            -fuse-ld=lld-link
-            {{nativeLibs}}
-            {{surabRuntimeLib}}
-            {{string.Join(' ', llFiles)}}
-            -o {{outputFileName}}
-            -v
-            """;
+			-fuse-ld=lld-link
+			{{nativeLibs}}
+			{{surabRuntimeLib}}
+			{{string.Join(' ', llFiles)}}
+			-o {{outputFileName}}
+			-v
+			""";
 
 		var p = new Process
 		{
