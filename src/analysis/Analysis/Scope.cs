@@ -237,7 +237,9 @@ internal class TypeDeclScope(NamedTypeSymbol symbol) : Scope
 
 	public override Symbol? LookupIdentifierHere(string identifier)
 	{
-		return LookupIdentifierIn(_symbol.Members, identifier);
+		// Type members are accessed through `this`, so they're not visible from the scope.
+		return null;
+		//return LookupIdentifierIn(_symbol.Members, identifier);
 	}
 
 	public override TypeSymbol? LookupThisHere()

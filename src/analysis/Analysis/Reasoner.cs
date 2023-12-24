@@ -124,6 +124,7 @@ public class Reasoner
 		return node switch
 		{
 			IdentifierExprNode n => LookupSymbol(n),
+			ThisExprNode n => LookupSymbol(n),
 			NamedTypeNode n => LookupSymbol(n.Identifier, n),
 			FnTypeNode n => LookupSymbol(n),
 			ArgNode n => LookupSymbol(n.Expr),
@@ -147,8 +148,14 @@ public class Reasoner
 
 	public Symbol? LookupSymbol(IdentifierExprNode node)
 	{
-		var scope = ResolveScopeForIdentifier(node);
-		return LookupSymbol(node.Identifier, scope);
+		if (TryResolveIdentifierExprSymbolInCreationExpr(node, out var symbol))
+		{
+			return symbol;
+		}
+		else
+		{
+			return LookupSymbol(node.Identifier, node);
+		}
 	}
 
 	private Symbol? LookupSymbol(IdentifierToken identifier, SyntaxNode node)
@@ -160,6 +167,12 @@ public class Reasoner
 	private Symbol? LookupSymbol(IdentifierToken identifier, Scope? scope)
 	{
 		return scope?.LookupIdentifier(identifier);
+	}
+
+	private Symbol? LookupSymbol(ThisExprNode node)
+	{
+		var scope = GetEnclosingScope(node);
+		return scope?.LookupThis();
 	}
 
 	internal FnTypeSymbol? LookupSymbol(FnTypeNode node)
@@ -334,8 +347,14 @@ public class Reasoner
 
 	private TypeSymbol LookupType(IdentifierExprNode node)
 	{
-		var scope = ResolveScopeForIdentifier(node);
-		return LookupType(node.Identifier, scope);
+		if (TryResolveIdentifierExprSymbolInCreationExpr(node, out var symbol))
+		{
+			return (symbol as ISymbolHasType)?.Type ?? ErrorTypeSymbol.Create();
+		}
+		else
+		{
+			return LookupType(node.Identifier, node);
+		}
 	}
 
 	private TypeSymbol LookupType(IdentifierToken identifier, SyntaxNode node)
@@ -358,8 +377,9 @@ public class Reasoner
 
 	private TypeSymbol LookupType(ThisExprNode node)
 	{
-		var scope = GetEnclosingScope(node);
-		return scope?.LookupThis() ?? ErrorTypeSymbol.Create();
+		// A this expr's type is also its symbol.
+		var symbol = LookupSymbol(node);
+		return symbol as TypeSymbol ?? ErrorTypeSymbol.Create();
 	}
 
 	private TypeSymbol LookupType(StructCreationExprNode node)
@@ -368,23 +388,24 @@ public class Reasoner
 	}
 
 	/// <summary>
-	/// Resolves the correct <see cref="Scope"/> to resolve identifier symbol/type.
-	/// Resolves to either the containing scope, a type, etc, depending on what the identifier really means (e.g. local identifier vs identifier inside MapInitializer).
+	/// If the identifier expr is a part of setting a symbol in a creation expr, this method returns true and tries to resolve that symbol.
+	/// Otherwise false is returned.
 	/// </summary>
-	private Scope? ResolveScopeForIdentifier(IdentifierExprNode identifierExpr)
+	private bool TryResolveIdentifierExprSymbolInCreationExpr(IdentifierExprNode identifierExpr, out Symbol? symbol)
 	{
+		symbol = null;
+		// The identifier inside a creation expr: `S1 { a = 42 }`
 		if (identifierExpr.Parent is AssignmentExprNode assignmentExpr &&
 			assignmentExpr.Lhs == identifierExpr &&
 			assignmentExpr.Parent is MapInitializerItemNode mapInitializerItem &&
 			mapInitializerItem.Parent is MapInitializerNode mapInitializer &&
 			mapInitializer.Parent is StructCreationExprNode structCreationExpr)
 		{
-			// Creating a struct: `S1 { a = 42 }`
-			// Identifier `a` should return the S1 struct's scope.
 			var structType = LookupType(structCreationExpr);
-			return structType?.Scope;
+			symbol = structType?.GetCreationSymbol(identifierExpr.Identifier)?.Symbol;
+			return true;
 		}
-		return GetEnclosingScope(identifierExpr);
+		return false;
 	}
 
 	public TypeSymbol? InferTypeOfDeclaringNode(SyntaxNode node)

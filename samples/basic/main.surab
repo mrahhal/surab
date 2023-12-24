@@ -7,6 +7,12 @@ alias Delegate1 as @extern fn (S2);
 struct S1 {
 	a: f64;
 	b: bool;
+
+	c: i32 = 0;
+
+	(c: i32 = 3) {
+		this.c = c;
+	}
 }
 
 @extern
@@ -45,6 +51,7 @@ fn main() {
 	var s1 = S1 {
 		a = 82.0,
 		b = true,
+		c = 4,
 	};
 	print_f64(s1.a);
 	s1.a = 83.0;

@@ -83,17 +83,42 @@ public enum ContextualKeyword
 	Import,
 }
 
-internal static class SimpleTokenHelper
+public enum MethodOp
 {
-	public static readonly Dictionary<ContextualKeyword, string> ContextualKeywordsMap = new()
+	Add,
+	Sub,
+	Mul,
+	Div,
+}
+
+internal static class TokenHelper
+{
+	private static readonly Dictionary<ContextualKeyword, string> ContextualKeywordsMap = new()
 	{
 		{ ContextualKeyword.As, "as" },
 		{ ContextualKeyword.Import, "import" },
 	};
 
+	private static readonly Dictionary<string, MethodOp> StringToMethodOpMap = new()
+	{
+		{ "+", MethodOp.Add },
+		{ "-", MethodOp.Sub },
+		{ "*", MethodOp.Mul },
+		{ "/", MethodOp.Div },
+	};
+
 	public static bool IsContextualKeyword(ContextualKeyword contextualKeyword, ReadOnlySpan<char> str)
 	{
 		if (ContextualKeywordsMap.TryGetValue(contextualKeyword, out var value) && MemoryExtensions.Equals(str, value.AsSpan(), StringComparison.Ordinal))
+		{
+			return true;
+		}
+		return false;
+	}
+
+	public static bool TryGetMethodOp(string str, out MethodOp op)
+	{
+		if (StringToMethodOpMap.TryGetValue(str, out op))
 		{
 			return true;
 		}
@@ -315,11 +340,11 @@ public enum BinaryOperatorTokenKind
 	Mul,
 	Div,
 	Pow,
-	And,
-	Or,
-	BitAnd,
-	BitOr,
-	BitXor,
+	And,	// &&
+	Or,		// ||
+	BitAnd,	// &
+	BitOr,	// |
+	BitXor,	// ^
 	Eq,
 	Ne,
 	Lt,
@@ -794,6 +819,24 @@ public partial class ImportNode
 			return value!;
 		}
 	}
+}
+
+public partial class MethodDeclNode
+{
+	/// <summary>
+	/// Gets whether the method is normally callable (not initializer or op).
+	/// </summary>
+	public bool IsNormallyCallable => !IsInitializer && !IsMethodOp;
+
+	/// <summary>
+	/// Gets whether the method is the special initializer method `() { }`.
+	/// </summary>
+	public bool IsInitializer => !Sig.Identifier.IsMissing && Sig.Identifier.Value == string.Empty;
+
+	/// <summary>
+	/// Gets whether the method is an implementation of an operator.
+	/// </summary>
+	public bool IsMethodOp => TokenHelper.TryGetMethodOp(Sig.Identifier.Value, out _);
 }
 
 public partial class BareExprStmtNode

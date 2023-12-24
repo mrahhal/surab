@@ -598,6 +598,11 @@
 					"Comment": "Well formed: Has value"
 				},
 				{
+					"Name": "initializer",
+					"Type": "EqualsExprClauseNode",
+					"Optional": true
+				},
+				{
 					"Name": "commaToken",
 					"Type": "SimpleToken",
 					"Optional": true

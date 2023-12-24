@@ -73,6 +73,7 @@ public static class Pratt
 		TokenKind.LeftParen or
 		TokenKind.LeftBrace or
 		TokenKind.Identifier or
+		TokenKind.This or
 		TokenKind.NumericLiteral or
 		TokenKind.CharLiteral or
 		TokenKind.StringLiteral or

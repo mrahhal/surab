@@ -185,11 +185,30 @@ public class ParserTests
 	[Fact]
 	public void Decl_Struct()
 	{
-		var src = "struct S1 { a: u32 = 2; f() {} }";
+		var src = """
+			struct S1 {
+				// field
+				a: u32 = 2;
+
+				// initializer
+				() { }
+
+				// operator
+				+() { }
+
+				// method
+				f() { }
+			}
+			""";
 		var node = ParseDecl(src).Should().BeOfType<StructDeclNode>().Subject;
-		node.Members.Should().HaveCount(2);
+		node.Members.Should().HaveCount(4);
 		node.Members.ElementAt(0).Should().BeOfType<FieldDeclNode>();
-		node.Members.ElementAt(1).Should().BeOfType<MethodDeclNode>();
+		node.Members.ElementAt(1).Should().BeOfType<MethodDeclNode>().Subject
+			.IsInitializer.Should().BeTrue();
+		node.Members.ElementAt(2).Should().BeOfType<MethodDeclNode>().Subject
+			.IsMethodOp.Should().BeTrue();
+		node.Members.ElementAt(3).Should().BeOfType<MethodDeclNode>().Subject
+			.IsNormallyCallable.Should().BeTrue();
 	}
 
 	[Fact]

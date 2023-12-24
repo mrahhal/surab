@@ -86,7 +86,7 @@ internal class CoreAnalyzer(Reasoner reasoner) : SyntaxTreeVisitor
 
 	public override void VisitFieldDecl(FieldDeclNode node)
 	{
-		if (node.Parent is not DeclsListNode declsList || declsList.Parent is not StructDeclNode or ClassDeclNode)
+		if (!IsMemberOfStructOrClass(node))
 		{
 			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a field decl is not allowed in this context");
 		}
@@ -96,12 +96,40 @@ internal class CoreAnalyzer(Reasoner reasoner) : SyntaxTreeVisitor
 
 	public override void VisitMethodDecl(MethodDeclNode node)
 	{
-		if (node.Parent is not DeclsListNode declsList || declsList.Parent is not ClassDeclNode)
+		if (!IsMemberOfStructOrClass(node))
 		{
 			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a method decl is not allowed in this context");
 		}
 
+		var fnSymbol = _reasoner.GetDeclaredSymbol(node) as FnSymbol;
+		var enclosingType = fnSymbol?.Parent as TypeSymbol;
+		Debug.Assert(enclosingType != null);
+
+		if (node.IsInitializer)
+		{
+			if (enclosingType.InitializerMethodDecl == node)
+			{
+				// Report conflicting initializer param if it conflicts with a field.
+				var conflictingParams = enclosingType.CreationSymbols.Where(x => x.IsConflicting);
+				foreach (var conflicting in conflictingParams)
+				{
+					// TODO: Better diag message.
+					_diagnostics.Add(conflicting.Symbol.DeclaringNode!.Span, DiagnosticLevel.Error, $"init member conflicts with another init member");
+				}
+			}
+			else
+			{
+				// Report more than one initializer.
+				_diagnostics.Add(node.Sig.ParamsList.Span, DiagnosticLevel.Error, $"only one initializer is allowed on a type");
+			}
+		}
+
 		base.VisitMethodDecl(node);
+	}
+
+	private bool IsMemberOfStructOrClass(SyntaxNode node)
+	{
+		return node.Parent is DeclsListNode declsList && declsList.Parent is StructDeclNode or ClassDeclNode;
 	}
 
 	public override void VisitReturnStmt(ReturnStmtNode node)
@@ -379,17 +407,58 @@ internal class CoreAnalyzer(Reasoner reasoner) : SyntaxTreeVisitor
 		var symbol = _reasoner.LookupSymbol(node);
 		AnalyzeLookedUpIdentifier(node.Identifier, symbol);
 
-		if (symbol == null)
+		if (symbol is not TypeSymbol typeSymbol)
 		{
-			// If symbol is null, skip analyzing lhs for each initializer.
-			foreach (var initializerExpr in node.MapInitializer.WellFormedExprs)
+			// If type symbol is null, skip analyzing lhs for each initializer as we won't be able to resolve them anyway.
+			foreach (var initializerExpr in node.MapInitializer.Items.Select(x => x.Expr as AssignmentExprNode))
 			{
-				Visit(initializerExpr.Rhs);
+				if (initializerExpr != null)
+				{
+					Visit(initializerExpr.Rhs);
+				}
 			}
 			return;
 		}
 
+		// Report unset required symbols.
+		var setSymbols = node.MapInitializer
+			.Items
+			.Select(x => x.Expr as AssignmentExprNode).Where(x => x != null)
+			.Select(x => (Assignment: x!, Symbol: _reasoner.LookupSymbol(x!.Lhs)!))
+			.Where(x => x.Symbol != null)
+			.ToList();
+		var setSymbolsMap = setSymbols.ToDictionary(x => x.Symbol!, x => x.Assignment);
+		var creationSymbols = typeSymbol.CreationSymbols.Select(x => x.Symbol).ToList();
+		var requiredSymbols = typeSymbol.CreationSymbols.Where(x => !x.IsOptional && !x.IsConflicting).Select(x => x.Symbol);
+		var unsetSymbols = requiredSymbols.Where(requiredSymbol => !setSymbolsMap.ContainsKey(requiredSymbol)).ToList();
+		if (unsetSymbols.Count != 0)
+		{
+			var missingText = string.Join(", ", unsetSymbols.Select(x => x.Name));
+			_diagnostics.Add(node.Identifier.Span, DiagnosticLevel.Error, $"missing required members in initializer: {missingText}");
+		}
+
+		// Report set symbols that are not creation symbols.
+		var invalidSetSymbols = setSymbols.Where(x => !creationSymbols.Contains(x.Symbol)).ToList();
+		if (invalidSetSymbols.Count != 0)
+		{
+			foreach (var invalidSetSymbol in invalidSetSymbols)
+			{
+				var assignmentNode = setSymbolsMap[invalidSetSymbol.Symbol];
+				_diagnostics.Add(assignmentNode.Span, DiagnosticLevel.Error, $"invalid init target");
+			}
+		}
+
 		base.VisitStructCreationExpr(node);
+	}
+
+	public override void VisitMapInitializerItem(MapInitializerItemNode node)
+	{
+		if (node.Expr is not AssignmentExprNode)
+		{
+			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"invalid assignment in initializer");
+		}
+
+		base.VisitMapInitializerItem(node);
 	}
 
 	public override void VisitParam(ParamNode node)

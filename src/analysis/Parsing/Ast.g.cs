@@ -822,11 +822,11 @@ public partial class ParamsListNode : SyntaxNode
 
 public partial class ParamNode : SyntaxNode, ISyntaxNodeHasMainIdentifier
 {
-	public ParamNode(SyntaxTree tree, AttrsListNode? attrs, IdentifierToken identifier, ColonTypeNode? type, SimpleToken? commaToken)
+	public ParamNode(SyntaxTree tree, AttrsListNode? attrs, IdentifierToken identifier, ColonTypeNode? type, EqualsExprClauseNode? initializer, SimpleToken? commaToken)
 		: base(tree, SyntaxNodeKind.Param)
 	{
 		_childTokens = new() { identifier, commaToken, };
-		_childNodes = new() { attrs, type, };
+		_childNodes = new() { attrs, type, initializer, };
 
 		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
@@ -838,6 +838,7 @@ public partial class ParamNode : SyntaxNode, ISyntaxNodeHasMainIdentifier
 	/// Well formed: Has value
 	/// </summary>
 	public ColonTypeNode? Type => (ColonTypeNode?)_childNodes[1]!;
+	public EqualsExprClauseNode? Initializer => (EqualsExprClauseNode?)_childNodes[2]!;
 	public SimpleToken? CommaToken => (SimpleToken?)_childTokens[1]!;
 
 	public override void Accept(SyntaxTreeVisitor visitor)

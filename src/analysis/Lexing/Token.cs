@@ -214,6 +214,12 @@ public static class TokenKindExtensions
 		Greater or
 		GreaterEqual;
 
+	public static bool IsMethodOp(this TokenKind kind) => kind is
+		Plus or
+		Minus or
+		Asterisk or
+		Slash;
+
 	public static bool IsLiteral(this TokenKind kind) => kind is
 		False or
 		True or
@@ -240,7 +246,7 @@ public static class TokenKindExtensions
 
 	public static bool CanStartStmt(this TokenKind kind) =>
 		kind.CanStartExpr() ||
-		kind is Identifier or This or Var or Return;
+		kind is Var or Return;
 
 	public static bool CanStartExpr(this TokenKind kind) =>
 		kind.IsUnary() ||

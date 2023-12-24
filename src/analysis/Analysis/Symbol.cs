@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Linq;
 
 namespace Surab.Analysis;
 
@@ -194,6 +195,10 @@ public abstract class FieldSymbol : Symbol, ISymbolHasType
 
 	public abstract bool IsTypeInferred { get; }
 
+	public bool HasInitializer => InitializerExprNode != null;
+
+	public abstract ExprNode? InitializerExprNode { get; }
+
 	/// <summary>
 	/// The type symbol of the enclosing type (struct/class).
 	/// </summary>
@@ -228,6 +233,8 @@ internal sealed class FieldSymbolImpl : FieldSymbol, ISymbolHasType
 	public override TypeSymbol Type => EnsureResolveType().Type;
 
 	public override bool IsTypeInferred => EnsureResolveType().IsInferred;
+
+	public override ExprNode? InitializerExprNode => _node.Initializer?.Expr;
 
 	public override TypeSymbol EnclosingType => EnsureResolveEnclosingType();
 
@@ -264,9 +271,15 @@ public sealed class ParamSymbol : Symbol, ISymbolHasType
 
 	public override SymbolKind Kind => SymbolKind.Param;
 
-	internal new Scope Scope => base.Scope!;
-
 	public override SyntaxNode? DeclaringNode => _node;
+
+	public ParamNode ConcreteDeclaringNode => _node;
+
+	public bool HasInitializer => InitializerExprNode != null;
+
+	public ExprNode? InitializerExprNode => _node.Initializer?.Expr;
+
+	internal new Scope Scope => base.Scope!;
 
 	public override IdentifierToken? Identifier => _node.Identifier;
 
@@ -330,6 +343,29 @@ public enum KnownTypeTag
 	@string,
 }
 
+public readonly struct TypeCreationSymbol
+{
+	internal TypeCreationSymbol(Symbol symbol, bool isConflicting)
+	{
+		Symbol = symbol;
+		IsConflicting = isConflicting;
+	}
+
+	public Symbol Symbol { get; }
+
+	/// <summary>
+	/// Gets whether this symbol conflicts with another creation symbol.
+	/// </summary>
+	public bool IsConflicting { get; }
+
+	public readonly bool IsOptional => Symbol switch
+	{
+		FieldSymbol fieldSymbol => fieldSymbol.HasInitializer,
+		ParamSymbol paramSymbol => paramSymbol.HasInitializer,
+		_ => throw new UnreachableException(),
+	};
+}
+
 /// <summary>
 /// Represents a type symbol. Can be unnamed or generated.
 /// </summary>
@@ -339,6 +375,13 @@ public enum KnownTypeTag
 public abstract class TypeSymbol : Symbol
 {
 	private ImmutableArray<Symbol> _members;
+	private ImmutableArray<TypeCreationSymbol> _creationSymbols;
+	private InitializerMethod? _initializerMethod = default;
+
+	private readonly struct InitializerMethod
+	{
+		public MethodDeclNode? Node { get; init; }
+	}
 
 	public bool IsError => this is ErrorTypeSymbol;
 
@@ -357,6 +400,35 @@ public abstract class TypeSymbol : Symbol
 		}
 	}
 
+	/// <summary>
+	/// Gets the members that can be set in a type creation expr. Can include both field and param symbols (from the initializer).
+	/// </summary>
+	public virtual ImmutableArray<TypeCreationSymbol> CreationSymbols
+	{
+		get
+		{
+			if (_creationSymbols.IsDefault)
+			{
+				ImmutableInterlocked.InterlockedCompareExchange(ref _creationSymbols, BuildCreationSymbols(), default);
+			}
+
+			return _creationSymbols;
+		}
+	}
+
+	public MethodDeclNode? InitializerMethodDecl
+	{
+		get
+		{
+			if (!_initializerMethod.HasValue)
+			{
+				_initializerMethod = BuildInitializerMethod();
+			}
+
+			return _initializerMethod!.Value.Node;
+		}
+	}
+
 	private ImmutableArray<Symbol> BuildMembers()
 	{
 		var builder = ImmutableArray.CreateBuilder<Symbol>();
@@ -371,17 +443,82 @@ public abstract class TypeSymbol : Symbol
 		return builder.ToImmutable();
 	}
 
+	private InitializerMethod BuildInitializerMethod()
+	{
+		foreach (var node in EnumerateMembers())
+		{
+			if (node is MethodDeclNode methodDecl && methodDecl.IsInitializer)
+			{
+				// We process only the first init found. Multiple inits will produce an error.
+				return new InitializerMethod { Node = methodDecl };
+			}
+		}
+		return new InitializerMethod { Node = null };
+	}
+
+	private ImmutableArray<TypeCreationSymbol> BuildCreationSymbols()
+	{
+		var symbols = new List<Symbol>();
+
+		foreach (var node in EnumerateMembers())
+		{
+			Debug.Assert(Scope != null, "If symbol has members, it should have a scope.");
+
+			// An uninitialized field
+			if (node is FieldDeclNode fieldDecl && Scope.Reasoner.TryGetDeclaredSymbol(node, out var symbol) && symbol is FieldSymbol fieldSymbol && !fieldSymbol.HasInitializer)
+			{
+				symbols.Add(symbol);
+			}
+
+			// Initializer params
+			if (InitializerMethodDecl != null)
+			{
+				foreach (var paramNode in InitializerMethodDecl.Sig.Params)
+				{
+					if (Scope.Reasoner.TryGetDeclaredSymbol(paramNode, out symbol))
+					{
+						symbols.Add(symbol);
+					}
+					else
+					{
+						throw new UnreachableException();
+					}
+				}
+			}
+		}
+
+		var fields = symbols.OfType<FieldSymbol>().Select(x => new TypeCreationSymbol(x, false));
+		var @params = symbols.OfType<ParamSymbol>().Select(x => new TypeCreationSymbol(x, isConflicting: fields.Any(f => f.Symbol.Name == x.Name)));
+
+		return [.. fields, .. @params];
+	}
+
 	public Symbol? GetMember(IdentifierToken identifier) => GetMember(identifier.Value);
 
 	public Symbol? GetMember(string name)
 	{
-		// REVIEW: Some duplication between symbols and scopes?
+		// REVIEW: Some duplication between symbols and scopes here (and GetCreationMember)?
 
 		// Move from bottom to top trying to match the identifier.
 		for (var i = Members.Length - 1; i >= 0; i--)
 		{
 			var item = Members[i];
 			if (item.Identifier != null && item.Identifier.Value == name)
+			{
+				return item;
+			}
+		}
+		return null;
+	}
+
+	public TypeCreationSymbol? GetCreationSymbol(IdentifierToken identifier) => GetCreationSymbol(identifier.Value);
+
+	public TypeCreationSymbol? GetCreationSymbol(string name)
+	{
+		for (var i = CreationSymbols.Length - 1; i >= 0; i--)
+		{
+			var item = CreationSymbols[i];
+			if (!item.IsConflicting && item.Symbol.Identifier != null && item.Symbol.Identifier.Value == name)
 			{
 				return item;
 			}

@@ -84,6 +84,38 @@ public class ReasonerTests
 	}
 
 	[Fact]
+	public void LookupSymbol_FieldInCreator()
+	{
+		var src = """
+			struct S1 { a: i32; }
+			fn f() { var s = S1 { a = 2 }; }
+			""";
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
+
+		var creationExpr = tree.Root.DescendantNodes().OfType<StructCreationExprNode>().Single();
+		var assignmentExpr = creationExpr.MapInitializer.DescendantNodes().OfType<AssignmentExprNode>().Single();
+		var symbol = reasoner.LookupSymbol(assignmentExpr.Lhs);
+		symbol.Should().BeAssignableTo<FieldSymbol>().Subject.
+			Type.KnownTypeTag.Should().Be(KnownTypeTag.i32);
+	}
+
+	[Fact]
+	public void LookupSymbol_InitializerParamInCreator()
+	{
+		var src = """
+			struct S1 { (a: i32) { } }
+			fn f() { var s = S1 { a = 2 }; }
+			""";
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
+
+		var creationExpr = tree.Root.DescendantNodes().OfType<StructCreationExprNode>().Single();
+		var assignmentExpr = creationExpr.MapInitializer.DescendantNodes().OfType<AssignmentExprNode>().Single();
+		var symbol = reasoner.LookupSymbol(assignmentExpr.Lhs);
+		symbol.Should().BeOfType<ParamSymbol>().Subject.
+			Type.KnownTypeTag.Should().Be(KnownTypeTag.i32);
+	}
+
+	[Fact]
 	public void LookupType()
 	{
 		var src = """
