@@ -46,6 +46,11 @@ fn print_bool(value: bool) {
 	surabrt_print_bool(value);
 }
 
+@public
+fn print_string(value: string) {
+	surabrt_print_string(value);
+}
+
 // ---
 // To be moved once we can import modules.
 // ---

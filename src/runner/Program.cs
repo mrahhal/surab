@@ -108,7 +108,7 @@ var src = """
 		print_s3_from_rust(s4.s3);
 
 		var str = "This is created in surab and printed from rust.";
-		surabrt_print_string(str);
+		print_string(str);
 	}
 	""";
 var sourceFile = SourceFile.FromText(src);
