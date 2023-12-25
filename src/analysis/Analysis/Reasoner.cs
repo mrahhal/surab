@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Surab.Analysis;
@@ -471,13 +472,18 @@ public class Reasoner
 	{
 		// TODO: Return something else in case of error diags? (p.Type below could be null)
 		var isExtern = sig.Attrs.HasAttr(KnownAttrs.Extern);
+		var fnSymbol = (FnSymbol)GetDeclaredSymbol(sig.Parent!)!;
+		Debug.Assert(fnSymbol != null);
+		var receiverType = fnSymbol.MethodReceiverType;
+		IEnumerable<TypeSymbol> receiverTypes = receiverType == null ? [] : [receiverType];
+		IEnumerable<TypeSymbol> paramTypes = sig.Params.Select(p =>
+		{
+			return LookupSymbol(p.Type?.Type).AsTypeSymbolOrError();
+		});
 		return new FnTypeKey(
 			isExtern,
 			sig.ReturnType == null ? Project.ResolveKnownTypeSymbol(KnownTypeTag.None) : LookupSymbol(sig.ReturnType).AsTypeSymbolOrError(),
-			sig.Params.Select(p =>
-			{
-				return LookupSymbol(p.Type?.Type).AsTypeSymbolOrError();
-			}));
+			[.. receiverTypes, .. paramTypes]);
 	}
 
 	private FnTypeKey CreateFnTypeKey(FnTypeNode fnType)

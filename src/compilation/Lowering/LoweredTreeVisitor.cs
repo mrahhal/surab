@@ -1,4 +1,5 @@
-﻿namespace Surab.Compilation;
+﻿
+namespace Surab.Compilation;
 
 /// <summary>
 /// A lowered tree visitor.
@@ -30,6 +31,7 @@ internal abstract partial class LoweredTreeVisitor
 			case LoweredVariableStoreStmt n: VisitVariableStoreExpr(n); break;
 			case LoweredFieldLoadExpr n: VisitFieldLoadExpr(n); break;
 			case LoweredFieldStoreStmt n: VisitFieldStoreExpr(n); break;
+			case LoweredThisLoadExpr n: VisitThisLoadExpr(n); break;
 			case LoweredUnaryExpr n: VisitUnaryExpr(n); break;
 			case LoweredBinaryExpr n: VisitBinaryExpr(n); break;
 			case LoweredCallExpr n: VisitCallExpr(n); break;
@@ -92,6 +94,11 @@ internal abstract partial class LoweredTreeVisitor
 	}
 
 	public virtual void VisitFieldStoreExpr(LoweredFieldStoreStmt node)
+	{
+		Walk(node);
+	}
+
+	public virtual void VisitThisLoadExpr(LoweredThisLoadExpr node)
 	{
 		Walk(node);
 	}

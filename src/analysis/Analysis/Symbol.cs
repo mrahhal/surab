@@ -107,6 +107,7 @@ public sealed class FnSymbol : Symbol, ISymbolHasType
 	private readonly FnSigNode _node;
 	private FnTypeSymbol? _type;
 	private ImmutableArray<ParamSymbol> _params;
+	private TypeSymbol? _methodReceiverType;
 
 	internal FnSymbol(FnSigNode node)
 	{
@@ -151,10 +152,21 @@ public sealed class FnSymbol : Symbol, ISymbolHasType
 	public bool IsTypeInferred => false;
 
 	/// <summary>
+	/// The type symbol of the receiver type (struct/class) if this is a method.
+	/// </summary>
+	public TypeSymbol? MethodReceiverType => EnsureResolveMethodReceiverType();
+
+	/// <summary>
 	/// The return type of the function.
 	/// </summary>
 	public TypeSymbol ReturnType => Type.ReturnType;
 
+	/// <summary>
+	/// Gets the fn's params.
+	/// </summary>
+	/// <remarks>
+	/// This won't include the receiver for methods. Use <see cref="MethodReceiverType"/> to access the receiver type.
+	/// </remarks>
 	public ImmutableArray<ParamSymbol> Params
 	{
 		get
@@ -179,6 +191,20 @@ public sealed class FnSymbol : Symbol, ISymbolHasType
 			}
 		}
 		return builder.ToImmutable();
+	}
+
+	private TypeSymbol? EnsureResolveMethodReceiverType()
+	{
+		if (_node.Parent is not MethodDeclNode)
+			return null;
+
+		return _methodReceiverType ??= ResolveEnclosingType();
+
+		TypeSymbol ResolveEnclosingType()
+		{
+			var enclosingType = Scope.LookupTypeDecl();
+			return enclosingType ?? ErrorTypeSymbol.Create();
+		}
 	}
 }
 
@@ -569,17 +595,30 @@ internal readonly struct FnTypeKey(
 	{
 		return
 			IsExtern == other.IsExtern &&
-			ReturnType.IsAssignableFrom(other.ReturnType) &&
+			ReturnTypesEqual(ReturnType, other.ReturnType) &&
 			ParamTypesEqual(this, other);
 	}
 
-	private static bool ParamTypesEqual(FnTypeKey x, FnTypeKey y)
+	public bool IsAssignableFrom(FnTypeKey other)
+	{
+		return
+			IsExtern == other.IsExtern &&
+			ReturnTypesAssignable(ReturnType, other.ReturnType) &&
+			ParamTypesAssignable(this, other);
+	}
+
+	private static bool ReturnTypesEqual(TypeSymbol x, TypeSymbol y) => x == y;
+	private static bool ReturnTypesAssignable(TypeSymbol x, TypeSymbol y) => x.IsAssignableFrom(y);
+
+	private static bool ParamTypesEqual(FnTypeKey x, FnTypeKey y) => ParamTypesCompare(x, y, (x, y) => x == y);
+	private static bool ParamTypesAssignable(FnTypeKey x, FnTypeKey y) => ParamTypesCompare(x, y, (x, y) => x.IsAssignableFrom(y));
+	private static bool ParamTypesCompare(FnTypeKey x, FnTypeKey y, Func<TypeSymbol, TypeSymbol, bool> compare)
 	{
 		if (x.ParamTypes.Length != y.ParamTypes.Length)
 			return false;
 		for (var i = 0; i < x.ParamTypes.Length; i++)
 		{
-			if (!x.ParamTypes[i].IsAssignableFrom(y.ParamTypes[i]))
+			if (!compare(x.ParamTypes[i], y.ParamTypes[i]))
 				return false;
 		}
 		return true;
@@ -587,16 +626,17 @@ internal readonly struct FnTypeKey(
 
 	public override int GetHashCode()
 	{
-		// Calling UnwrapAliases() is important here so we get stable hash codes to not duplicate unnamed fn type symbols.
+		// Shouldn't call UnwrapAliases() so we get different keys for different compatible types.
+		// This is fine because analyzing compatibility uses IsAssignableFrom.
 
 		unchecked
 		{
 			var hash = 92821;
 			hash = hash * 29 + IsExtern.GetHashCode();
-			hash = hash * 29 + ReturnType.UnwrapAliases().GetHashCode();
+			hash = hash * 29 + ReturnType.GetHashCode();
 			foreach (var p in ParamTypes)
 			{
-				hash = hash * 29 + p.UnwrapAliases().GetHashCode();
+				hash = hash * 29 + p.GetHashCode();
 			}
 			return hash;
 		}
@@ -604,7 +644,8 @@ internal readonly struct FnTypeKey(
 
 	public override string ToString()
 	{
-		return $"{(IsExtern ? "@extern " : "")}fn ({string.Join(", ", ParamTypes.Select(p => p.Name))}) {ReturnType.Name}";
+		IEnumerable<string?> @params = [.. ParamTypes.Select(p => p.Name)];
+		return $"{(IsExtern ? "@extern " : "")}fn ({string.Join(", ", @params)}) {ReturnType.Name}";
 	}
 }
 
@@ -629,8 +670,6 @@ public class FnTypeSymbol : TypeSymbol, IEquatable<FnTypeSymbol>
 
 	public override SymbolKind Kind => SymbolKind.FnType;
 
-	//public new StructDeclNode? DeclaringNode => (StructDeclNode?)base.DeclaringNode;
-
 	internal FnTypeKey Key => _key;
 
 	public bool IsExtern => Key.IsExtern;
@@ -640,19 +679,19 @@ public class FnTypeSymbol : TypeSymbol, IEquatable<FnTypeSymbol>
 	public ImmutableArray<TypeSymbol> ParamTypes => Key.ParamTypes;
 
 	// TODO: If it's a named fn type (alias), display that instead?
-	public override string? Name => _key.ToString();
+	public override string? Name => Key.ToString();
 
 	public override bool Equals(object? obj) => Equals(obj as FnTypeSymbol);
 
 	public bool Equals(FnTypeSymbol? other)
 	{
 		if (other == null) return false;
-		return Equals(_key, other._key);
+		return Equals(Key, other.Key);
 	}
 
 	public override int GetHashCode()
 	{
-		return _key.GetHashCode();
+		return Key.GetHashCode();
 	}
 }
 

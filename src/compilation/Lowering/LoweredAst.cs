@@ -244,6 +244,16 @@ internal sealed class LoweredFieldStoreStmt(
 	public override string ToString() => $"{Field.Name} = ...;";
 }
 
+internal sealed class LoweredThisLoadExpr(
+	SyntaxNode parsedNode,
+	TypeSymbol type) : LoweredExpr(parsedNode, type)
+{
+	public override IEnumerable<LoweredNode> EnumerateChildren()
+	{
+		yield break;
+	}
+}
+
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
 internal sealed class LoweredUnaryExpr(
 	SyntaxNode parsedNode,
@@ -358,9 +368,10 @@ internal sealed class LoweredMapInitializer(
 	}
 }
 
-internal sealed class LoweredMapInitializerItem(string left, LoweredExpr right)
+internal sealed class LoweredMapInitializerItem(Symbol left, LoweredExpr right)
 {
-	public string Left { get; } = left; // Later, this won't be enough.
+	// REVIEW: Right now, this is a field or param symbol (struct creation), but a Symbol won't be enough for later. Might need a LoweredExpr here too.
+	public Symbol Left { get; } = left;
 
 	public LoweredExpr Right { get; } = right;
 }

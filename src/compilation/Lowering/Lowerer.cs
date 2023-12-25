@@ -32,9 +32,9 @@ internal class Lowerer
 			ModuleNode n => Lower(n),
 			//ConstDeclNode n => Lower(n),
 			FnDeclNode n => Lower(n),
+			MethodDeclNode n => Lower(n),
 			StructDeclNode n => Lower(n),
 			//ClassDeclNode n => Lower(n),
-			//MethodDeclNode n => Lower(n),
 			AliasDeclNode n => new LoweredElidedDecl(n),
 			VarStmtNode n => Lower(n),
 			ReturnStmtNode n => Lower(n),
@@ -48,6 +48,7 @@ internal class Lowerer
 			AccessExprNode n => Lower(n),
 			LiteralExprNode n => Lower(n),
 			IdentifierExprNode n => Lower(n),
+			ThisExprNode n => Lower(n),
 			StructCreationExprNode n => Lower(n),
 
 			// These are nodes that are taken care of in other places, there shouldn't be a case where they're called here.
@@ -76,6 +77,17 @@ internal class Lowerer
 	}
 
 	private LoweredNode Lower(FnDeclNode node)
+	{
+		var fnSymbol = _reasoner.GetDeclaredSymbol(node) as FnSymbol;
+		Debug.Assert(fnSymbol != null);
+
+		return new LoweredFnDecl(
+			node,
+			fnSymbol,
+			node.Body == null ? null : LowerFnBlock(node.Body));
+	}
+
+	private LoweredNode Lower(MethodDeclNode node)
 	{
 		var fnSymbol = _reasoner.GetDeclaredSymbol(node) as FnSymbol;
 		Debug.Assert(fnSymbol != null);
@@ -249,7 +261,7 @@ internal class Lowerer
 		else if (symbol is FieldSymbol fieldSymbol)
 		{
 			var accessExpr = (AccessExprNode)node.Lhs; // Is this always valid?
-													   //var targetSymbol = _reasoner.LookupSymbol(accessExpr.Target);
+			//var targetSymbol = _reasoner.LookupSymbol(accessExpr.Target);
 			var loweredTarget = LowerWithCast(accessExpr.Target);
 			//var enclosingType = fieldSymbol.EnclosingType;
 
@@ -349,6 +361,16 @@ internal class Lowerer
 			symbol);
 	}
 
+	private LoweredNode Lower(ThisExprNode node)
+	{
+		Debug.Assert(node.Parent is EqualsExprClauseNode equalsExprClause && equalsExprClause.Expr == node, "Should only be here when loading `this` directly as an r-value.");
+
+		var type = _reasoner.LookupType(node);
+		return new LoweredThisLoadExpr(
+			node,
+			type);
+	}
+
 	private LoweredNode Lower(StructCreationExprNode node)
 	{
 		var symbol = (StructTypeSymbol)_reasoner.LookupType(node).UnwrapAliases();
@@ -364,10 +386,8 @@ internal class Lowerer
 
 		foreach (var expr in node.WellFormedExprs)
 		{
-			var identifierNode = (IdentifierExprNode)expr.Lhs;
-			// Later, this will have to handle other cases than just a simple identifier signifying a field.
-
-			items.Add(new(identifierNode.Identifier.Value, LowerWithCast(expr.Rhs)));
+			var targetSymbol = _reasoner.LookupSymbol(expr.Lhs)!;
+			items.Add(new(targetSymbol, LowerWithCast(expr.Rhs)));
 		}
 
 		return new LoweredMapInitializer(

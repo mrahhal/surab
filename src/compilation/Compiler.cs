@@ -92,9 +92,10 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 {
 	private readonly CompilationContext _context;
 	private readonly LoweredFnDecl _fnDecl;
-	private readonly LLVMUnit _llvmUnit;
+	private readonly LLVMUnit _llvmFnUnit;
 	private readonly LLVMFn _llvmFn;
 
+	private LLVMUnit? _llvmReceiverUnit;
 	private readonly Stack<LLVMUnit> _stack = new();
 	private bool _returnSeen = false;
 
@@ -105,9 +106,9 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 		_context = context;
 		_fnDecl = fnDecl;
 
-		_llvmUnit = GetOrCreateFn(fnDecl.FnSymbol);
+		_llvmFnUnit = GetOrCreateFn(fnDecl.FnSymbol);
 		_llvmFn = LLVMTarget.GetFnInfoFromFnType(fnDecl.FnSymbol.Type);
-		Debug.Assert(_llvmUnit.Value.BasicBlocksCount == 0);
+		Debug.Assert(_llvmFnUnit.Value.BasicBlocksCount == 0);
 	}
 
 	private Target Target => _context.Target;
@@ -134,10 +135,10 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 		}
 
 		// Entry has to exist before visiting the params in the signature.
-		var entry = _llvmUnit.Value.AppendBasicBlock("entry");
+		var entry = _llvmFnUnit.Value.AppendBasicBlock("entry");
 		LLVM.Builder.PositionAtEnd(entry);
 
-		SetupParams(_fnDecl.FnSymbol.Params);
+		SetupParams();
 		SetupLocals();
 
 		// This is where we could check for intrinsic fns to generate bodies for if we need to.
@@ -160,7 +161,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 			}
 		}
 
-		if (!_llvmUnit.Value.VerifyFunction(LLVMVerifierFailureAction.LLVMPrintMessageAction))
+		if (!_llvmFnUnit.Value.VerifyFunction(LLVMVerifierFailureAction.LLVMPrintMessageAction))
 		{
 			throw new Exception("LLVM function verification failed.");
 		}
@@ -168,8 +169,16 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 		//LLVM.PassManager.RunFunctionPassManager(_llvmUnit.Value);
 	}
 
-	private void SetupParams(IEnumerable<ParamSymbol> @params)
+	private void SetupParams()
 	{
+		// REVIEW:
+		// FnSymbol.Params doesn't include receivers, FnSymbol.Type.ParamTypes includes receivers.
+		// Document this or is there a better way?
+
+		IEnumerable<(TypeSymbol Type, ParamSymbol? Symbol)> receiverParams = FnSymbol.MethodReceiverType == null ? [] : [(FnSymbol.MethodReceiverType, null)];
+		IEnumerable<(TypeSymbol Type, ParamSymbol? Symbol)> normalParams = [.. FnSymbol.Params.Select(x => (x.Type, x))];
+		IEnumerable<(TypeSymbol Type, ParamSymbol? Symbol)> overallParams = [.. receiverParams, .. normalParams];
+
 		var llvmParamOffset = 0;
 		if (_llvmFn.SRet.HasValue)
 		{
@@ -177,35 +186,35 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 			llvmParamOffset++;
 		}
 
-		foreach (var param in @params)
+		foreach (var t in overallParams)
 		{
-			var paramValue = _llvmUnit.Value.GetParam((uint)llvmParamOffset);
+			var paramValue = _llvmFnUnit.Value.GetParam((uint)llvmParamOffset);
 
 			// Adaptations of params inside fn body
 			// ---
 
-			var lowering = GetLLVMLowering(param.Type);
+			var lowering = GetLLVMLowering(t.Type);
 			switch (lowering.Kind)
 			{
 				case LLVMTypeLoweringKind.ByValue:
 					{
-						var alignment = Target.GetAbiAlignment(param.Type);
-						CreateParam(param, paramValue, alignment);
+						var alignment = Target.GetAbiAlignment(t.Type);
+						CreateParam(t.Symbol, t.Type, paramValue, alignment);
 					}
 					break;
 				case LLVMTypeLoweringKind.ByMutRef:
 					{
 						// paramValue is already a ptr. Treat it as the wrapper ptr directly.
-						var alignment = Target.GetAbiAlignment(param.Type);
-						CreateParam(param, paramValue, alignment, createWrapperPtr: false);
+						var alignment = Target.GetAbiAlignment(t.Type);
+						CreateParam(t.Symbol, t.Type, paramValue, alignment, createWrapperPtr: false);
 					}
 					break;
 				case LLVMTypeLoweringKind.AbiInt:
 					{
-						var layout = Target.GetLayout(param.Type);
+						var layout = Target.GetLayout(t.Type);
 						var llvmIntType = LLVMTypeRef.CreateInt((uint)layout.Size.Bits);
 						var alignment = Math.Max(layout.Alignment.Bytes, (int)LLVM.TargetData.ABIAlignmentOfType(llvmIntType)).AsBytes();
-						CreateParam(param, paramValue, alignment);
+						CreateParam(t.Symbol, t.Type, paramValue, alignment);
 					}
 					break;
 			}
@@ -489,6 +498,12 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 		}
 	}
 
+	public override void VisitThisLoadExpr(LoweredThisLoadExpr node)
+	{
+		Debug.Assert(_llvmReceiverUnit != null);
+		_stack.Push(_llvmReceiverUnit);
+	}
+
 	public override void VisitStructCreationExpr(LoweredStructCreationExpr node)
 	{
 		var llvmType = _context.GetOrCreateType(node.Symbol);
@@ -502,20 +517,26 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 		foreach (var item in node.MapInitializer.Items)
 		{
 			// Assumed to be only an identifier to a field for now.
-			var field = (FieldSymbol)node.Symbol.GetMember(item.Left)!;
-			var fieldSection = structLayout.Sections.First(s => s.FieldIndex == field.FieldIndex);
+			//var field = (FieldSymbol)node.Symbol.GetMember(item.Left)!;
+			//var fieldSection = structLayout.Sections.First(s => s.FieldIndex == field.FieldIndex);
+			var symbol = item.Left; // Could be field or param from init method.
+
+			// Filter for fields to set them now. We'll set params when we call init later below.
 
 			Visit(item.Right);
 			var (_, rhs) = _stack.Pop().Unwrap(LLVM);
 
-			// Duplicated a bit from VisitFieldStoreExpr?
-			var ptrToField = LLVM.Builder.BuildStructGEP2(llvmType.Type, ptr, (uint)fieldSection.SectionIndex);
-			LLVM.Builder.BuildStore(rhs, ptrToField);
+			//// Duplicated a bit from VisitFieldStoreExpr?
+			//var ptrToField = LLVM.Builder.BuildStructGEP2(llvmType.Type, ptr, (uint)fieldSection.SectionIndex);
+			//LLVM.Builder.BuildStore(rhs, ptrToField);
 
-			fieldsSet.Add(field);
+			//fieldsSet.Add(field);
 		}
 
 		// TODO: Set fields with default values.
+
+		// TODO: Run optional init method.
+		// But what about the copying? Won't this method mutate the copied struct, leaving the original one without this?
 
 		_stack.Push(LLVMUnit.Wrapped(llvmType.Type, ptr));
 	}
@@ -596,14 +617,16 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 		throw new Exception("Unexpected?");
 	}
 
-	private LLVMUnit CreateParam(ParamSymbol paramSymbol, LLVMValueRef paramValue, BitSize alignment, bool createWrapperPtr = true)
+	// paramSymbol is null for the receiver param.
+	private LLVMUnit CreateParam(ParamSymbol? paramSymbol, TypeSymbol paramType, LLVMValueRef paramValue, BitSize alignment, bool createWrapperPtr = true)
 	{
-		var llvmType = LLVMTarget.LowerType(paramSymbol.Type);
+		var llvmType = LLVMTarget.LowerType(paramType);
 
 		LLVMUnit unit;
 		if (createWrapperPtr)
 		{
-			var ptr = LLVM.Builder.BuildAlloca(llvmType, paramSymbol.Identifier?.Value ?? string.Empty);
+			var name = paramSymbol == null ? "this" : paramSymbol.Name;
+			var ptr = LLVM.Builder.BuildAlloca(llvmType, name ?? string.Empty);
 			ptr.SetAlignment((uint)alignment.Bytes);
 			LLVM.Builder.BuildStore(paramValue, ptr);
 			unit = LLVMUnit.Wrapped(llvmType, ptr);
@@ -614,7 +637,14 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 			unit = LLVMUnit.Wrapped(llvmType, paramValue);
 		}
 
-		_context.SymbolToLLVMUnit[paramSymbol] = unit;
+		if (paramSymbol != null)
+		{
+			_context.SymbolToLLVMUnit[paramSymbol] = unit;
+		}
+		else
+		{
+			_llvmReceiverUnit = unit;
+		}
 		return unit;
 	}
 
