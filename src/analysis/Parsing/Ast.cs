@@ -139,6 +139,7 @@ public enum SimpleTokenKind
 	Question,
 	Equal,
 	At,
+	Asterisk,
 
 	Fn,
 	Struct,
@@ -210,6 +211,7 @@ public sealed class SimpleToken : SyntaxToken
 				TokenKind.Equal => SimpleTokenKind.Equal,
 				TokenKind.At => SimpleTokenKind.At,
 				TokenKind.AtBeforeIdentifier => SimpleTokenKind.At,
+				TokenKind.Asterisk => SimpleTokenKind.Asterisk,
 
 				TokenKind.Fn => SimpleTokenKind.Fn,
 				TokenKind.Struct => SimpleTokenKind.Struct,
@@ -266,6 +268,7 @@ public sealed class SimpleToken : SyntaxToken
 			SimpleTokenKind.Question => "?",
 			SimpleTokenKind.Equal => "=",
 			SimpleTokenKind.At => "@",
+			SimpleTokenKind.Asterisk => "*",
 
 			SimpleTokenKind.Fn => "fn",
 			SimpleTokenKind.Struct => "struct",
@@ -294,6 +297,8 @@ public enum UnaryOperatorTokenKind
 	Pos, // Usually redundant but must be represented in the AST.
 	Neg,
 	Not,
+	Deref,
+	Addr,
 }
 
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} [{UnaryOperatorTokenKind}] {ToString()}")]
@@ -315,6 +320,8 @@ public sealed class UnaryOperatorToken : SyntaxToken
 				TokenKind.Plus => UnaryOperatorTokenKind.Pos,
 				TokenKind.Minus => UnaryOperatorTokenKind.Neg,
 				TokenKind.Bang => UnaryOperatorTokenKind.Not,
+				TokenKind.Asterisk => UnaryOperatorTokenKind.Deref,
+				TokenKind.And => UnaryOperatorTokenKind.Addr,
 				_ => throw new Exception($"TokenKind {token.Kind} not supported."),
 			},
 		};
@@ -324,6 +331,8 @@ public sealed class UnaryOperatorToken : SyntaxToken
 		UnaryOperatorTokenKind.Pos => "+",
 		UnaryOperatorTokenKind.Neg => "-",
 		UnaryOperatorTokenKind.Not => "!",
+		UnaryOperatorTokenKind.Deref => "*",
+		UnaryOperatorTokenKind.Addr => "&",
 		_ => throw new NotImplementedException(),
 	};
 

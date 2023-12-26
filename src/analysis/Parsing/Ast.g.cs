@@ -89,6 +89,7 @@ public enum SyntaxNodeKind
 	ArgsList,
 	Arg,
 	ColonType,
+	PtrType,
 	NamedType,
 	FnType,
 	MissingType,
@@ -951,6 +952,28 @@ public partial class ColonTypeNode : SyntaxNode
 	public override void Accept(SyntaxTreeVisitor visitor)
 	{
 		visitor.VisitColonType(this);
+	}
+}
+
+public partial class PtrTypeNode : TypeNode
+{
+	public PtrTypeNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken asteriskToken, TypeNode? innerType)
+		: base(tree, SyntaxNodeKind.PtrType)
+	{
+		_childTokens = new() { asteriskToken, };
+		_childNodes = new() { attrs, innerType, };
+
+		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		SetChildrenParent();
+	}
+
+	public AttrsListNode? Attrs => (AttrsListNode?)_childNodes[0]!;
+	public SimpleToken AsteriskToken => (SimpleToken)_childTokens[0]!;
+	public TypeNode? InnerType => (TypeNode?)_childNodes[1]!;
+
+	public override void Accept(SyntaxTreeVisitor visitor)
+	{
+		visitor.VisitPtrType(this);
 	}
 }
 

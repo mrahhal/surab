@@ -687,6 +687,26 @@
 			]
 		},
 		{
+			"Name": "PtrType",
+			"Base": "TypeNode",
+			"Members": [
+				{
+					"Name": "attrs",
+					"Type": "AttrsListNode",
+					"Optional": true
+				},
+				{
+					"Name": "asteriskToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "innerType",
+					"Type": "TypeNode",
+					"Optional": true
+				}
+			]
+		},
+		{
 			"Name": "NamedType",
 			"Base": "TypeNode",
 			"Members": [

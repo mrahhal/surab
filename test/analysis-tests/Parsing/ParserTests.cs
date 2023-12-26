@@ -109,6 +109,28 @@ public class ParserTests
 	}
 
 	[Fact]
+	public void PtrType()
+	{
+		var src = """
+			fn f() {
+				var p1: *i32;
+				var p2: *fn (i32) i32;
+				var p3: *;
+			}
+			""";
+		var node = ParseDecl(src);
+		var varStmt1 = node.DescendantNodes().OfType<VarStmtNode>().ElementAt(0);
+		var ptrTypeNode1 = varStmt1.Type!.Type.Should().BeOfType<PtrTypeNode>().Subject;
+		ptrTypeNode1.InnerType.Should().BeOfType<NamedTypeNode>();
+		var varStmt2 = node.DescendantNodes().OfType<VarStmtNode>().ElementAt(1);
+		var ptrTypeNode2 = varStmt2.Type!.Type.Should().BeOfType<PtrTypeNode>().Subject;
+		ptrTypeNode2.InnerType.Should().BeOfType<FnTypeNode>();
+		var varStmt3 = node.DescendantNodes().OfType<VarStmtNode>().ElementAt(2);
+		var ptrTypeNode3 = varStmt3.Type!.Type.Should().BeOfType<PtrTypeNode>().Subject;
+		ptrTypeNode3.InnerType.Should().BeNull();
+	}
+
+	[Fact]
 	public void FnType()
 	{
 		var src = "var f: fn (i32, i32) i64;";

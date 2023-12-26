@@ -126,6 +126,7 @@ public class Reasoner
 		{
 			IdentifierExprNode n => LookupSymbol(n),
 			ThisExprNode n => LookupSymbol(n),
+			PtrTypeNode n => LookupSymbol(n),
 			NamedTypeNode n => LookupSymbol(n.Identifier, n),
 			FnTypeNode n => LookupSymbol(n),
 			ArgNode n => LookupSymbol(n.Expr),
@@ -176,7 +177,12 @@ public class Reasoner
 		return scope?.LookupThis();
 	}
 
-	internal FnTypeSymbol? LookupSymbol(FnTypeNode node)
+	internal PtrTypeSymbol LookupSymbol(PtrTypeNode node)
+	{
+		return GetPtrType(node);
+	}
+
+	internal FnTypeSymbol LookupSymbol(FnTypeNode node)
 	{
 		return GetUnnamedFnTypeSymbol(node);
 	}
@@ -270,7 +276,13 @@ public class Reasoner
 
 	private TypeSymbol LookupType(UnaryExprNode node)
 	{
-		return LookupType(node.Expr);
+		var exprType = LookupType(node.Expr);
+		return node.Op.UnaryOperatorTokenKind switch
+		{
+			UnaryOperatorTokenKind.Deref => exprType is PtrTypeSymbol ptrType ? ptrType.InnerType.AsTypeSymbolOrError() : exprType,
+			UnaryOperatorTokenKind.Addr => GetPtrType(exprType),
+			_ => exprType,
+		};
 	}
 
 	private TypeSymbol LookupType(BinaryExprNode node)
@@ -419,6 +431,17 @@ public class Reasoner
 		};
 	}
 
+	private PtrTypeSymbol GetPtrType(PtrTypeNode node)
+	{
+		return GetPtrType(node.InnerType == null ? null : LookupSymbol(node.InnerType).AsTypeSymbolOrError());
+	}
+
+	private PtrTypeSymbol GetPtrType(TypeSymbol? innerType)
+	{
+		var key = new PtrTypeKey(innerType);
+		return ReasoningContext.PtrTypeMap.GetOrAdd(key, key => new PtrTypeSymbol(key));
+	}
+
 	// Supported:
 	// - FnDeclNode: From `fn foo(v: i32) i32 { ... }`
 	// - MethodDeclNode: ^ but method
@@ -431,7 +454,9 @@ public class Reasoner
 			FnDeclNode fnDecl => GetUnnamedFnTypeSymbol(fnDecl.Sig),
 			MethodDeclNode methodDecl => GetUnnamedFnTypeSymbol(methodDecl.Sig),
 			FnTypeNode fnType => GetUnnamedFnTypeSymbol(fnType),
-			AliasDeclNode aliasDecl => GetNamedFnTypeSymbol(aliasDecl),
+
+			// Currently not really used.
+			//AliasDeclNode aliasDecl => GetNamedFnTypeSymbol(aliasDecl),
 
 			_ => throw new UnreachableException(),
 		};
@@ -449,20 +474,16 @@ public class Reasoner
 		return GetOrCreateUnnamedFnType(key);
 	}
 
-	private FnTypeSymbol CreateUnnamedFnTypeSymbol(FnTypeKey key)
-	{
-		return new FnTypeSymbol(null, key);
-	}
-
 	private FnTypeSymbol GetOrCreateUnnamedFnType(FnTypeKey key)
 	{
-		return ReasoningContext.UnnamedFnTypeMap.GetOrAdd(key, CreateUnnamedFnTypeSymbol);
+		return ReasoningContext.UnnamedFnTypeMap.GetOrAdd(key, key => new FnTypeSymbol(null, key));
 	}
 
 	private FnTypeSymbol GetNamedFnTypeSymbol(AliasDeclNode aliasDecl)
 	{
 		// TODO: Actually get a named FnTypeSymbol for aliased fn types?
-		//       Right now this just returns the same shared unnamed symbol as it's created in AliasSymbol's Type (Scope.ResolveType).
+		// Right now this just returns the same shared unnamed symbol as it's created in AliasSymbol's Type (Scope.ResolveType).
+		// Also, this method is not even used currently.
 
 		var aliasSymbol = (AliasTypeSymbol)_nodeToSymbolMap[aliasDecl]!;
 		return (FnTypeSymbol)aliasSymbol.Type.UnwrapAliases();

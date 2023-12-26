@@ -194,7 +194,9 @@ public static class TokenKindExtensions
 	public static bool IsUnary(this TokenKind kind) => kind is
 		Plus or
 		Minus or
-		Bang;
+		Bang or
+		Asterisk or
+		And;
 
 	public static bool IsBinary(this TokenKind kind) => kind is
 		Plus or
@@ -258,7 +260,6 @@ public static class TokenKindExtensions
 		CanStartAttribute(kind); // TODO: Not parsing attrs for params right now?
 
 	public static bool CanStartType(this TokenKind kind) =>
-		kind is Fn ||
-		kind is Identifier ||
+		kind is Asterisk or Fn or Identifier ||
 		CanStartAttribute(kind);
 }

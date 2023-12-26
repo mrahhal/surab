@@ -141,6 +141,7 @@ internal abstract class Scope
 		//};
 		var resolvedType = typeNode switch
 		{
+			PtrTypeNode ptrTypeNode => Reasoner.LookupSymbol(ptrTypeNode),
 			NamedTypeNode namedTypeNode => LookupIdentifier(namedTypeNode.Identifier),
 			FnTypeNode fnTypeNode => Reasoner.LookupSymbol(fnTypeNode),
 			MissingTypeNode => ErrorTypeSymbol.Create(),

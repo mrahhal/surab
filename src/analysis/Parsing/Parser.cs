@@ -1117,6 +1117,7 @@ internal class ParserImpl
 
 	/// <summary>
 	/// Parses the various type syntax.
+	/// - `@extern *NamedType`
 	/// - `NamedType`
 	/// - `@extern fn (i32) i32`
 	/// </summary>
@@ -1126,14 +1127,31 @@ internal class ParserImpl
 
 		return _current?.Kind switch
 		{
+			TokenKind.Asterisk => ParsePtrType(attrs),
 			TokenKind.Identifier => ParseNamedType(attrs),
 			// Note that in the faulty: `fn some() /* not complete */ fn main() {}`
 			// The parser will think the next fn keyword (for main) the start of the fn return type of some.
 			// Currently, can't figure out a good way to recover this better without doing a lot of lookaheads.
-			TokenKind.AtBeforeIdentifier or TokenKind.Fn => ParseFnType(attrs),
+			TokenKind.Fn => ParseFnType(attrs),
 			// IsAtEnd check is included here.
 			_ => CreateMissingTypeNode(attrs),
 		};
+	}
+
+	/// <summary>
+	/// Parses `*Type`
+	/// Requirements: current is Asterisk.
+	/// </summary>
+	private PtrTypeNode ParsePtrType(AttrsListNode? attrs)
+	{
+		var asteriskToken = EatAssertedSimpleToken(TokenKind.Asterisk);
+		var innerType = default(TypeNode?);
+		if (!IsAtEnd() && _current.Kind.CanStartType())
+		{
+			innerType = ParseType();
+		}
+
+		return new PtrTypeNode(_tree, attrs, asteriskToken, innerType);
 	}
 
 	/// <summary>

@@ -81,7 +81,9 @@ public static class Pratt
 		TokenKind.False or
 		TokenKind.Plus or
 		TokenKind.Minus or
-		TokenKind.Bang;
+		TokenKind.Bang or
+		TokenKind.Asterisk or
+		TokenKind.And;
 
 	public static InfixRule? GetInfixRule(TokenKind tokenKind)
 	{

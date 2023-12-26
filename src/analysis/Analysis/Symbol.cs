@@ -1,6 +1,5 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Linq;
 
 namespace Surab.Analysis;
 
@@ -12,6 +11,7 @@ public enum SymbolKind
 	Param,
 	Local,
 
+	PtrType,
 	NamedType,
 	FnType,
 	AliasType,
@@ -585,6 +585,7 @@ public abstract class TypeSymbol : Symbol
 /// Represents a key that is used to structurally compare fn types.
 /// Any two fn types with the same signature will have equal keys.
 /// </summary>
+[DebuggerDisplay("{ToString()}")]
 internal readonly struct FnTypeKey(
 	bool isExtern,
 	TypeSymbol returnType,
@@ -664,18 +665,17 @@ public class FnTypeSymbol : TypeSymbol
 {
 	// AliasDeclNode (node is null for FnDeclNode, MethodDeclNode because these create shared fn type symbols)
 	private readonly DeclNode? _node;
-	private readonly FnTypeKey _key;
 
 	// node will be null for untyped fn types (fns and methods).
 	internal FnTypeSymbol(DeclNode? node, FnTypeKey key)
 	{
 		_node = node;
-		_key = key;
+		Key = key;
 	}
 
 	public override SymbolKind Kind => SymbolKind.FnType;
 
-	internal FnTypeKey Key => _key;
+	internal FnTypeKey Key { get; }
 
 	public bool IsExtern => Key.IsExtern;
 
@@ -691,6 +691,82 @@ public class FnTypeSymbol : TypeSymbol
 		if (to is not FnTypeSymbol toFnType || from is not FnTypeSymbol fromFnType)
 			return false;
 		return toFnType.Key.IsAssignableFrom(fromFnType.Key);
+	}
+
+	public override string ToString()
+	{
+		return Key.ToString();
+	}
+}
+
+/// <summary>
+/// Represents a key that is used to structurally compare ptr types.
+/// Any two ptr types with the same inner type will have equal keys.
+/// </summary>
+[DebuggerDisplay("{ToString()}")]
+internal readonly struct PtrTypeKey(TypeSymbol? innerType) : IEquatable<PtrTypeKey>
+{
+	public readonly TypeSymbol? InnerType { get; } = innerType;
+
+	public override bool Equals(object? obj) => obj is PtrTypeKey other && Equals(other);
+
+	public bool Equals(PtrTypeKey other)
+	{
+		return InnerType == other.InnerType;
+	}
+
+	public bool IsAssignableFrom(PtrTypeKey other)
+	{
+		if (InnerType == null)
+		{
+			// Opaque ptr.
+			return other.InnerType == null;
+		}
+		return InnerType.IsAssignableFrom(other.InnerType);
+	}
+
+	public override int GetHashCode()
+	{
+		unchecked
+		{
+			var hash = 92821;
+			hash = hash * 29 + InnerType?.GetHashCode() ?? 0;
+			return hash;
+		}
+	}
+
+	public override string ToString()
+	{
+		return $"*{InnerType?.Name}";
+	}
+}
+
+public class PtrTypeSymbol : TypeSymbol
+{
+	internal PtrTypeSymbol(PtrTypeKey key)
+	{
+		Key = key;
+	}
+
+	public override SymbolKind Kind => SymbolKind.PtrType;
+
+	internal PtrTypeKey Key { get; }
+
+	/// <summary>
+	/// Gets the inner type of the pointer. Will be null for an opaque pointer.
+	/// </summary>
+	public TypeSymbol? InnerType => Key.InnerType;
+
+	public override bool IsAssignableFromCore(TypeSymbol to, TypeSymbol from)
+	{
+		if (to is not PtrTypeSymbol toPtrType || from is not PtrTypeSymbol fromPtrType)
+			return false;
+		return toPtrType.Key.IsAssignableFrom(fromPtrType.Key);
+	}
+
+	public override string ToString()
+	{
+		return Key.ToString();
 	}
 }
 
