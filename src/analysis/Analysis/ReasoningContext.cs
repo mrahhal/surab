@@ -7,4 +7,6 @@ internal class ReasoningContext
 	public readonly ConcurrentDictionary<FnTypeKey, FnTypeSymbol> UnnamedFnTypeMap = [];
 
 	public readonly ConcurrentDictionary<PtrTypeKey, PtrTypeSymbol> PtrTypeMap = [];
+
+	public readonly ConcurrentDictionary<ThisSymbolKey, ThisSymbol> ThisSymbolMap = [];
 }

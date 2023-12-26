@@ -173,8 +173,7 @@ public class Reasoner
 
 	private Symbol? LookupSymbol(ThisExprNode node)
 	{
-		var scope = GetEnclosingScope(node);
-		return scope?.LookupThis();
+		return GetThisSymbol(node);
 	}
 
 	internal PtrTypeSymbol LookupSymbol(PtrTypeNode node)
@@ -390,9 +389,8 @@ public class Reasoner
 
 	private TypeSymbol LookupType(ThisExprNode node)
 	{
-		// A this expr's type is also its symbol.
-		var symbol = LookupSymbol(node);
-		return symbol as TypeSymbol ?? ErrorTypeSymbol.Create();
+		var thisSymbol = LookupSymbol(node) as ThisSymbol;
+		return thisSymbol?.Type ?? ErrorTypeSymbol.Create();
 	}
 
 	private TypeSymbol LookupType(StructCreationExprNode node)
@@ -429,6 +427,14 @@ public class Reasoner
 			FieldDeclNode fieldDecl => LookupType(fieldDecl.Initializer),
 			_ => null,
 		};
+	}
+
+	private ThisSymbol GetThisSymbol(ThisExprNode node)
+	{
+		var type = GetEnclosingScope(node)?.LookupThis() ?? ErrorTypeSymbol.Create();
+		// TODO: This will create a lot of symbols when there are errors. Same with other keys.
+		// Should create only one for errors? Or somehow do some cleaning on re-analysis.
+		return ReasoningContext.ThisSymbolMap.GetOrAdd(new ThisSymbolKey(type), key => new ThisSymbol(key));
 	}
 
 	private PtrTypeSymbol GetPtrType(PtrTypeNode node)

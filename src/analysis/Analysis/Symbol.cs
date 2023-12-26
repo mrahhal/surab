@@ -10,6 +10,7 @@ public enum SymbolKind
 	Field,
 	Param,
 	Local,
+	This,
 
 	PtrType,
 	NamedType,
@@ -352,6 +353,32 @@ public sealed class LocalSymbol : Symbol, ISymbolHasType
 	{
 		return _type ??= Scope.ResolveType(_node, _node.Type);
 	}
+}
+
+[DebuggerDisplay("{ToString()}")]
+internal readonly record struct ThisSymbolKey(TypeSymbol type)
+{
+	public readonly TypeSymbol Type { get; } = type;
+
+	public override string ToString() => "this";
+}
+
+public sealed class ThisSymbol : Symbol, ISymbolHasType
+{
+	internal ThisSymbol(ThisSymbolKey key)
+	{
+		Key = key;
+	}
+
+	public override SymbolKind Kind => SymbolKind.This;
+
+	public override string? Name => "this";
+
+	internal ThisSymbolKey Key { get; }
+
+	public TypeSymbol Type => Key.Type;
+
+	public bool IsTypeInferred => false;
 }
 
 public enum KnownTypeTag
