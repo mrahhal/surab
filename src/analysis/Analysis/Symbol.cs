@@ -134,6 +134,8 @@ public sealed class FnSymbol : Symbol, ISymbolHasType
 
 	public bool IsPublic => _node.Attrs.HasAttr(KnownAttrs.Public);
 
+	public bool IsStatic => _node.Attrs.HasAttr(KnownAttrs.Static);
+
 	public bool IsExtern => _node.Attrs.HasAttr(KnownAttrs.Extern);
 
 	TypeSymbol ISymbolHasType.Type => Type;
@@ -152,7 +154,7 @@ public sealed class FnSymbol : Symbol, ISymbolHasType
 	public bool IsTypeInferred => false;
 
 	/// <summary>
-	/// The type symbol of the receiver type (struct/class) if this is a method.
+	/// The type symbol of the receiver type (struct/class) if this is a non static method.
 	/// </summary>
 	public TypeSymbol? MethodReceiverType => EnsureResolveMethodReceiverType();
 
@@ -195,7 +197,7 @@ public sealed class FnSymbol : Symbol, ISymbolHasType
 
 	private TypeSymbol? EnsureResolveMethodReceiverType()
 	{
-		if (_node.Parent is not MethodDeclNode)
+		if (_node.Parent is not MethodDeclNode || IsStatic)
 			return null;
 
 		return _methodReceiverType ??= ResolveEnclosingType();
