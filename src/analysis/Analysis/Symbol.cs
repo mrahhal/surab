@@ -566,13 +566,18 @@ public abstract class TypeSymbol : Symbol
 	}
 
 	/// <summary>
-	/// If `true` is returned, the <paramref name="from"/> type can be assigned to this type. i.e. this = <paramref name="from"/>
+	/// If `true` is returned, the <paramref name="from"/> type can be assigned to this type. i.e. `this = <paramref name="from"/>` is valid.
 	/// This also performs aliased type unwrapping on both sides.
 	/// </summary>
-	public virtual bool IsAssignableFrom(TypeSymbol? from)
+	public bool IsAssignableFrom(TypeSymbol? from)
 	{
 		if (from == null) return false;
-		return Equals(UnwrapAliases(), from.UnwrapAliases());
+		return IsAssignableFromCore(UnwrapAliases(), from.UnwrapAliases());
+	}
+
+	public virtual bool IsAssignableFromCore(TypeSymbol to, TypeSymbol from)
+	{
+		return Equals(to, from);
 	}
 }
 
@@ -655,7 +660,7 @@ internal readonly struct FnTypeKey(
 /// This symbol overrides equality so that comparison is structural instead of referential.
 /// i.e. A named fn's fn type symbol and a method's fn type symbol and an alias' fn type symbol are equal if they're structurally compatible (signatures match).
 /// </summary>
-public class FnTypeSymbol : TypeSymbol, IEquatable<FnTypeSymbol>
+public class FnTypeSymbol : TypeSymbol
 {
 	// AliasDeclNode (node is null for FnDeclNode, MethodDeclNode because these create shared fn type symbols)
 	private readonly DeclNode? _node;
@@ -681,17 +686,11 @@ public class FnTypeSymbol : TypeSymbol, IEquatable<FnTypeSymbol>
 	// TODO: If it's a named fn type (alias), display that instead?
 	public override string? Name => Key.ToString();
 
-	public override bool Equals(object? obj) => Equals(obj as FnTypeSymbol);
-
-	public bool Equals(FnTypeSymbol? other)
+	public override bool IsAssignableFromCore(TypeSymbol to, TypeSymbol from)
 	{
-		if (other == null) return false;
-		return Equals(Key, other.Key);
-	}
-
-	public override int GetHashCode()
-	{
-		return Key.GetHashCode();
+		if (to is not FnTypeSymbol toFnType || from is not FnTypeSymbol fromFnType)
+			return false;
+		return toFnType.Key.IsAssignableFrom(fromFnType.Key);
 	}
 }
 
