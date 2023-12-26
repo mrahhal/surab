@@ -45,7 +45,11 @@ public class Reasoner
 	/// </summary>
 	public bool TryGetDeclaredSymbol(SyntaxNode node, [NotNullWhen(true)] out Symbol? symbol)
 	{
-		return _nodeToSymbolMap.TryGetValue(node, out symbol);
+		return node switch
+		{
+			FnSigNode sig when sig.Parent != null => TryGetDeclaredSymbol(sig.Parent, out symbol),
+			_ => _nodeToSymbolMap.TryGetValue(node, out symbol),
+		};
 	}
 
 	/// <summary>
