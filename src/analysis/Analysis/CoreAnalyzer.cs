@@ -233,7 +233,7 @@ internal class CoreAnalyzer(Reasoner reasoner) : SyntaxTreeVisitor
 		else if (!lhsType.IsAssignableFrom(rhsType))
 		{
 			// Incompatible types
-			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"invalid assignment because of incompatible types, expected `{lhsType?.Name}` but received `{rhsType?.Name}`");
+			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"invalid assignment because of incompatible types, expected `{lhsType}` but received `{rhsType}`");
 		}
 	}
 
@@ -340,7 +340,21 @@ internal class CoreAnalyzer(Reasoner reasoner) : SyntaxTreeVisitor
 		else if (calleeType is FnTypeSymbol fnSymbol)
 		{
 			var args = node.Args.ToList();
-			if (fnSymbol.ParamTypes.Length != args.Count)
+			var paramTypes = default(List<TypeSymbol>?);
+
+			if (node.Callee is AccessExprNode accessExpr &&
+				_reasoner.LookupSymbol(accessExpr.Target) is not TypeSymbol)
+			{
+				// Call through member access and the Target isn't a type. This means we're accessing the fn through an instance.
+				// Account for receiver being the accessed member, so it won't be in the args. So skip receiver type, the first type.
+				paramTypes = [.. fnSymbol.ParamTypes[1..]];
+			}
+			else
+			{
+				paramTypes = [.. fnSymbol.ParamTypes];
+			}
+
+			if (paramTypes.Count != args.Count)
 			{
 				_diagnostics.Add(node.ArgsList.Span, DiagnosticLevel.Error, $"invalid invocation: wrong number of arguments");
 			}
@@ -349,7 +363,7 @@ internal class CoreAnalyzer(Reasoner reasoner) : SyntaxTreeVisitor
 				for (var i = 0; i < args.Count; i++)
 				{
 					var arg = args[i];
-					var paramType = fnSymbol.ParamTypes[i];
+					var paramType = paramTypes[i];
 					var argType = _reasoner.LookupType(arg);
 					if (paramType.IsError || argType.IsError)
 					{
@@ -357,7 +371,7 @@ internal class CoreAnalyzer(Reasoner reasoner) : SyntaxTreeVisitor
 					}
 					else if (!paramType.IsAssignableFrom(argType))
 					{
-						_diagnostics.Add(arg.Span, DiagnosticLevel.Error, $"incompatible type for arg, expected `{paramType.Name}` but received `{argType?.Name}`");
+						_diagnostics.Add(arg.Span, DiagnosticLevel.Error, $"incompatible type for arg, expected `{paramType}` but received `{argType}`");
 					}
 				}
 			}
@@ -433,7 +447,7 @@ internal class CoreAnalyzer(Reasoner reasoner) : SyntaxTreeVisitor
 		var unsetSymbols = requiredSymbols.Where(requiredSymbol => !setSymbolsMap.ContainsKey(requiredSymbol)).ToList();
 		if (unsetSymbols.Count != 0)
 		{
-			var missingText = string.Join(", ", unsetSymbols.Select(x => x.Name));
+			var missingText = string.Join(", ", unsetSymbols.Select(x => x.ToString()));
 			_diagnostics.Add(node.Identifier.Span, DiagnosticLevel.Error, $"missing required members in initializer: {missingText}");
 		}
 

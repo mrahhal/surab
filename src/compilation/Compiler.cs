@@ -438,7 +438,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 		// This is better than loading into a struct value and then storing it back (effectively emulating memcpy). But even more importantly, this
 		// is necessary for sret to be compiled properly.
 		// Is this logic here good enough?
-		// NOTE: This doesn't mean we'll memcpy the struct data for an actual struct ptr. An actual struct ptr will not have match StructTypeSymbol. (it'll be a ptr symbol)
+		// NOTE: This doesn't mean we'll memcpy the struct data for an actual struct ptr. An actual struct ptr will not have matched StructTypeSymbol. (it'll be a ptr symbol)
 		if (leftType is StructTypeSymbol && rightType is StructTypeSymbol && rhsUnit.IsWrapped)
 		{
 			var (_, rhs) = rhsUnit;

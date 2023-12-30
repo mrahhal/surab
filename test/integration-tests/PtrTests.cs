@@ -36,6 +36,11 @@ public class PtrTests
 				// Works through the ptr too.
 				s1_ptr.mutate();
 				print_i32(s1.a);
+
+				var s2 = *s1; // copy
+				s2.mutate();
+				print_i32(s2.a);
+				print_i32(s1.a);
 			}
 			""");
 
@@ -45,6 +50,8 @@ public class PtrTests
 			"43".NL() +
 			"43".NL() +
 			"44".NL() +
+			"45".NL() +
+			"46".NL() +
 			"45".NL();
 
 		output.Should().Be(expectedOutput);

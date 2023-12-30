@@ -297,6 +297,31 @@ public class ReasonerTests
 	}
 
 	[Fact]
+	public void LookupType_PtrType_AutoDeref()
+	{
+		var src = """
+			struct S {
+				get() i32 { 42 }
+			}
+
+			fn f() {
+				var s = S { };
+				var a = s.get();
+				var s_ptr = &s;
+				// Pass through type analysis for pointers. This should properly resolve the method.
+				var b = s_ptr.get();
+			}
+			""";
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
+
+		var aType = ((LocalSymbol)reasoner.GetDeclaredSymbol(tree.Root.DescendantNodes().OfType<VarStmtNode>().ElementAt(1))!).Type;
+		var bType = ((LocalSymbol)reasoner.GetDeclaredSymbol(tree.Root.DescendantNodes().OfType<VarStmtNode>().ElementAt(3))!).Type;
+
+		aType.KnownTypeTag.Should().Be(KnownTypeTag.i32);
+		bType.KnownTypeTag.Should().Be(KnownTypeTag.i32);
+	}
+
+	[Fact]
 	public void Symbol_ErrorType()
 	{
 		var src = """

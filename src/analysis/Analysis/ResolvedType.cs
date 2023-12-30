@@ -12,7 +12,7 @@ public class ResolvedType
 	}
 
 	/// <summary>
-	/// The resolved type.
+	/// The resolved type symbol.
 	/// </summary>
 	public TypeSymbol Type { get; }
 
