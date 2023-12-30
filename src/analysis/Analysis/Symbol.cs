@@ -515,29 +515,28 @@ public abstract class TypeSymbol : Symbol
 	{
 		var symbols = new List<Symbol>();
 
-		foreach (var node in EnumerateMembers())
+		foreach (var memberNode in EnumerateMembers())
 		{
-			Debug.Assert(Scope != null, "If symbol has members, it should have a scope.");
-
 			// An uninitialized field
-			if (node is FieldDeclNode fieldDecl && Scope.Reasoner.TryGetDeclaredSymbol(node, out var symbol) && symbol is FieldSymbol fieldSymbol && !fieldSymbol.HasInitializer)
+			if (memberNode is FieldDeclNode fieldDecl && Scope.Reasoner.TryGetDeclaredSymbol(memberNode, out var symbol) &&
+				symbol is FieldSymbol fieldSymbol && !fieldSymbol.HasInitializer)
 			{
 				symbols.Add(symbol);
 			}
+		}
 
-			// Initializer params
-			if (InitializerMethodDecl != null)
+		// Initializer params
+		if (InitializerMethodDecl != null)
+		{
+			foreach (var paramNode in InitializerMethodDecl.Sig.Params)
 			{
-				foreach (var paramNode in InitializerMethodDecl.Sig.Params)
+				if (Scope.Reasoner.TryGetDeclaredSymbol(paramNode, out var symbol))
 				{
-					if (Scope.Reasoner.TryGetDeclaredSymbol(paramNode, out symbol))
-					{
-						symbols.Add(symbol);
-					}
-					else
-					{
-						throw new UnreachableException();
-					}
+					symbols.Add(symbol);
+				}
+				else
+				{
+					throw new UnreachableException();
 				}
 			}
 		}
