@@ -1,29 +1,58 @@
 ﻿namespace Surab.Analysis;
 
 /// <summary>
+/// Describes additional characteristics on a resolved type.
+/// Some characteristics pertain more to the value that the type corresponds to.
+/// </summary>
+[Flags]
+public enum TypeCharacteristics
+{
+	Default = 0b0,
+
+	/// <summary>
+	/// Type is inferred as opposed to typed.
+	/// </summary>
+	Inferred = 0b_0001,
+}
+
+/// <summary>
 /// Represents a resolved type.
 /// </summary>
-public class ResolvedType
+public struct ResolvedType
 {
-	private ResolvedType(TypeSymbol type, bool isInferred)
+	private TypeCharacteristics _characteristics = TypeCharacteristics.Default;
+
+	internal ResolvedType(TypeSymbol type)
 	{
 		Type = type;
-		IsInferred = isInferred;
 	}
 
 	/// <summary>
-	/// The resolved type symbol.
+	/// Gets the resolved type symbol.
 	/// </summary>
 	public TypeSymbol Type { get; }
 
-	/// <summary>
-	/// Whether the resolved type was inferred or not.
-	/// </summary>
-	public bool IsInferred { get; }
+	public readonly bool IsInferred => HasCharacteristics(TypeCharacteristics.Inferred);
 
-	public static ResolvedType Typed(TypeSymbol type) => new(type, false);
+	internal void AddCharacteristics(TypeCharacteristics characteristics)
+	{
+		_characteristics |= characteristics;
+	}
 
-	public static ResolvedType Inferred(TypeSymbol type) => new(type, true);
+	public readonly bool HasCharacteristics(TypeCharacteristics characteristics)
+	{
+		return (_characteristics & characteristics) != 0;
+	}
 
-	public static implicit operator TypeSymbol(ResolvedType resolvedType) => resolvedType.Type;
+	public static ResolvedType Typed(TypeSymbol type)
+	{
+		return new ResolvedType(type);
+	}
+
+	public static ResolvedType Inferred(TypeSymbol type)
+	{
+		var r = new ResolvedType(type);
+		r.AddCharacteristics(TypeCharacteristics.Inferred);
+		return r;
+	}
 }
