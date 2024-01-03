@@ -591,22 +591,28 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 		switch (node.Literal.LiteralTokenKind)
 		{
 			case LiteralTokenKind.NumericInteger:
-				{
-					Debug.Assert(node.Literal.TryGetNumericIntegerValue(out var v));
-					var llvmType = LLVMTarget.LowerType(node.Type);
-					// TODO: Do sign and zero extension more properly?
-					var signExtend = Target.GetIntegerSign(node.Type) == IntegerSign.Signed;
-					var llvmValue = LLVMValueRef.CreateConstInt(llvmType, v, signExtend);
-					_stack.Push(LLVMUnit.Unwrapped(llvmType, llvmValue));
-				}
-				break;
-
 			case LiteralTokenKind.NumericFloat:
 				{
-					Debug.Assert(node.Literal.TryGetNumericFloatValue(out var v));
-					var llvmType = LLVMTarget.LowerType(node.Type);
-					var llvmValue = LLVMValueRef.CreateConstReal(llvmType, v);
-					_stack.Push(LLVMUnit.Unwrapped(llvmType, llvmValue));
+					if (node.Type.IsNumericInteger())
+					{
+						var v = node.Literal.GetNumericValueAsInteger();
+						var llvmType = LLVMTarget.LowerType(node.Type);
+						// TODO: Do sign and zero extension more properly?
+						var signExtend = Target.GetIntegerSign(node.Type) == IntegerSign.Signed;
+						var llvmValue = LLVMValueRef.CreateConstInt(llvmType, v, signExtend);
+						_stack.Push(LLVMUnit.Unwrapped(llvmType, llvmValue));
+					}
+					else if (node.Type.IsNumericFloat())
+					{
+						var v = node.Literal.GetNumericValueAsFloat();
+						var llvmType = LLVMTarget.LowerType(node.Type);
+						var llvmValue = LLVMValueRef.CreateConstReal(llvmType, v);
+						_stack.Push(LLVMUnit.Unwrapped(llvmType, llvmValue));
+					}
+					else
+					{
+						throw new UnreachableException();
+					}
 				}
 				break;
 

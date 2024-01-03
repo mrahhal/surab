@@ -349,11 +349,11 @@ public enum BinaryOperatorTokenKind
 	Mul,
 	Div,
 	Pow,
-	And,	// &&
-	Or,		// ||
-	BitAnd,	// &
-	BitOr,	// |
-	BitXor,	// ^
+	And,    // &&
+	Or,     // ||
+	BitAnd, // &
+	BitOr,  // |
+	BitXor, // ^
 	Eq,
 	Ne,
 	Lt,
@@ -481,11 +481,13 @@ public sealed class IdentifierToken : SyntaxToken
 public enum LiteralTokenKind
 {
 	/// <summary>
-	/// Token's Data stored as ulong. Covers: i32, i64, u32, u64.
+	/// Token's Data stored as ulong for non fractional literals.
+	/// Note that this doesn't necessarily mean the literal node's type is ix or fx, it could be either.
 	/// </summary>
 	NumericInteger,
 	/// <summary>
-	/// Token's Data stored as double. Covers: f32, f64.
+	/// Token's Data stored as double for fractional literals.
+	/// Note that this doesn't necessarily mean the literal node's type is ix or fx, it could be either.
 	/// </summary>
 	NumericFloat,
 	Char,
@@ -524,6 +526,34 @@ public sealed class LiteralToken : SyntaxToken
 
 	public static LiteralToken FromString(SyntaxTree tree, List<Token> leadingTriviaTokens, List<Token> trailingTriviaTokens, Token token, string? value) =>
 		new(tree, leadingTriviaTokens, trailingTriviaTokens, token.Span, LiteralTokenKind.String, value);
+
+	/// <summary>
+	/// Returns the numeric value as an integer (ulong).
+	/// </summary>
+	/// <exception cref="InvalidOperationException">If the token is not numeric or can't be returned as a ulong.</exception>
+	public ulong GetNumericValueAsInteger()
+	{
+		return LiteralTokenKind switch
+		{
+			LiteralTokenKind.NumericInteger => (ulong)Data!,
+			LiteralTokenKind.NumericFloat => throw new InvalidOperationException("Literal is a float."),
+			_ => throw new InvalidOperationException("Literal is not numeric."),
+		};
+	}
+
+	/// <summary>
+	/// Returns the numeric value as a float (double).
+	/// </summary>
+	/// <exception cref="InvalidOperationException">If the token is not numeric or can't be returned as a double.</exception>
+	public double GetNumericValueAsFloat()
+	{
+		return LiteralTokenKind switch
+		{
+			LiteralTokenKind.NumericInteger => (ulong)Data!,
+			LiteralTokenKind.NumericFloat => (double)Data!,
+			_ => throw new InvalidOperationException("Literal is not numeric."),
+		};
+	}
 
 	public bool TryGetNumericIntegerValue(out ulong value)
 	{
