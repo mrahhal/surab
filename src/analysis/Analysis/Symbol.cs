@@ -855,6 +855,8 @@ public class PtrTypeSymbol : TypeSymbol
 	/// </summary>
 	public TypeSymbol? InnerType => Key.InnerType;
 
+	public override string? Name => $"*{InnerType?.Name}";
+
 	public override bool IsAssignableFromCore(TypeSymbol to, TypeSymbol from)
 	{
 		if (to is not PtrTypeSymbol toPtrType || from is not PtrTypeSymbol fromPtrType)
