@@ -504,7 +504,7 @@ public class Reasoner
 		var fnSymbol = (FnSymbol)GetDeclaredSymbol(sig.Parent!)!;
 		Debug.Assert(fnSymbol != null);
 		var receiverType = fnSymbol.MethodReceiverType;
-		IEnumerable<TypeSymbol> receiverTypes = receiverType == null ? [] : [GetPtrType(receiverType)];
+		IEnumerable<TypeSymbol> receiverTypes = receiverType == null ? [] : [receiverType];
 		IEnumerable<TypeSymbol> paramTypes = sig.Params.Select(p =>
 		{
 			return LookupSymbol(p.Type?.Type).AsTypeSymbolOrError(this);
