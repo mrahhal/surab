@@ -59,11 +59,16 @@ public class SurabSolver(
 		var reasoner = Project.GetReasoner(sourceFile);
 		var linePosition = ConversionHelper.FromTo(position);
 		var node = GetNodeAt(sourceFile, linePosition)!;
-		var symbol = reasoner.GetDeclaredSymbol(node) ?? reasoner.LookupSymbol(node);
 		var type = default(TypeSymbol?);
+		var symbol = reasoner.GetDeclaredSymbol(node) ?? reasoner.LookupSymbol(node);
 		if (symbol is TypeSymbol typeSymbol)
 		{
 			type = typeSymbol;
+		}
+		else if (symbol is FnSymbol && reasoner.GetDeclaredSymbol(node) == null)
+		{
+			// LookupType can perform updates to the receiver arg.
+			type = reasoner.LookupType(node);
 		}
 		else if (symbol is ISymbolHasType hasType)
 		{
