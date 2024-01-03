@@ -200,7 +200,7 @@ public class SemanticTokensFullHandler(
 
 	private static SemanticTokenType? GetTokenType(TypeSymbol typeSymbol)
 	{
-		if (typeSymbol.IsError) return null;
+		if (typeSymbol.IsUnknown) return null;
 		return typeSymbol switch
 		{
 			StructTypeSymbol => (SemanticTokenType?)SemanticTokenType.Struct,

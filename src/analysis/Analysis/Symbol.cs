@@ -16,7 +16,7 @@ public enum SymbolKind
 	NamedType,
 	FnType,
 	AliasType,
-	ErrorType,
+	UnknownType,
 }
 
 /// <summary>
@@ -251,7 +251,7 @@ public sealed class FnSymbol : Symbol, ISymbolHasType
 		TypeSymbol ResolveEnclosingType()
 		{
 			var enclosingType = Scope.LookupTypeDecl();
-			return enclosingType ?? ErrorTypeSymbol.Create(Reasoner);
+			return enclosingType ?? UnknownTypeSymbol.Create(Reasoner);
 		}
 	}
 
@@ -266,7 +266,7 @@ public sealed class FnSymbol : Symbol, ISymbolHasType
 		{
 			var enclosingType = EnclosingType;
 			// TODO: Account for @receiver_by_val.
-			return Reasoner.GetPtrType(enclosingType ?? ErrorTypeSymbol.Create(Reasoner));
+			return Reasoner.GetPtrType(enclosingType ?? UnknownTypeSymbol.Create(Reasoner));
 		}
 	}
 }
@@ -344,7 +344,7 @@ internal sealed class FieldSymbolImpl : FieldSymbol, ISymbolHasType
 		TypeSymbol ResolveEnclosingType()
 		{
 			var enclosingType = Scope.LookupTypeDecl();
-			return enclosingType ?? ErrorTypeSymbol.Create(Reasoner);
+			return enclosingType ?? UnknownTypeSymbol.Create(Reasoner);
 		}
 	}
 }
@@ -516,7 +516,7 @@ public abstract class TypeSymbol : Symbol
 		public MethodDeclNode? Node { get; init; }
 	}
 
-	public bool IsError => this is ErrorTypeSymbol;
+	public bool IsUnknown => this is UnknownTypeSymbol;
 
 	public KnownTypeTag? KnownTypeTag { get; internal set; }
 
@@ -982,34 +982,34 @@ public class AliasTypeSymbol : TypeSymbol
 }
 
 /// <summary>
-/// Represents a type symbol that failed to bind.
+/// Represents an unknown type symbol.
 /// </summary>
-public sealed class ErrorTypeSymbol : TypeSymbol
+public sealed class UnknownTypeSymbol : TypeSymbol
 {
-	private ErrorTypeSymbol(Reasoner reasoner, SyntaxNode? node, IdentifierToken? identifier)
-		: base(SymbolKind.ErrorType, reasoner, node)
+	private UnknownTypeSymbol(Reasoner reasoner, SyntaxNode? node, IdentifierToken? identifier)
+		: base(SymbolKind.UnknownType, reasoner, node)
 	{
 		Identifier = identifier;
 	}
 
-	public override string? Name => Identifier?.Value ?? "_ERR_";
+	public override string? Name => Identifier?.Value ?? "_?_";
 
-	public static ErrorTypeSymbol Create(Reasoner reasoner) => new(reasoner, null, null);
+	public static UnknownTypeSymbol Create(Reasoner reasoner) => new(reasoner, null, null);
 
-	public static ErrorTypeSymbol Create(Reasoner reasoner, SyntaxNode? node) => new(reasoner, node, null);
+	public static UnknownTypeSymbol Create(Reasoner reasoner, SyntaxNode? node) => new(reasoner, node, null);
 
-	public static ErrorTypeSymbol Create(Reasoner reasoner, IdentifierToken? identifier) => new(reasoner, null, identifier);
+	public static UnknownTypeSymbol Create(Reasoner reasoner, IdentifierToken? identifier) => new(reasoner, null, identifier);
 
-	public static ErrorTypeSymbol Create(Reasoner reasoner, SyntaxNode? node, IdentifierToken? identifier) => new(reasoner, node, identifier);
+	public static UnknownTypeSymbol Create(Reasoner reasoner, SyntaxNode? node, IdentifierToken? identifier) => new(reasoner, node, identifier);
 }
 
 public static class SymbolExtensions
 {
 	public static bool IsType(this Symbol? symbol) => symbol is TypeSymbol;
 
-	public static TypeSymbol AsTypeSymbolOrError(this Symbol? symbol, Reasoner reasoner)
+	public static TypeSymbol AsTypeSymbolOrUnknown(this Symbol? symbol, Reasoner reasoner)
 	{
-		return (symbol as TypeSymbol) ?? ErrorTypeSymbol.Create(reasoner);
+		return (symbol as TypeSymbol) ?? UnknownTypeSymbol.Create(reasoner);
 	}
 }
 

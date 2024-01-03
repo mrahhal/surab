@@ -226,7 +226,7 @@ internal class CoreAnalyzer(Reasoner reasoner) : SyntaxTreeVisitor
 
 	private void AnalyzeAssignment(SyntaxNode node, TypeSymbol lhsType, TypeSymbol rhsType)
 	{
-		if (lhsType.IsError || rhsType.IsError)
+		if (lhsType.IsUnknown || rhsType.IsUnknown)
 		{
 			// Reported somewhere else.
 		}
@@ -268,7 +268,7 @@ internal class CoreAnalyzer(Reasoner reasoner) : SyntaxTreeVisitor
 		var leftType = _reasoner.LookupType(node.Left);
 		var rightType = _reasoner.LookupType(node.Right);
 
-		if (leftType.IsError || rightType.IsError)
+		if (leftType.IsUnknown || rightType.IsUnknown)
 		{
 			// Shouldn't report. Will be reported elsewhere.
 		}
@@ -329,7 +329,7 @@ internal class CoreAnalyzer(Reasoner reasoner) : SyntaxTreeVisitor
 
 		// Ensure callee is a function and validate args.
 
-		if (calleeType.IsError)
+		if (calleeType.IsUnknown)
 		{
 			// Reported somewhere else.
 		}
@@ -353,7 +353,7 @@ internal class CoreAnalyzer(Reasoner reasoner) : SyntaxTreeVisitor
 					var arg = args[i];
 					var paramType = paramTypes[i];
 					var argType = _reasoner.LookupType(arg);
-					if (paramType.IsError || argType.IsError)
+					if (paramType.IsUnknown || argType.IsUnknown)
 					{
 						// Reported somewhere else.
 					}
@@ -371,7 +371,7 @@ internal class CoreAnalyzer(Reasoner reasoner) : SyntaxTreeVisitor
 	public override void VisitAccessExpr(AccessExprNode node)
 	{
 		var targetType = _reasoner.LookupType(node.Target);
-		if (targetType.IsError)
+		if (targetType.IsUnknown)
 		{
 			// Reported somewhere else.
 			return;
@@ -524,7 +524,7 @@ internal class CoreAnalyzer(Reasoner reasoner) : SyntaxTreeVisitor
 	// TODO: Things to consider adding here.
 	// - LetStmtNode.Type and Initializer:
 	//   - Initializer should always be given a value as a start
-	// - TypeSymbol being the ErrorType
+	// - TypeSymbol being the Unknown
 	// - BlockExpr can't appear as an l-value
 	// - Binary/Unary
 	// - Number assignment problems (u32 = u64 literal)

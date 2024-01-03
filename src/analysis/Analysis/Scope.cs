@@ -111,7 +111,7 @@ internal abstract class Scope
 
 	/// <summary>
 	/// Resolves a type, binding the type node to its type symbol.
-	/// This method never returns `null`. If resolving fails a special <see cref="ErrorTypeSymbol"/> will be returned.
+	/// This method never returns `null`. If resolving fails a special <see cref="UnknownTypeSymbol"/> will be returned.
 	/// </summary>
 	public ResolvedType ResolveType(SyntaxNode node, TypeNode? typeNode)
 	{
@@ -122,7 +122,7 @@ internal abstract class Scope
 		else
 		{
 			var boundType = Reasoner.InferTypeOfDeclaringNode(node);
-			return ResolvedType.Inferred(boundType ?? ErrorTypeSymbol.Create(Reasoner));
+			return ResolvedType.Inferred(boundType ?? UnknownTypeSymbol.Create(Reasoner));
 		}
 	}
 
@@ -130,7 +130,7 @@ internal abstract class Scope
 
 	/// <summary>
 	/// Resolves a type, binding the type node to its type symbol.
-	/// This method never returns `null`. If resolving fails a special <see cref="ErrorTypeSymbol"/> will be returned.
+	/// This method never returns `null`. If resolving fails a special <see cref="UnknownTypeSymbol"/> will be returned.
 	/// </summary>
 	public ResolvedType ResolveType(TypeNode typeNode)
 	{
@@ -144,10 +144,10 @@ internal abstract class Scope
 			PtrTypeNode ptrTypeNode => Reasoner.LookupSymbol(ptrTypeNode),
 			NamedTypeNode namedTypeNode => LookupIdentifier(namedTypeNode.Identifier),
 			FnTypeNode fnTypeNode => Reasoner.LookupSymbol(fnTypeNode),
-			MissingTypeNode => ErrorTypeSymbol.Create(Reasoner),
+			MissingTypeNode => UnknownTypeSymbol.Create(Reasoner),
 			_ => throw new UnreachableException(),
 		};
-		return ResolvedType.Typed(resolvedType as TypeSymbol ?? ErrorTypeSymbol.Create(Reasoner));
+		return ResolvedType.Typed(resolvedType as TypeSymbol ?? UnknownTypeSymbol.Create(Reasoner));
 	}
 
 	/// <summary>

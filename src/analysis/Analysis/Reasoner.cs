@@ -214,7 +214,7 @@ public class Reasoner
 
 	/// <summary>
 	/// Looks up the <see cref="TypeSymbol"/> that represents the given node.
-	/// The result is never null. If type resolving fails then an <see cref="ErrorTypeSymbol"/> is returned.
+	/// The result is never null. If type resolving fails then an <see cref="UnknownTypeSymbol"/> is returned.
 	/// </summary>
 	public TypeSymbol LookupType(SyntaxNode? node)
 	{
@@ -228,14 +228,14 @@ public class Reasoner
 			// Should we support non expr nodes like these in LookupType?
 			_ when node?.DeclaresSymbol() ?? false => LookupTypeFromDeclaredSymbol(node),
 
-			_ => ErrorTypeSymbol.Create(this),
+			_ => UnknownTypeSymbol.Create(this),
 		};
 	}
 
 	private TypeSymbol LookupTypeFromDeclaredSymbol(SyntaxNode node)
 	{
 		var symbol = GetDeclaredSymbol(node) as ISymbolHasType;
-		return symbol?.Type ?? ErrorTypeSymbol.Create(this);
+		return symbol?.Type ?? UnknownTypeSymbol.Create(this);
 	}
 
 	private TypeSymbol LookupType(BareExprStmtNode node)
@@ -259,7 +259,7 @@ public class Reasoner
 			ThisExprNode n => LookupType(n),
 			StructCreationExprNode n => LookupType(n),
 
-			_ => ErrorTypeSymbol.Create(this),
+			_ => UnknownTypeSymbol.Create(this),
 		};
 	}
 
@@ -268,7 +268,7 @@ public class Reasoner
 		var lastStmt = node.Stmts.LastOrDefault();
 		if (lastStmt == null)
 		{
-			return ErrorTypeSymbol.Create(this);
+			return UnknownTypeSymbol.Create(this);
 		}
 
 		return LookupType(lastStmt);
@@ -279,7 +279,7 @@ public class Reasoner
 		var exprType = LookupType(node.Expr);
 		return node.Op.UnaryOperatorTokenKind switch
 		{
-			UnaryOperatorTokenKind.Deref => exprType is PtrTypeSymbol ptrType ? ptrType.InnerType.AsTypeSymbolOrError(this) : exprType,
+			UnaryOperatorTokenKind.Deref => exprType is PtrTypeSymbol ptrType ? ptrType.InnerType.AsTypeSymbolOrUnknown(this) : exprType,
 			UnaryOperatorTokenKind.Address => GetPtrType(exprType),
 			_ => exprType,
 		};
@@ -293,7 +293,7 @@ public class Reasoner
 	private TypeSymbol LookupType(CallExprNode node)
 	{
 		var fnType = LookupType(node.Callee) as FnTypeSymbol;
-		return fnType?.ReturnType ?? ErrorTypeSymbol.Create(this);
+		return fnType?.ReturnType ?? UnknownTypeSymbol.Create(this);
 	}
 
 	private TypeSymbol LookupType(AccessExprNode node)
@@ -312,7 +312,7 @@ public class Reasoner
 			// For `a.b()`, when it's an instance access, we want to return an fn type without the receiver.
 			FnSymbol fn => this.IsInstanceAccess(node) ? fn.TypeWithoutReceiver : fn.Type,
 			ISymbolHasType s => s.Type,
-			_ => ErrorTypeSymbol.Create(this),
+			_ => UnknownTypeSymbol.Create(this),
 		};
 	}
 
@@ -358,7 +358,7 @@ public class Reasoner
 	{
 		if (TryResolveIdentifierExprSymbolInCreationExpr(node, out var symbol))
 		{
-			return (symbol as ISymbolHasType)?.Type ?? ErrorTypeSymbol.Create(this);
+			return (symbol as ISymbolHasType)?.Type ?? UnknownTypeSymbol.Create(this);
 		}
 		else
 		{
@@ -380,14 +380,14 @@ public class Reasoner
 		{
 			TypeSymbol s => s,
 			ISymbolHasType s => s.Type,
-			_ => ErrorTypeSymbol.Create(this),
+			_ => UnknownTypeSymbol.Create(this),
 		};
 	}
 
 	private TypeSymbol LookupType(ThisExprNode node)
 	{
 		var thisSymbol = LookupSymbol(node) as ThisSymbol;
-		return thisSymbol?.Type ?? ErrorTypeSymbol.Create(this);
+		return thisSymbol?.Type ?? UnknownTypeSymbol.Create(this);
 	}
 
 	private TypeSymbol LookupType(StructCreationExprNode node)
@@ -431,7 +431,7 @@ public class Reasoner
 		// TODO: This will create a lot of symbols when there are errors. Same with other keys.
 		// Should create only one for errors? Or somehow do some cleaning on re-analysis.
 
-		var type = GetEnclosingScope(node)?.LookupThis() ?? ErrorTypeSymbol.Create(this);
+		var type = GetEnclosingScope(node)?.LookupThis() ?? UnknownTypeSymbol.Create(this);
 		// TODO: Account for @receiver_by_val.
 		type = GetPtrType(type);
 		//if (type is StructTypeSymbol) { create ptr }
@@ -440,7 +440,7 @@ public class Reasoner
 
 	private PtrTypeSymbol GetPtrType(PtrTypeNode node)
 	{
-		return GetPtrType(node.InnerType == null ? null : LookupSymbol(node.InnerType).AsTypeSymbolOrError(this));
+		return GetPtrType(node.InnerType == null ? null : LookupSymbol(node.InnerType).AsTypeSymbolOrUnknown(this));
 	}
 
 	internal PtrTypeSymbol GetPtrType(TypeSymbol? innerType)
@@ -506,11 +506,11 @@ public class Reasoner
 		IEnumerable<TypeSymbol> receiverTypes = receiverType == null ? [] : [receiverType];
 		IEnumerable<TypeSymbol> paramTypes = sig.Params.Select(p =>
 		{
-			return LookupSymbol(p.Type?.Type).AsTypeSymbolOrError(this);
+			return LookupSymbol(p.Type?.Type).AsTypeSymbolOrUnknown(this);
 		});
 		return new FnTypeKey(
 			isExtern,
-			sig.ReturnType == null ? Project.ResolveKnownTypeSymbol(KnownTypeTag.None) : LookupSymbol(sig.ReturnType).AsTypeSymbolOrError(this),
+			sig.ReturnType == null ? Project.ResolveKnownTypeSymbol(KnownTypeTag.None) : LookupSymbol(sig.ReturnType).AsTypeSymbolOrUnknown(this),
 			[.. receiverTypes, .. paramTypes]);
 	}
 
@@ -519,11 +519,11 @@ public class Reasoner
 		var isExtern = fnType.Attrs.HasAttr(KnownAttrs.Extern);
 		return new FnTypeKey(
 			isExtern,
-			fnType.ReturnType == null ? Project.ResolveKnownTypeSymbol(KnownTypeTag.None) : LookupSymbol(fnType.ReturnType).AsTypeSymbolOrError(this),
+			fnType.ReturnType == null ? Project.ResolveKnownTypeSymbol(KnownTypeTag.None) : LookupSymbol(fnType.ReturnType).AsTypeSymbolOrUnknown(this),
 			// TODO: Should be able to handle ParamTypes being null better.
-			fnType.ParamTypes == null ? [ErrorTypeSymbol.Create(this)] : fnType.ParamTypes.Select(p =>
+			fnType.ParamTypes == null ? [UnknownTypeSymbol.Create(this)] : fnType.ParamTypes.Select(p =>
 			{
-				return LookupSymbol(p.Type).AsTypeSymbolOrError(this);
+				return LookupSymbol(p.Type).AsTypeSymbolOrUnknown(this);
 			}));
 	}
 

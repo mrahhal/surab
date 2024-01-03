@@ -322,7 +322,7 @@ public class ReasonerTests
 	}
 
 	[Fact]
-	public void Symbol_ErrorType()
+	public void Symbol_UnknownType()
 	{
 		var src = """
 			fn f() {
@@ -334,7 +334,7 @@ public class ReasonerTests
 		var letStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Single();
 		reasoner.TryGetDeclaredSymbol(letStmt, out var symbol).Should().BeTrue();
 		var localSymbol = (LocalSymbol)symbol!;
-		localSymbol.Type.Should().BeOfType<ErrorTypeSymbol>();
+		localSymbol.Type.Should().BeOfType<UnknownTypeSymbol>();
 		localSymbol.IsTypeInferred.Should().BeFalse();
 	}
 
