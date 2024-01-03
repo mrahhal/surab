@@ -1,0 +1,19 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "generator",
+			"type": "dotnet",
+			"request": "launch",
+			"projectPath": "${workspaceFolder}\\scripts\\generator\\generator.csproj",
+			"launchConfigurationId": "TargetFramework=;generator"
+		},
+		{
+			"name": "runner",
+			"type": "dotnet",
+			"request": "launch",
+			"projectPath": "${workspaceFolder}\\src\\runner\\runner.csproj",
+			"launchConfigurationId": "TargetFramework=;runner"
+		}
+	]
+}
