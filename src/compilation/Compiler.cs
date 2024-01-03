@@ -73,7 +73,7 @@ internal sealed class ModuleCompiler(CompilationContext context, LoweredTree low
 
 		if (Compiler.VerificationEnabled)
 		{
-			//LLVM.Module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction);
+			LLVM.Module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction);
 		}
 
 		//LLVM.PassManager.FinalizeFunctionPassManager();
