@@ -1,5 +1,4 @@
-﻿using System.Collections.Immutable;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Surab.Analysis;
 
 namespace Surab.Compilation;
@@ -25,45 +24,36 @@ internal class Lowerer
 		return new LoweredTree(root);
 	}
 
-	private LoweredNode Lower(SyntaxNode node, RewriteExpr? rewrite = null)
+	private LoweredNode Lower(SyntaxNode node)
 	{
 		var result = node switch
 		{
 			ModuleNode n => Lower(n),
 			//ConstDeclNode n => Lower(n),
 			FnDeclNode n => Lower(n),
+			MethodDeclNode n => Lower(n),
 			StructDeclNode n => Lower(n),
 			//ClassDeclNode n => Lower(n),
-			//MethodDeclNode n => Lower(n),
 			AliasDeclNode n => new LoweredElidedDecl(n),
 			VarStmtNode n => Lower(n),
 			ReturnStmtNode n => Lower(n),
 			ExprStmtNode n => Lower(n),
+			GroupingExprNode n => Lower(n.Expr),
 			BareExprStmtNode n => Lower(n),
-			BlockExprNode n => Lower(n, rewrite),
-			AssignmentExprNode n => Lower(n, rewrite),
+			BlockExprNode n => Lower(n),
+			AssignmentExprNode n => Lower(n),
 			UnaryExprNode n => Lower(n),
 			BinaryExprNode n => Lower(n),
 			CallExprNode n => Lower(n),
 			AccessExprNode n => Lower(n),
 			LiteralExprNode n => Lower(n),
 			IdentifierExprNode n => Lower(n),
+			ThisExprNode n => Lower(n),
 			StructCreationExprNode n => Lower(n),
 
-			// These are nodes that are taken care of in other places, there shouldn't be a case where they're called here.
-			// => throw new Exception("Unexpected node: " + node.GetType().Name),
-
-			_ => throw new NotImplementedException(),
+			// All other nodes not in this switch should be taken care of as part of these nodes mentioned above.
+			_ => throw new UnreachableException(),
 		};
-
-		// Catch the remaining simple exprs that didn't apply the rewrite.
-		// This includes: Unary, Binary, Call, Literal, Identifier.
-		if (rewrite != null &&
-			result is LoweredExpr loweredExpr)
-		{
-			var rewrittenStmt = rewrite(loweredExpr);
-			return rewrittenStmt;
-		}
 
 		return result;
 	}
@@ -86,15 +76,28 @@ internal class Lowerer
 			node.Body == null ? null : LowerFnBlock(node.Body));
 	}
 
+	private LoweredNode Lower(MethodDeclNode node)
+	{
+		var fnSymbol = _reasoner.GetDeclaredSymbol(node) as FnSymbol;
+		Debug.Assert(fnSymbol != null);
+
+		return new LoweredFnDecl(
+			node,
+			fnSymbol,
+			node.Body == null ? null : LowerFnBlock(node.Body));
+	}
+
 	private LoweredNode Lower(StructDeclNode node)
 	{
 		var structTypeSymbol = _reasoner.GetDeclaredSymbol(node) as StructTypeSymbol;
 		Debug.Assert(structTypeSymbol != null);
 
+		// TODO: Should support all other member decls.
 		return new LoweredTypeDecl(
 			node,
 			structTypeSymbol,
-			structTypeSymbol.Members.OfType<FieldSymbol>().ToImmutableArray());
+			structTypeSymbol.Members.OfType<FieldSymbol>(),
+			LowerWithCast(node.Members.OfType<MethodDeclNode>()));
 	}
 
 	private LoweredNode Lower(VarStmtNode node)
@@ -111,23 +114,17 @@ internal class Lowerer
 			return variableStmt;
 		}
 
-		var result = Lower(node.Initializer.Expr, rewrite: expr =>
-		{
-			return new LoweredVariableStoreStmt(
-				node,
-				symbol,
-				expr);
-		});
-
-		Debug.Assert(result is LoweredStmt);
-		var stmtResult = (LoweredStmt)result;
+		var storeStmt = new LoweredVariableStoreStmt(
+			node,
+			symbol,
+			LowerWithCast(node.Initializer.Expr));
 
 		return new LoweredStmtList(
 			node,
 			new[]
 			{
 				variableStmt,
-				stmtResult,
+				storeStmt,
 			});
 	}
 
@@ -197,90 +194,66 @@ internal class Lowerer
 		return (stmts, bareReturnExpr);
 	}
 
-	private LoweredNode Lower(BlockExprNode node, RewriteExpr? rewrite)
+	private LoweredNode Lower(BlockExprNode node)
 	{
 		var (stmts, bareExpr) = LowerBlock(node);
 
 		if (bareExpr != null)
 		{
-			// There should always be a rewriter registered if we have a bare expr here.
-			Debug.Assert(rewrite != null);
-			stmts.Add(rewrite(bareExpr));
+			return new LoweredStmtListEndingWithExpr(
+				node,
+				stmts,
+				bareExpr);
 		}
-
-		return new LoweredStmtList(
-			node,
-			stmts);
+		else
+		{
+			return new LoweredStmtList(
+				node,
+				stmts);
+		}
 	}
 
-	private LoweredNode Lower(AssignmentExprNode node, RewriteExpr? rewrite)
+	private LoweredNode Lower(AssignmentExprNode node)
 	{
 		var symbol = _reasoner.LookupSymbol(node.Lhs);
 		if (symbol is LocalSymbol or ParamSymbol)
 		{
-			var result = Lower(node.Rhs, rewrite: expr =>
-			{
-				return new LoweredVariableStoreStmt(
-					node,
-					symbol,
-					expr);
-			});
+			var storeStmt = new LoweredVariableStoreStmt(
+				node,
+				symbol,
+				LowerWithCast(node.Rhs));
 
-			Debug.Assert(result is LoweredStmt);
-			var stmtResult = (LoweredStmt)result;
-
-			if (rewrite == null)
-			{
-				return stmtResult;
-			}
-
-			var finalApply = rewrite(new LoweredVariableLoadExpr(
+			var loadExpr = new LoweredVariableLoadExpr(
 				node,
 				((ISymbolHasType)symbol).Type,
-				symbol));
+				symbol);
 
-			return new LoweredStmtList(
+			return new LoweredStmtListEndingWithExpr(
 				node,
-				[
-					stmtResult,
-					finalApply,
-				]);
+				[storeStmt],
+				loadExpr);
 		}
 		else if (symbol is FieldSymbol fieldSymbol)
 		{
-			var accessExpr = (AccessExprNode)node.Lhs; // Is this always valid?
-													   //var targetSymbol = _reasoner.LookupSymbol(accessExpr.Target);
-			var loweredTarget = LowerWithCast(accessExpr.Target);
-			//var enclosingType = fieldSymbol.EnclosingType;
+			var accessExpr = (AccessExprNode)node.Lhs; // REVIEW: Is this always valid?
+			var loweredTarget = AutoDeref(accessExpr.Target, fieldSymbol.EnclosingType);
 
-			var result = Lower(node.Rhs, rewrite: expr =>
-			{
-				return new LoweredFieldStoreStmt(
-					node,
-					loweredTarget,
-					fieldSymbol,
-					expr);
-			});
-
-			Debug.Assert(result is LoweredStmt);
-			var stmtResult = (LoweredStmt)result;
-
-			if (rewrite == null)
-			{
-				return stmtResult;
-			}
-
-			var finalApply = rewrite(new LoweredFieldLoadExpr(
+			var storeStmt = new LoweredFieldStoreStmt(
 				node,
 				loweredTarget,
-				fieldSymbol));
+				fieldSymbol,
+				LowerWithCast(node.Rhs));
 
-			return new LoweredStmtList(
+			var loadExpr = new LoweredFieldLoadExpr(
 				node,
-				[
-					stmtResult,
-					finalApply,
-				]);
+				fieldSymbol.Type,
+				loweredTarget,
+				fieldSymbol);
+
+			return new LoweredStmtListEndingWithExpr(
+				node,
+				[storeStmt],
+				loadExpr);
 		}
 		else
 		{
@@ -291,21 +264,48 @@ internal class Lowerer
 
 	private LoweredExpr Lower(AccessExprNode node)
 	{
-		// Should only be here if we're loading a field?
-		var symbol = (FieldSymbol)_reasoner.LookupSymbol(node)!;
-		var loweredTarget = LowerWithCast(node.Target);
-		return new LoweredFieldLoadExpr(
-			node,
-			loweredTarget,
-			symbol);
+		switch (_reasoner.LookupSymbol(node))
+		{
+			case FieldSymbol field:
+				{
+					var loweredTarget = AutoDeref(node.Target, field.EnclosingType);
+					return new LoweredFieldLoadExpr(
+						node,
+						field.Type,
+						loweredTarget,
+						field);
+				}
+
+			case FnSymbol fn:
+				{
+					// The reason this doens't require a bespoke lowered node is because, unlike fields, methods become simple symbols untied to any struct.
+					return new LoweredSymbolLoadExpr(
+						node,
+						fn.Type,
+						fn);
+				}
+
+			default:
+				throw new UnreachableException();
+		};
 	}
 
 	private LoweredNode Lower(UnaryExprNode node)
 	{
+		var expr = LowerWithCast(node.Expr);
+
+		if (node.Op.UnaryOperatorTokenKind == UnaryOperatorTokenKind.Deref &&
+			expr is LoweredUnaryExpr loweredExpr && loweredExpr.Op == UnaryOperatorTokenKind.Address)
+		{
+			// Deref(Address(expr)) cancel each other, so return the Address's inner expr. (`*&a` => `a`)
+			return loweredExpr.Expr;
+		}
+
 		return new LoweredUnaryExpr(
 			node,
 			_reasoner.LookupType(node),
-			LowerWithCast(node.Expr));
+			expr,
+			node.Op.UnaryOperatorTokenKind);
 	}
 
 	private LoweredNode Lower(BinaryExprNode node)
@@ -319,13 +319,84 @@ internal class Lowerer
 
 	private LoweredNode Lower(CallExprNode node)
 	{
-		var symbol = _reasoner.LookupSymbol(node.Callee)!;
+		var calleeExpr = LowerWithCast(node.Callee);
+
+		// symbol will be ParamSymbol for fn ptrs in params for example.
+		var symbol = _reasoner.LookupSymbol(node.Callee);
+
+		// Note: LookupType will give as an FnType that doesn't include the receiver param for non static methods accessed through an instance.
+		// (see `FnSymbol.TypeWithoutReceiver`)
+		// For this reason, we get back the normal type back in these cases below.
 		var fnType = (FnTypeSymbol)_reasoner.LookupType(node.Callee).UnwrapAliases();
+
+		var receiverArgs = Enumerable.Empty<LoweredExpr>();
+		if (symbol is FnSymbol fnSymbol && node.Callee is AccessExprNode accessExpr && _reasoner.IsInstanceAccess(accessExpr))
+		{
+			Debug.Assert(fnSymbol.MethodReceiverType != null);
+			fnType = fnSymbol.Type; // Set the type to the original type with the receiver param.
+
+			// `a.b()`: We have to do some auto derefing/addressing of `a`.
+			var loweredTarget = AutoDeref(accessExpr.Target, fnSymbol.MethodReceiverType);
+
+			// TODO: Account for @receiver_by_val.
+			loweredTarget = AutoAddress(node, loweredTarget, fnSymbol.MethodReceiverType);
+			receiverArgs = [loweredTarget];
+		}
+
 		return new LoweredCallExpr(
 			node,
 			fnType,
-			symbol,
-			LowerWithCast(node.Args.Select(arg => arg.Expr)));
+			calleeExpr,
+			// No auto deref for args. Might be better this way. (if we want it changes will be required in IsAssignableFrom/CoreAnalyzer.
+			[.. receiverArgs, .. LowerWithCast(node.Args.Select(arg => arg.Expr))]);
+	}
+
+	private LoweredExpr AutoAddress(SyntaxNode node, LoweredExpr loweredExpr, TypeSymbol targetType)
+	{
+		// Can only auto address once, unlike auto deref.
+
+		if (targetType.IsAssignableFrom(loweredExpr.Type))
+		{
+			return loweredExpr;
+		}
+
+		return new LoweredUnaryExpr(node, _reasoner.GetPtrType(loweredExpr.Type), loweredExpr, UnaryOperatorTokenKind.Address);
+	}
+
+	private LoweredExpr AutoDeref(ExprNode expr, TypeSymbol targetType)
+	{
+		// TODO: If Type becomes allowed in expr (S.a), this will need an update here.
+
+		var loweredExpr = LowerWithCast(expr);
+		var loweredExprType = loweredExpr.Type;
+
+		var currentType = loweredExprType;
+		var derefsNeeded = 0;
+		while (currentType is PtrTypeSymbol ptrType && !targetType.IsAssignableFrom(currentType))
+		{
+			derefsNeeded++;
+			currentType = ptrType.InnerType;
+		}
+
+		if (derefsNeeded == 0)
+		{
+			return loweredExpr;
+		}
+
+		currentType = loweredExprType;
+		var currentExpr = loweredExpr;
+		for (var i = 0; i < derefsNeeded; i++)
+		{
+			// currentType can only be a PtrTypeSymbol here.
+			// Suppression: Won't be an opaque ptr.
+			var newDerefExprType = ((PtrTypeSymbol)currentType).InnerType!;
+			var newDerefExpr = new LoweredUnaryExpr(expr, newDerefExprType, currentExpr, UnaryOperatorTokenKind.Deref);
+
+			currentType = newDerefExprType;
+			currentExpr = newDerefExpr;
+		}
+
+		return currentExpr;
 	}
 
 	private LoweredNode Lower(LiteralExprNode node)
@@ -349,30 +420,86 @@ internal class Lowerer
 			symbol);
 	}
 
-	private LoweredNode Lower(StructCreationExprNode node)
+	private LoweredNode Lower(ThisExprNode node)
 	{
-		var symbol = (StructTypeSymbol)_reasoner.LookupType(node).UnwrapAliases();
-		return new LoweredStructCreationExpr(
+		Debug.Assert(
+			!(node.Parent is EqualsExprClauseNode equalsExprClause && equalsExprClause.Expr == node),
+			"Should only be here when loading `this` directly as an r-value.");
+
+		var type = _reasoner.LookupType(node);
+		return new LoweredThisLoadExpr(
 			node,
-			symbol,
-			Lower(node.MapInitializer));
+			type);
 	}
 
-	private LoweredMapInitializer Lower(MapInitializerNode node)
+	private LoweredNode Lower(StructCreationExprNode node)
 	{
-		var items = new List<LoweredMapInitializerItem>();
+		// Lowered into LoweredStmtListEndingWithExpr with:
+		// - ObjectAllocStmt
+		// - FieldStoreStmt[]
+		// - CallExpr (init)
+		// - Load back object expr
 
-		foreach (var expr in node.WellFormedExprs)
+		var stmts = new List<LoweredStmt>();
+
+		var structType = (StructTypeSymbol)_reasoner.LookupType(node).UnwrapAliases();
+		var structTempSymbol = new TempSymbol(_reasoner, structType);
+
+		var structLoadExpr = new LoweredSymbolLoadExpr(node, structType, structTempSymbol);
+
+		// Object alloc
+
+		var allocStmt = new LoweredObjectAllocStmt(
+			node,
+			structType,
+			structTempSymbol);
+		stmts.Add(allocStmt);
+
+		var initializerItems = node.MapInitializer.WellFormedExprs.Select(expr =>
 		{
-			var identifierNode = (IdentifierExprNode)expr.Lhs;
-			// Later, this will have to handle other cases than just a simple identifier signifying a field.
+			var targetSymbol = _reasoner.LookupSymbol(expr.Lhs)!;
+			return (targetSymbol, rhs: LowerWithCast(expr.Rhs));
+		});
 
-			items.Add(new(identifierNode.Identifier.Value, LowerWithCast(expr.Rhs)));
+		var initFieldItems = initializerItems.Where(x => x.targetSymbol is FieldSymbol);
+		var initParamItems = initializerItems.Where(x => x.targetSymbol is ParamSymbol);
+
+		// Field stores
+
+		foreach (var fieldSymbol in structType.Members.Fields())
+		{
+			var value = initFieldItems.FirstOrDefault(initF => initF.targetSymbol == fieldSymbol).rhs;
+			value ??= LowerWithCast(fieldSymbol.InitializerExprNode!);
+			stmts.Add(new LoweredFieldStoreStmt(node, structLoadExpr, fieldSymbol, value));
 		}
 
-		return new LoweredMapInitializer(
+		// Call init
+
+		if (structType.InitializerMethodDecl != null)
+		{
+			var initializerFnSymbol = (FnSymbol)_reasoner.GetDeclaredSymbol(structType.InitializerMethodDecl)!;
+			IEnumerable<LoweredExpr> argsSet = initializerFnSymbol.Params.Select(p =>
+			{
+				var arg = initParamItems.FirstOrDefault(initP => initP.targetSymbol == p).rhs;
+				arg ??= LowerWithCast(p.InitializerExprNode!);
+				return arg;
+			});
+			// TODO: Account for @receiver_by_val.
+			var receiver = AutoAddress(node, structLoadExpr, initializerFnSymbol.MethodReceiverType!);
+			var callInitExpr = new LoweredCallExpr(
+				node,
+				initializerFnSymbol.Type,
+				new LoweredSymbolLoadExpr(node, initializerFnSymbol.Type, initializerFnSymbol),
+				[receiver, .. argsSet]);
+			stmts.Add(new LoweredExprStmt(node, callInitExpr));
+		}
+
+		// Combine
+
+		return new LoweredStmtListEndingWithExpr(
 			node,
-			items);
+			stmts,
+			structLoadExpr);
 	}
 
 	private LoweredDecl LowerWithCast(DeclNode node) => (LoweredDecl)Lower((SyntaxNode)node);
@@ -395,8 +522,4 @@ internal class Lowerer
 	{
 		return nodes.Select(LowerWithCast);
 	}
-
-	// Used by a parent to tell a parsed expr child to rewrite last lowered exprs (whether it's literal/call/etc, or bare).
-	// When a parent specifies a rewrite, it has to be used at some point at least once (block with bare uses it once, if+else uses it twice, etc).
-	private delegate LoweredStmt RewriteExpr(LoweredExpr expr);
 }

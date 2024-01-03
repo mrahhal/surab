@@ -29,7 +29,7 @@ internal abstract class Scope
 	}
 
 	/// <summary>
-	/// Looks up `this` starting from this scope and walking up.
+	/// Looks up `this` starting from this scope and walking up. In the case of structs, the returned type is the struct itself and not the pointer.
 	/// </summary>
 	public TypeSymbol? LookupThis()
 	{
@@ -122,7 +122,7 @@ internal abstract class Scope
 		else
 		{
 			var boundType = Reasoner.InferTypeOfDeclaringNode(node);
-			return ResolvedType.Inferred(boundType ?? ErrorTypeSymbol.Create());
+			return ResolvedType.Inferred(boundType ?? ErrorTypeSymbol.Create(Reasoner));
 		}
 	}
 
@@ -141,12 +141,13 @@ internal abstract class Scope
 		//};
 		var resolvedType = typeNode switch
 		{
+			PtrTypeNode ptrTypeNode => Reasoner.LookupSymbol(ptrTypeNode),
 			NamedTypeNode namedTypeNode => LookupIdentifier(namedTypeNode.Identifier),
 			FnTypeNode fnTypeNode => Reasoner.LookupSymbol(fnTypeNode),
-			MissingTypeNode => ErrorTypeSymbol.Create(),
+			MissingTypeNode => ErrorTypeSymbol.Create(Reasoner),
 			_ => throw new UnreachableException(),
 		};
-		return ResolvedType.Typed(resolvedType as TypeSymbol ?? ErrorTypeSymbol.Create());
+		return ResolvedType.Typed(resolvedType as TypeSymbol ?? ErrorTypeSymbol.Create(Reasoner));
 	}
 
 	/// <summary>
@@ -237,7 +238,9 @@ internal class TypeDeclScope(NamedTypeSymbol symbol) : Scope
 
 	public override Symbol? LookupIdentifierHere(string identifier)
 	{
-		return LookupIdentifierIn(_symbol.Members, identifier);
+		// Type members are accessed through `this`, so they're not visible from the scope.
+		return null;
+		//return LookupIdentifierIn(_symbol.Members, identifier);
 	}
 
 	public override TypeSymbol? LookupThisHere()

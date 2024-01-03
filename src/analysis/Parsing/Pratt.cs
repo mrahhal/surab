@@ -73,6 +73,7 @@ public static class Pratt
 		TokenKind.LeftParen or
 		TokenKind.LeftBrace or
 		TokenKind.Identifier or
+		TokenKind.This or
 		TokenKind.NumericLiteral or
 		TokenKind.CharLiteral or
 		TokenKind.StringLiteral or
@@ -80,7 +81,9 @@ public static class Pratt
 		TokenKind.False or
 		TokenKind.Plus or
 		TokenKind.Minus or
-		TokenKind.Bang;
+		TokenKind.Bang or
+		TokenKind.Asterisk or
+		TokenKind.And;
 
 	public static InfixRule? GetInfixRule(TokenKind tokenKind)
 	{

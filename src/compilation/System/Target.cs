@@ -1,6 +1,4 @@
-﻿using LLVMSharp.Interop;
-using Surab.Analysis;
-using Surab.Compilation.LLVM;
+﻿using Surab.Analysis;
 using System.Diagnostics;
 
 namespace Surab.Compilation;
@@ -44,19 +42,19 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 		type = type.UnwrapAliases();
 		var tag = type.KnownTypeTag;
 
-		if (tag == KnownTypeTag.None)
+		if (tag is KnownTypeTag.None)
 			return new(0.AsBytes(), 0.AsBytes());
-		if (tag == KnownTypeTag.@char || tag == KnownTypeTag.@bool)
+		if (tag is KnownTypeTag.@char or KnownTypeTag.@bool)
 			return new(1.AsBytes(), 1.AsBytes());
-		if (tag == KnownTypeTag.@string)
+		if (tag is KnownTypeTag.@string || type is PtrTypeSymbol)
 			return new(PtrWidth, PtrWidth);
-		if (tag == KnownTypeTag.i32 || tag == KnownTypeTag.u32)
+		if (tag is KnownTypeTag.i32 or KnownTypeTag.u32)
 			return new(4.AsBytes(), 4.AsBytes());
-		if (tag == KnownTypeTag.i64 || tag == KnownTypeTag.u64)
+		if (tag is KnownTypeTag.i64 or KnownTypeTag.u64)
 			return new(8.AsBytes(), 8.AsBytes());
-		if (tag == KnownTypeTag.f32)
+		if (tag is KnownTypeTag.f32)
 			return new(4.AsBytes(), 4.AsBytes());
-		if (tag == KnownTypeTag.f64)
+		if (tag is KnownTypeTag.f64)
 			return new(8.AsBytes(), 8.AsBytes());
 
 		if (type is StructTypeSymbol structType)
@@ -131,9 +129,9 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 		type = type.UnwrapAliases();
 		var tag = type.KnownTypeTag;
 
-		if (tag == KnownTypeTag.i32 || tag == KnownTypeTag.i64)
+		if (tag is KnownTypeTag.i32 or KnownTypeTag.i64)
 			return IntegerSign.Signed;
-		if (tag == KnownTypeTag.u32 || tag == KnownTypeTag.u64)
+		if (tag is KnownTypeTag.u32 or KnownTypeTag.u64)
 			return IntegerSign.Unsigned;
 
 		throw new UnreachableException();

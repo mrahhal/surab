@@ -194,7 +194,9 @@ public static class TokenKindExtensions
 	public static bool IsUnary(this TokenKind kind) => kind is
 		Plus or
 		Minus or
-		Bang;
+		Bang or
+		Asterisk or
+		And;
 
 	public static bool IsBinary(this TokenKind kind) => kind is
 		Plus or
@@ -213,6 +215,12 @@ public static class TokenKindExtensions
 		LessEqual or
 		Greater or
 		GreaterEqual;
+
+	public static bool IsMethodOp(this TokenKind kind) => kind is
+		Plus or
+		Minus or
+		Asterisk or
+		Slash;
 
 	public static bool IsLiteral(this TokenKind kind) => kind is
 		False or
@@ -240,7 +248,7 @@ public static class TokenKindExtensions
 
 	public static bool CanStartStmt(this TokenKind kind) =>
 		kind.CanStartExpr() ||
-		kind is Identifier or This or Var or Return;
+		kind is Var or Return;
 
 	public static bool CanStartExpr(this TokenKind kind) =>
 		kind.IsUnary() ||
@@ -252,7 +260,6 @@ public static class TokenKindExtensions
 		CanStartAttribute(kind); // TODO: Not parsing attrs for params right now?
 
 	public static bool CanStartType(this TokenKind kind) =>
-		kind is Fn ||
-		kind is Identifier ||
+		kind is Asterisk or Fn or Identifier ||
 		CanStartAttribute(kind);
 }

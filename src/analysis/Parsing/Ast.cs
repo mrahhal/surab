@@ -83,17 +83,42 @@ public enum ContextualKeyword
 	Import,
 }
 
-internal static class SimpleTokenHelper
+public enum MethodOp
 {
-	public static readonly Dictionary<ContextualKeyword, string> ContextualKeywordsMap = new()
+	Add,
+	Sub,
+	Mul,
+	Div,
+}
+
+internal static class TokenHelper
+{
+	private static readonly Dictionary<ContextualKeyword, string> ContextualKeywordsMap = new()
 	{
 		{ ContextualKeyword.As, "as" },
 		{ ContextualKeyword.Import, "import" },
 	};
 
+	private static readonly Dictionary<string, MethodOp> StringToMethodOpMap = new()
+	{
+		{ "+", MethodOp.Add },
+		{ "-", MethodOp.Sub },
+		{ "*", MethodOp.Mul },
+		{ "/", MethodOp.Div },
+	};
+
 	public static bool IsContextualKeyword(ContextualKeyword contextualKeyword, ReadOnlySpan<char> str)
 	{
 		if (ContextualKeywordsMap.TryGetValue(contextualKeyword, out var value) && MemoryExtensions.Equals(str, value.AsSpan(), StringComparison.Ordinal))
+		{
+			return true;
+		}
+		return false;
+	}
+
+	public static bool TryGetMethodOp(string str, out MethodOp op)
+	{
+		if (StringToMethodOpMap.TryGetValue(str, out op))
 		{
 			return true;
 		}
@@ -114,6 +139,7 @@ public enum SimpleTokenKind
 	Question,
 	Equal,
 	At,
+	Asterisk,
 
 	Fn,
 	Struct,
@@ -185,6 +211,7 @@ public sealed class SimpleToken : SyntaxToken
 				TokenKind.Equal => SimpleTokenKind.Equal,
 				TokenKind.At => SimpleTokenKind.At,
 				TokenKind.AtBeforeIdentifier => SimpleTokenKind.At,
+				TokenKind.Asterisk => SimpleTokenKind.Asterisk,
 
 				TokenKind.Fn => SimpleTokenKind.Fn,
 				TokenKind.Struct => SimpleTokenKind.Struct,
@@ -241,6 +268,7 @@ public sealed class SimpleToken : SyntaxToken
 			SimpleTokenKind.Question => "?",
 			SimpleTokenKind.Equal => "=",
 			SimpleTokenKind.At => "@",
+			SimpleTokenKind.Asterisk => "*",
 
 			SimpleTokenKind.Fn => "fn",
 			SimpleTokenKind.Struct => "struct",
@@ -269,6 +297,8 @@ public enum UnaryOperatorTokenKind
 	Pos, // Usually redundant but must be represented in the AST.
 	Neg,
 	Not,
+	Address,
+	Deref,
 }
 
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} [{UnaryOperatorTokenKind}] {ToString()}")]
@@ -290,6 +320,8 @@ public sealed class UnaryOperatorToken : SyntaxToken
 				TokenKind.Plus => UnaryOperatorTokenKind.Pos,
 				TokenKind.Minus => UnaryOperatorTokenKind.Neg,
 				TokenKind.Bang => UnaryOperatorTokenKind.Not,
+				TokenKind.And => UnaryOperatorTokenKind.Address,
+				TokenKind.Asterisk => UnaryOperatorTokenKind.Deref,
 				_ => throw new Exception($"TokenKind {token.Kind} not supported."),
 			},
 		};
@@ -299,6 +331,8 @@ public sealed class UnaryOperatorToken : SyntaxToken
 		UnaryOperatorTokenKind.Pos => "+",
 		UnaryOperatorTokenKind.Neg => "-",
 		UnaryOperatorTokenKind.Not => "!",
+		UnaryOperatorTokenKind.Address => "&",
+		UnaryOperatorTokenKind.Deref => "*",
 		_ => throw new NotImplementedException(),
 	};
 
@@ -315,11 +349,11 @@ public enum BinaryOperatorTokenKind
 	Mul,
 	Div,
 	Pow,
-	And,
-	Or,
-	BitAnd,
-	BitOr,
-	BitXor,
+	And,	// &&
+	Or,		// ||
+	BitAnd,	// &
+	BitOr,	// |
+	BitXor,	// ^
 	Eq,
 	Ne,
 	Lt,
@@ -550,6 +584,8 @@ public sealed class LiteralToken : SyntaxToken
 	{
 		visitor.VisitLiteralToken(this);
 	}
+
+	public override string ToString() => $"{Data}";
 }
 
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
@@ -794,6 +830,24 @@ public partial class ImportNode
 			return value!;
 		}
 	}
+}
+
+public partial class MethodDeclNode
+{
+	/// <summary>
+	/// Gets whether the method is normally callable (not initializer or op).
+	/// </summary>
+	public bool IsNormallyCallable => !IsInitializer && !IsMethodOp;
+
+	/// <summary>
+	/// Gets whether the method is the special initializer method `() { }`.
+	/// </summary>
+	public bool IsInitializer => !Sig.Identifier.IsMissing && Sig.Identifier.Value == string.Empty;
+
+	/// <summary>
+	/// Gets whether the method is an implementation of an operator.
+	/// </summary>
+	public bool IsMethodOp => TokenHelper.TryGetMethodOp(Sig.Identifier.Value, out _);
 }
 
 public partial class BareExprStmtNode

@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Surab.Analysis;
@@ -44,7 +45,11 @@ public class Reasoner
 	/// </summary>
 	public bool TryGetDeclaredSymbol(SyntaxNode node, [NotNullWhen(true)] out Symbol? symbol)
 	{
-		return _nodeToSymbolMap.TryGetValue(node, out symbol);
+		return node switch
+		{
+			FnSigNode sig when sig.Parent != null => TryGetDeclaredSymbol(sig.Parent, out symbol),
+			_ => _nodeToSymbolMap.TryGetValue(node, out symbol),
+		};
 	}
 
 	/// <summary>
@@ -124,6 +129,8 @@ public class Reasoner
 		return node switch
 		{
 			IdentifierExprNode n => LookupSymbol(n),
+			ThisExprNode n => LookupSymbol(n),
+			PtrTypeNode n => LookupSymbol(n),
 			NamedTypeNode n => LookupSymbol(n.Identifier, n),
 			FnTypeNode n => LookupSymbol(n),
 			ArgNode n => LookupSymbol(n.Expr),
@@ -139,6 +146,7 @@ public class Reasoner
 	{
 		return typeNode switch
 		{
+			PtrTypeNode n => LookupSymbol(n),
 			NamedTypeNode n => LookupSymbol(n.Identifier, n),
 			FnTypeNode n => LookupSymbol(n),
 			_ => null,
@@ -147,8 +155,14 @@ public class Reasoner
 
 	public Symbol? LookupSymbol(IdentifierExprNode node)
 	{
-		var scope = ResolveScopeForIdentifier(node);
-		return LookupSymbol(node.Identifier, scope);
+		if (TryResolveIdentifierExprSymbolInCreationExpr(node, out var symbol))
+		{
+			return symbol;
+		}
+		else
+		{
+			return LookupSymbol(node.Identifier, node);
+		}
 	}
 
 	private Symbol? LookupSymbol(IdentifierToken identifier, SyntaxNode node)
@@ -162,7 +176,17 @@ public class Reasoner
 		return scope?.LookupIdentifier(identifier);
 	}
 
-	internal FnTypeSymbol? LookupSymbol(FnTypeNode node)
+	private Symbol? LookupSymbol(ThisExprNode node)
+	{
+		return GetThisSymbol(node);
+	}
+
+	internal PtrTypeSymbol LookupSymbol(PtrTypeNode node)
+	{
+		return GetPtrType(node);
+	}
+
+	internal FnTypeSymbol LookupSymbol(FnTypeNode node)
 	{
 		return GetUnnamedFnTypeSymbol(node);
 	}
@@ -170,9 +194,6 @@ public class Reasoner
 	private Symbol? LookupSymbol(AccessExprNode node)
 	{
 		// Lookup the field/etc symbol in the access expr.
-
-		var targetSymbol = LookupSymbol(node.Target); // TODO: Remove this?
-		Debug.Assert(targetSymbol != null);
 
 		// This might need an update if we have access exprs for other than types later.
 		var targetType = LookupType(node.Target);
@@ -208,14 +229,14 @@ public class Reasoner
 			// Should we support non expr nodes like these in LookupType?
 			_ when node?.DeclaresSymbol() ?? false => LookupTypeFromDeclaredSymbol(node),
 
-			_ => ErrorTypeSymbol.Create(),
+			_ => ErrorTypeSymbol.Create(this),
 		};
 	}
 
 	private TypeSymbol LookupTypeFromDeclaredSymbol(SyntaxNode node)
 	{
 		var symbol = GetDeclaredSymbol(node) as ISymbolHasType;
-		return symbol?.Type ?? ErrorTypeSymbol.Create();
+		return symbol?.Type ?? ErrorTypeSymbol.Create(this);
 	}
 
 	private TypeSymbol LookupType(BareExprStmtNode node)
@@ -239,7 +260,7 @@ public class Reasoner
 			ThisExprNode n => LookupType(n),
 			StructCreationExprNode n => LookupType(n),
 
-			_ => ErrorTypeSymbol.Create(),
+			_ => ErrorTypeSymbol.Create(this),
 		};
 	}
 
@@ -248,7 +269,7 @@ public class Reasoner
 		var lastStmt = node.Stmts.LastOrDefault();
 		if (lastStmt == null)
 		{
-			return ErrorTypeSymbol.Create();
+			return ErrorTypeSymbol.Create(this);
 		}
 
 		return LookupType(lastStmt);
@@ -256,7 +277,13 @@ public class Reasoner
 
 	private TypeSymbol LookupType(UnaryExprNode node)
 	{
-		return LookupType(node.Expr);
+		var exprType = LookupType(node.Expr);
+		return node.Op.UnaryOperatorTokenKind switch
+		{
+			UnaryOperatorTokenKind.Deref => exprType is PtrTypeSymbol ptrType ? ptrType.InnerType.AsTypeSymbolOrError(this) : exprType,
+			UnaryOperatorTokenKind.Address => GetPtrType(exprType),
+			_ => exprType,
+		};
 	}
 
 	private TypeSymbol LookupType(BinaryExprNode node)
@@ -267,31 +294,27 @@ public class Reasoner
 	private TypeSymbol LookupType(CallExprNode node)
 	{
 		var fnType = LookupType(node.Callee) as FnTypeSymbol;
-		return fnType?.ReturnType ?? ErrorTypeSymbol.Create();
+		return fnType?.ReturnType ?? ErrorTypeSymbol.Create(this);
 	}
 
 	private TypeSymbol LookupType(AccessExprNode node)
 	{
-		var targetSymbol = LookupSymbol(node.Target);
-		var result = targetSymbol switch
+		var targetType = LookupType(node.Target).UnwrapAliases();
+		targetType = targetType switch
 		{
-			TypeSymbol s => GetMemberTypeSymbol(s), // Static access
-			ISymbolHasType s => GetMemberTypeSymbol(s.Type), // Instance access
-			_ => null,
+			// Allow pass through type analysis on pointers for acccess expr, as compiler will do auto derefing/addressing.
+			PtrTypeSymbol ptrType => ptrType.UnwrapPointers(),
+			_ => targetType,
 		};
-		return result ?? ErrorTypeSymbol.Create();
 
-		TypeSymbol? GetMemberTypeSymbol(TypeSymbol typeSymbol)
+		var member = targetType?.GetMember(node.Identifier);
+		return member switch
 		{
-			if (typeSymbol.IsError) return ErrorTypeSymbol.Create();
-
-			var member = typeSymbol.GetMember(node.Identifier);
-			return member switch
-			{
-				ISymbolHasType s => s.Type,
-				_ => null,
-			};
-		}
+			// For `a.b()`, when it's an instance access, we want to return an fn type without the receiver.
+			FnSymbol fn => this.IsInstanceAccess(node) ? fn.TypeWithoutReceiver : fn.Type,
+			ISymbolHasType s => s.Type,
+			_ => ErrorTypeSymbol.Create(this),
+		};
 	}
 
 	private TypeSymbol LookupType(LiteralExprNode node)
@@ -334,8 +357,14 @@ public class Reasoner
 
 	private TypeSymbol LookupType(IdentifierExprNode node)
 	{
-		var scope = ResolveScopeForIdentifier(node);
-		return LookupType(node.Identifier, scope);
+		if (TryResolveIdentifierExprSymbolInCreationExpr(node, out var symbol))
+		{
+			return (symbol as ISymbolHasType)?.Type ?? ErrorTypeSymbol.Create(this);
+		}
+		else
+		{
+			return LookupType(node.Identifier, node);
+		}
 	}
 
 	private TypeSymbol LookupType(IdentifierToken identifier, SyntaxNode node)
@@ -352,14 +381,14 @@ public class Reasoner
 		{
 			TypeSymbol s => s,
 			ISymbolHasType s => s.Type,
-			_ => ErrorTypeSymbol.Create(),
+			_ => ErrorTypeSymbol.Create(this),
 		};
 	}
 
 	private TypeSymbol LookupType(ThisExprNode node)
 	{
-		var scope = GetEnclosingScope(node);
-		return scope?.LookupThis() ?? ErrorTypeSymbol.Create();
+		var thisSymbol = LookupSymbol(node) as ThisSymbol;
+		return thisSymbol?.Type ?? ErrorTypeSymbol.Create(this);
 	}
 
 	private TypeSymbol LookupType(StructCreationExprNode node)
@@ -368,23 +397,24 @@ public class Reasoner
 	}
 
 	/// <summary>
-	/// Resolves the correct <see cref="Scope"/> to resolve identifier symbol/type.
-	/// Resolves to either the containing scope, a type, etc, depending on what the identifier really means (e.g. local identifier vs identifier inside MapInitializer).
+	/// If the identifier expr is a part of setting a symbol in a creation expr, this method returns true and tries to resolve that symbol.
+	/// Otherwise false is returned.
 	/// </summary>
-	private Scope? ResolveScopeForIdentifier(IdentifierExprNode identifierExpr)
+	private bool TryResolveIdentifierExprSymbolInCreationExpr(IdentifierExprNode identifierExpr, out Symbol? symbol)
 	{
+		symbol = null;
+		// The identifier inside a creation expr: `S1 { a = 42 }`
 		if (identifierExpr.Parent is AssignmentExprNode assignmentExpr &&
 			assignmentExpr.Lhs == identifierExpr &&
 			assignmentExpr.Parent is MapInitializerItemNode mapInitializerItem &&
 			mapInitializerItem.Parent is MapInitializerNode mapInitializer &&
 			mapInitializer.Parent is StructCreationExprNode structCreationExpr)
 		{
-			// Creating a struct: `S1 { a = 42 }`
-			// Identifier `a` should return the S1 struct's scope.
 			var structType = LookupType(structCreationExpr);
-			return structType?.Scope;
+			symbol = structType?.GetCreationSymbol(identifierExpr.Identifier)?.Symbol;
+			return true;
 		}
-		return GetEnclosingScope(identifierExpr);
+		return false;
 	}
 
 	public TypeSymbol? InferTypeOfDeclaringNode(SyntaxNode node)
@@ -395,6 +425,29 @@ public class Reasoner
 			FieldDeclNode fieldDecl => LookupType(fieldDecl.Initializer),
 			_ => null,
 		};
+	}
+
+	private ThisSymbol GetThisSymbol(ThisExprNode node)
+	{
+		// TODO: This will create a lot of symbols when there are errors. Same with other keys.
+		// Should create only one for errors? Or somehow do some cleaning on re-analysis.
+
+		var type = GetEnclosingScope(node)?.LookupThis() ?? ErrorTypeSymbol.Create(this);
+		// TODO: Account for @receiver_by_val.
+		type = GetPtrType(type);
+		//if (type is StructTypeSymbol) { create ptr }
+		return ReasoningContext.ThisSymbolMap.GetOrAdd(new ThisSymbolKey(type), key => new ThisSymbol(this, key));
+	}
+
+	private PtrTypeSymbol GetPtrType(PtrTypeNode node)
+	{
+		return GetPtrType(node.InnerType == null ? null : LookupSymbol(node.InnerType).AsTypeSymbolOrError(this));
+	}
+
+	internal PtrTypeSymbol GetPtrType(TypeSymbol? innerType)
+	{
+		var key = new PtrTypeKey(innerType);
+		return ReasoningContext.PtrTypeMap.GetOrAdd(key, key => new PtrTypeSymbol(this, key));
 	}
 
 	// Supported:
@@ -409,7 +462,9 @@ public class Reasoner
 			FnDeclNode fnDecl => GetUnnamedFnTypeSymbol(fnDecl.Sig),
 			MethodDeclNode methodDecl => GetUnnamedFnTypeSymbol(methodDecl.Sig),
 			FnTypeNode fnType => GetUnnamedFnTypeSymbol(fnType),
-			AliasDeclNode aliasDecl => GetNamedFnTypeSymbol(aliasDecl),
+
+			// Currently not really used.
+			//AliasDeclNode aliasDecl => GetNamedFnTypeSymbol(aliasDecl),
 
 			_ => throw new UnreachableException(),
 		};
@@ -427,20 +482,16 @@ public class Reasoner
 		return GetOrCreateUnnamedFnType(key);
 	}
 
-	private FnTypeSymbol CreateUnnamedFnTypeSymbol(FnTypeKey key)
+	internal FnTypeSymbol GetOrCreateUnnamedFnType(FnTypeKey key)
 	{
-		return new FnTypeSymbol(null, key);
-	}
-
-	private FnTypeSymbol GetOrCreateUnnamedFnType(FnTypeKey key)
-	{
-		return ReasoningContext.UnnamedFnTypeMap.GetOrAdd(key, CreateUnnamedFnTypeSymbol);
+		return ReasoningContext.UnnamedFnTypeMap.GetOrAdd(key, key => new FnTypeSymbol(this, null, key));
 	}
 
 	private FnTypeSymbol GetNamedFnTypeSymbol(AliasDeclNode aliasDecl)
 	{
 		// TODO: Actually get a named FnTypeSymbol for aliased fn types?
-		//       Right now this just returns the same shared unnamed symbol as it's created in AliasSymbol's Type (Scope.ResolveType).
+		// Right now this just returns the same shared unnamed symbol as it's created in AliasSymbol's Type (Scope.ResolveType).
+		// Also, this method is not even used currently.
 
 		var aliasSymbol = (AliasTypeSymbol)_nodeToSymbolMap[aliasDecl]!;
 		return (FnTypeSymbol)aliasSymbol.Type.UnwrapAliases();
@@ -450,13 +501,18 @@ public class Reasoner
 	{
 		// TODO: Return something else in case of error diags? (p.Type below could be null)
 		var isExtern = sig.Attrs.HasAttr(KnownAttrs.Extern);
+		var fnSymbol = (FnSymbol)GetDeclaredSymbol(sig.Parent!)!;
+		Debug.Assert(fnSymbol != null);
+		var receiverType = fnSymbol.MethodReceiverType;
+		IEnumerable<TypeSymbol> receiverTypes = receiverType == null ? [] : [receiverType];
+		IEnumerable<TypeSymbol> paramTypes = sig.Params.Select(p =>
+		{
+			return LookupSymbol(p.Type?.Type).AsTypeSymbolOrError(this);
+		});
 		return new FnTypeKey(
 			isExtern,
-			sig.ReturnType == null ? Project.ResolveKnownTypeSymbol(KnownTypeTag.None) : LookupSymbol(sig.ReturnType).AsTypeSymbolOrError(),
-			sig.Params.Select(p =>
-			{
-				return LookupSymbol(p.Type?.Type).AsTypeSymbolOrError();
-			}));
+			sig.ReturnType == null ? Project.ResolveKnownTypeSymbol(KnownTypeTag.None) : LookupSymbol(sig.ReturnType).AsTypeSymbolOrError(this),
+			[.. receiverTypes, .. paramTypes]);
 	}
 
 	private FnTypeKey CreateFnTypeKey(FnTypeNode fnType)
@@ -464,11 +520,11 @@ public class Reasoner
 		var isExtern = fnType.Attrs.HasAttr(KnownAttrs.Extern);
 		return new FnTypeKey(
 			isExtern,
-			fnType.ReturnType == null ? Project.ResolveKnownTypeSymbol(KnownTypeTag.None) : LookupSymbol(fnType.ReturnType).AsTypeSymbolOrError(),
+			fnType.ReturnType == null ? Project.ResolveKnownTypeSymbol(KnownTypeTag.None) : LookupSymbol(fnType.ReturnType).AsTypeSymbolOrError(this),
 			// TODO: Should be able to handle ParamTypes being null better.
-			fnType.ParamTypes == null ? [ErrorTypeSymbol.Create()] : fnType.ParamTypes.Select(p =>
+			fnType.ParamTypes == null ? [ErrorTypeSymbol.Create(this)] : fnType.ParamTypes.Select(p =>
 			{
-				return LookupSymbol(p.Type).AsTypeSymbolOrError();
+				return LookupSymbol(p.Type).AsTypeSymbolOrError(this);
 			}));
 	}
 
@@ -556,7 +612,7 @@ public class Reasoner
 			{
 				var contextScopeForSymbol = scope ?? _parentScope;
 				Debug.Assert(contextScopeForSymbol != null, "Unexpected state when there's a symbol but no context scope for it.");
-				symbol.SetContextScope(contextScopeForSymbol);
+				symbol.SetScope(contextScopeForSymbol);
 			}
 
 			if (scope != null || _parentScope != null)
@@ -607,17 +663,17 @@ public class Reasoner
 
 			symbol = node switch
 			{
-				ConstDeclNode n => new ConstSymbol(n),
-				FnDeclNode n => new FnSymbol(n.Sig),
-				MethodDeclNode n => new FnSymbol(n.Sig),
-				FieldDeclNode n => new FieldSymbolImpl(n, _typeContext == null ? -1 : _typeContext.FieldCounter++),
-				StructDeclNode n => new StructTypeSymbol(n),
-				ClassDeclNode n => new ClassTypeSymbol(n),
-				AliasDeclNode n => new AliasTypeSymbol(n),
+				ConstDeclNode n => new ConstSymbol(_reasoner, n),
+				FnDeclNode n => new FnSymbol(_reasoner, n.Sig),
+				MethodDeclNode n => new FnSymbol(_reasoner, n.Sig),
+				FieldDeclNode n => new FieldSymbolImpl(_reasoner, n, _typeContext == null ? -1 : _typeContext.FieldCounter++),
+				StructDeclNode n => new StructTypeSymbol(_reasoner, n),
+				ClassDeclNode n => new ClassTypeSymbol(_reasoner, n),
+				AliasDeclNode n => new AliasTypeSymbol(_reasoner, n),
 
-				VarStmtNode n => new LocalSymbol(n),
+				VarStmtNode n => new LocalSymbol(_reasoner, n),
 
-				ParamNode n => new ParamSymbol(n),
+				ParamNode n => new ParamSymbol(_reasoner, n),
 
 				_ => null,
 			};
@@ -676,5 +732,17 @@ public class Reasoner
 				_ => null,
 			};
 		}
+	}
+}
+
+public static class ReasonerExtensions
+{
+	/// <summary>
+	/// Returns whether the access expr does an instance access (a.b), as opposed to static access (A.b).
+	/// </summary>
+	public static bool IsInstanceAccess(this Reasoner reasoner, AccessExprNode accessExpr)
+	{
+		var targetSymbol = reasoner.LookupSymbol(accessExpr.Target);
+		return !targetSymbol.IsType();
 	}
 }

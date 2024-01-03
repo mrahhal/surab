@@ -10,7 +10,9 @@ public enum SymbolKind
 	Field,
 	Param,
 	Local,
+	This,
 
+	PtrType,
 	NamedType,
 	FnType,
 	AliasType,
@@ -23,24 +25,36 @@ public enum SymbolKind
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
 public abstract class Symbol
 {
-	public abstract SymbolKind Kind { get; }
+	protected Symbol(SymbolKind kind, Reasoner reasoner, SyntaxNode? declaringNode = null)
+	{
+		Kind = kind;
+		Reasoner = reasoner;
+		DeclaringNode = declaringNode;
+	}
 
-	public Symbol? Parent { get; private set; }
+	public SymbolKind Kind { get; }
 
-	/// <summary>
-	/// The scope enclosing this symbol. This is usually always not null, except when the symbol is manually created (FnType, Error).
-	/// </summary>
-	internal Scope? Scope { get; private set; }
+	public Reasoner Reasoner { get; }
 
 	/// <summary>
 	/// The node in the tree representing this symbol.
 	/// This can be `null` when the declaration isn't in the src (synthesized, etc).
 	/// </summary>
-	public virtual SyntaxNode? DeclaringNode => null;
+	public SyntaxNode? DeclaringNode { get; }
 
-	public virtual SourceFile? DeclaringSourceFile => DeclaringNode?.Tree.SourceFile;
+	/// <summary>
+	/// The parent symbol enclosing this symbol.
+	/// </summary>
+	public Symbol? Parent { get; private set; }
 
-	public virtual IdentifierToken? Identifier => null;
+	/// <summary>
+	/// The scope enclosing this symbol. This is usually not null, except when the symbol is not uniquely created from code (FnType, Error).
+	/// </summary>
+	internal Scope? Scope { get; private set; }
+
+	public SourceFile? DeclaringSourceFile => DeclaringNode?.Tree.SourceFile;
+
+	public IdentifierToken? Identifier { get; protected set; }
 
 	public virtual string? Name => Identifier?.Value;
 
@@ -49,7 +63,7 @@ public abstract class Symbol
 		Parent = parent;
 	}
 
-	internal void SetContextScope(Scope scope)
+	internal void SetScope(Scope scope)
 	{
 		Scope = scope;
 	}
@@ -78,18 +92,16 @@ public sealed class ConstSymbol : Symbol, ISymbolHasType
 	private readonly ConstDeclNode _node;
 	private ResolvedType? _type;
 
-	internal ConstSymbol(ConstDeclNode node)
+	internal ConstSymbol(Reasoner reasoner, ConstDeclNode node)
+		: base(SymbolKind.Const, reasoner, node)
 	{
 		_node = node;
+		Identifier = _node.Identifier;
 	}
 
-	public override SymbolKind Kind => SymbolKind.Const;
+	public new ConstDeclNode DeclaringNode => _node;
 
 	internal new Scope Scope => base.Scope!;
-
-	public override SyntaxNode? DeclaringNode => _node;
-
-	public override IdentifierToken? Identifier => _node.Identifier;
 
 	public TypeSymbol Type => EnsureResolveType().Type;
 
@@ -105,21 +117,25 @@ public sealed class FnSymbol : Symbol, ISymbolHasType
 {
 	private readonly FnSigNode _node;
 	private FnTypeSymbol? _type;
+	private FnTypeSymbol? _typeWithoutReceiver;
 	private ImmutableArray<ParamSymbol> _params;
+	private TypeSymbol? _enclosingType;
+	private TypeSymbol? _methodReceiverType;
 
-	internal FnSymbol(FnSigNode node)
+	internal FnSymbol(Reasoner reasoner, FnSigNode node)
+		// node.Parent will be either a FunctionDeclNode or a MethodDeclNode.
+		: base(SymbolKind.Fn, reasoner, node.Parent)
 	{
 		_node = node;
+		Identifier = _node.Identifier;
 	}
 
-	public override SymbolKind Kind => SymbolKind.Fn;
-
-	internal new Scope Scope => base.Scope!;
+	public new FnSigNode DeclaringNode => _node;
 
 	// Parent will be either a FunctionDeclNode or a MethodDeclNode.
-	public override SyntaxNode? DeclaringNode => _node.Parent;
+	public FnSigNode FnSigNode => _node;
 
-	public override IdentifierToken? Identifier => _node.Identifier;
+	internal new Scope Scope => base.Scope!;
 
 	public bool HasBody => _node.FnHasBody;
 
@@ -128,9 +144,13 @@ public sealed class FnSymbol : Symbol, ISymbolHasType
 	/// </summary>
 	public bool IsOuterFn => Parent == null;
 
+	public bool IsMethod => _node.Parent is MethodDeclNode;
+
 	public bool IsMain => IsOuterFn && Name == "main";
 
 	public bool IsPublic => _node.Attrs.HasAttr(KnownAttrs.Public);
+
+	public bool IsStatic => _node.Attrs.HasAttr(KnownAttrs.Static);
 
 	public bool IsExtern => _node.Attrs.HasAttr(KnownAttrs.Extern);
 
@@ -143,17 +163,58 @@ public sealed class FnSymbol : Symbol, ISymbolHasType
 	{
 		get
 		{
-			return _type ??= Scope.Reasoner.GetFnType(_node.Parent!);
+			return _type ??= Reasoner.GetFnType(_node.Parent!);
+		}
+	}
+
+	/// <summary>
+	/// The type symbol of the function without the receiver arg for non static methods.
+	/// For functions or static methods, the same normal fn type will be returned.
+	/// This is useful when analysis is done on a method being accessed through an instance (`a.b()`).
+	/// </summary>
+	public FnTypeSymbol TypeWithoutReceiver
+	{
+		get
+		{
+			if (_typeWithoutReceiver != null)
+			{
+				return _typeWithoutReceiver;
+			}
+
+			var normalType = Type;
+			if (!IsMethod || IsStatic)
+			{
+				return normalType;
+			}
+
+			var key = new FnTypeKey(
+				normalType.IsExtern,
+				normalType.ReturnType,
+				[.. normalType.ParamTypes[1..]]);
+			return _typeWithoutReceiver = Reasoner.GetOrCreateUnnamedFnType(key);
 		}
 	}
 
 	public bool IsTypeInferred => false;
+
+	public TypeSymbol? EnclosingType => EnsureResolveEnclosingType();
+
+	/// <summary>
+	/// The type symbol of the receiver type (struct/class) if this is a non static method.
+	/// </summary>
+	public TypeSymbol? MethodReceiverType => EnsureResolveMethodReceiverType();
 
 	/// <summary>
 	/// The return type of the function.
 	/// </summary>
 	public TypeSymbol ReturnType => Type.ReturnType;
 
+	/// <summary>
+	/// Gets the fn's params.
+	/// </summary>
+	/// <remarks>
+	/// This won't include the receiver for methods. Use <see cref="MethodReceiverType"/> to access the receiver type.
+	/// </remarks>
 	public ImmutableArray<ParamSymbol> Params
 	{
 		get
@@ -172,18 +233,50 @@ public sealed class FnSymbol : Symbol, ISymbolHasType
 		var builder = ImmutableArray.CreateBuilder<ParamSymbol>();
 		foreach (var paramNode in _node.Params)
 		{
-			if (Scope.Reasoner.TryGetDeclaredSymbol(paramNode, out var symbol))
+			if (Reasoner.TryGetDeclaredSymbol(paramNode, out var symbol))
 			{
 				builder.Add((ParamSymbol)symbol);
 			}
 		}
 		return builder.ToImmutable();
 	}
+
+	private TypeSymbol? EnsureResolveEnclosingType()
+	{
+		if (!IsMethod)
+			return null;
+
+		return _enclosingType ??= ResolveEnclosingType();
+
+		TypeSymbol ResolveEnclosingType()
+		{
+			var enclosingType = Scope.LookupTypeDecl();
+			return enclosingType ?? ErrorTypeSymbol.Create(Reasoner);
+		}
+	}
+
+	private TypeSymbol? EnsureResolveMethodReceiverType()
+	{
+		if (!IsMethod || IsStatic)
+			return null;
+
+		return _methodReceiverType ??= ResolveEnclosingType();
+
+		TypeSymbol ResolveEnclosingType()
+		{
+			var enclosingType = EnclosingType;
+			// TODO: Account for @receiver_by_val.
+			return Reasoner.GetPtrType(enclosingType ?? ErrorTypeSymbol.Create(Reasoner));
+		}
+	}
 }
 
 public abstract class FieldSymbol : Symbol, ISymbolHasType
 {
-	public override SymbolKind Kind => SymbolKind.Field;
+	internal FieldSymbol(Reasoner reasoner, SyntaxNode? node)
+		: base(SymbolKind.Field, reasoner, node)
+	{
+	}
 
 	internal new Scope Scope => base.Scope!;
 
@@ -194,8 +287,12 @@ public abstract class FieldSymbol : Symbol, ISymbolHasType
 
 	public abstract bool IsTypeInferred { get; }
 
+	public bool HasInitializer => InitializerExprNode != null;
+
+	public abstract ExprNode? InitializerExprNode { get; }
+
 	/// <summary>
-	/// The type symbol of the enclosing type (struct/class).
+	/// The type symbol of the enclosing type.
 	/// </summary>
 	public abstract TypeSymbol EnclosingType { get; }
 
@@ -213,21 +310,21 @@ internal sealed class FieldSymbolImpl : FieldSymbol, ISymbolHasType
 	private ResolvedType? _type;
 	private TypeSymbol? _enclosingType;
 
-	internal FieldSymbolImpl(FieldDeclNode node, int fieldIndex)
+	internal FieldSymbolImpl(Reasoner reasoner, FieldDeclNode node, int fieldIndex)
+		: base(reasoner, node)
 	{
 		_node = node;
+		Identifier = _node.Identifier;
 		FieldIndex = fieldIndex;
 	}
 
-	public override SymbolKind Kind => SymbolKind.Field;
-
-	public override SyntaxNode? DeclaringNode => _node;
-
-	public override IdentifierToken? Identifier => _node.Identifier;
+	public new FieldDeclNode DeclaringNode => _node;
 
 	public override TypeSymbol Type => EnsureResolveType().Type;
 
 	public override bool IsTypeInferred => EnsureResolveType().IsInferred;
+
+	public override ExprNode? InitializerExprNode => _node.Initializer?.Expr;
 
 	public override TypeSymbol EnclosingType => EnsureResolveEnclosingType();
 
@@ -247,7 +344,7 @@ internal sealed class FieldSymbolImpl : FieldSymbol, ISymbolHasType
 		TypeSymbol ResolveEnclosingType()
 		{
 			var enclosingType = Scope.LookupTypeDecl();
-			return enclosingType ?? ErrorTypeSymbol.Create();
+			return enclosingType ?? ErrorTypeSymbol.Create(Reasoner);
 		}
 	}
 }
@@ -257,18 +354,20 @@ public sealed class ParamSymbol : Symbol, ISymbolHasType
 	private readonly ParamNode _node;
 	private TypeSymbol? _type;
 
-	internal ParamSymbol(ParamNode node)
+	internal ParamSymbol(Reasoner reasoner, ParamNode node)
+		: base(SymbolKind.Param, reasoner, node)
 	{
 		_node = node;
+		Identifier = _node.Identifier;
 	}
 
-	public override SymbolKind Kind => SymbolKind.Param;
+	public new ParamNode DeclaringNode => _node;
+
+	public bool HasInitializer => InitializerExprNode != null;
+
+	public ExprNode? InitializerExprNode => _node.Initializer?.Expr;
 
 	internal new Scope Scope => base.Scope!;
-
-	public override SyntaxNode? DeclaringNode => _node;
-
-	public override IdentifierToken? Identifier => _node.Identifier;
 
 	public TypeSymbol Type
 	{
@@ -287,18 +386,16 @@ public sealed class LocalSymbol : Symbol, ISymbolHasType
 	private readonly VarStmtNode _node;
 	private ResolvedType? _type;
 
-	internal LocalSymbol(VarStmtNode node)
+	internal LocalSymbol(Reasoner reasoner, VarStmtNode node)
+		: base(SymbolKind.Local, reasoner, node)
 	{
 		_node = node;
+		Identifier = _node.Identifier;
 	}
 
-	public override SymbolKind Kind => SymbolKind.Local;
+	public new VarStmtNode DeclaringNode => _node;
 
 	internal new Scope Scope => base.Scope!;
-
-	public override SyntaxNode? DeclaringNode => _node;
-
-	public override IdentifierToken? Identifier => _node.Identifier;
 
 	/// <summary>
 	/// The type of the local.
@@ -311,6 +408,50 @@ public sealed class LocalSymbol : Symbol, ISymbolHasType
 	{
 		return _type ??= Scope.ResolveType(_node, _node.Type);
 	}
+}
+
+[DebuggerDisplay("{ToString()}")]
+internal readonly record struct ThisSymbolKey(TypeSymbol type)
+{
+	public readonly TypeSymbol Type { get; } = type;
+
+	public override string ToString() => "this";
+}
+
+public sealed class ThisSymbol : Symbol, ISymbolHasType
+{
+	internal ThisSymbol(Reasoner reasoner, ThisSymbolKey key)
+		: base(SymbolKind.This, reasoner, null)
+	{
+		Key = key;
+	}
+
+	public override string? Name => "this";
+
+	internal ThisSymbolKey Key { get; }
+
+	/// <summary>
+	/// The type of `this`. Includes the pointer in the case the receiver is by ref.
+	/// </summary>
+	public TypeSymbol Type => Key.Type;
+
+	public bool IsTypeInferred => false;
+}
+
+/// <summary>
+/// Represents a temporary symbol that gets created in the lowering phase to be used in subsequent lowered nodes. (e.g. struct creation)
+/// </summary>
+public sealed class TempSymbol : Symbol, ISymbolHasType
+{
+	internal TempSymbol(Reasoner reasoner, TypeSymbol type)
+		: base(SymbolKind.Local, reasoner)
+	{
+		Type = type;
+	}
+
+	public TypeSymbol Type { get; }
+
+	public bool IsTypeInferred => false;
 }
 
 public enum KnownTypeTag
@@ -330,6 +471,29 @@ public enum KnownTypeTag
 	@string,
 }
 
+public readonly struct TypeCreationSymbol
+{
+	internal TypeCreationSymbol(Symbol symbol, bool isConflicting)
+	{
+		Symbol = symbol;
+		IsConflicting = isConflicting;
+	}
+
+	public Symbol Symbol { get; }
+
+	/// <summary>
+	/// Gets whether this symbol conflicts with another creation symbol.
+	/// </summary>
+	public bool IsConflicting { get; }
+
+	public readonly bool IsOptional => Symbol switch
+	{
+		FieldSymbol fieldSymbol => fieldSymbol.HasInitializer,
+		ParamSymbol paramSymbol => paramSymbol.HasInitializer,
+		_ => throw new UnreachableException(),
+	};
+}
+
 /// <summary>
 /// Represents a type symbol. Can be unnamed or generated.
 /// </summary>
@@ -339,6 +503,18 @@ public enum KnownTypeTag
 public abstract class TypeSymbol : Symbol
 {
 	private ImmutableArray<Symbol> _members;
+	private ImmutableArray<TypeCreationSymbol> _creationSymbols;
+	private InitializerMethod? _initializerMethod = default;
+
+	internal TypeSymbol(SymbolKind kind, Reasoner reasoner, SyntaxNode? node)
+		: base(kind, reasoner, node)
+	{
+	}
+
+	private readonly struct InitializerMethod
+	{
+		public MethodDeclNode? Node { get; init; }
+	}
 
 	public bool IsError => this is ErrorTypeSymbol;
 
@@ -357,13 +533,41 @@ public abstract class TypeSymbol : Symbol
 		}
 	}
 
+	/// <summary>
+	/// Gets the members that can be set in a type creation expr. Can include both field and param symbols (from the initializer).
+	/// </summary>
+	public virtual ImmutableArray<TypeCreationSymbol> CreationSymbols
+	{
+		get
+		{
+			if (_creationSymbols.IsDefault)
+			{
+				ImmutableInterlocked.InterlockedCompareExchange(ref _creationSymbols, BuildCreationSymbols(), default);
+			}
+
+			return _creationSymbols;
+		}
+	}
+
+	public MethodDeclNode? InitializerMethodDecl
+	{
+		get
+		{
+			if (!_initializerMethod.HasValue)
+			{
+				_initializerMethod = BuildInitializerMethod();
+			}
+
+			return _initializerMethod!.Value.Node;
+		}
+	}
+
 	private ImmutableArray<Symbol> BuildMembers()
 	{
 		var builder = ImmutableArray.CreateBuilder<Symbol>();
 		foreach (var node in EnumerateMembers())
 		{
-			Debug.Assert(Scope != null, "If symbol has members, it should have a scope.");
-			if (Scope.Reasoner.TryGetDeclaredSymbol(node, out var symbol))
+			if (Reasoner.TryGetDeclaredSymbol(node, out var symbol))
 			{
 				builder.Add(symbol);
 			}
@@ -371,11 +575,60 @@ public abstract class TypeSymbol : Symbol
 		return builder.ToImmutable();
 	}
 
+	private InitializerMethod BuildInitializerMethod()
+	{
+		foreach (var node in EnumerateMembers())
+		{
+			if (node is MethodDeclNode methodDecl && methodDecl.IsInitializer)
+			{
+				// We process only the first init found. Multiple inits will produce an error.
+				return new InitializerMethod { Node = methodDecl };
+			}
+		}
+		return new InitializerMethod { Node = null };
+	}
+
+	private ImmutableArray<TypeCreationSymbol> BuildCreationSymbols()
+	{
+		var symbols = new List<Symbol>();
+
+		foreach (var memberNode in EnumerateMembers())
+		{
+			// An uninitialized field
+			if (memberNode is FieldDeclNode fieldDecl && Reasoner.TryGetDeclaredSymbol(memberNode, out var symbol) &&
+				symbol is FieldSymbol fieldSymbol && !fieldSymbol.HasInitializer)
+			{
+				symbols.Add(symbol);
+			}
+		}
+
+		// Initializer params
+		if (InitializerMethodDecl != null)
+		{
+			foreach (var paramNode in InitializerMethodDecl.Sig.Params)
+			{
+				if (Reasoner.TryGetDeclaredSymbol(paramNode, out var symbol))
+				{
+					symbols.Add(symbol);
+				}
+				else
+				{
+					throw new UnreachableException();
+				}
+			}
+		}
+
+		var fields = symbols.OfType<FieldSymbol>().Select(x => new TypeCreationSymbol(x, false));
+		var @params = symbols.OfType<ParamSymbol>().Select(x => new TypeCreationSymbol(x, isConflicting: fields.Any(f => f.Symbol.Name == x.Name)));
+
+		return [.. fields, .. @params];
+	}
+
 	public Symbol? GetMember(IdentifierToken identifier) => GetMember(identifier.Value);
 
 	public Symbol? GetMember(string name)
 	{
-		// REVIEW: Some duplication between symbols and scopes?
+		// REVIEW: Some duplication between symbols and scopes here (and GetCreationMember)?
 
 		// Move from bottom to top trying to match the identifier.
 		for (var i = Members.Length - 1; i >= 0; i--)
@@ -389,13 +642,28 @@ public abstract class TypeSymbol : Symbol
 		return null;
 	}
 
+	public TypeCreationSymbol? GetCreationSymbol(IdentifierToken identifier) => GetCreationSymbol(identifier.Value);
+
+	public TypeCreationSymbol? GetCreationSymbol(string name)
+	{
+		for (var i = CreationSymbols.Length - 1; i >= 0; i--)
+		{
+			var item = CreationSymbols[i];
+			if (!item.IsConflicting && item.Symbol.Identifier != null && item.Symbol.Identifier.Value == name)
+			{
+				return item;
+			}
+		}
+		return null;
+	}
+
 	internal virtual IEnumerable<SyntaxNode> EnumerateMembers()
 	{
 		yield break;
 	}
 
 	/// <summary>
-	/// Unwrap aliases and return the actual type. The result should always be a non aliased type.
+	/// Unwraps aliases and return the actual type. The result should always be a non aliased type.
 	/// </summary>
 	public virtual TypeSymbol UnwrapAliases()
 	{
@@ -403,13 +671,27 @@ public abstract class TypeSymbol : Symbol
 	}
 
 	/// <summary>
-	/// If `true` is returned, the <paramref name="from"/> type can be assigned to this type. i.e. this = <paramref name="from"/>
+	/// Unwraps pointers to return the inner type. The result should always be a non pointer type or null if it's an opaque pointer.
+	/// This is useful because the compiler does auto derefing/addressing, so in most cases we want to pass through to the inner non pointer type for type analysis.
+	/// </summary>
+	public virtual TypeSymbol? UnwrapPointers()
+	{
+		return this;
+	}
+
+	/// <summary>
+	/// If `true` is returned, the <paramref name="from"/> type can be assigned to this type. i.e. `this = <paramref name="from"/>` is valid.
 	/// This also performs aliased type unwrapping on both sides.
 	/// </summary>
-	public virtual bool IsAssignableFrom(TypeSymbol? from)
+	public bool IsAssignableFrom(TypeSymbol? from)
 	{
 		if (from == null) return false;
-		return Equals(UnwrapAliases(), from.UnwrapAliases());
+		return IsAssignableFromCore(UnwrapAliases(), from.UnwrapAliases());
+	}
+
+	public virtual bool IsAssignableFromCore(TypeSymbol to, TypeSymbol from)
+	{
+		return Equals(to, from);
 	}
 }
 
@@ -417,6 +699,7 @@ public abstract class TypeSymbol : Symbol
 /// Represents a key that is used to structurally compare fn types.
 /// Any two fn types with the same signature will have equal keys.
 /// </summary>
+[DebuggerDisplay("{ToString()}")]
 internal readonly struct FnTypeKey(
 	bool isExtern,
 	TypeSymbol returnType,
@@ -432,17 +715,30 @@ internal readonly struct FnTypeKey(
 	{
 		return
 			IsExtern == other.IsExtern &&
-			ReturnType.IsAssignableFrom(other.ReturnType) &&
+			ReturnTypesEqual(ReturnType, other.ReturnType) &&
 			ParamTypesEqual(this, other);
 	}
 
-	private static bool ParamTypesEqual(FnTypeKey x, FnTypeKey y)
+	public bool IsAssignableFrom(FnTypeKey other)
+	{
+		return
+			IsExtern == other.IsExtern &&
+			ReturnTypesAssignable(ReturnType, other.ReturnType) &&
+			ParamTypesAssignable(this, other);
+	}
+
+	private static bool ReturnTypesEqual(TypeSymbol x, TypeSymbol y) => x == y;
+	private static bool ReturnTypesAssignable(TypeSymbol x, TypeSymbol y) => x.IsAssignableFrom(y);
+
+	private static bool ParamTypesEqual(FnTypeKey x, FnTypeKey y) => ParamTypesCompare(x, y, (x, y) => x == y);
+	private static bool ParamTypesAssignable(FnTypeKey x, FnTypeKey y) => ParamTypesCompare(x, y, (x, y) => x.IsAssignableFrom(y));
+	private static bool ParamTypesCompare(FnTypeKey x, FnTypeKey y, Func<TypeSymbol, TypeSymbol, bool> compare)
 	{
 		if (x.ParamTypes.Length != y.ParamTypes.Length)
 			return false;
 		for (var i = 0; i < x.ParamTypes.Length; i++)
 		{
-			if (!x.ParamTypes[i].IsAssignableFrom(y.ParamTypes[i]))
+			if (!compare(x.ParamTypes[i], y.ParamTypes[i]))
 				return false;
 		}
 		return true;
@@ -450,16 +746,17 @@ internal readonly struct FnTypeKey(
 
 	public override int GetHashCode()
 	{
-		// Calling UnwrapAliases() is important here so we get stable hash codes to not duplicate unnamed fn type symbols.
+		// Shouldn't call UnwrapAliases() so we get different keys for different compatible types.
+		// This is fine because analyzing compatibility uses IsAssignableFrom.
 
 		unchecked
 		{
 			var hash = 92821;
 			hash = hash * 29 + IsExtern.GetHashCode();
-			hash = hash * 29 + ReturnType.UnwrapAliases().GetHashCode();
+			hash = hash * 29 + ReturnType.GetHashCode();
 			foreach (var p in ParamTypes)
 			{
-				hash = hash * 29 + p.UnwrapAliases().GetHashCode();
+				hash = hash * 29 + p.GetHashCode();
 			}
 			return hash;
 		}
@@ -467,7 +764,8 @@ internal readonly struct FnTypeKey(
 
 	public override string ToString()
 	{
-		return $"{(IsExtern ? "@extern " : "")}fn ({string.Join(", ", ParamTypes.Select(p => p.Name))}) {ReturnType.Name}";
+		IEnumerable<string?> @params = [.. ParamTypes.Select(p => p.Name)];
+		return $"{(IsExtern ? "@extern " : "")}fn ({string.Join(", ", @params)}) {ReturnType.Name}";
 	}
 }
 
@@ -477,45 +775,109 @@ internal readonly struct FnTypeKey(
 /// This symbol overrides equality so that comparison is structural instead of referential.
 /// i.e. A named fn's fn type symbol and a method's fn type symbol and an alias' fn type symbol are equal if they're structurally compatible (signatures match).
 /// </summary>
-public class FnTypeSymbol : TypeSymbol, IEquatable<FnTypeSymbol>
+public class FnTypeSymbol : TypeSymbol
 {
 	// AliasDeclNode (node is null for FnDeclNode, MethodDeclNode because these create shared fn type symbols)
 	private readonly DeclNode? _node;
-	private readonly FnTypeKey _key;
 
 	// node will be null for untyped fn types (fns and methods).
-	internal FnTypeSymbol(DeclNode? node, FnTypeKey key)
+	internal FnTypeSymbol(Reasoner reasoner, DeclNode? node, FnTypeKey key)
+		: base(SymbolKind.FnType, reasoner, node)
 	{
 		_node = node;
-		_key = key;
+		Key = key;
 	}
 
-	public override SymbolKind Kind => SymbolKind.FnType;
-
-	//public new StructDeclNode? DeclaringNode => (StructDeclNode?)base.DeclaringNode;
-
-	internal FnTypeKey Key => _key;
+	internal FnTypeKey Key { get; }
 
 	public bool IsExtern => Key.IsExtern;
 
 	public TypeSymbol ReturnType => Key.ReturnType;
 
+	/// <summary>
+	/// Param types including the receiver if it exists.
+	/// </summary>
 	public ImmutableArray<TypeSymbol> ParamTypes => Key.ParamTypes;
 
 	// TODO: If it's a named fn type (alias), display that instead?
-	public override string? Name => _key.ToString();
+	public override string? Name => Key.ToString();
 
-	public override bool Equals(object? obj) => Equals(obj as FnTypeSymbol);
-
-	public bool Equals(FnTypeSymbol? other)
+	public override bool IsAssignableFromCore(TypeSymbol to, TypeSymbol from)
 	{
-		if (other == null) return false;
-		return Equals(_key, other._key);
+		if (to is not FnTypeSymbol toFnType || from is not FnTypeSymbol fromFnType)
+			return false;
+		return toFnType.Key.IsAssignableFrom(fromFnType.Key);
 	}
 
-	public override int GetHashCode()
+	public override string ToString()
 	{
-		return _key.GetHashCode();
+		return Key.ToString();
+	}
+}
+
+/// <summary>
+/// Represents a key that is used to structurally compare ptr types.
+/// Any two ptr types with the same inner type will have equal keys.
+/// </summary>
+[DebuggerDisplay("{ToString()}")]
+internal readonly record struct PtrTypeKey(TypeSymbol? innerType)
+{
+	public readonly TypeSymbol? InnerType { get; } = innerType;
+
+	public bool IsAssignableFrom(PtrTypeKey other)
+	{
+		if (InnerType == null)
+		{
+			// Opaque ptr.
+			return other.InnerType == null;
+		}
+		return InnerType.IsAssignableFrom(other.InnerType);
+	}
+
+	public override string ToString()
+	{
+		return $"*{InnerType?.Name}";
+	}
+}
+
+public class PtrTypeSymbol : TypeSymbol
+{
+	internal PtrTypeSymbol(Reasoner reasoner, PtrTypeKey key)
+		: base(SymbolKind.PtrType, reasoner, null)
+	{
+		Key = key;
+	}
+
+	internal PtrTypeKey Key { get; }
+
+	/// <summary>
+	/// Gets the inner type of the pointer. Will be null for an opaque pointer.
+	/// </summary>
+	public TypeSymbol? InnerType => Key.InnerType;
+
+	public override string? Name => $"*{InnerType?.Name}";
+
+	public override bool IsAssignableFromCore(TypeSymbol to, TypeSymbol from)
+	{
+		if (to is not PtrTypeSymbol toPtrType || from is not PtrTypeSymbol fromPtrType)
+			return false;
+		return toPtrType.Key.IsAssignableFrom(fromPtrType.Key);
+	}
+
+	public override TypeSymbol? UnwrapPointers()
+	{
+		return InnerType?.UnwrapPointers();
+	}
+
+	// REVIEW: Is this what we should really do? Shouldn't we depend on unwrapping instead?
+
+	internal override IEnumerable<SyntaxNode> EnumerateMembers() => InnerType?.EnumerateMembers() ?? [];
+
+	public override ImmutableArray<Symbol> Members => InnerType?.Members ?? [];
+
+	public override string ToString()
+	{
+		return Key.ToString();
 	}
 }
 
@@ -523,30 +885,32 @@ public abstract class NamedTypeSymbol : TypeSymbol
 {
 	private readonly DeclNode? _node;
 
-	internal NamedTypeSymbol(DeclNode? node)
+	internal NamedTypeSymbol(Reasoner reasoner, DeclNode? node)
+		: base(SymbolKind.NamedType, reasoner, node)
 	{
 		_node = node;
+		Identifier = _node switch
+		{
+			ClassDeclNode classDecl => classDecl.Identifier,
+			StructDeclNode structDecl => structDecl.Identifier,
+			_ => null,
+		};
 	}
 
-	public override SymbolKind Kind => SymbolKind.NamedType;
-
-	public override DeclNode? DeclaringNode => _node;
-
-	public override IdentifierToken? Identifier => _node switch
-	{
-		ClassDeclNode classDecl => classDecl.Identifier,
-		StructDeclNode structDecl => structDecl.Identifier,
-		_ => null,
-	};
+	public new DeclNode? DeclaringNode => _node;
 }
 
 public class StructTypeSymbol : NamedTypeSymbol
 {
-	internal StructTypeSymbol(StructDeclNode? node) : base(node)
+	private readonly StructDeclNode? _node;
+
+	internal StructTypeSymbol(Reasoner reasoner, StructDeclNode? node)
+		: base(reasoner, node)
 	{
+		_node = node;
 	}
 
-	public new StructDeclNode? DeclaringNode => (StructDeclNode?)base.DeclaringNode;
+	public new StructDeclNode? DeclaringNode => _node;
 
 	internal override IEnumerable<SyntaxNode> EnumerateMembers()
 	{
@@ -560,11 +924,15 @@ public class StructTypeSymbol : NamedTypeSymbol
 
 public class ClassTypeSymbol : NamedTypeSymbol
 {
-	internal ClassTypeSymbol(ClassDeclNode? node) : base(node)
+	private readonly ClassDeclNode? _node;
+
+	internal ClassTypeSymbol(Reasoner reasoner, ClassDeclNode? node)
+		: base(reasoner, node)
 	{
+		_node = node;
 	}
 
-	public new ClassDeclNode? DeclaringNode => (ClassDeclNode?)base.DeclaringNode;
+	public new ClassDeclNode? DeclaringNode => _node;
 
 	internal override IEnumerable<SyntaxNode> EnumerateMembers()
 	{
@@ -581,18 +949,16 @@ public class AliasTypeSymbol : TypeSymbol
 	private readonly AliasDeclNode _node;
 	private TypeSymbol? _type;
 
-	internal AliasTypeSymbol(AliasDeclNode node)
+	internal AliasTypeSymbol(Reasoner reasoner, AliasDeclNode node)
+		: base(SymbolKind.AliasType, reasoner, node)
 	{
 		_node = node;
+		Identifier = _node.Identifier;
 	}
-
-	public override SymbolKind Kind => SymbolKind.AliasType;
 
 	internal new Scope Scope => base.Scope!;
 
-	public override DeclNode? DeclaringNode => _node;
-
-	public override IdentifierToken? Identifier => _node.Identifier;
+	public new AliasDeclNode DeclaringNode => _node;
 
 	public TypeSymbol Type
 	{
@@ -620,35 +986,30 @@ public class AliasTypeSymbol : TypeSymbol
 /// </summary>
 public sealed class ErrorTypeSymbol : TypeSymbol
 {
-	private readonly SyntaxNode? _node;
-	private readonly IdentifierToken? _identifier;
-
-	private ErrorTypeSymbol(SyntaxNode? node, IdentifierToken? identifier)
+	private ErrorTypeSymbol(Reasoner reasoner, SyntaxNode? node, IdentifierToken? identifier)
+		: base(SymbolKind.ErrorType, reasoner, node)
 	{
-		_node = node;
-		_identifier = identifier;
+		Identifier = identifier;
 	}
-
-	public override SymbolKind Kind => SymbolKind.ErrorType;
-
-	public override IdentifierToken? Identifier => _identifier;
 
 	public override string? Name => Identifier?.Value ?? "_ERR_";
 
-	public static ErrorTypeSymbol Create() => new(null, null);
+	public static ErrorTypeSymbol Create(Reasoner reasoner) => new(reasoner, null, null);
 
-	public static ErrorTypeSymbol Create(SyntaxNode? node) => new(node, null);
+	public static ErrorTypeSymbol Create(Reasoner reasoner, SyntaxNode? node) => new(reasoner, node, null);
 
-	public static ErrorTypeSymbol Create(IdentifierToken? identifier) => new(null, identifier);
+	public static ErrorTypeSymbol Create(Reasoner reasoner, IdentifierToken? identifier) => new(reasoner, null, identifier);
 
-	public static ErrorTypeSymbol Create(SyntaxNode? node, IdentifierToken? identifier) => new(node, identifier);
+	public static ErrorTypeSymbol Create(Reasoner reasoner, SyntaxNode? node, IdentifierToken? identifier) => new(reasoner, node, identifier);
 }
 
 public static class SymbolExtensions
 {
-	public static TypeSymbol AsTypeSymbolOrError(this Symbol? symbol)
+	public static bool IsType(this Symbol? symbol) => symbol is TypeSymbol;
+
+	public static TypeSymbol AsTypeSymbolOrError(this Symbol? symbol, Reasoner reasoner)
 	{
-		return (symbol as TypeSymbol) ?? ErrorTypeSymbol.Create();
+		return (symbol as TypeSymbol) ?? ErrorTypeSymbol.Create(reasoner);
 	}
 }
 

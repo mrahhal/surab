@@ -197,6 +197,11 @@ public abstract partial class SyntaxTreeVisitor
 		Walk(node);
 	}
 
+	public virtual void VisitPtrType(PtrTypeNode node)
+	{
+		Walk(node);
+	}
+
 	public virtual void VisitNamedType(NamedTypeNode node)
 	{
 		Walk(node);

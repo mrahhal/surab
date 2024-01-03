@@ -1,6 +1,4 @@
-﻿using System.Collections.Immutable;
-
-namespace Surab.Compilation;
+﻿namespace Surab.Compilation;
 
 public class LoweringUtilsTests
 {

@@ -6,7 +6,7 @@ public class AliasTests
 	public void Alias_1()
 	{
 		var output = IntegrationRunner.Run($$"""
-			struct S1 { @public a: i32; }
+			struct S1 { a: i32; }
 			alias AliasOfS1 as S1;
 
 			fn f1(s1: AliasOfS1) { print_i32(s1.a); }
@@ -30,7 +30,7 @@ public class AliasTests
 	public void Alias_2()
 	{
 		var output = IntegrationRunner.Run($$"""
-			struct S1 { @public a: i32; }
+			struct S1 { a: i32; }
 			alias Delegate1 as fn (S1);
 
 			fn f(s1: S1, d_fn: Delegate1) { d_fn(s1); }

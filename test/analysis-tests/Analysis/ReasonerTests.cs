@@ -84,6 +84,38 @@ public class ReasonerTests
 	}
 
 	[Fact]
+	public void LookupSymbol_FieldInCreator()
+	{
+		var src = """
+			struct S1 { a: i32; }
+			fn f() { var s = S1 { a = 2 }; }
+			""";
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
+
+		var creationExpr = tree.Root.DescendantNodes().OfType<StructCreationExprNode>().Single();
+		var assignmentExpr = creationExpr.MapInitializer.DescendantNodes().OfType<AssignmentExprNode>().Single();
+		var symbol = reasoner.LookupSymbol(assignmentExpr.Lhs);
+		symbol.Should().BeAssignableTo<FieldSymbol>().Subject.
+			Type.KnownTypeTag.Should().Be(KnownTypeTag.i32);
+	}
+
+	[Fact]
+	public void LookupSymbol_InitializerParamInCreator()
+	{
+		var src = """
+			struct S1 { (a: i32) { } }
+			fn f() { var s = S1 { a = 2 }; }
+			""";
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
+
+		var creationExpr = tree.Root.DescendantNodes().OfType<StructCreationExprNode>().Single();
+		var assignmentExpr = creationExpr.MapInitializer.DescendantNodes().OfType<AssignmentExprNode>().Single();
+		var symbol = reasoner.LookupSymbol(assignmentExpr.Lhs);
+		symbol.Should().BeOfType<ParamSymbol>().Subject.
+			Type.KnownTypeTag.Should().Be(KnownTypeTag.i32);
+	}
+
+	[Fact]
 	public void LookupType()
 	{
 		var src = """
@@ -244,6 +276,52 @@ public class ReasonerTests
 	}
 
 	[Fact]
+	public void LookupType_PtrType()
+	{
+		var src = """
+			fn f() {
+				var a: i32 = 2;
+				var b = &a;
+				var c = *b;
+			}
+			""";
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
+
+		var aType = ((LocalSymbol)reasoner.GetDeclaredSymbol(tree.Root.DescendantNodes().OfType<VarStmtNode>().ElementAt(0))!).Type;
+		var bType = ((LocalSymbol)reasoner.GetDeclaredSymbol(tree.Root.DescendantNodes().OfType<VarStmtNode>().ElementAt(1))!).Type;
+		var cType = ((LocalSymbol)reasoner.GetDeclaredSymbol(tree.Root.DescendantNodes().OfType<VarStmtNode>().ElementAt(2))!).Type;
+
+		aType.KnownTypeTag.Should().Be(KnownTypeTag.i32);
+		bType.Should().BeOfType<PtrTypeSymbol>().Subject.InnerType!.KnownTypeTag.Should().Be(KnownTypeTag.i32);
+		cType.KnownTypeTag.Should().Be(KnownTypeTag.i32);
+	}
+
+	[Fact]
+	public void LookupType_PtrType_AutoDeref()
+	{
+		var src = """
+			struct S {
+				get() i32 { 42 }
+			}
+
+			fn f() {
+				var s = S { };
+				var a = s.get();
+				var s_ptr = &s;
+				// Pass through type analysis for pointers. This should properly resolve the method.
+				var b = s_ptr.get();
+			}
+			""";
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
+
+		var aType = ((LocalSymbol)reasoner.GetDeclaredSymbol(tree.Root.DescendantNodes().OfType<VarStmtNode>().ElementAt(1))!).Type;
+		var bType = ((LocalSymbol)reasoner.GetDeclaredSymbol(tree.Root.DescendantNodes().OfType<VarStmtNode>().ElementAt(3))!).Type;
+
+		aType.KnownTypeTag.Should().Be(KnownTypeTag.i32);
+		bType.KnownTypeTag.Should().Be(KnownTypeTag.i32);
+	}
+
+	[Fact]
 	public void Symbol_ErrorType()
 	{
 		var src = """
@@ -328,6 +406,42 @@ public class ReasonerTests
 		reasoner.TryGetDeclaredSymbol(fnDecl, out var symbol).Should().BeTrue();
 		var fnSymbol = symbol.Should().BeOfType<FnSymbol>().Subject;
 		fnSymbol.ReturnType.KnownTypeTag.Should().Be(KnownTypeTag.None);
+	}
+
+	[Fact]
+	public void PtrTypes()
+	{
+		var src = """
+			alias Integer as i32;
+
+			fn f() {
+				var a1: *i32;
+				var a2: *i32;
+				var a3: *Integer;
+				var a4: *;
+				var a5: *;
+			}
+			""";
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
+
+		var a1Type = GetTypeAt(0);
+		var a2Type = GetTypeAt(1);
+		var a3Type = GetTypeAt(2);
+		var a4Type = GetTypeAt(3);
+		var a5Type = GetTypeAt(4);
+
+		a1Type.Equals(a2Type).Should().BeTrue();
+		a1Type.IsAssignableFrom(a2Type).Should().BeTrue();
+		a1Type.Equals(a3Type).Should().BeFalse();
+		a1Type.IsAssignableFrom(a3Type).Should().BeTrue();
+		a1Type.IsAssignableFrom(a4Type).Should().BeFalse();
+		a4Type.IsAssignableFrom(a5Type).Should().BeTrue();
+
+		TypeSymbol GetTypeAt(int index)
+		{
+			var a1Node = tree.Root.DescendantNodes().OfType<VarStmtNode>().ElementAt(index);
+			return ((LocalSymbol)reasoner.GetDeclaredSymbol(a1Node)!).Type;
+		}
 	}
 
 	[Fact]
@@ -464,5 +578,20 @@ public class ReasonerTests
 		reasoner.TryGetDeclaredSymbol(fnDecl, out var symbol).Should().BeTrue();
 		var fnSymbol = symbol.Should().BeOfType<FnSymbol>().Subject;
 		fnSymbol.IsOuterFn.Should().BeTrue();
+	}
+
+	[Fact]
+	public void FnSymbol_TypeWithoutReceiver()
+	{
+		var src = """
+			struct S1 { a() { } }
+			""";
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
+
+		var methodDecl = tree.Root.DescendantNodes().OfType<MethodDeclNode>().Single();
+		reasoner.TryGetDeclaredSymbol(methodDecl, out var symbol).Should().BeTrue();
+		var fnSymbol = symbol.Should().BeOfType<FnSymbol>().Subject;
+		fnSymbol.Type.ParamTypes.Should().HaveCount(1); // reciever
+		fnSymbol.TypeWithoutReceiver.ParamTypes.Should().HaveCount(0); // no receiver
 	}
 }

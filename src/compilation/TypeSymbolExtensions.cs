@@ -32,7 +32,7 @@ public static class TypeSymbolExtensions
 
 		if (tag == KnownTypeTag.None) return RuntimeTypeKind.ZeroSized;
 		if (tag == KnownTypeTag.@char) return RuntimeTypeKind.Char;
-		if (tag == KnownTypeTag.@string) return RuntimeTypeKind.Ptr;
+		if (tag == KnownTypeTag.@string || type is PtrTypeSymbol) return RuntimeTypeKind.Ptr;
 		if (type.IsNumeric()) return RuntimeTypeKind.Numeric;
 		if (tag == KnownTypeTag.@bool) return RuntimeTypeKind.Bool;
 		if (type is StructTypeSymbol) return RuntimeTypeKind.Struct;

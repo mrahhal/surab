@@ -89,6 +89,7 @@ public enum SyntaxNodeKind
 	ArgsList,
 	Arg,
 	ColonType,
+	PtrType,
 	NamedType,
 	FnType,
 	MissingType,
@@ -822,11 +823,11 @@ public partial class ParamsListNode : SyntaxNode
 
 public partial class ParamNode : SyntaxNode, ISyntaxNodeHasMainIdentifier
 {
-	public ParamNode(SyntaxTree tree, AttrsListNode? attrs, IdentifierToken identifier, ColonTypeNode? type, SimpleToken? commaToken)
+	public ParamNode(SyntaxTree tree, AttrsListNode? attrs, IdentifierToken identifier, ColonTypeNode? type, EqualsExprClauseNode? initializer, SimpleToken? commaToken)
 		: base(tree, SyntaxNodeKind.Param)
 	{
 		_childTokens = new() { identifier, commaToken, };
-		_childNodes = new() { attrs, type, };
+		_childNodes = new() { attrs, type, initializer, };
 
 		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
@@ -838,6 +839,7 @@ public partial class ParamNode : SyntaxNode, ISyntaxNodeHasMainIdentifier
 	/// Well formed: Has value
 	/// </summary>
 	public ColonTypeNode? Type => (ColonTypeNode?)_childNodes[1]!;
+	public EqualsExprClauseNode? Initializer => (EqualsExprClauseNode?)_childNodes[2]!;
 	public SimpleToken? CommaToken => (SimpleToken?)_childTokens[1]!;
 
 	public override void Accept(SyntaxTreeVisitor visitor)
@@ -950,6 +952,28 @@ public partial class ColonTypeNode : SyntaxNode
 	public override void Accept(SyntaxTreeVisitor visitor)
 	{
 		visitor.VisitColonType(this);
+	}
+}
+
+public partial class PtrTypeNode : TypeNode
+{
+	public PtrTypeNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken asteriskToken, TypeNode? innerType)
+		: base(tree, SyntaxNodeKind.PtrType)
+	{
+		_childTokens = new() { asteriskToken, };
+		_childNodes = new() { attrs, innerType, };
+
+		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		SetChildrenParent();
+	}
+
+	public AttrsListNode? Attrs => (AttrsListNode?)_childNodes[0]!;
+	public SimpleToken AsteriskToken => (SimpleToken)_childTokens[0]!;
+	public TypeNode? InnerType => (TypeNode?)_childNodes[1]!;
+
+	public override void Accept(SyntaxTreeVisitor visitor)
+	{
+		visitor.VisitPtrType(this);
 	}
 }
 
