@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using LLVMSharp;
 using LLVMSharp.Interop;
 using Surab.Analysis;
 using Surab.Compilation.LLVM;
@@ -9,6 +8,8 @@ namespace Surab.Compilation;
 public sealed class Compiler
 {
 	private readonly CompilationContext _context;
+
+	internal static readonly bool VerificationEnabled = true;
 
 	private Compiler(
 		SurabProject project,
@@ -70,7 +71,11 @@ internal sealed class ModuleCompiler(CompilationContext context, LoweredTree low
 	{
 		Visit(_loweredTree.Root);
 
-		LLVM.Module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction);
+		if (Compiler.VerificationEnabled)
+		{
+			//LLVM.Module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction);
+		}
+
 		//LLVM.PassManager.FinalizeFunctionPassManager();
 		//LLVM.PassManager.Run(LLVM.Module);
 	}
@@ -106,7 +111,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 		_context = context;
 		_fnDecl = fnDecl;
 
-		_llvmFnUnit = GetOrCreateFn(fnDecl.FnSymbol);
+		_llvmFnUnit = Get(fnDecl.FnSymbol);
 		_llvmFn = LLVMTarget.GetFnInfoFromFnType(fnDecl.FnSymbol.Type);
 		Debug.Assert(_llvmFnUnit.Value.BasicBlocksCount == 0);
 	}
@@ -163,10 +168,12 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 
 		if (!_llvmFnUnit.Value.VerifyFunction(LLVMVerifierFailureAction.LLVMPrintMessageAction))
 		{
-			throw new Exception("LLVM function verification failed.");
+			// TODO: Log? LLVM prints the problem on the console anyway.
+			//if (Compiler.VerificationEnabled)
+			//throw new Exception("LLVM function verification failed.");
 		}
 
-		//LLVM.PassManager.RunFunctionPassManager(_llvmUnit.Value);
+		//LLVM.PassManager.RunFunctionPassManager(_llvmFnUnit.Value);
 	}
 
 	private void SetupParams()
@@ -189,6 +196,9 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 		foreach (var t in overallParams)
 		{
 			var paramValue = _llvmFnUnit.Value.GetParam((uint)llvmParamOffset);
+			var paramType = t.Type;
+			var paramName = (t.Symbol == null ? "this" : t.Symbol.Name) ?? string.Empty;
+			var llvmType = LLVMTarget.LowerType(paramType);
 
 			// Adaptations of params inside fn body
 			// ---
@@ -198,15 +208,23 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 			{
 				case LLVMTypeLoweringKind.ByValue:
 					{
-						var alignment = Target.GetAbiAlignment(t.Type);
-						CreateParam(t.Symbol, t.Type, paramValue, alignment);
+						var alignment = Target.GetAbiAlignment(paramType);
+
+						var ptr = LLVM.Builder.BuildAlloca(llvmType, paramName);
+						ptr.SetAlignment((uint)alignment.Bytes);
+						LLVM.Builder.BuildStore(paramValue, ptr);
+						var unit = LLVMUnit.Wrapped(llvmType, ptr);
+
+						CreateParam(t.Symbol, unit);
 					}
 					break;
 				case LLVMTypeLoweringKind.ByMutRef:
 					{
 						// paramValue is already a ptr. Treat it as the wrapper ptr directly.
 						var alignment = Target.GetAbiAlignment(t.Type);
-						CreateParam(t.Symbol, t.Type, paramValue, alignment, createWrapperPtr: false);
+						Debug.Assert(paramValue.TypeOf.Kind == LLVMTypeKind.LLVMPointerTypeKind, "Param value should already be a ptr.");
+						var unit = LLVMUnit.Wrapped(llvmType, paramValue);
+						CreateParam(t.Symbol, unit);
 					}
 					break;
 				case LLVMTypeLoweringKind.AbiInt:
@@ -214,7 +232,13 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 						var layout = Target.GetLayout(t.Type);
 						var llvmIntType = LLVMTypeRef.CreateInt((uint)layout.Size.Bits);
 						var alignment = Math.Max(layout.Alignment.Bytes, (int)LLVM.TargetData.ABIAlignmentOfType(llvmIntType)).AsBytes();
-						CreateParam(t.Symbol, t.Type, paramValue, alignment);
+
+						var ptr = LLVM.Builder.BuildAlloca(llvmType, paramName);
+						ptr.SetAlignment((uint)alignment.Bytes);
+						LLVM.Builder.BuildStore(paramValue, ptr);
+						var unit = LLVMUnit.Wrapped(llvmType, ptr);
+
+						CreateParam(t.Symbol, unit);
 					}
 					break;
 			}
@@ -235,9 +259,10 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 
 	public override void VisitExprStmt(LoweredExprStmt node)
 	{
-		base.VisitExprStmt(node);
+		Visit(node.Expr);
 
-		// Discard the value? For non void functions..? Or always push a value in an expr to discard here?
+		// The expr will always push a unit to the stack (even void fns).
+		// An ExprStmt marks the end of an expr pipeline, so we simply always discard that last value here.
 		_stack.Pop();
 	}
 
@@ -262,13 +287,28 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 		}
 	}
 
+	public override void VisitObjectAllocStmt(LoweredObjectAllocStmt node)
+	{
+		var llvmType = LLVMTarget.LowerType(node.Type);
+
+		Debug.Assert(node.Type is StructTypeSymbol); // temp
+
+		var ptr = LLVM.Builder.BuildAlloca(llvmType);
+		var unit = LLVMUnit.Wrapped(llvmType, ptr);
+
+		// Tie unit to temp symbol.
+		Debug.Assert(!_context.SymbolToLLVMUnit.ContainsKey(node.TempSymbol));
+		_context.SymbolToLLVMUnit[node.TempSymbol] = unit;
+	}
+
 	public override void VisitCallExpr(LoweredCallExpr node)
 	{
+		Visit(node.Callee);
+		var fnUnit = _stack.Pop();
 		var fnType = node.FnType;
 
-		var fnUnit = GetOrCreateFn(node.Callee);
 		// Unwrapping loads the actual fn ptr for indirect calls (direct calls won't be wrapped in the first place).
-		var (llvmFnPtrType, llvmFnValue) = fnUnit.Unwrap(LLVM);
+		var (_, llvmFnValue) = fnUnit.Unwrap(LLVM);
 		var (_, llvmFnType) = LLVMTarget.LowerType(fnType);
 		var (sret, attrs) = LLVMTarget.GetFnInfoFromFnType(fnType);
 
@@ -351,7 +391,19 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 	public override void VisitUnaryExpr(LoweredUnaryExpr node)
 	{
 		Visit(node.Expr);
-		var (_, value) = _stack.Pop().Unwrap(LLVM);
+		var unit = _stack.Pop();
+
+		switch (node.Op)
+		{
+			case UnaryOperatorTokenKind.Address:
+				DoAddressOf(node.Type, unit);
+				return;
+			case UnaryOperatorTokenKind.Deref:
+				DoDeref(node.Type, unit);
+				return;
+		}
+
+		var (_, value) = unit.Unwrap(LLVM);
 
 		var newValue = node.Op switch
 		{
@@ -359,6 +411,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 			UnaryOperatorTokenKind.Not => LLVM.Builder.BuildICmp(LLVMIntPredicate.LLVMIntEQ, value, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, 0)),
 			_ => throw new NotImplementedException(),
 		};
+		// TODO:
 		_stack.Push(LLVMUnit.Unwrapped(LLVMTypeRef.Double, newValue));
 
 		LLVMValueRef BuildNeg()
@@ -372,6 +425,26 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 				return LLVM.Builder.BuildFNeg(value);
 			}
 		}
+	}
+
+	private void DoAddressOf(TypeSymbol type, LLVMUnit unit)
+	{
+		var llvmType = LLVMTarget.LowerType(type);
+		// Taking an address of something is only valid with lvalues. This means the unit we're taking an address of is always wrapped.
+		Debug.Assert(unit.IsWrapped);
+		// Address results are always unwrapped (i.e. literal units).
+		_stack.Push(LLVMUnit.Unwrapped(llvmType, unit.Value));
+	}
+
+	public void DoDeref(TypeSymbol type, LLVMUnit unit)
+	{
+		var llvmType = LLVMTarget.LowerType(type);
+		// Derefing something is only valid on wrapped units.
+		Debug.Assert(unit.IsWrapped);
+		// Deref results are always wrapped (i.e. not literal units).
+		_stack.Push(LLVMUnit.Wrapped(llvmType, unit.Unwrap(LLVM).Value));
+		//var load = LLVM.Builder.BuildLoad2(unit.Type, unit.Value);
+		//_stack.Push(LLVMUnit.Wrapped(llvmType, load));
 	}
 
 	public override void VisitBinaryExpr(LoweredBinaryExpr node)
@@ -455,12 +528,14 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 	public override void VisitFieldLoadExpr(LoweredFieldLoadExpr node)
 	{
 		Visit(node.Target);
-		var (targetType, targetPtr) = _stack.Pop();
+		var (_, targetPtr) = _stack.Pop();
+		var enclosingType = node.Field.EnclosingType;
+		var llvmEnclosingType = LLVMTarget.LowerType(enclosingType);
 
 		var structLayout = Target.GetStructLayout((StructTypeSymbol)node.Field.Parent!);
 		var fieldSection = structLayout.Sections.First(s => s.FieldIndex == node.Field.FieldIndex);
 
-		var ptrToField = LLVM.Builder.BuildStructGEP2(targetType, targetPtr, (uint)fieldSection.SectionIndex);
+		var ptrToField = LLVM.Builder.BuildStructGEP2(llvmEnclosingType, targetPtr, (uint)fieldSection.SectionIndex);
 		var fieldLLVMType = LLVMTarget.LowerType(node.Field.Type);
 		// We don't load it, for the same reason outlined in VisitVariableLoadExpr.
 		_stack.Push(LLVMUnit.Wrapped(fieldLLVMType, ptrToField));
@@ -469,12 +544,12 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 	public override void VisitFieldStoreExpr(LoweredFieldStoreStmt node)
 	{
 		Visit(node.Target);
-		var (targetType, targetPtr) = _stack.Pop();
+		var (_, targetPtr) = _stack.Pop();
+		var targetType = LLVMTarget.LowerType(node.Field.EnclosingType);
 
 		Visit(node.Expr);
 		var rhsUnit = _stack.Pop();
 
-		// TODO: Optimize somehow to remove the need to compute the struct layout again here.
 		var structLayout = Target.GetStructLayout((StructTypeSymbol)node.Field.Parent!);
 		var fieldSection = structLayout.Sections.First(s => s.FieldIndex == node.Field.FieldIndex);
 		var fieldLLVMType = LLVMTarget.LowerType(node.Field.Type);
@@ -504,41 +579,11 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 		_stack.Push(_llvmReceiverUnit);
 	}
 
-	public override void VisitStructCreationExpr(LoweredStructCreationExpr node)
+	public override void VisitSymbolLoadExpr(LoweredSymbolLoadExpr node)
 	{
-		var llvmType = _context.GetOrCreateType(node.Symbol);
-
-		// TODO: Optimize somehow to remove the need to compute the struct layout again here.
-		var structLayout = Target.GetStructLayout(node.Symbol);
-
-		var ptr = LLVM.Builder.BuildAlloca(llvmType.Type);
-
-		var fieldsSet = new HashSet<FieldSymbol>();
-		foreach (var item in node.MapInitializer.Items)
-		{
-			// Assumed to be only an identifier to a field for now.
-			//var field = (FieldSymbol)node.Symbol.GetMember(item.Left)!;
-			//var fieldSection = structLayout.Sections.First(s => s.FieldIndex == field.FieldIndex);
-			var symbol = item.Left; // Could be field or param from init method.
-
-			// Filter for fields to set them now. We'll set params when we call init later below.
-
-			Visit(item.Right);
-			var (_, rhs) = _stack.Pop().Unwrap(LLVM);
-
-			//// Duplicated a bit from VisitFieldStoreExpr?
-			//var ptrToField = LLVM.Builder.BuildStructGEP2(llvmType.Type, ptr, (uint)fieldSection.SectionIndex);
-			//LLVM.Builder.BuildStore(rhs, ptrToField);
-
-			//fieldsSet.Add(field);
-		}
-
-		// TODO: Set fields with default values.
-
-		// TODO: Run optional init method.
-		// But what about the copying? Won't this method mutate the copied struct, leaving the original one without this?
-
-		_stack.Push(LLVMUnit.Wrapped(llvmType.Type, ptr));
+		// TODO: Merge with VariableLoad?
+		var unit = Get(node.Symbol);
+		_stack.Push(unit);
 	}
 
 	public override void VisitLiteralExpr(LoweredLiteralExpr node)
@@ -589,7 +634,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 		}
 	}
 
-	private LLVMUnit GetOrCreateFn(Symbol symbol)
+	private LLVMUnit Get(Symbol symbol)
 	{
 		if (symbol is FnSymbol fnSymbol)
 		{
@@ -601,42 +646,18 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 			_context.SymbolToLLVMUnit[fnSymbol] = llvmUnit;
 			return llvmUnit;
 		}
-		else
-		{
-			return Get(symbol);
-		}
-	}
 
-	private LLVMUnit Get(Symbol symbol)
-	{
 		if (_context.SymbolToLLVMUnit.TryGetValue(symbol, out var unit))
 		{
 			return unit;
 		}
 
-		throw new Exception("Unexpected?");
+		throw new UnreachableException("Unexpected?");
 	}
 
 	// paramSymbol is null for the receiver param.
-	private LLVMUnit CreateParam(ParamSymbol? paramSymbol, TypeSymbol paramType, LLVMValueRef paramValue, BitSize alignment, bool createWrapperPtr = true)
+	private LLVMUnit CreateParam(ParamSymbol? paramSymbol, LLVMUnit unit)
 	{
-		var llvmType = LLVMTarget.LowerType(paramType);
-
-		LLVMUnit unit;
-		if (createWrapperPtr)
-		{
-			var name = paramSymbol == null ? "this" : paramSymbol.Name;
-			var ptr = LLVM.Builder.BuildAlloca(llvmType, name ?? string.Empty);
-			ptr.SetAlignment((uint)alignment.Bytes);
-			LLVM.Builder.BuildStore(paramValue, ptr);
-			unit = LLVMUnit.Wrapped(llvmType, ptr);
-		}
-		else
-		{
-			Debug.Assert(paramValue.TypeOf.Kind == LLVMTypeKind.LLVMPointerTypeKind, "Param value should already be a ptr.");
-			unit = LLVMUnit.Wrapped(llvmType, paramValue);
-		}
-
 		if (paramSymbol != null)
 		{
 			_context.SymbolToLLVMUnit[paramSymbol] = unit;
@@ -660,7 +681,6 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 
 	private LLVMUnit CreateFn(FnSymbol fnSymbol)
 	{
-		// TODO: Optimize? This is being called multiple times in sequence when we compile an fn.
 		var (sret, attrs) = LLVMTarget.GetFnInfoFromFnType(fnSymbol.Type);
 		var (llvmPtrType, llvmFnType) = LLVMTarget.LowerType(fnSymbol.Type);
 
@@ -753,20 +773,20 @@ internal abstract class LLVMTarget
 		type = type.UnwrapAliases();
 		var tag = type.KnownTypeTag;
 
-		if (tag == KnownTypeTag.None)
+		if (tag is KnownTypeTag.None)
 			return LLVMTypeRef.Void;
-		if (tag == KnownTypeTag.@char || tag == KnownTypeTag.@bool)
+		if (tag is KnownTypeTag.@char or KnownTypeTag.@bool)
 			return LLVMTypeRef.Int1;
-		if (tag == KnownTypeTag.@string)
+		if (tag is KnownTypeTag.@string || type is PtrTypeSymbol)
 			return LLVMTypeRef.CreatePointer(LLVMTypeRef.Void, 0);
 
-		if (tag == KnownTypeTag.i32 || tag == KnownTypeTag.u32)
+		if (tag is KnownTypeTag.i32 or KnownTypeTag.u32)
 			return LLVMTypeRef.Int32;
-		if (tag == KnownTypeTag.i64 || tag == KnownTypeTag.u64)
+		if (tag is KnownTypeTag.i64 or KnownTypeTag.u64)
 			return LLVMTypeRef.Int64;
-		if (tag == KnownTypeTag.f32)
+		if (tag is KnownTypeTag.f32)
 			return LLVMTypeRef.Float;
-		if (tag == KnownTypeTag.f64)
+		if (tag is KnownTypeTag.f64)
 			return LLVMTypeRef.Double;
 
 		if (type is StructTypeSymbol structType)
@@ -795,14 +815,12 @@ internal abstract class LLVMTarget
 	}
 
 	/// <summary>
-	/// Lowers a type from Surab to LLVM.
+	/// Lowers an fn type from Surab to LLVM.
 	/// </summary>
-	/// <param name="type">The Surab type to lower.</param>
-	/// <param name="llvmActualType">An out variable that contains the actual LLVM type of in certain cases (such as <paramref name="type"/> being <see cref="FnTypeSymbol"/>). This is helpful in cases the returned LLVM type is an opaque ptr.</param>
-	/// <returns>The lowered LLVM type.</returns>
+	/// <param name="fnType">The Surab fn type to lower.</param>
+	/// <returns>The lowered LLVM type (which is an opaque ptr in the case of fns here) and the actual LLVM type (the actual fn type).</returns>
 	public (LLVMTypeRef llvmType, LLVMTypeRef llvmActualType) LowerType(FnTypeSymbol fnType)
 	{
-		// TODO: Optimize? This is being called multiple times in sequence when we compile an fn.
 		var (sret, _) = GetFnInfoFromFnType(fnType);
 		var returnType = LowerFnReturnType(fnType);
 

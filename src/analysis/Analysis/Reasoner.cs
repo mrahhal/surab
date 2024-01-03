@@ -146,6 +146,7 @@ public class Reasoner
 	{
 		return typeNode switch
 		{
+			PtrTypeNode n => LookupSymbol(n),
 			NamedTypeNode n => LookupSymbol(n.Identifier, n),
 			FnTypeNode n => LookupSymbol(n),
 			_ => null,
@@ -193,9 +194,6 @@ public class Reasoner
 	private Symbol? LookupSymbol(AccessExprNode node)
 	{
 		// Lookup the field/etc symbol in the access expr.
-
-		var targetSymbol = LookupSymbol(node.Target); // TODO: Remove this?
-		Debug.Assert(targetSymbol != null);
 
 		// This might need an update if we have access exprs for other than types later.
 		var targetType = LookupType(node.Target);
@@ -283,7 +281,7 @@ public class Reasoner
 		return node.Op.UnaryOperatorTokenKind switch
 		{
 			UnaryOperatorTokenKind.Deref => exprType is PtrTypeSymbol ptrType ? ptrType.InnerType.AsTypeSymbolOrError(this) : exprType,
-			UnaryOperatorTokenKind.Addr => GetPtrType(exprType),
+			UnaryOperatorTokenKind.Address => GetPtrType(exprType),
 			_ => exprType,
 		};
 	}
@@ -304,7 +302,7 @@ public class Reasoner
 		var targetType = LookupType(node.Target).UnwrapAliases();
 		targetType = targetType switch
 		{
-			// Allow pass through type analysis for pointers, as compiler will do auto derefing/addressing.
+			// Allow pass through type analysis on pointers for acccess expr, as compiler will do auto derefing/addressing.
 			PtrTypeSymbol ptrType => ptrType.UnwrapPointers(),
 			_ => targetType,
 		};
@@ -312,6 +310,8 @@ public class Reasoner
 		var member = targetType?.GetMember(node.Identifier);
 		return member switch
 		{
+			// For `a.b()`, when it's an instance access, we want to return an fn type without the receiver.
+			FnSymbol fn => this.IsInstanceAccess(node) ? fn.TypeWithoutReceiver : fn.Type,
 			ISymbolHasType s => s.Type,
 			_ => ErrorTypeSymbol.Create(this),
 		};
@@ -433,6 +433,8 @@ public class Reasoner
 		// Should create only one for errors? Or somehow do some cleaning on re-analysis.
 
 		var type = GetEnclosingScope(node)?.LookupThis() ?? ErrorTypeSymbol.Create(this);
+		// TODO: Account for @receiver_by_val.
+		type = GetPtrType(type);
 		//if (type is StructTypeSymbol) { create ptr }
 		return ReasoningContext.ThisSymbolMap.GetOrAdd(new ThisSymbolKey(type), key => new ThisSymbol(this, key));
 	}
@@ -442,7 +444,7 @@ public class Reasoner
 		return GetPtrType(node.InnerType == null ? null : LookupSymbol(node.InnerType).AsTypeSymbolOrError(this));
 	}
 
-	private PtrTypeSymbol GetPtrType(TypeSymbol? innerType)
+	internal PtrTypeSymbol GetPtrType(TypeSymbol? innerType)
 	{
 		var key = new PtrTypeKey(innerType);
 		return ReasoningContext.PtrTypeMap.GetOrAdd(key, key => new PtrTypeSymbol(this, key));
@@ -480,7 +482,7 @@ public class Reasoner
 		return GetOrCreateUnnamedFnType(key);
 	}
 
-	private FnTypeSymbol GetOrCreateUnnamedFnType(FnTypeKey key)
+	internal FnTypeSymbol GetOrCreateUnnamedFnType(FnTypeKey key)
 	{
 		return ReasoningContext.UnnamedFnTypeMap.GetOrAdd(key, key => new FnTypeSymbol(this, null, key));
 	}
@@ -730,5 +732,17 @@ public class Reasoner
 				_ => null,
 			};
 		}
+	}
+}
+
+public static class ReasonerExtensions
+{
+	/// <summary>
+	/// Returns whether the access expr does an instance access (a.b), as opposed to static access (A.b).
+	/// </summary>
+	public static bool IsInstanceAccess(this Reasoner reasoner, AccessExprNode accessExpr)
+	{
+		var targetSymbol = reasoner.LookupSymbol(accessExpr.Target);
+		return !targetSymbol.IsType();
 	}
 }

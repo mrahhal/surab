@@ -337,24 +337,12 @@ internal class CoreAnalyzer(Reasoner reasoner) : SyntaxTreeVisitor
 		{
 			_diagnostics.Add(node.Callee.Span, DiagnosticLevel.Error, $"invocation on a non function");
 		}
-		else if (calleeType is FnTypeSymbol fnSymbol)
+		else if (calleeType is FnTypeSymbol fnType)
 		{
 			var args = node.Args.ToList();
-			var paramTypes = default(List<TypeSymbol>?);
+			var paramTypes = fnType.ParamTypes;
 
-			if (node.Callee is AccessExprNode accessExpr &&
-				_reasoner.LookupSymbol(accessExpr.Target) is not TypeSymbol)
-			{
-				// Call through member access and the Target isn't a type. This means we're accessing the fn through an instance.
-				// Account for receiver being the accessed member, so it won't be in the args. So skip receiver type, the first type.
-				paramTypes = [.. fnSymbol.ParamTypes[1..]];
-			}
-			else
-			{
-				paramTypes = [.. fnSymbol.ParamTypes];
-			}
-
-			if (paramTypes.Count != args.Count)
+			if (paramTypes.Length != args.Count)
 			{
 				_diagnostics.Add(node.ArgsList.Span, DiagnosticLevel.Error, $"invalid invocation: wrong number of arguments");
 			}
@@ -396,10 +384,17 @@ internal class CoreAnalyzer(Reasoner reasoner) : SyntaxTreeVisitor
 		//}
 
 		// TODO: Store and use a lookup table for this?
-		var matched = targetType.GetMember(node.Identifier.Value);
-		if (matched == null)
+		var member = targetType.GetMember(node.Identifier.Value);
+		if (member == null)
 		{
 			_diagnostics.Add(node.Identifier.Span, DiagnosticLevel.Error, $"unknown member access");
+		}
+		if (member is FnSymbol && _reasoner.IsInstanceAccess(node))
+		{
+			if (node.Parent is not CallExprNode)
+			{
+				_diagnostics.Add(node.Identifier.Span, DiagnosticLevel.Error, $"taking a value of a method is not allowed, call it with `()`");
+			}
 		}
 
 		base.VisitAccessExpr(node);

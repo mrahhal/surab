@@ -117,7 +117,9 @@ public sealed class FnSymbol : Symbol, ISymbolHasType
 {
 	private readonly FnSigNode _node;
 	private FnTypeSymbol? _type;
+	private FnTypeSymbol? _typeWithoutReceiver;
 	private ImmutableArray<ParamSymbol> _params;
+	private TypeSymbol? _enclosingType;
 	private TypeSymbol? _methodReceiverType;
 
 	internal FnSymbol(Reasoner reasoner, FnSigNode node)
@@ -142,6 +144,8 @@ public sealed class FnSymbol : Symbol, ISymbolHasType
 	/// </summary>
 	public bool IsOuterFn => Parent == null;
 
+	public bool IsMethod => _node.Parent is MethodDeclNode;
+
 	public bool IsMain => IsOuterFn && Name == "main";
 
 	public bool IsPublic => _node.Attrs.HasAttr(KnownAttrs.Public);
@@ -163,7 +167,37 @@ public sealed class FnSymbol : Symbol, ISymbolHasType
 		}
 	}
 
+	/// <summary>
+	/// The type symbol of the function without the receiver arg for non static methods.
+	/// For functions or static methods, the same normal fn type will be returned.
+	/// This is useful when analysis is done on a method being accessed through an instance (`a.b()`).
+	/// </summary>
+	public FnTypeSymbol TypeWithoutReceiver
+	{
+		get
+		{
+			if (_typeWithoutReceiver != null)
+			{
+				return _typeWithoutReceiver;
+			}
+
+			var normalType = Type;
+			if (!IsMethod || IsStatic)
+			{
+				return normalType;
+			}
+
+			var key = new FnTypeKey(
+				normalType.IsExtern,
+				normalType.ReturnType,
+				[.. normalType.ParamTypes[1..]]);
+			return _typeWithoutReceiver = Reasoner.GetOrCreateUnnamedFnType(key);
+		}
+	}
+
 	public bool IsTypeInferred => false;
+
+	public TypeSymbol? EnclosingType => EnsureResolveEnclosingType();
 
 	/// <summary>
 	/// The type symbol of the receiver type (struct/class) if this is a non static method.
@@ -207,17 +241,32 @@ public sealed class FnSymbol : Symbol, ISymbolHasType
 		return builder.ToImmutable();
 	}
 
+	private TypeSymbol? EnsureResolveEnclosingType()
+	{
+		if (!IsMethod)
+			return null;
+
+		return _enclosingType ??= ResolveEnclosingType();
+
+		TypeSymbol ResolveEnclosingType()
+		{
+			var enclosingType = Scope.LookupTypeDecl();
+			return enclosingType ?? ErrorTypeSymbol.Create(Reasoner);
+		}
+	}
+
 	private TypeSymbol? EnsureResolveMethodReceiverType()
 	{
-		if (_node.Parent is not MethodDeclNode || IsStatic)
+		if (!IsMethod || IsStatic)
 			return null;
 
 		return _methodReceiverType ??= ResolveEnclosingType();
 
 		TypeSymbol ResolveEnclosingType()
 		{
-			var enclosingType = Scope.LookupTypeDecl();
-			return enclosingType ?? ErrorTypeSymbol.Create(Reasoner);
+			var enclosingType = EnclosingType;
+			// TODO: Account for @receiver_by_val.
+			return Reasoner.GetPtrType(enclosingType ?? ErrorTypeSymbol.Create(Reasoner));
 		}
 	}
 }
@@ -243,7 +292,7 @@ public abstract class FieldSymbol : Symbol, ISymbolHasType
 	public abstract ExprNode? InitializerExprNode { get; }
 
 	/// <summary>
-	/// The type symbol of the enclosing type (struct/class).
+	/// The type symbol of the enclosing type.
 	/// </summary>
 	public abstract TypeSymbol EnclosingType { get; }
 
@@ -382,9 +431,25 @@ public sealed class ThisSymbol : Symbol, ISymbolHasType
 	internal ThisSymbolKey Key { get; }
 
 	/// <summary>
-	/// The type of `this`, including the pointer in the case of structs.
+	/// The type of `this`. Includes the pointer in the case the receiver is by ref.
 	/// </summary>
 	public TypeSymbol Type => Key.Type;
+
+	public bool IsTypeInferred => false;
+}
+
+/// <summary>
+/// Represents a temporary symbol that gets created in the lowering phase to be used in subsequent lowered nodes. (e.g. struct creation)
+/// </summary>
+public sealed class TempSymbol : Symbol, ISymbolHasType
+{
+	internal TempSymbol(Reasoner reasoner, TypeSymbol type)
+		: base(SymbolKind.Local, reasoner)
+	{
+		Type = type;
+	}
+
+	public TypeSymbol Type { get; }
 
 	public bool IsTypeInferred => false;
 }
@@ -729,6 +794,9 @@ public class FnTypeSymbol : TypeSymbol
 
 	public TypeSymbol ReturnType => Key.ReturnType;
 
+	/// <summary>
+	/// Param types including the receiver if it exists.
+	/// </summary>
 	public ImmutableArray<TypeSymbol> ParamTypes => Key.ParamTypes;
 
 	// TODO: If it's a named fn type (alias), display that instead?
@@ -798,6 +866,12 @@ public class PtrTypeSymbol : TypeSymbol
 	{
 		return InnerType?.UnwrapPointers();
 	}
+
+	// REVIEW: Is this what we should really do? Shouldn't we depend on unwrapping instead?
+
+	internal override IEnumerable<SyntaxNode> EnumerateMembers() => InnerType?.EnumerateMembers() ?? [];
+
+	public override ImmutableArray<Symbol> Members => InnerType?.Members ?? [];
 
 	public override string ToString()
 	{
@@ -929,6 +1003,8 @@ public sealed class ErrorTypeSymbol : TypeSymbol
 
 public static class SymbolExtensions
 {
+	public static bool IsType(this Symbol? symbol) => symbol is TypeSymbol;
+
 	public static TypeSymbol AsTypeSymbolOrError(this Symbol? symbol, Reasoner reasoner)
 	{
 		return (symbol as TypeSymbol) ?? ErrorTypeSymbol.Create(reasoner);

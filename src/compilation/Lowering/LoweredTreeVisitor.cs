@@ -1,5 +1,4 @@
-﻿
-namespace Surab.Compilation;
+﻿namespace Surab.Compilation;
 
 /// <summary>
 /// A lowered tree visitor.
@@ -26,6 +25,7 @@ internal abstract partial class LoweredTreeVisitor
 			case LoweredVariableStmt n: VisitVariableStmt(n); break;
 			case LoweredReturnStmt n: VisitReturnStmt(n); break;
 			case LoweredExprStmt n: VisitExprStmt(n); break;
+			case LoweredObjectAllocStmt n: VisitObjectAllocStmt(n); break;
 			case LoweredStmtList n: VisitStmtList(n); break;
 			case LoweredVariableLoadExpr n: VisitVariableLoadExpr(n); break;
 			case LoweredVariableStoreStmt n: VisitVariableStoreExpr(n); break;
@@ -36,7 +36,8 @@ internal abstract partial class LoweredTreeVisitor
 			case LoweredBinaryExpr n: VisitBinaryExpr(n); break;
 			case LoweredCallExpr n: VisitCallExpr(n); break;
 			case LoweredLiteralExpr n: VisitLiteralExpr(n); break;
-			case LoweredStructCreationExpr n: VisitStructCreationExpr(n); break;
+			case LoweredStmtListEndingWithExpr n: VisitStmtListEndingWithExpr(n); break;
+			case LoweredSymbolLoadExpr n: VisitSymbolLoadExpr(n); break;
 
 			default:
 				break;
@@ -69,6 +70,11 @@ internal abstract partial class LoweredTreeVisitor
 	}
 
 	public virtual void VisitExprStmt(LoweredExprStmt node)
+	{
+		Walk(node);
+	}
+
+	public virtual void VisitObjectAllocStmt(LoweredObjectAllocStmt node)
 	{
 		Walk(node);
 	}
@@ -123,7 +129,12 @@ internal abstract partial class LoweredTreeVisitor
 		Walk(node);
 	}
 
-	public virtual void VisitStructCreationExpr(LoweredStructCreationExpr node)
+	public virtual void VisitStmtListEndingWithExpr(LoweredStmtListEndingWithExpr node)
+	{
+		Walk(node);
+	}
+
+	public virtual void VisitSymbolLoadExpr(LoweredSymbolLoadExpr node)
 	{
 		Walk(node);
 	}

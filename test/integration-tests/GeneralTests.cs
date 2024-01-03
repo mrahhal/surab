@@ -97,14 +97,27 @@ public class GeneralTests
 				fn_ptr(number);
 			}
 
+			fn foo3(number: i32, fn_ptr_ptr: *fn (i32)) {
+				// A very weird case, but making sure it works regardless.
+				(*fn_ptr_ptr)(number);
+			}
+
+			fn get_f() fn (i32) {
+				foo1
+			}
+
 			fn main() {
 				var number = 40;
 				var f = foo1;
 				foo2(number, f);
+				foo3(number, &f);
+				get_f()(number);
 			}
 			""");
 
 		var expectedOutput =
+			"42".NL() +
+			"42".NL() +
 			"42".NL();
 
 		output.Should().Be(expectedOutput);

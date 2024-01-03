@@ -579,4 +579,19 @@ public class ReasonerTests
 		var fnSymbol = symbol.Should().BeOfType<FnSymbol>().Subject;
 		fnSymbol.IsOuterFn.Should().BeTrue();
 	}
+
+	[Fact]
+	public void FnSymbol_TypeWithoutReceiver()
+	{
+		var src = """
+			struct S1 { a() { } }
+			""";
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
+
+		var methodDecl = tree.Root.DescendantNodes().OfType<MethodDeclNode>().Single();
+		reasoner.TryGetDeclaredSymbol(methodDecl, out var symbol).Should().BeTrue();
+		var fnSymbol = symbol.Should().BeOfType<FnSymbol>().Subject;
+		fnSymbol.Type.ParamTypes.Should().HaveCount(1); // reciever
+		fnSymbol.TypeWithoutReceiver.ParamTypes.Should().HaveCount(0); // no receiver
+	}
 }

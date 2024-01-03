@@ -297,8 +297,8 @@ public enum UnaryOperatorTokenKind
 	Pos, // Usually redundant but must be represented in the AST.
 	Neg,
 	Not,
+	Address,
 	Deref,
-	Addr,
 }
 
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} [{UnaryOperatorTokenKind}] {ToString()}")]
@@ -320,8 +320,8 @@ public sealed class UnaryOperatorToken : SyntaxToken
 				TokenKind.Plus => UnaryOperatorTokenKind.Pos,
 				TokenKind.Minus => UnaryOperatorTokenKind.Neg,
 				TokenKind.Bang => UnaryOperatorTokenKind.Not,
+				TokenKind.And => UnaryOperatorTokenKind.Address,
 				TokenKind.Asterisk => UnaryOperatorTokenKind.Deref,
-				TokenKind.And => UnaryOperatorTokenKind.Addr,
 				_ => throw new Exception($"TokenKind {token.Kind} not supported."),
 			},
 		};
@@ -331,8 +331,8 @@ public sealed class UnaryOperatorToken : SyntaxToken
 		UnaryOperatorTokenKind.Pos => "+",
 		UnaryOperatorTokenKind.Neg => "-",
 		UnaryOperatorTokenKind.Not => "!",
+		UnaryOperatorTokenKind.Address => "&",
 		UnaryOperatorTokenKind.Deref => "*",
-		UnaryOperatorTokenKind.Addr => "&",
 		_ => throw new NotImplementedException(),
 	};
 
@@ -584,6 +584,8 @@ public sealed class LiteralToken : SyntaxToken
 	{
 		visitor.VisitLiteralToken(this);
 	}
+
+	public override string ToString() => $"{Data}";
 }
 
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]

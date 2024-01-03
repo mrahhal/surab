@@ -35,6 +35,7 @@ public sealed class CompilationContext
 
 	internal Dictionary<TypeSymbol, LLVMType> TypeSymbolToLLVMType { get; } = [];
 
+	// Not used for now. How to properly bust caches like this?
 	internal LLVMType GetOrCreateType(TypeSymbol typeSymbol)
 	{
 		// Cache LLVM lowered types.

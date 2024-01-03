@@ -61,8 +61,6 @@ fn main() {
 	print_bool(s1.b);
 
 	var s1_number = s1.get_number();
-	var get_number_ptr = s1.get_number;
-	get_number_ptr(&s1);
 
 	var s2 = S2 { a = 42.3 };
 

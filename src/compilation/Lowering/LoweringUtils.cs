@@ -20,16 +20,9 @@ internal static class LoweringUtils
 
 		foreach (var child in node.EnumerateChildren())
 		{
-			if (child is not LoweredStmtList)
+			foreach (var c in EnumerateUnwrappedDescendants(child, includeSelf: true))
 			{
-				yield return child;
-			}
-			else
-			{
-				foreach (var c in EnumerateUnwrappedDescendants(child))
-				{
-					yield return c;
-				}
+				yield return c;
 			}
 		}
 	}

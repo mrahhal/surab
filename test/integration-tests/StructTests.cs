@@ -9,7 +9,7 @@ public class StructTests
 			struct S {
 				a: i32;
 
-				get_a() i32 { a }
+				get_a() i32 { this.a }
 			}
 
 			fn main() {
@@ -34,7 +34,7 @@ public class StructTests
 
 			fn main() {
 				var s1 = S1 { };
-				print_n(s1.a);
+				print_i32(s1.a);
 			}
 			""");
 
@@ -67,12 +67,12 @@ public class StructTests
 				print_bool(s1.b);
 				print_i32(s1.c);
 
-				var s1 = S {
+				var s2 = S {
 					a = 2,
 					b = false,
 					c = 4,
 				};
-				print_i32(s1.c);
+				print_i32(s2.c);
 			}
 			""");
 
