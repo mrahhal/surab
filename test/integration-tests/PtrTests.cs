@@ -91,4 +91,35 @@ public class PtrTests
 
 		output.Should().Be(expectedOutput);
 	}
+
+	[Fact]
+	public void Ptr_NoUnexpectedMutation()
+	{
+		var output = IntegrationRunner.Run($$"""
+			struct S {
+				a: f64;
+				b: f64;
+			}
+
+			@extern
+			fn f(s: S) {
+				s.b = 43.0;
+				print_f64(s.b);
+			}
+
+			fn main() {
+				var s = S { a = 41.0, b = 42.0 };
+				f(s); // Will be copied, so the change in f shouldn't be observed in the next line.
+				print_f64(s.b);
+				f(S { a = 45.0, b = 46.0 });
+			}
+			""");
+
+		var expectedOutput =
+			"43".NL() +
+			"42".NL() +
+			"43".NL();
+
+		output.Should().Be(expectedOutput);
+	}
 }

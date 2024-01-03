@@ -2,10 +2,20 @@
 
 internal enum LLVMTypeLoweringKind
 {
+	/// <summary>
+	/// Zero sized lowering.
+	/// </summary>
 	ZeroSized,
+	/// <summary>
+	/// By value lowering. This means
+	/// </summary>
 	ByValue,
-	//ByRef,
-	ByMutRef,
+	/// <summary>
+	/// By copy ref. This means the original arg is copied but we need to lower it to be by ref.
+	/// So mutations shouldn't be observed after the function we're going to call returns to preserve
+	/// by copy semantics.
+	/// </summary>
+	ByCopyRef,
 	AbiInt,
 }
 
@@ -17,9 +27,7 @@ internal readonly struct LLVMTypeLowering
 
 	public static readonly LLVMTypeLowering ByValue = new() { Kind = LLVMTypeLoweringKind.ByValue };
 
-	//public static readonly LLVMTypeLowering ByRef = new() { Kind = LLVMTypeLoweringKind.ByRef };
-
-	public static readonly LLVMTypeLowering ByMutRef = new() { Kind = LLVMTypeLoweringKind.ByMutRef };
+	public static readonly LLVMTypeLowering ByCopyRef = new() { Kind = LLVMTypeLoweringKind.ByCopyRef };
 
 	public static readonly LLVMTypeLowering AbiInt = new() { Kind = LLVMTypeLoweringKind.AbiInt };
 }

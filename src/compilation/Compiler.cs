@@ -218,7 +218,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 						CreateParam(t.Symbol, unit);
 					}
 					break;
-				case LLVMTypeLoweringKind.ByMutRef:
+				case LLVMTypeLoweringKind.ByCopyRef:
 					{
 						// paramValue is already a ptr. Treat it as the wrapper ptr directly.
 						var alignment = Target.GetAbiAlignment(t.Type);
@@ -333,7 +333,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 
 		while (llvmIndex < llvmArgCount)
 		{
-			var unit = _stack.Pop();
+			var argUnit = _stack.Pop();
 
 			// Adaptations of args before fn call
 			// ---
@@ -344,21 +344,26 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 			{
 				case LLVMTypeLoweringKind.ByValue:
 					{
-						var (_, argValue) = unit.Unwrap(LLVM);
+						var (_, argValue) = argUnit.Unwrap(LLVM);
 						args.Add(argValue);
 					}
 					break;
-				case LLVMTypeLoweringKind.ByMutRef:
+				case LLVMTypeLoweringKind.ByCopyRef:
 					{
 						var llvmParamType = LLVMTarget.LowerType(paramType);
-						var (_, argValuePtr) = unit;
-						// TODO: This might be wrong. This is giving the same ptr to the fn (should be in ByRef), we might want to give a copy here in ByMutRef?
-						args.Add(argValuePtr);
+						// Copy the value into a new ptr to preserve *pass by copy* semantics.
+						var copyPtr = LLVM.Builder.BuildAlloca(llvmParamType);
+						var (_, argValue) = argUnit.Unwrap(LLVM);
+						LLVM.Builder.BuildStore(argValue, copyPtr);
+						args.Add(copyPtr);
 					}
 					break;
 				case LLVMTypeLoweringKind.AbiInt:
 					{
-						var (_, argValuePtr) = unit;
+						// Might not be right, so this assertion is to detect a case where this isn't
+						// true so we can look into it when it happens.
+						Debug.Assert(argUnit.IsWrapped);
+						var (_, argValuePtr) = argUnit;
 						var layout = Target.GetLayout(paramType);
 						var llvmIntType = LLVMTypeRef.CreateInt((uint)layout.Size.Bits);
 						var loaded = LLVM.Builder.BuildLoad2(llvmIntType, argValuePtr);
@@ -855,7 +860,7 @@ internal abstract class LLVMTarget
 						@params.Add(paramLLVMType);
 					}
 					break;
-				case LLVMTypeLoweringKind.ByMutRef:
+				case LLVMTypeLoweringKind.ByCopyRef:
 					{
 						@params.Add(LLVMTypeRef.CreatePointer(paramLLVMType, 0));
 					}
@@ -907,7 +912,7 @@ internal abstract class LLVMTarget
 					{
 					}
 					break;
-				case LLVMTypeLoweringKind.ByMutRef:
+				case LLVMTypeLoweringKind.ByCopyRef:
 					{
 					}
 					break;
@@ -965,7 +970,7 @@ internal abstract class x86_64WindowsLLVMTarget(CompilationContext context) : LL
 		{
 			Classification.Integer => type.IsScalar() ? LLVMTypeLowering.ByValue : LLVMTypeLowering.AbiInt,
 			//win_i128 =>
-			Classification.Memory => LLVMTypeLowering.ByMutRef,
+			Classification.Memory => LLVMTypeLowering.ByCopyRef,
 			Classification.SSE => LLVMTypeLowering.ByValue,
 			_ => throw new UnreachableException(),
 		};
