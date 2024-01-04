@@ -60,7 +60,8 @@ public class LanguageServerHost
 			.WithHandler<SemanticTokensFullHandler>()
 			.WithHandler<DefinitionHandler>()
 			.WithHandler<DeclarationHandler>()
-			.WithHandler<HoverHandler>();
+			.WithHandler<HoverHandler>()
+			.WithHandler<DocumentSymbolHandler>();
 
 		Server = LanguageServer.Create(options, services.BuildServiceProvider());
 		_logger = Server.Services.GetRequiredService<ILogger<LanguageServerHost>>();

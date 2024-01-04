@@ -1325,7 +1325,7 @@ internal class ParserImpl
 			}
 			else if (_current?.Kind is TokenKind.LeftParen)
 			{
-				// Empty identifier (initializer)
+				// Empty identifier (initializer method)
 				return IdentifierToken.Create(_tree, [], [], GetProperSpanForMissingThingAtCurrent(), string.Empty);
 			}
 			else

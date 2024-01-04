@@ -63,6 +63,10 @@ public abstract class Symbol
 
 	public IdentifierToken? Identifier { get; protected set; }
 
+	public virtual TextSpan Span => DeclaringNode?.Span ?? TextSpan.Empty;
+
+	public virtual TextSpan SelectionSpan => Identifier?.Span ?? TextSpan.Empty;
+
 	public virtual string? Name => Identifier?.Value;
 
 	internal void SetParent(Symbol? parent)
@@ -161,6 +165,8 @@ public sealed class FnSymbol : Symbol, ISymbolHasType
 	public bool IsMethod => _node.Parent is MethodDeclNode;
 
 	public bool IsMain => IsOuterFn && Name == "main";
+
+	public bool IsInitializerMethod => IsMethod && ((MethodDeclNode)_node.Parent!).IsInitializer;
 
 	public bool IsPublic => _node.Attrs.HasAttr(KnownAttrs.Public);
 
