@@ -25,6 +25,8 @@ public enum SymbolKind
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
 public abstract class Symbol
 {
+	private List<Symbol>? _children;
+
 	protected Symbol(SymbolKind kind, Reasoner reasoner, SyntaxNode? declaringNode = null)
 	{
 		Kind = kind;
@@ -48,6 +50,11 @@ public abstract class Symbol
 	public Symbol? Parent { get; private set; }
 
 	/// <summary>
+	/// The child symbols under this symbol.
+	/// </summary>
+	public IEnumerable<Symbol> Children => _children ?? [];
+
+	/// <summary>
 	/// The scope enclosing this symbol. This is usually not null, except when the symbol is not uniquely created from code (FnType, Error).
 	/// </summary>
 	internal Scope? Scope { get; private set; }
@@ -61,6 +68,13 @@ public abstract class Symbol
 	internal void SetParent(Symbol? parent)
 	{
 		Parent = parent;
+		Parent?.AddChild(this);
+	}
+
+	private void AddChild(Symbol child)
+	{
+		_children ??= [];
+		_children.Add(child);
 	}
 
 	internal void SetScope(Scope scope)
