@@ -39,7 +39,7 @@ public sealed class Compiler
 	{
 		foreach (var reasoner in _context.Reasoners)
 		{
-			ModuleCompiler.Compile(_context, reasoner);
+			FileCompiler.Compile(_context, reasoner);
 		}
 
 		_context.LLVM.Module.PrintToFile(_context.Options.LLFileName);
@@ -53,7 +53,7 @@ public sealed class Compiler
 	}
 }
 
-internal sealed class ModuleCompiler(CompilationContext context, LoweredTree loweredTree) : LoweredTreeVisitor
+internal sealed class FileCompiler(CompilationContext context, LoweredTree loweredTree) : LoweredTreeVisitor
 {
 	private readonly CompilationContext _context = context;
 	private readonly LoweredTree _loweredTree = loweredTree;
@@ -63,11 +63,11 @@ internal sealed class ModuleCompiler(CompilationContext context, LoweredTree low
 	public static void Compile(CompilationContext context, Reasoner reasoner)
 	{
 		var loweredTree = Lowerer.Lower(reasoner);
-		var rootCompiler = new ModuleCompiler(context, loweredTree);
-		rootCompiler.CompileModule();
+		var fileCompiler = new FileCompiler(context, loweredTree);
+		fileCompiler.CompileFile();
 	}
 
-	private void CompileModule()
+	private void CompileFile()
 	{
 		Visit(_loweredTree.Root);
 

@@ -1,7 +1,7 @@
 {
 	"Nodes": [
 		{
-			"Name": "Module",
+			"Name": "File",
 			"Members": [
 				{
 					"Name": "importsList",

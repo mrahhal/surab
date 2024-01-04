@@ -45,7 +45,7 @@ internal abstract class LoweredNode(SyntaxNode parsedNode)
 	}
 }
 
-internal sealed class LoweredModule(
+internal sealed class LoweredFile(
 	SyntaxNode parsedNode,
 	IEnumerable<LoweredDecl> decls) : LoweredNode(parsedNode)
 {

@@ -55,7 +55,7 @@ public class LowererTests
 				var s = S { a = 42 };
 			}
 			""";
-		var module = LowerModule(src);
+		var module = LowerFile(src);
 		var body = LoweringUtils.EnumerateUnwrappedDescendants(module.Decls[1]).ToList();
 		body.Should().HaveCount(2);
 		body[0].Should().BeOfType<LoweredVariableStmt>();
@@ -79,7 +79,7 @@ public class LowererTests
 				var a = s.a;
 			}
 			""";
-		var module = LowerModule(src);
+		var module = LowerFile(src);
 		var body = LoweringUtils.EnumerateUnwrappedDescendants(module.Decls[1]).ToList();
 		body.Should().HaveCount(4);
 		var variableStore = body.OfType<LoweredVariableStoreStmt>().Last();
@@ -97,7 +97,7 @@ public class LowererTests
 				s.a = 43;
 			}
 			""";
-		var module = LowerModule(src);
+		var module = LowerFile(src);
 		var body = LoweringUtils.EnumerateUnwrappedDescendants(module.Decls[1]).ToList();
 		body.Should().HaveCount(3);
 		var storeExpr = body[2].Should().BeOfType<LoweredExprStmt>().Subject
@@ -144,7 +144,7 @@ public class LowererTests
 				s_ptr.mutate();
 			}
 			""";
-		var module = LowerModule(src);
+		var module = LowerFile(src);
 		var body = LoweringUtils.EnumerateUnwrappedDescendants(module.Decls[1]).ToList();
 		var callExpr1 = body.OfType<LoweredExprStmt>().ElementAt(0).Expr.Should().BeOfType<LoweredCallExpr>().Subject;
 		{
@@ -181,8 +181,8 @@ public class LowererTests
 				print_i32(s.a);
 			}
 			""";
-		var module = LowerModule(src);
-		var body = LoweringUtils.EnumerateUnwrappedDescendants(module.Decls[1]).ToList();
+		var file = LowerFile(src);
+		var body = LoweringUtils.EnumerateUnwrappedDescendants(file.Decls[1]).ToList();
 		var callExpr = body.OfType<LoweredExprStmt>().Single().Expr.Should().BeOfType<LoweredCallExpr>().Subject;
 		var fieldLoadExpr = callExpr.Args[0].Should().BeOfType<LoweredFieldLoadExpr>().Subject;
 		fieldLoadExpr.Target.Should().BeOfType<LoweredVariableLoadExpr>();
@@ -190,14 +190,14 @@ public class LowererTests
 
 	private static LoweredFnDecl LowerFn(string src)
 	{
-		var module = LowerModule(src);
-		return module.Decls.ElementAt(0).Should().BeOfType<LoweredFnDecl>().Subject;
+		var file = LowerFile(src);
+		return file.Decls.ElementAt(0).Should().BeOfType<LoweredFnDecl>().Subject;
 	}
 
-	private static LoweredModule LowerModule(string src)
+	private static LoweredFile LowerFile(string src)
 	{
 		var tree = Lower(src);
-		return tree.Root.Should().BeOfType<LoweredModule>().Subject;
+		return tree.Root.Should().BeOfType<LoweredFile>().Subject;
 	}
 
 	private static LoweredTree Lower(string src)

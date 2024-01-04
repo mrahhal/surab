@@ -19,7 +19,7 @@ internal abstract partial class LoweredTreeVisitor
 	{
 		switch (node)
 		{
-			case LoweredModule n: VisitModule(n); break;
+			case LoweredFile n: VisitFile(n); break;
 			case LoweredFnDecl n: VisitFnDecl(n); break;
 			case LoweredTypeDecl n: VisitTypeDecl(n); break;
 			case LoweredVariableStmt n: VisitVariableStmt(n); break;
@@ -44,7 +44,7 @@ internal abstract partial class LoweredTreeVisitor
 		}
 	}
 
-	public virtual void VisitModule(LoweredModule node)
+	public virtual void VisitFile(LoweredFile node)
 	{
 		Walk(node);
 	}

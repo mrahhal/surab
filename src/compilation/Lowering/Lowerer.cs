@@ -28,7 +28,7 @@ internal class Lowerer
 	{
 		var result = node switch
 		{
-			ModuleNode n => Lower(n),
+			FileNode n => Lower(n),
 			//ConstDeclNode n => Lower(n),
 			FnDeclNode n => Lower(n),
 			MethodDeclNode n => Lower(n),
@@ -58,9 +58,9 @@ internal class Lowerer
 		return result;
 	}
 
-	private LoweredNode Lower(ModuleNode node)
+	private LoweredNode Lower(FileNode node)
 	{
-		return new LoweredModule(
+		return new LoweredFile(
 			node,
 			LowerWithCast(node.Decls));
 	}

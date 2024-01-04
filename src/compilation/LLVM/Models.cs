@@ -1,5 +1,4 @@
-﻿using LLVMSharp;
-using LLVMSharp.Interop;
+﻿using LLVMSharp.Interop;
 using Surab.Analysis;
 
 namespace Surab.Compilation.LLVM;

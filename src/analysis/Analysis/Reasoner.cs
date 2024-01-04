@@ -579,8 +579,8 @@ public class Reasoner
 				// For the prelude, we'll especially go over the top level decls first to fill in BuiltinTypeSystem first thing before doing anything else.
 				// Lots of other processes depends on these known types to be created first.
 
-				Debug.Assert(tree.Root is ModuleNode);
-				var moduleNode = (ModuleNode)tree.Root;
+				Debug.Assert(tree.Root is FileNode);
+				var moduleNode = (FileNode)tree.Root;
 				foreach (var decl in moduleNode.Decls)
 				{
 					var symbol = GetOrCreateSymbolOnNode(decl);
@@ -701,9 +701,7 @@ public class Reasoner
 		{
 			return node switch
 			{
-				// Temporarily give non prelude modules the prelude reasoner to lookup exported symbols.
-				// Later, this should be given as part of the imported modules.
-				ModuleNode n => CreateModuleScope(n),
+				FileNode n => CreateFileScope(n),
 				StructDeclNode n => new StructDeclScope(n, (StructTypeSymbol)symbol!),
 				ClassDeclNode n => new ClassDeclScope(n, (NamedTypeSymbol)symbol!),
 				FnDeclNode n => new FnScope(n.Sig, (FnSymbol)symbol!),
@@ -717,9 +715,9 @@ public class Reasoner
 			};
 		}
 
-		private ModuleScope CreateModuleScope(ModuleNode node)
+		private FileScope CreateFileScope(FileNode node)
 		{
-			return new ModuleScope(node, _reasoner, isPrelude ? null : project.PreludeReasoner);
+			return new FileScope(node, _reasoner, isPrelude ? null : project.PreludeReasoner);
 		}
 
 		private static TempTypeContext? CreateTypeContext(SyntaxNode node)

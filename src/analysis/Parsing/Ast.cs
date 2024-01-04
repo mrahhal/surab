@@ -842,7 +842,7 @@ public abstract class TypeNode(SyntaxTree tree, SyntaxNodeKind kind) : SyntaxNod
 
 // ---
 
-public partial class ModuleNode
+public partial class FileNode
 {
 	public IEnumerable<ImportNode> Imports => ImportsList.Imports;
 

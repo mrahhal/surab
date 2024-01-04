@@ -51,7 +51,7 @@ file static class Helper
 
 public enum SyntaxNodeKind
 {
-	Module,
+	File,
 	ImportsList,
 	Import,
 	ConstDecl,
@@ -99,10 +99,10 @@ public enum SyntaxNodeKind
 	Attr,
 }
 
-public partial class ModuleNode : SyntaxNode
+public partial class FileNode : SyntaxNode
 {
-	public ModuleNode(SyntaxTree tree, ImportsListNode importsList, DeclsListNode declsList)
-		: base(tree, SyntaxNodeKind.Module)
+	public FileNode(SyntaxTree tree, ImportsListNode importsList, DeclsListNode declsList)
+		: base(tree, SyntaxNodeKind.File)
 	{
 		_childTokens = new();
 		_childNodes = new() { importsList, declsList, };
@@ -116,7 +116,7 @@ public partial class ModuleNode : SyntaxNode
 
 	public override void Accept(SyntaxTreeVisitor visitor)
 	{
-		visitor.VisitModule(this);
+		visitor.VisitFile(this);
 	}
 }
 

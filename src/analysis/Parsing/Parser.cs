@@ -7,18 +7,18 @@ namespace Surab.Analysis;
 public static class Parser
 {
 	/// <summary>
-	/// Parses the src into a module.
+	/// Parses the src into a file.
 	/// </summary>
-	public static SyntaxTree ParseModule(string src) => ParseModule(SourceFile.FromText(src));
+	public static SyntaxTree ParseFile(string src) => ParseFile(SourceFile.FromText(src));
 
 	/// <summary>
-	/// Parses the src into a module.
+	/// Parses the src into a file.
 	/// </summary>
-	public static SyntaxTree ParseModule(SourceFile sourceFile)
+	public static SyntaxTree ParseFile(SourceFile sourceFile)
 	{
 		var tokens = Lexer.Lex(sourceFile.Text);
 		var parser = new ParserImpl(sourceFile, tokens);
-		return parser.ParseAsModule();
+		return parser.ParseAsFile();
 	}
 
 	/// <summary>
@@ -202,10 +202,10 @@ internal class ParserImpl
 
 	// ---
 
-	public SyntaxTree ParseAsModule()
+	public SyntaxTree ParseAsFile()
 	{
-		var module = ParseModule();
-		return MakeSyntaxTree(module);
+		var file = ParseFile();
+		return MakeSyntaxTree(file);
 	}
 
 	public SyntaxTree ParseAsDecl()
@@ -469,12 +469,12 @@ internal class ParserImpl
 
 	// ---
 
-	private ModuleNode ParseModule()
+	private FileNode ParseFile()
 	{
 		var importsList = ParseImportsList();
 		var declsList = ParseDeclsList();
 
-		return new ModuleNode(_tree, importsList, declsList);
+		return new FileNode(_tree, importsList, declsList);
 	}
 
 	private ImportsListNode ParseImportsList()

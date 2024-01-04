@@ -88,7 +88,7 @@ public class SurabSolver(
 			return null;
 		var reasoner = Project.GetReasoner(sourceFile);
 		var root = reasoner.Tree.Root;
-		if (root is not ModuleNode moduleNode)
+		if (root is not FileNode moduleNode)
 			return null;
 
 		return moduleNode.DeclsList.Decls

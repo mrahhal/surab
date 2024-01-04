@@ -133,7 +133,7 @@ public class SurabProject
 
 	private void InitializeSourceFile(SourceFile sourceFile)
 	{
-		var tree = Parser.ParseModule(sourceFile);
+		var tree = Parser.ParseFile(sourceFile);
 		var reasoner = Reasoner.Create(this, tree);
 
 		_sourceFileToStateMap[sourceFile] = new SourceFileState
@@ -161,7 +161,7 @@ public class SurabProject
 		// Later:
 		// reasoner.GetDependentSourceFiles() => each => EnsureAnalyzeSourceFile()
 
-		var tree = Parser.ParseModule(sourceFile);
+		var tree = Parser.ParseFile(sourceFile);
 		var reasoner = Reasoner.Create(this, tree);
 		state.SyntaxTree = tree;
 		state.Reasoner = reasoner;
@@ -175,7 +175,7 @@ public class SurabProject
 		var preludeFilePath = Path.GetFullPath(Path.Combine(PathHelper.GetSrcFolderPath(), "lib/prelude.surab"));
 		var preludeContent = File.ReadAllText(preludeFilePath);
 		var preludeSourceFile = SourceFile.Create(preludeFilePath, preludeContent);
-		var tree = Parser.ParseModule(preludeSourceFile);
+		var tree = Parser.ParseFile(preludeSourceFile);
 
 		// Need to assing it before getting diags as that process might use this _preludeReasoner ref to resolve known types.
 		_preludeReasoner = Reasoner.CreatePrelude(this, tree);

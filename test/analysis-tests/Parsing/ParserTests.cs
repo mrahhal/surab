@@ -3,18 +3,18 @@
 public class ParserTests
 {
 	[Fact]
-	public void Module()
+	public void File()
 	{
 		var src = "const a = 2;";
-		var module = ParseModule(src);
-		module.Should().NotBeNull();
-		module.Imports.Should().BeEmpty();
-		module.Decls.Should().HaveCount(1);
-		module.Decls.ElementAt(0).Should().BeOfType<ConstDeclNode>();
+		var file = ParseFile(src);
+		file.Should().NotBeNull();
+		file.Imports.Should().BeEmpty();
+		file.Decls.Should().HaveCount(1);
+		file.Decls.ElementAt(0).Should().BeOfType<ConstDeclNode>();
 	}
 
 	[Fact]
-	public void ModuleWithImports()
+	public void FileWithImports()
 	{
 		var src = """
 			import "a.surab";
@@ -22,10 +22,10 @@ public class ParserTests
 
 			const a = 2;
 			""";
-		var module = ParseModule(src);
-		module.Should().NotBeNull();
-		module.Imports.Should().HaveCount(2);
-		module.Decls.Should().HaveCount(1);
+		var file = ParseFile(src);
+		file.Should().NotBeNull();
+		file.Imports.Should().HaveCount(2);
+		file.Decls.Should().HaveCount(1);
 	}
 
 	[Fact]
@@ -35,14 +35,14 @@ public class ParserTests
 			// some
 			/* c */ const /* c */ /* c */ a /* c */ = /* c */ 2 /* c */; // c
 			""";
-		var tree = Parser.ParseModule(src);
-		var module = (ModuleNode)tree.Root;
+		var tree = Parser.ParseFile(src);
+		var file = (FileNode)tree.Root;
 		tree.Diagnostics.Diagnostics.Should().BeEmpty();
 
-		module.Should().NotBeNull();
-		module.Decls.Should().HaveCount(1);
-		module.Decls.ElementAt(0).Should().BeOfType<ConstDeclNode>();
-		module.DescendantNodesAndSelf()
+		file.Should().NotBeNull();
+		file.Decls.Should().HaveCount(1);
+		file.Decls.ElementAt(0).Should().BeOfType<ConstDeclNode>();
+		file.DescendantNodesAndSelf()
 			.SelectMany(x => x.ChildTokens.SelectMany(x => x.LeadingTrivia.Concat(x.TrailingTrivia)))
 			.Where(x => x.Kind is SyntaxTriviaKind.LineComment or SyntaxTriviaKind.BlockComment)
 			.Should().HaveCount(8);
@@ -55,13 +55,13 @@ public class ParserTests
 			// some
 			alias Integer as i32;
 			""";
-		var tree = Parser.ParseModule(src);
-		var module = (ModuleNode)tree.Root;
+		var tree = Parser.ParseFile(src);
+		var file = (FileNode)tree.Root;
 		tree.Diagnostics.Diagnostics.Should().BeEmpty();
 
-		module.Should().NotBeNull();
-		module.Decls.Should().HaveCount(1);
-		var aliasDecl = module.Decls.ElementAt(0).Should().BeOfType<AliasDeclNode>().Subject;
+		file.Should().NotBeNull();
+		file.Decls.Should().HaveCount(1);
+		var aliasDecl = file.Decls.ElementAt(0).Should().BeOfType<AliasDeclNode>().Subject;
 		aliasDecl.AliasToken.LeadingTrivia.Should().HaveCount(2); // line comment + whitespace
 	}
 
@@ -105,7 +105,7 @@ public class ParserTests
 	public void Decl_Fn_Faulty2()
 	{
 		var src = "fn some() /* some fn not complete */ fn main() {}";
-		ParseModule(src).Should().NotBeNull();
+		ParseFile(src).Should().NotBeNull();
 	}
 
 	[Fact]
@@ -692,16 +692,16 @@ public class ParserTests
 				d(
 			}
 			""";
-		var tree = Parser.ParseModule(src);
+		var tree = Parser.ParseFile(src);
 		tree.Diagnostics.Diagnostics.Should().NotBeNullOrEmpty();
 	}
 
 	// ---
 
-	private static ModuleNode ParseModule(string src)
+	private static FileNode ParseFile(string src)
 	{
-		var tree = Parser.ParseModule(src);
-		return ValidateNode((ModuleNode)tree.Root);
+		var tree = Parser.ParseFile(src);
+		return ValidateNode((FileNode)tree.Root);
 	}
 
 	private static DeclNode ParseDecl(string src)

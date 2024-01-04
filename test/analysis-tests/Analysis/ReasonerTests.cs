@@ -26,7 +26,7 @@ public class ReasonerTests
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
 		reasoner.TryGetScope(tree.Root, out var symbol).Should().BeTrue();
-		symbol.Should().BeOfType<ModuleScope>();
+		symbol.Should().BeOfType<FileScope>();
 	}
 
 	[Fact]

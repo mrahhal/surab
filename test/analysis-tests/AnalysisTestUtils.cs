@@ -5,7 +5,7 @@ public static class AnalysisTestUtils
 	public static (SurabProject, SourceFile) CreateProject(string src)
 	{
 		var sourceFile = SourceFile.FromText(src);
-		var tree = Parser.ParseModule(sourceFile);
+		var tree = Parser.ParseFile(sourceFile);
 		return (SurabProject.Create([sourceFile]), sourceFile);
 	}
 

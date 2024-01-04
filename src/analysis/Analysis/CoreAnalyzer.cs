@@ -78,7 +78,7 @@ internal class CoreAnalyzer(Reasoner reasoner) : SyntaxTreeVisitor
 		};
 
 		// Temp: Should be allowed only in top level.
-		if (node.Parent is not DeclsListNode declsList || declsList.Parent is not ModuleNode)
+		if (node.Parent is not DeclsListNode declsList || declsList.Parent is not FileNode)
 		{
 			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a {name} decl is allowed only in top level");
 		}

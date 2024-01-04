@@ -68,7 +68,7 @@ internal abstract class Scope
 	public virtual Symbol? LookupIdentifierHere(string identifier) => null;
 
 	/// <summary>
-	/// Looks up an identifier that's exported in this scope. Currently only applies to <see cref="ModuleScope"/>.
+	/// Looks up an identifier that's exported in this scope. Currently only applies to <see cref="FileScope"/>.
 	/// </summary>
 	public virtual Symbol? LookupExportedIdentifier(string identifier) => null;
 
@@ -165,12 +165,12 @@ internal abstract class Scope
 	}
 }
 
-internal class ModuleScope(ModuleNode module, Reasoner moduleReasoner, Reasoner? preludeReasoner) : Scope
+internal class FileScope(FileNode file, Reasoner fileReasoner, Reasoner? preludeReasoner) : Scope
 {
 	private ImmutableArray<Symbol> _decls;
 
-	private readonly ModuleNode _module = module;
-	private readonly Reasoner _moduleReasoner = moduleReasoner;
+	private readonly FileNode _file = file;
+	private readonly Reasoner _fileReasoner = fileReasoner;
 
 	private readonly Reasoner? _preludeReasoner = preludeReasoner;
 
@@ -196,11 +196,11 @@ internal class ModuleScope(ModuleNode module, Reasoner moduleReasoner, Reasoner?
 
 	private Symbol? LookupInImports(string identifier)
 	{
-		var imports = _module.Imports.ToList();
+		var imports = _file.Imports.ToList();
 		for (var i = imports.Count - 1; i >= 0; i--)
 		{
 			var import = imports[i];
-			var targetReasoner = _moduleReasoner.ResolveImportedFileReasoner(import);
+			var targetReasoner = _fileReasoner.ResolveImportedFileReasoner(import);
 			var result = targetReasoner?.LookupExportedSymbolByName(identifier);
 
 			if (result != null)
@@ -221,7 +221,7 @@ internal class ModuleScope(ModuleNode module, Reasoner moduleReasoner, Reasoner?
 	private ImmutableArray<Symbol> BuildDecls()
 	{
 		var builder = ImmutableArray.CreateBuilder<Symbol>();
-		foreach (var decl in _module.Decls)
+		foreach (var decl in _file.Decls)
 		{
 			if (Reasoner.TryGetDeclaredSymbol(decl, out var symbol))
 			{
