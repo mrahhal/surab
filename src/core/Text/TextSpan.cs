@@ -97,7 +97,7 @@ public readonly record struct LineSpan(
 	{
 		return
 			Start <= otherPosition &&
-			End >= otherPosition;
+			End > otherPosition;
 	}
 
 	public bool Contains(LineSpan other)

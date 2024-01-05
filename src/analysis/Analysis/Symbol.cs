@@ -289,6 +289,11 @@ public sealed class FnSymbol : Symbol, ISymbolHasType
 			return Reasoner.GetPtrType(enclosingType ?? UnknownTypeSymbol.Create(Reasoner));
 		}
 	}
+
+	public override string ToString()
+	{
+		return $"{Identifier!.Value}({string.Join(", ", Params.Select(p => $"{p.Name}: {p.Type.Name}"))}) {ReturnType.Name}";
+	}
 }
 
 public abstract class FieldSymbol : Symbol, ISymbolHasType

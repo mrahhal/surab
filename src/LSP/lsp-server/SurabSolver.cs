@@ -45,7 +45,7 @@ public class SurabSolver(
 	{
 		foreach (var childNode in node.ChildNodes)
 		{
-			if (childNode.Span.Line.Contains(linePosition))
+			if (childNode.SpanWithTrivia.Line.Contains(linePosition))
 			{
 				return GetNodeAtRecursive(childNode, linePosition);
 			}

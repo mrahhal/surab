@@ -61,7 +61,8 @@ public class LanguageServerHost
 			.WithHandler<DefinitionHandler>()
 			.WithHandler<DeclarationHandler>()
 			.WithHandler<HoverHandler>()
-			.WithHandler<DocumentSymbolHandler>();
+			.WithHandler<DocumentSymbolHandler>()
+			.WithHandler<SignatureHelpHandler>();
 
 		Server = LanguageServer.Create(options, services.BuildServiceProvider());
 		_logger = Server.Services.GetRequiredService<ILogger<LanguageServerHost>>();

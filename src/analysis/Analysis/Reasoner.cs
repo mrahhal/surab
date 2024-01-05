@@ -395,6 +395,16 @@ public class Reasoner
 		return LookupType(node.Identifier, node);
 	}
 
+	public (FnSymbol? Fn, FnTypeSymbol? FnType) LookupFnSymbolOrType(CallExprNode callExpr)
+	{
+		if (LookupSymbol(callExpr.Callee) is FnSymbol fn)
+		{
+			return (fn, fn.Type);
+		}
+
+		return (null, LookupType(callExpr.Callee) as FnTypeSymbol);
+	}
+
 	/// <summary>
 	/// If the identifier expr is a part of setting a symbol in a creation expr, this method returns true and tries to resolve that symbol.
 	/// Otherwise false is returned.
