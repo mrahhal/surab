@@ -30,6 +30,8 @@ public abstract class SyntaxEntity : ISyntaxTreeVisitable
 
 	public TextSpan Span { get; init; }
 
+	public TextSpan SpanWithTrivia { get; init; }
+
 	public SyntaxTree Tree { get; }
 
 	internal void SetParent(SyntaxNode? parent)
@@ -55,11 +57,13 @@ public abstract class SyntaxToken : SyntaxEntity
 	private readonly ImmutableArray<SyntaxTrivia> _leadingTrivia = [];
 	private readonly ImmutableArray<SyntaxTrivia> _trailingTrivia = [];
 
-	public SyntaxToken(SyntaxTree tree, SyntaxTokenKind kind, List<Token> leadingTriviaTokens, List<Token> trailingTriviaTokens) : base(tree)
+	public SyntaxToken(SyntaxTree tree, SyntaxTokenKind kind, List<Token> leadingTriviaTokens, List<Token> trailingTriviaTokens, TextSpan span)
+		: base(tree)
 	{
 		Kind = kind;
 		_leadingTrivia = ConvertToSyntaxTrivia(leadingTriviaTokens).ToImmutableArray();
 		_trailingTrivia = ConvertToSyntaxTrivia(trailingTriviaTokens).ToImmutableArray();
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(this, span);
 
 		IEnumerable<SyntaxTrivia> ConvertToSyntaxTrivia(IEnumerable<Token> tokens)
 		{
@@ -163,8 +167,8 @@ public enum SimpleTokenKind
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} [{SimpleTokenKind}] {ToString()}")]
 public sealed class SimpleToken : SyntaxToken
 {
-	private SimpleToken(SyntaxTree tree, List<Token> leadingTriviaTokens, List<Token> trailingTriviaTokens)
-		: base(tree, SyntaxTokenKind.Simple, leadingTriviaTokens, trailingTriviaTokens)
+	private SimpleToken(SyntaxTree tree, List<Token> leadingTriviaTokens, List<Token> trailingTriviaTokens, TextSpan span)
+		: base(tree, SyntaxTokenKind.Simple, leadingTriviaTokens, trailingTriviaTokens, span)
 	{
 	}
 
@@ -192,9 +196,8 @@ public sealed class SimpleToken : SyntaxToken
 		SyntaxTree tree, List<Token> leadingTriviaTokens, List<Token> trailingTriviaTokens,
 		TokenKind tokenKind,
 		TextSpan span,
-		bool isMissing = false) => new(tree, leadingTriviaTokens, trailingTriviaTokens)
+		bool isMissing = false) => new(tree, leadingTriviaTokens, trailingTriviaTokens, span)
 		{
-			Span = span,
 			IsKeyword = tokenKind.IsReservedKeyword(),
 			IsMissing = isMissing,
 			SimpleTokenKind = tokenKind switch
@@ -239,9 +242,8 @@ public sealed class SimpleToken : SyntaxToken
 		SyntaxTree tree, List<Token> leadingTriviaTokens, List<Token> trailingTriviaTokens,
 		ContextualKeyword contextualKeyword,
 		TextSpan span,
-		bool isMissing = false) => new(tree, leadingTriviaTokens, trailingTriviaTokens)
+		bool isMissing = false) => new(tree, leadingTriviaTokens, trailingTriviaTokens, span)
 		{
-			Span = span,
 			IsKeyword = true,
 			IsContextualKeyword = true,
 			IsMissing = isMissing,
@@ -304,7 +306,8 @@ public enum UnaryOperatorTokenKind
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} [{UnaryOperatorTokenKind}] {ToString()}")]
 public sealed class UnaryOperatorToken : SyntaxToken
 {
-	private UnaryOperatorToken(SyntaxTree tree, List<Token> leadingTriviaTokens, List<Token> trailingTriviaTokens) : base(tree, SyntaxTokenKind.UnaryOperator, leadingTriviaTokens, trailingTriviaTokens)
+	private UnaryOperatorToken(SyntaxTree tree, List<Token> leadingTriviaTokens, List<Token> trailingTriviaTokens, TextSpan span)
+		: base(tree, SyntaxTokenKind.UnaryOperator, leadingTriviaTokens, trailingTriviaTokens, span)
 	{
 	}
 
@@ -312,9 +315,8 @@ public sealed class UnaryOperatorToken : SyntaxToken
 
 	public static UnaryOperatorToken Create(
 		SyntaxTree tree, List<Token> leadingTriviaTokens, List<Token> trailingTriviaTokens,
-		Token token) => new(tree, leadingTriviaTokens, trailingTriviaTokens)
+		Token token) => new(tree, leadingTriviaTokens, trailingTriviaTokens, token.Span)
 		{
-			Span = token.Span,
 			UnaryOperatorTokenKind = token.Kind switch
 			{
 				TokenKind.Plus => UnaryOperatorTokenKind.Pos,
@@ -365,7 +367,8 @@ public enum BinaryOperatorTokenKind
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} [{BinaryOperatorTokenKind}] {ToString()}")]
 public sealed class BinaryOperatorToken : SyntaxToken
 {
-	private BinaryOperatorToken(SyntaxTree tree, List<Token> leadingTriviaTokens, List<Token> trailingTriviaTokens) : base(tree, SyntaxTokenKind.BinaryOperator, leadingTriviaTokens, trailingTriviaTokens)
+	private BinaryOperatorToken(SyntaxTree tree, List<Token> leadingTriviaTokens, List<Token> trailingTriviaTokens, TextSpan span)
+		: base(tree, SyntaxTokenKind.BinaryOperator, leadingTriviaTokens, trailingTriviaTokens, span)
 	{
 	}
 
@@ -373,9 +376,8 @@ public sealed class BinaryOperatorToken : SyntaxToken
 
 	public static BinaryOperatorToken Create(
 		SyntaxTree tree, List<Token> leadingTriviaTokens, List<Token> trailingTriviaTokens,
-		Token token) => new(tree, leadingTriviaTokens, trailingTriviaTokens)
+		Token token) => new(tree, leadingTriviaTokens, trailingTriviaTokens, token.Span)
 		{
-			Span = token.Span,
 			BinaryOperatorTokenKind = token.Kind switch
 			{
 				TokenKind.Plus => BinaryOperatorTokenKind.Add,
@@ -429,9 +431,8 @@ public sealed class BinaryOperatorToken : SyntaxToken
 public sealed class IdentifierToken : SyntaxToken
 {
 	private IdentifierToken(SyntaxTree tree, List<Token> leadingTriviaTokens, List<Token> trailingTriviaTokens, TextSpan span, string value, bool isMissing)
-		: base(tree, SyntaxTokenKind.Identifier, leadingTriviaTokens, trailingTriviaTokens)
+		: base(tree, SyntaxTokenKind.Identifier, leadingTriviaTokens, trailingTriviaTokens, span)
 	{
-		Span = span;
 		Value = value;
 		IsMissing = isMissing;
 	}
@@ -498,8 +499,8 @@ public enum LiteralTokenKind
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} [{LiteralTokenKind}] {Data}")]
 public sealed class LiteralToken : SyntaxToken
 {
-	public LiteralToken(SyntaxTree tree, List<Token> leadingTriviaTokens, List<Token> trailingTriviaTokens, TextSpan span, LiteralTokenKind literalTokenKind, object? data)
-		: base(tree, SyntaxTokenKind.Literal, leadingTriviaTokens, trailingTriviaTokens)
+	private LiteralToken(SyntaxTree tree, List<Token> leadingTriviaTokens, List<Token> trailingTriviaTokens, TextSpan span, LiteralTokenKind literalTokenKind, object? data)
+		: base(tree, SyntaxTokenKind.Literal, leadingTriviaTokens, trailingTriviaTokens, span)
 	{
 		Span = span;
 		LiteralTokenKind = literalTokenKind;
@@ -621,10 +622,9 @@ public sealed class LiteralToken : SyntaxToken
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
 public sealed class SkippedToken : SyntaxToken
 {
-	public SkippedToken(SyntaxTree tree, List<Token> leadingTriviaTokens, List<Token> trailingTriviaTokens, Token token)
-		: base(tree, SyntaxTokenKind.Skipped, leadingTriviaTokens, trailingTriviaTokens)
+	internal SkippedToken(SyntaxTree tree, List<Token> leadingTriviaTokens, List<Token> trailingTriviaTokens, Token token)
+		: base(tree, SyntaxTokenKind.Skipped, leadingTriviaTokens, trailingTriviaTokens, token.Span)
 	{
-		Span = token.Span;
 		Token = token;
 	}
 
@@ -703,6 +703,7 @@ public abstract class SyntaxNode : SyntaxEntity
 
 	public IEnumerable<SyntaxToken> ChildTokens
 	{
+		[DebuggerStepThrough]
 		get
 		{
 			foreach (var token in _childTokens)
@@ -717,6 +718,7 @@ public abstract class SyntaxNode : SyntaxEntity
 
 	public IEnumerable<SyntaxNode> ChildNodes
 	{
+		[DebuggerStepThrough]
 		get
 		{
 			foreach (var node in _childNodes)

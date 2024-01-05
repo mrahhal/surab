@@ -24,52 +24,6 @@ public class AstGenerator(
 
 	private void GenerateMain()
 	{
-		_sb.Append("""
-			file static class Helper
-			{
-				public static TextSpan ComputeSpanningSpan(IEnumerable<SyntaxNode?> nodes, IEnumerable<SyntaxToken?> tokens)
-				{
-					TextSpan? lo = null;
-					TextSpan? hi = null;
-
-					foreach (var x in nodes)
-					{
-						if (x != null) ProcessForSpanningSpan(x, ref lo, ref hi);
-					}
-					foreach (var x in tokens)
-					{
-						if (x != null) ProcessForSpanningSpan(x, ref lo, ref hi);
-					}
-
-					return lo.HasValue ?
-						TextSpan.FromTo(lo.Value, hi!.Value) :
-						new TextSpan();
-				}
-
-				public static void ProcessForSpanningSpan(
-					SyntaxEntity entity,
-					ref TextSpan? lo,
-					ref TextSpan? hi)
-				{
-					var current = entity.Span;
-					if (!lo.HasValue)
-					{
-						lo = hi = current;
-						return;
-					}
-
-					if (lo.Value.File.Start > current.File.Start)
-					{
-						lo = current;
-					}
-					if (hi!.Value.File.End < current.File.End)
-					{
-						hi = current;
-					}
-				}
-			}
-			""".NL(2));
-
 		_sb.Append($$"""
 			public enum SyntaxNodeKind
 			{
@@ -99,7 +53,7 @@ public class AstGenerator(
 					{
 						{{T(SyntaxNodeMemberStoredFields.All, storedField => OSetStoredChildren(node, storedField))}}
 
-						Span = {{(node.TakesSpan == true ? "span" : "Helper.ComputeSpanningSpan(ChildNodes, ChildTokens)")}};
+						(Span, SpanWithTrivia) = {{(node.TakesSpan == true ? "(span, span)" : "TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens)")}};
 						SetChildrenParent();
 					}
 

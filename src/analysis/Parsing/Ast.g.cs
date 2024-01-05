@@ -5,50 +5,6 @@
 
 namespace Surab.Analysis;
 
-file static class Helper
-{
-	public static TextSpan ComputeSpanningSpan(IEnumerable<SyntaxNode?> nodes, IEnumerable<SyntaxToken?> tokens)
-	{
-		TextSpan? lo = null;
-		TextSpan? hi = null;
-
-		foreach (var x in nodes)
-		{
-			if (x != null) ProcessForSpanningSpan(x, ref lo, ref hi);
-		}
-		foreach (var x in tokens)
-		{
-			if (x != null) ProcessForSpanningSpan(x, ref lo, ref hi);
-		}
-
-		return lo.HasValue ?
-			TextSpan.FromTo(lo.Value, hi!.Value) :
-			new TextSpan();
-	}
-
-	public static void ProcessForSpanningSpan(
-		SyntaxEntity entity,
-		ref TextSpan? lo,
-		ref TextSpan? hi)
-	{
-		var current = entity.Span;
-		if (!lo.HasValue)
-		{
-			lo = hi = current;
-			return;
-		}
-
-		if (lo.Value.File.Start > current.File.Start)
-		{
-			lo = current;
-		}
-		if (hi!.Value.File.End < current.File.End)
-		{
-			hi = current;
-		}
-	}
-}
-
 public enum SyntaxNodeKind
 {
 	File,
@@ -107,7 +63,7 @@ public partial class FileNode : SyntaxNode
 		_childTokens = new();
 		_childNodes = new() { importsList, declsList, };
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -128,7 +84,7 @@ public partial class ImportsListNode : SyntaxNode
 		_childTokens = new();
 		_childNodes = imports.Cast<SyntaxNode?>().ToList();
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -148,7 +104,7 @@ public partial class ImportNode : SyntaxNode
 		_childTokens = new() { importToken, semicolonToken, };
 		_childNodes = new() { modulePath, };
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -173,7 +129,7 @@ public partial class ConstDeclNode : DeclNode, ISyntaxNodeHasMainIdentifier
 		_childTokens = new() { constToken, identifier, semicolonToken, };
 		_childNodes = new() { attrs, type, initializer, };
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -201,7 +157,7 @@ public partial class FnDeclNode : DeclNode
 		_childTokens = new() { fnToken, semicolonToken, };
 		_childNodes = new() { attrs, sig, body, };
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -228,7 +184,7 @@ public partial class MethodDeclNode : DeclNode
 		_childTokens = new() { semicolonToken, };
 		_childNodes = new() { attrs, sig, body, };
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -251,7 +207,7 @@ public partial class AliasDeclNode : DeclNode, ISyntaxNodeHasMainIdentifier
 		_childTokens = new() { aliasToken, identifier, asToken, semicolonToken, };
 		_childNodes = new() { attrs, type, };
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -276,7 +232,7 @@ public partial class StructDeclNode : DeclNode, ISyntaxNodeHasMainIdentifier
 		_childTokens = new() { structToken, identifier, openBraceToken, closedBraceToken, };
 		_childNodes = new() { attrs, declsList, };
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -301,7 +257,7 @@ public partial class ClassDeclNode : DeclNode, ISyntaxNodeHasMainIdentifier
 		_childTokens = new() { classToken, identifier, openBraceToken, closedBraceToken, };
 		_childNodes = new() { attrs, declsList, };
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -326,7 +282,7 @@ public partial class DeclsListNode : SyntaxNode
 		_childTokens = new();
 		_childNodes = decls.Cast<SyntaxNode?>().ToList();
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -346,7 +302,7 @@ public partial class FieldDeclNode : DeclNode, ISyntaxNodeHasMainIdentifier
 		_childTokens = new() { identifier, semicolonToken, };
 		_childNodes = new() { attrs, type, initializer, };
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -370,7 +326,7 @@ public partial class SkippedTokensDeclNode : DeclNode
 		_childTokens = skipped.Cast<SyntaxToken?>().ToList();
 		_childNodes = new();
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -390,7 +346,7 @@ public partial class VarStmtNode : StmtNode, ISyntaxNodeHasMainIdentifier
 		_childTokens = new() { varToken, identifier, semicolonToken, };
 		_childNodes = new() { type, initializer, };
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -414,7 +370,7 @@ public partial class ReturnStmtNode : StmtNode
 		_childTokens = new() { returnToken, semicolonToken, };
 		_childNodes = new() { expr, };
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -439,7 +395,7 @@ public partial class ExprStmtNode : StmtNode
 		_childTokens = new() { semicolonToken, };
 		_childNodes = new() { expr, };
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -463,7 +419,7 @@ public partial class BareExprStmtNode : StmtNode
 		_childTokens = new();
 		_childNodes = new() { expr, };
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -483,7 +439,7 @@ public partial class SkippedTokensStmtNode : StmtNode
 		_childTokens = skipped.Cast<SyntaxToken?>().ToList();
 		_childNodes = new();
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -503,7 +459,7 @@ public partial class BlockExprNode : ExprNode
 		_childTokens = new() { openBraceToken, closedBraceToken, };
 		_childNodes = stmts.Cast<SyntaxNode?>().ToList();
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -525,7 +481,7 @@ public partial class AssignmentExprNode : ExprNode
 		_childTokens = new() { equalToken, };
 		_childNodes = new() { lhs, rhs, };
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -547,7 +503,7 @@ public partial class UnaryExprNode : ExprNode
 		_childTokens = new() { op, };
 		_childNodes = new() { expr, };
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -568,7 +524,7 @@ public partial class BinaryExprNode : ExprNode
 		_childTokens = new() { op, };
 		_childNodes = new() { left, right, };
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -590,7 +546,7 @@ public partial class GroupingExprNode : ExprNode
 		_childTokens = new() { openParenToken, closedParenToken, };
 		_childNodes = new() { expr, };
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -615,7 +571,7 @@ public partial class CallExprNode : ExprNode
 		_childTokens = new();
 		_childNodes = new() { callee, argsList, };
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -639,7 +595,7 @@ public partial class AccessExprNode : ExprNode, ISyntaxNodeHasMainIdentifier
 		_childTokens = new() { dotToken, identifier, };
 		_childNodes = new() { target, };
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -661,7 +617,7 @@ public partial class LiteralExprNode : ExprNode
 		_childTokens = new() { literal, };
 		_childNodes = new();
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -681,7 +637,7 @@ public partial class IdentifierExprNode : ExprNode, ISyntaxNodeHasMainIdentifier
 		_childTokens = new() { identifier, };
 		_childNodes = new();
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -701,7 +657,7 @@ public partial class ThisExprNode : ExprNode
 		_childTokens = new() { keywordToken, };
 		_childNodes = new();
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -721,7 +677,7 @@ public partial class StructCreationExprNode : ExprNode, ISyntaxNodeHasMainIdenti
 		_childTokens = new() { identifier, };
 		_childNodes = new() { mapInitializer, };
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -742,7 +698,7 @@ public partial class MissingExprNode : ExprNode
 		_childTokens = new();
 		_childNodes = new();
 
-		Span = span;
+		(Span, SpanWithTrivia) = (span, span);
 		SetChildrenParent();
 	}
 
@@ -761,7 +717,7 @@ public partial class MapInitializerNode : SyntaxNode
 		_childTokens = new() { openBraceToken, closedBraceToken, };
 		_childNodes = items.Cast<SyntaxNode?>().ToList();
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -783,7 +739,7 @@ public partial class MapInitializerItemNode : SyntaxNode
 		_childTokens = new() { commaToken, };
 		_childNodes = new() { expr, };
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -807,7 +763,7 @@ public partial class ParamsListNode : SyntaxNode
 		_childTokens = new() { openParenToken, closedParenToken, };
 		_childNodes = @params.Cast<SyntaxNode?>().ToList();
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -829,7 +785,7 @@ public partial class ParamNode : SyntaxNode, ISyntaxNodeHasMainIdentifier
 		_childTokens = new() { identifier, commaToken, };
 		_childNodes = new() { attrs, type, initializer, };
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -856,7 +812,7 @@ public partial class ParamTypesListNode : SyntaxNode
 		_childTokens = new() { openParenToken, closedParenToken, };
 		_childNodes = paramTypes.Cast<SyntaxNode?>().ToList();
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -878,7 +834,7 @@ public partial class ParamTypeNode : SyntaxNode
 		_childTokens = new() { commaToken, };
 		_childNodes = new() { type, };
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -899,7 +855,7 @@ public partial class ArgsListNode : SyntaxNode
 		_childTokens = new() { openParenToken, closedParenToken, };
 		_childNodes = args.Cast<SyntaxNode?>().ToList();
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -921,7 +877,7 @@ public partial class ArgNode : SyntaxNode
 		_childTokens = new() { commaToken, };
 		_childNodes = new() { expr, };
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -942,7 +898,7 @@ public partial class ColonTypeNode : SyntaxNode
 		_childTokens = new() { colonToken, };
 		_childNodes = new() { type, };
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -963,7 +919,7 @@ public partial class PtrTypeNode : TypeNode
 		_childTokens = new() { asteriskToken, };
 		_childNodes = new() { attrs, innerType, };
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -985,7 +941,7 @@ public partial class NamedTypeNode : TypeNode, ISyntaxNodeHasMainIdentifier
 		_childTokens = new() { identifier, };
 		_childNodes = new() { attrs, };
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -1006,7 +962,7 @@ public partial class FnTypeNode : TypeNode
 		_childTokens = new() { fnToken, };
 		_childNodes = new() { attrs, paramTypesList, returnType, };
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -1029,7 +985,7 @@ public partial class MissingTypeNode : TypeNode
 		_childTokens = new();
 		_childNodes = new() { attrs, };
 
-		Span = span;
+		(Span, SpanWithTrivia) = (span, span);
 		SetChildrenParent();
 	}
 
@@ -1049,7 +1005,7 @@ public partial class FnSigNode : SyntaxNode, ISyntaxNodeHasMainIdentifier
 		_childTokens = new() { identifier, };
 		_childNodes = new() { paramsList, returnType, };
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -1071,7 +1027,7 @@ public partial class EqualsExprClauseNode : SyntaxNode
 		_childTokens = new() { equalToken, };
 		_childNodes = new() { expr, };
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -1092,7 +1048,7 @@ public partial class AttrsListNode : SyntaxNode
 		_childTokens = new();
 		_childNodes = attrs.Cast<SyntaxNode?>().ToList();
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
@@ -1112,7 +1068,7 @@ public partial class AttrNode : SyntaxNode, ISyntaxNodeHasMainIdentifier
 		_childTokens = new() { atToken, identifier, };
 		_childNodes = new() { argsList, };
 
-		Span = Helper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
