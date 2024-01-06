@@ -424,7 +424,7 @@ internal class Lowerer
 	{
 		Debug.Assert(
 			!(node.Parent is EqualsExprClauseNode equalsExprClause && equalsExprClause.Expr == node),
-			"Should only be here when loading `this` directly as an r-value.");
+			"Should only be here when loading `this` directly as an rvalue.");
 
 		var type = _reasoner.LookupType(node);
 		return new LoweredThisLoadExpr(

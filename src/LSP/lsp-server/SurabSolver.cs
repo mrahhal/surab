@@ -88,10 +88,10 @@ public class SurabSolver(
 			return null;
 		var reasoner = Project.GetReasoner(sourceFile);
 		var root = reasoner.Tree.Root;
-		if (root is not FileNode moduleNode)
+		if (root is not FileNode fileNode)
 			return null;
 
-		return moduleNode.DeclsList.Decls
+		return fileNode.DeclsList.Decls
 			.Select(reasoner.GetDeclaredSymbol)
 			.Where(s => s != null)
 			.Select(s => s!)
