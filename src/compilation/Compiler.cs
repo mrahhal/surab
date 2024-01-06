@@ -12,15 +12,13 @@ public sealed class Compiler
 	internal static readonly bool VerificationEnabled = true;
 
 	private Compiler(
-		SurabProject project,
+		IEnumerable<Reasoner> reasoners,
 		Target target,
 		CompilationOptions options)
 	{
 		var llvm = LLVMCompilationContext.Create();
 
-		var reasoners = project.GetAllReasoners().ToList();
-
-		_context = new CompilationContext(reasoners, target, llvm, options);
+		_context = new CompilationContext(reasoners.ToList(), target, llvm, options);
 	}
 
 	public static string Compile(
@@ -30,9 +28,13 @@ public sealed class Compiler
 	{
 		project.EnsureAnalyzed();
 
-		var target = ParseTargetTriple(targetTriple);
-		var compiler = new Compiler(project, target, options ?? CompilationOptions.CreateDefault());
-		return compiler.Compile();
+		return project.LockForRead(() =>
+		{
+			var target = ParseTargetTriple(targetTriple);
+			var reasoners = project.GetAllReasoners();
+			var compiler = new Compiler(reasoners, target, options ?? CompilationOptions.CreateDefault());
+			return compiler.Compile();
+		});
 	}
 
 	private string Compile()

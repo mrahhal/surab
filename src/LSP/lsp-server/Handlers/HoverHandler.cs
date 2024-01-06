@@ -12,19 +12,22 @@ public class HoverHandler(
 	private readonly ILogger _logger = logger;
 	private readonly SurabSolver _solver = solver;
 
-	public override Task<Hover?> Handle(HoverParams request, CancellationToken cancellationToken)
+	public override async Task<Hover?> Handle(HoverParams request, CancellationToken cancellationToken)
 	{
-		var (symbol, type) = _solver.GetSymbolAndTypeOfPosition(request.TextDocument, request.Position);
-		if (symbol == null)
-			return Task.FromResult((Hover?)null);
-
-		return Task.FromResult((Hover?)new Hover
+		return _solver.Project.LockForRead(() =>
 		{
-			Contents = new(new MarkupContent
+			var (symbol, type) = _solver.GetSymbolAndTypeOfPosition(request.TextDocument, request.Position);
+			if (symbol == null)
+				return null;
+
+			return new Hover
 			{
-				Kind = MarkupKind.Markdown,
-				Value = $"{symbol.Name} | {type?.Name}",
-			}),
+				Contents = new(new MarkupContent
+				{
+					Kind = MarkupKind.Markdown,
+					Value = $"{symbol.Name} | {type?.Name}",
+				}),
+			};
 		});
 	}
 

@@ -34,7 +34,7 @@ public class SourceFile
 		return new(null, text);
 	}
 
-	public void UpdateText(string newText)
+	internal void UpdateText(string newText)
 	{
 		Text = newText;
 	}

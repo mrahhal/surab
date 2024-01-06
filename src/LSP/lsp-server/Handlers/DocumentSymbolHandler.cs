@@ -14,15 +14,35 @@ public class DocumentSymbolHandler(
 	private readonly ILogger _logger = logger;
 	private readonly SurabSolver _solver = solver;
 
-	public override Task<SymbolInformationOrDocumentSymbolContainer?> Handle(DocumentSymbolParams request, CancellationToken cancellationToken)
+	public override async Task<SymbolInformationOrDocumentSymbolContainer?> Handle(DocumentSymbolParams request, CancellationToken cancellationToken)
 	{
-		var firstLevelSymbols = _solver.GetFirstLevelSymbols(request.TextDocument);
-		if (firstLevelSymbols == null)
-			return Task.FromResult((SymbolInformationOrDocumentSymbolContainer?)null);
+		return _solver.Project.LockForRead(() =>
+		{
+			var sourceFile = _solver.GetSourceFile(request.TextDocument);
+			if (sourceFile == null)
+				return null;
 
-		List<SymbolInformationOrDocumentSymbol> documentSymbols = [.. Cleanup(firstLevelSymbols.Select(Convert))];
-		var result = (SymbolInformationOrDocumentSymbolContainer?)new(documentSymbols);
-		return Task.FromResult(result);
+			var firstLevelSymbols = GetFirstLevelSymbols(sourceFile);
+			if (firstLevelSymbols == null)
+				return null;
+
+			List<SymbolInformationOrDocumentSymbol> documentSymbols = [.. Cleanup(firstLevelSymbols.Select(Convert))];
+			return new SymbolInformationOrDocumentSymbolContainer(documentSymbols);
+		});
+	}
+
+	private List<Symbol>? GetFirstLevelSymbols(SourceFile sourceFile)
+	{
+		var reasoner = _solver.Project.GetReasoner(sourceFile);
+		var root = reasoner.Tree.Root;
+		if (root is not FileNode fileNode)
+			return null;
+
+		return fileNode.DeclsList.Decls
+			.Select(reasoner.GetDeclaredSymbol)
+			.Where(s => s != null)
+			.Select(s => s!)
+			.ToList();
 	}
 
 	private IEnumerable<DocumentSymbol> Cleanup(IEnumerable<DocumentSymbol?> symbols)

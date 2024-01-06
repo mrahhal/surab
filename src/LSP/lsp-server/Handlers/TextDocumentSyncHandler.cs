@@ -6,7 +6,6 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server.Capabilities;
-using OmniSharp.Extensions.LanguageServer.Protocol.Window;
 
 namespace Surab.LSPServer.Handlers;
 
@@ -21,82 +20,26 @@ public class TextDocumentSyncHandler(
 
 	public TextDocumentSyncKind Change => TextDocumentSyncKind.Full;
 
-	public override async Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken token)
+	public override Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken token)
 	{
-		_logger.LogInformation("[DidOpenTextDocumentParams]");
-
-		await ReAnalyzeAsync(notification.TextDocument);
-
-		await _configuration.GetScopedConfiguration(notification.TextDocument.Uri, token).ConfigureAwait(false);
-		return Unit.Value;
+		return Unit.Task;
 	}
 
-	public override async Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken token)
+	public override Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken token)
 	{
-		_logger.LogInformation("[DidChangeTextDocumentParams]");
+		_logger.LogTrace("[DidChangeTextDocumentParams]");
 
-		var sourceFile = _solver.GetSourceFile(notification.TextDocument)!;
-		sourceFile.UpdateText(notification.ContentChanges.First().Text);
-
-		// TODO: Shouldn't be here. Should post a reanalyze event to be processed asynchronously (the goal of this is a PublishDiagnostics event).
-		await ReAnalyzeAsync(notification.TextDocument);
-
-		return Unit.Value;
-	}
-
-	private async Task ReAnalyzeAsync(TextDocumentIdentifier textDocument)
-	{
-		var progress = await _solver.Server.WorkDoneManager.Create(
-			new WorkDoneProgressBegin
-			{
-				Title = "Starting analysis...",
-				Percentage = 10,
-			});
-
-		try
+		_solver.Project.LockForWrite(() =>
 		{
-			var sourceFile = _solver.GetSourceFile(textDocument)!;
+			var sourceFile = _solver.GetSourceFile(notification.TextDocument)!;
+			_solver.Project.UpdateSourceFile(sourceFile, notification.ContentChanges.First().Text);
+		});
 
-			_solver.Project.EnsureAnalyzed();
-
-			progress.OnNext("Collecting diags...", 70, null);
-
-			foreach (var fileDiagnostics in _solver.Project.GetProjectDiagnostics())
-			{
-				_solver.Server.PublishDiagnostics(new PublishDiagnosticsParams
-				{
-					Uri = DocumentUri.FromFileSystemPath(fileDiagnostics.SourceFile.Path!),
-					Diagnostics = Container.From(fileDiagnostics.Diagnostics.Select(d => new OmniSharp.Extensions.LanguageServer.Protocol.Models.Diagnostic
-					{
-						Range = ConversionHelper.FromTo(d.Span),
-						Severity = ConversionHelper.FromTo(d.Level),
-						Message = d.Message,
-					})),
-				});
-			}
-		}
-		catch
-		{
-			_solver.Server.ShowMessage(new ShowMessageParams
-			{
-				Message = "Failed while analyzing.",
-				Type = MessageType.Error,
-			});
-		}
-		finally
-		{
-			progress.OnCompleted();
-		}
+		return Unit.Task;
 	}
 
 	public override Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken token)
 	{
-		_logger.LogInformation("[DidCloseTextDocumentParams]");
-
-		if (_configuration.TryGetScopedConfiguration(notification.TextDocument.Uri, out var disposable))
-		{
-			disposable.Dispose();
-		}
 		return Unit.Task;
 	}
 

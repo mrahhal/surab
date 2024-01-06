@@ -16,42 +16,43 @@ public class DidChangeWatchedFilesHandler(
 
 	public override Task<Unit> Handle(DidChangeWatchedFilesParams request, CancellationToken cancellationToken)
 	{
-		_logger.LogInformation("[DidChangeWatchedFilesParams]");
+		_logger.LogTrace("[DidChangeWatchedFilesParams]");
 
-		foreach (var change in request.Changes)
+		_solver.Project.LockForWrite(() =>
 		{
-			switch (change.Type)
+			foreach (var change in request.Changes)
 			{
-				case FileChangeType.Created:
-					{
-						var path = change.Uri.GetFileSystemPath();
-						var sourceFile = SourceFile.Create(path, File.ReadAllText(path));
-						_solver.Project.AddSourceFile(sourceFile);
-					}
-					break;
-
-				case FileChangeType.Changed:
-					{
-						// Nothing to do here. This is covered by DidChangeTextDocumentParams.
-					}
-					break;
-
-				case FileChangeType.Deleted:
-					{
-						var sourceFile = _solver.GetSourceFile(change.Uri);
-						if (sourceFile != null)
+				switch (change.Type)
+				{
+					case FileChangeType.Created:
 						{
-							_solver.Project.RemoveSourceFile(sourceFile);
+							var path = change.Uri.GetFileSystemPath();
+							var sourceFile = SourceFile.Create(path, File.ReadAllText(path));
+							_solver.Project.AddSourceFile(sourceFile);
 						}
-					}
-					break;
-				default:
-					break;
-			}
-		}
+						break;
 
-		// TODO: Shouldn't be here.
-		_solver.Project.EnsureAnalyzed();
+					case FileChangeType.Changed:
+						{
+							// Nothing to do here. This is covered by DidChangeTextDocumentParams.
+						}
+						break;
+
+					case FileChangeType.Deleted:
+						{
+							var sourceFile = _solver.GetSourceFile(change.Uri);
+							if (sourceFile != null)
+							{
+								_solver.Project.RemoveSourceFile(sourceFile);
+							}
+						}
+						break;
+
+					default:
+						break;
+				}
+			}
+		});
 
 		return Unit.Task;
 	}

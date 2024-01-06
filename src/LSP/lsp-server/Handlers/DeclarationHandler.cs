@@ -12,9 +12,12 @@ public class DeclarationHandler(
 	private readonly ILogger _logger = logger;
 	private readonly SurabSolver _solver = solver;
 
-	public override Task<LocationOrLocationLinks?> Handle(DeclarationParams request, CancellationToken cancellationToken)
+	public override async Task<LocationOrLocationLinks?> Handle(DeclarationParams request, CancellationToken cancellationToken)
 	{
-		return Task.FromResult(_solver.GetDefinitionRef(request.TextDocument, request.Position));
+		return _solver.Project.LockForRead(() =>
+		{
+			return _solver.GetDefinitionRef(request.TextDocument, request.Position);
+		});
 	}
 
 	protected override DeclarationRegistrationOptions CreateRegistrationOptions(DeclarationCapability capability, ClientCapabilities clientCapabilities)

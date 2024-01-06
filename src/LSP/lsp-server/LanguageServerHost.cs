@@ -1,6 +1,9 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using System;
+using System.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
+using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Server;
 using Serilog;
@@ -78,7 +81,42 @@ public class LanguageServerHost
 			.Select(x => SourceFile.Create(x, File.ReadAllText(x)))
 			.ToList();
 		Project = SurabProject.Create(sourceFiles);
+		Project.SubscribeToFullDiagnosticsReady(HandleFullDiagnosticsReady);
+
+		// TODO:
+		//Project.SubscribeToAnalysis...?
+		//var progress = await _solver.Server.WorkDoneManager.Create(
+		//	new WorkDoneProgressBegin
+		//	{
+		//		Title = "Starting analysis...",
+		//		Percentage = 10,
+		//	});
+		//progress.OnNext("Collecting diags...", 70, null);
+		//_solver.Server.ShowMessage(new ShowMessageParams
+		//{
+		//	Message = "Failed while analyzing.",
+		//	Type = MessageType.Error,
+		//});
+		//progress.OnCompleted();
+
 
 		return Task.CompletedTask;
+	}
+
+	private void HandleFullDiagnosticsReady(IEnumerable<FileDiagnostics> diags)
+	{
+		foreach (var fileDiagnostics in diags)
+		{
+			Server.PublishDiagnostics(new PublishDiagnosticsParams
+			{
+				Uri = DocumentUri.FromFileSystemPath(fileDiagnostics.SourceFile.Path!),
+				Diagnostics = Container.From(fileDiagnostics.Diagnostics.Select(d => new OmniSharp.Extensions.LanguageServer.Protocol.Models.Diagnostic
+				{
+					Range = ConversionHelper.FromTo(d.Span),
+					Severity = ConversionHelper.FromTo(d.Level),
+					Message = d.Message,
+				})),
+			});
+		}
 	}
 }

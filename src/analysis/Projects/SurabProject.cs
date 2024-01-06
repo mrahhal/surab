@@ -1,5 +1,4 @@
 ﻿using System.Collections.Immutable;
-using System.Xml.Linq;
 
 namespace Surab.Analysis;
 
@@ -14,6 +13,10 @@ public class SurabProject
 {
 	private readonly List<SourceFile> _sourceFiles;
 	private readonly Dictionary<SourceFile, SourceFileState> _sourceFileToStateMap = [];
+	private readonly ReaderWriterLockSlim _rwl = new();
+	private CancellationTokenSource _cts = null!;
+	private readonly object _fullAnalysisLock = new();
+	private readonly List<Action<IEnumerable<FileDiagnostics>>> _fullDiagnosticsReadyActions = [];
 
 	private readonly ModuleResolver _moduleResolver;
 	private readonly ReasoningContext _reasoningContext = new();
@@ -49,6 +52,81 @@ public class SurabProject
 		return _sourceFiles.FirstOrDefault(x => x.Path == path);
 	}
 
+	public void SubscribeToFullDiagnosticsReady(Action<IEnumerable<FileDiagnostics>> action)
+	{
+		_fullDiagnosticsReadyActions.Add(action);
+	}
+
+	/// <summary>
+	/// Locks the project for read operations.
+	/// </summary>
+	/// <remarks>
+	/// For convenience, read/write methods won't throw if you use them without locking. It's the responsibility of
+	/// the consumer to make sure access is synchronized by locking for read or write when running in an asynchornous environment.
+	/// Methods will be marked in their doc if they need a read or write lock.
+	/// </remarks>
+	public void LockForRead(Action action)
+	{
+		LockForRead<object?>(() =>
+		{
+			action();
+			return null;
+		});
+	}
+
+	/// <summary>
+	/// Locks the project for read operations.
+	/// </summary>
+	/// <remarks>
+	/// For convenience, read/write methods won't throw if you use them without locking. It's the responsibility of
+	/// the consumer to make sure access is synchronized by locking for read or write when running in an asynchornous environment.
+	/// Methods will be marked in their doc if they need a read or write lock.
+	/// </remarks>
+	public T LockForRead<T>(Func<T> func)
+	{
+		_rwl.EnterReadLock();
+
+		try
+		{
+			return func();
+		}
+		finally
+		{
+			_rwl.ExitReadLock();
+		}
+	}
+
+	/// <summary>
+	/// Locks the project for write operations.
+	/// </summary>
+	/// <remarks>
+	/// For convenience, read/write methods won't throw if you use them without locking. It's the responsibility of
+	/// the consumer to make sure access is synchronized by locking for read or write when running in an asynchornous environment.
+	/// Methods will be marked in their doc if theyre a read or a write operation.
+	/// </remarks>
+	public void LockForWrite(Action action)
+	{
+		_rwl.EnterWriteLock();
+
+		try
+		{
+			action();
+		}
+		finally
+		{
+			_rwl.ExitWriteLock();
+		}
+
+		// Do a full reanalysis outside the lock.
+		EnsureAnalyzed();
+	}
+
+	/// <summary>
+	/// Adds a <see cref="SourceFile"/> to the project.
+	/// </summary>
+	/// <remarks>
+	/// This method is a write operation.
+	/// </remarks>
 	public void AddSourceFile(SourceFile sourceFile)
 	{
 		_sourceFiles.Add(sourceFile);
@@ -56,12 +134,24 @@ public class SurabProject
 		MarkChangedDependencies(sourceFile);
 	}
 
+	/// <summary>
+	/// Updates a <see cref="SourceFile"/> with new content.
+	/// </summary>
+	/// <remarks>
+	/// This method is a write operation.
+	/// </remarks>
 	public void UpdateSourceFile(SourceFile sourceFile, string text)
 	{
 		sourceFile.UpdateText(text);
 		MarkChangedDependencies(sourceFile);
 	}
 
+	/// <summary>
+	/// Removes a <see cref="SourceFile"/> from the project.
+	/// </summary>
+	/// <remarks>
+	/// This method is a write operation.
+	/// </remarks>
 	public void RemoveSourceFile(SourceFile sourceFile)
 	{
 		_sourceFiles.Remove(sourceFile);
@@ -69,26 +159,29 @@ public class SurabProject
 		MarkChangedDependencies(sourceFile);
 	}
 
-	private void MarkChangedDependencies(SourceFile sourceFile)
+	/// <summary>
+	/// Gets the <see cref="SyntaxTree"/> for a given <see cref="SourceFile"/>.
+	/// </summary>
+	/// <remarks>
+	/// This method is a read operation.
+	/// </remarks>
+	public SyntaxTree GetSyntaxTree(SourceFile sourceFile)
 	{
-		// TODO: Do this properly.
-		// If the dependency only uses exported symbols that didn't change (or if exported symbols didn't change in the first place), don't mark it as changed.
-
-		// souceFile is the file that changed. Go to all files that have a dependency on this file and mark them to be re-analyzed.
+		return _sourceFileToStateMap[sourceFile].SyntaxTree;
 	}
 
 	/// <summary>
-	/// Analyze files that aren't analyzed.
+	/// Gets the <see cref="Reasoner"/> for a given <see cref="SourceFile"/>.
 	/// </summary>
-	public void EnsureAnalyzed()
+	/// <remarks>
+	/// This method is a read operation.
+	/// </remarks>
+	public Reasoner GetReasoner(SourceFile sourceFile)
 	{
-		foreach (var sourceFile in _sourceFiles)
-		{
-			EnsureAnalyzeSourceFile(sourceFile);
-		}
+		return _sourceFileToStateMap[sourceFile].Reasoner;
 	}
 
-	public IEnumerable<FileDiagnostics> GetProjectDiagnostics()
+	private IEnumerable<FileDiagnostics> GetProjectDiagnostics()
 	{
 		foreach (var sourceFileState in _sourceFileToStateMap.Values)
 		{
@@ -97,16 +190,12 @@ public class SurabProject
 		}
 	}
 
-	public SyntaxTree GetSyntaxTree(SourceFile sourceFile)
-	{
-		return _sourceFileToStateMap[sourceFile].SyntaxTree;
-	}
-
-	public Reasoner GetReasoner(SourceFile sourceFile)
-	{
-		return _sourceFileToStateMap[sourceFile].Reasoner;
-	}
-
+	/// <summary>
+	/// Resolves a known <see cref="TypeSymbol"/> from its given name.
+	/// </summary>
+	/// <remarks>
+	/// This method is a read operation.
+	/// </remarks>
 	public TypeSymbol? ResolveKnownTypeSymbolFromName(string? name)
 	{
 		var tag = KnownTypes.GetTag(name);
@@ -116,11 +205,23 @@ public class SurabProject
 		return ResolveKnownTypeSymbol(tag.Value);
 	}
 
+	/// <summary>
+	/// Resolves a known <see cref="TypeSymbol"/> from its given <see cref="KnownTypeTag"/>.
+	/// </summary>
+	/// <remarks>
+	/// This method is a read operation.
+	/// </remarks>
 	public TypeSymbol ResolveKnownTypeSymbol(KnownTypeTag tag)
 	{
 		return _preludeReasoner.ResolveKnownTypeSymbol(tag);
 	}
 
+	/// <summary>
+	/// Returns all <see cref="Reasoner"/>s in the project.
+	/// </summary>
+	/// <remarks>
+	/// This method is a read operation.
+	/// </remarks>
 	public IEnumerable<Reasoner> GetAllReasoners()
 	{
 		yield return _preludeReasoner;
@@ -144,30 +245,74 @@ public class SurabProject
 		};
 	}
 
-	private void EnsureAnalyzeSourceFile(SourceFile sourceFile)
+	private void MarkChangedDependencies(SourceFile sourceFile)
+	{
+		// TODO: Do this properly.
+		// If the dependency only uses exported symbols that didn't change (or if exported symbols didn't change in the first place), don't mark it as changed.
+
+		// souceFile is the file that changed. Go to all files that have a dependency on this file and mark them to be re-analyzed.
+	}
+
+	/// <summary>
+	/// Analyze files that aren't analyzed.
+	/// </summary>
+	public void EnsureAnalyzed()
+	{
+		_cts?.Cancel();
+		_cts = new();
+
+		lock (_fullAnalysisLock)
+		{
+			try
+			{
+				foreach (var sourceFile in _sourceFiles)
+				{
+					EnsureAnalyzeSourceFile(sourceFile, _cts.Token);
+				}
+
+				// REVIEW: Should this be here inside the lock?
+				foreach (var action in _fullDiagnosticsReadyActions)
+				{
+					var diags = GetProjectDiagnostics();
+					action(diags);
+				}
+			}
+			catch (OperationCanceledException)
+			{
+			}
+		}
+	}
+
+	private void EnsureAnalyzeSourceFile(SourceFile sourceFile, CancellationToken ct)
 	{
 		// Can call AnalyzeSourceFile on other dependent files.
 
 		var state = _sourceFileToStateMap[sourceFile];
-		//if (state.IsAnalyzed) return;
+		// Can't tell if the changed file affected others so for now we're reanalysing all files.
+		//if (state.IsAnalyzed)
+		//	return;
 
-		AnalyzeSourceFile(sourceFile, state);
+		AnalyzeSourceFile(sourceFile, state, ct);
 	}
 
-	private void AnalyzeSourceFile(SourceFile sourceFile, SourceFileState state)
+	private void AnalyzeSourceFile(SourceFile sourceFile, SourceFileState state, CancellationToken ct)
 	{
-		state.IsAnalyzed = true;
-
 		// Later:
 		// reasoner.GetDependentSourceFiles() => each => EnsureAnalyzeSourceFile()
 
 		var tree = Parser.ParseFile(sourceFile);
+		ct.ThrowIfCancellationRequested();
+
 		var reasoner = Reasoner.Create(this, tree);
+		ct.ThrowIfCancellationRequested();
+
 		state.SyntaxTree = tree;
 		state.Reasoner = reasoner;
 
 		var diags = reasoner.GetAllDiagnostics().ToImmutableArray();
 		state.FileDiagnostics = new FileDiagnostics(sourceFile, diags);
+
+		state.IsAnalyzed = true;
 	}
 
 	private void LoadPrelude()

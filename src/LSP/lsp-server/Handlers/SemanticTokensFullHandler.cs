@@ -2,47 +2,57 @@
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using Surab.Analysis;
 
 namespace Surab.LSPServer.Handlers;
 
 public class SemanticTokensFullHandler(
 	ILogger<SemanticTokensFullHandler> logger,
-	ILanguageServerConfiguration configuration,
 	SurabSolver solver) : SemanticTokensFullHandlerBase
 {
 	private readonly ILogger _logger = logger;
-	private readonly ILanguageServerConfiguration _configuration = configuration;
 	private readonly SurabSolver _solver = solver;
 
-	public override Task<SemanticTokens?> Handle(SemanticTokensParams request, CancellationToken cancellationToken)
+	public override async Task<SemanticTokens?> Handle(SemanticTokensParams request, CancellationToken cancellationToken)
 	{
 		_logger.LogInformation("[SemanticTokensParams]");
 
-		var sourceFile = _solver.GetSourceFile(request.TextDocument.Uri);
-		if (sourceFile == null)
-			return Task.FromResult((SemanticTokens?)null);
+		return _solver.Project.LockForRead(() =>
+		{
+			var sourceFile = _solver.GetSourceFile(request.TextDocument.Uri);
+			if (sourceFile == null)
+				return null;
 
-		var document = GetSemanticTokensDocument();
-		var builder = document.Create();
-		Tokenize(builder, sourceFile, cancellationToken);
-		var s = (SemanticTokens?)builder.Commit().GetSemanticTokens();
-		return Task.FromResult(s);
+			var document = GetSemanticTokensDocument();
+			var builder = document.Create();
+			try
+			{
+				Tokenize(builder, sourceFile, cancellationToken);
+				return builder.Commit().GetSemanticTokens();
+			}
+			catch (OperationCanceledException)
+			{
+				return null;
+			}
+		});
 	}
 
 	private void Tokenize(
 		SemanticTokensBuilder builder,
 		SourceFile sourceFile,
-		CancellationToken cancellationToken)
+		CancellationToken ct)
 	{
 		var tree = _solver.Project.GetSyntaxTree(sourceFile);
 		var reasoner = _solver.Project.GetReasoner(sourceFile);
+
+		ct.ThrowIfCancellationRequested();
 
 		foreach (var (line, ch, length, tokenType, modifiers) in TokenizeRecursive(tree.Root, reasoner))
 		{
 			if (tokenType == null)
 				continue;
+
+			ct.ThrowIfCancellationRequested();
 
 			builder.Push(line, ch, length, tokenType, modifiers);
 		}

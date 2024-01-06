@@ -81,23 +81,6 @@ public class SurabSolver(
 		return (symbol, type);
 	}
 
-	public List<Symbol>? GetFirstLevelSymbols(TextDocumentIdentifier textDocument)
-	{
-		var sourceFile = GetSourceFile(textDocument);
-		if (sourceFile == null)
-			return null;
-		var reasoner = Project.GetReasoner(sourceFile);
-		var root = reasoner.Tree.Root;
-		if (root is not FileNode fileNode)
-			return null;
-
-		return fileNode.DeclsList.Decls
-			.Select(reasoner.GetDeclaredSymbol)
-			.Where(s => s != null)
-			.Select(s => s!)
-			.ToList();
-	}
-
 	public LocationOrLocationLinks? GetDefinitionRef(TextDocumentIdentifier textDocument, Position position)
 	{
 		var sourceFile = GetSourceFile(textDocument)!;
