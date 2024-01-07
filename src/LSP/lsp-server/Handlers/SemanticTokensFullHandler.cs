@@ -25,15 +25,9 @@ public class SemanticTokensFullHandler(
 
 			var document = GetSemanticTokensDocument();
 			var builder = document.Create();
-			try
-			{
-				Tokenize(builder, sourceFile, cancellationToken);
-				return builder.Commit().GetSemanticTokens();
-			}
-			catch (OperationCanceledException)
-			{
-				return null;
-			}
+
+			Tokenize(builder, sourceFile, cancellationToken);
+			return builder.Commit().GetSemanticTokens();
 		});
 	}
 
