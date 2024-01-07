@@ -14,7 +14,8 @@ public class SurabProject
 	private readonly List<SourceFile> _sourceFiles;
 	private readonly Dictionary<SourceFile, SourceFileState> _sourceFileToStateMap = [];
 	private readonly ReaderWriterLockSlim _rwl = new();
-	private CancellationTokenSource _cts = null!;
+	// This cancellation token will fire when a new change is being requested and just before a write lock is taken.
+	private CancellationTokenSource _ctsOnChange = null!;
 	private readonly List<Action<IEnumerable<FileDiagnostics>>> _fullDiagnosticsReadyActions = [];
 
 	private readonly ModuleResolver _moduleResolver;
@@ -105,6 +106,13 @@ public class SurabProject
 	/// </remarks>
 	public void LockForWrite(Action action)
 	{
+		// Cancel in-flight read operations as they will mostly be unneeded now that a write lock is being requested.
+		// If we don't cancel, acquiring a write lock will block until all current read operations finish running.
+		// Full re-analysis also takes a read lock and this operation can take time, so this is a way to cancel that too.
+		_ctsOnChange?.Cancel();
+		_ctsOnChange = new();
+		var ct = _ctsOnChange.Token;
+
 		_rwl.EnterWriteLock();
 
 		try
@@ -116,7 +124,7 @@ public class SurabProject
 			_rwl.ExitWriteLock();
 		}
 
-		EnsureAnalyzed();
+		EnsureAnalyzed(ct);
 	}
 
 	/// <summary>
@@ -275,12 +283,8 @@ public class SurabProject
 	/// <summary>
 	/// Analyze files that aren't analyzed.
 	/// </summary>
-	internal void EnsureAnalyzed()
+	internal void EnsureAnalyzed(CancellationToken ct = default)
 	{
-		_cts?.Cancel();
-		_cts = new();
-		var ct = _cts.Token;
-
 		_ = Task.Run(() =>
 		{
 			LockForRead(() =>
@@ -301,7 +305,7 @@ public class SurabProject
 				{
 				}
 			});
-		});
+		}, ct);
 	}
 
 	private void RaiseFullDiagnosticsReady()
