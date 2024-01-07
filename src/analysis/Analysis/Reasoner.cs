@@ -114,7 +114,7 @@ public class Reasoner
 		var parserDiagnostics = Tree.Diagnostics.Diagnostics;
 
 		// Semantic
-		var semanticDiagnostics = CoreAnalyzer.Analyze(this);
+		var semanticDiagnostics = TypeChecker.Analyze(this);
 
 		return [.. parserDiagnostics, .. semanticDiagnostics.Diagnostics];
 	}

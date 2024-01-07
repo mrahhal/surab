@@ -3,16 +3,16 @@
 namespace Surab.Analysis;
 
 /// <summary>
-/// A visitor that detects all core semantic diagnostics in a <see cref="Reasoner"/>.
+/// The main type checker detects all semantic diagnostics in a <see cref="Reasoner"/>.
 /// </summary>
-internal class CoreAnalyzer(Reasoner reasoner) : SyntaxTreeVisitor
+internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 {
 	private readonly Reasoner _reasoner = reasoner;
 	private readonly DiagnosticBag _diagnostics = new();
 
 	public static DiagnosticBag Analyze(Reasoner reasoner)
 	{
-		var analyzer = new CoreAnalyzer(reasoner);
+		var analyzer = new TypeChecker(reasoner);
 		analyzer.Analyze();
 		return analyzer._diagnostics;
 	}

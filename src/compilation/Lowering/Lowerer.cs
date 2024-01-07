@@ -347,7 +347,7 @@ internal class Lowerer
 			node,
 			fnType,
 			calleeExpr,
-			// No auto deref for args. Might be better this way. (if we want it changes will be required in IsAssignableFrom/CoreAnalyzer.
+			// No auto deref for args. Might be better this way. (If we want it changes will be required in IsAssignableFrom/TypeChecker)
 			[.. receiverArgs, .. LowerWithCast(node.Args.Select(arg => arg.Expr))]);
 	}
 
