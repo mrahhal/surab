@@ -283,8 +283,9 @@ public class SurabProject
 
 	/// <summary>
 	/// Analyze files that aren't analyzed.
+	/// This method acquires a read lock and returns a task that completes when all files are fully analyzed.
 	/// </summary>
-	internal Task EnsureAnalyzedAsync(CancellationToken ct = default)
+	public Task EnsureAnalyzedAsync(CancellationToken ct = default)
 	{
 		return Task.Run(() =>
 		{

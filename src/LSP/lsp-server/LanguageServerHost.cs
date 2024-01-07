@@ -99,6 +99,9 @@ public class LanguageServerHost
 		//});
 		//progress.OnCompleted();
 
+		// Launch a preliminary analysis when a workspace is opened.
+		// We don't need to wait for the task before telling the client we're initialized because this can be a long running operation, and that's fine.
+		_ = Project.EnsureAnalyzedAsync();
 
 		return Task.CompletedTask;
 	}
