@@ -15,7 +15,6 @@ public class SurabProject
 	private readonly Dictionary<SourceFile, SourceFileState> _sourceFileToStateMap = [];
 	private readonly ReaderWriterLockSlim _rwl = new();
 	private CancellationTokenSource _cts = null!;
-	private readonly object _fullAnalysisLock = new();
 	private readonly List<Action<IEnumerable<FileDiagnostics>>> _fullDiagnosticsReadyActions = [];
 
 	private readonly ModuleResolver _moduleResolver;
@@ -117,7 +116,6 @@ public class SurabProject
 			_rwl.ExitWriteLock();
 		}
 
-		// Do a full reanalysis outside the lock.
 		EnsureAnalyzed();
 	}
 
@@ -143,6 +141,7 @@ public class SurabProject
 	public void UpdateSourceFile(SourceFile sourceFile, string text)
 	{
 		sourceFile.UpdateText(text);
+		UpdateTreeAndReasoner(sourceFile);
 		MarkChangedDependencies(sourceFile);
 	}
 
@@ -167,7 +166,7 @@ public class SurabProject
 	/// </remarks>
 	public SyntaxTree GetSyntaxTree(SourceFile sourceFile)
 	{
-		return _sourceFileToStateMap[sourceFile].SyntaxTree;
+		return _sourceFileToStateMap[sourceFile].Tree;
 	}
 
 	/// <summary>
@@ -232,17 +231,37 @@ public class SurabProject
 		}
 	}
 
-	private void InitializeSourceFile(SourceFile sourceFile)
+	private (SyntaxTree, Reasoner) CreateNewTreeAndReasoner(SourceFile sourceFile)
 	{
 		var tree = Parser.ParseFile(sourceFile);
 		var reasoner = Reasoner.Create(this, tree);
+		return (tree, reasoner);
+	}
+
+	private void InitializeSourceFile(SourceFile sourceFile)
+	{
+		var (tree, reasoner) = CreateNewTreeAndReasoner(sourceFile);
 
 		_sourceFileToStateMap[sourceFile] = new SourceFileState
 		{
 			IsAnalyzed = false,
-			SyntaxTree = tree,
+			Tree = tree,
 			Reasoner = reasoner,
 		};
+	}
+
+	private void UpdateTreeAndReasoner(SourceFile sourceFile)
+	{
+		var (tree, reasoner) = CreateNewTreeAndReasoner(sourceFile);
+
+		if (!_sourceFileToStateMap.TryGetValue(sourceFile, out var state))
+		{
+			// TODO: LogWarning
+			return;
+		}
+
+		state.Tree = tree;
+		state.Reasoner = reasoner;
 	}
 
 	private void MarkChangedDependencies(SourceFile sourceFile)
@@ -256,30 +275,41 @@ public class SurabProject
 	/// <summary>
 	/// Analyze files that aren't analyzed.
 	/// </summary>
-	public void EnsureAnalyzed()
+	internal void EnsureAnalyzed()
 	{
 		_cts?.Cancel();
 		_cts = new();
+		var ct = _cts.Token;
 
-		lock (_fullAnalysisLock)
+		_ = Task.Run(() =>
 		{
-			try
+			LockForRead(() =>
 			{
-				foreach (var sourceFile in _sourceFiles)
+				try
 				{
-					EnsureAnalyzeSourceFile(sourceFile, _cts.Token);
-				}
+					foreach (var sourceFile in _sourceFiles)
+					{
+						EnsureAnalyzeSourceFile(sourceFile, ct);
+					}
 
-				// REVIEW: Should this be here inside the lock?
-				foreach (var action in _fullDiagnosticsReadyActions)
-				{
-					var diags = GetProjectDiagnostics();
-					action(diags);
+					ct.ThrowIfCancellationRequested();
+
+					// REVIEW: Should this be here inside the lock?
+					RaiseFullDiagnosticsReady();
 				}
-			}
-			catch (OperationCanceledException)
-			{
-			}
+				catch (OperationCanceledException)
+				{
+				}
+			});
+		});
+	}
+
+	private void RaiseFullDiagnosticsReady()
+	{
+		var diags = GetProjectDiagnostics();
+		foreach (var action in _fullDiagnosticsReadyActions)
+		{
+			action(diags);
 		}
 	}
 
@@ -287,7 +317,12 @@ public class SurabProject
 	{
 		// Can call AnalyzeSourceFile on other dependent files.
 
-		var state = _sourceFileToStateMap[sourceFile];
+		if (!_sourceFileToStateMap.TryGetValue(sourceFile, out var state))
+		{
+			// TODO: LogWarning
+			return;
+		}
+
 		// Can't tell if the changed file affected others so for now we're reanalysing all files.
 		//if (state.IsAnalyzed)
 		//	return;
@@ -300,15 +335,7 @@ public class SurabProject
 		// Later:
 		// reasoner.GetDependentSourceFiles() => each => EnsureAnalyzeSourceFile()
 
-		var tree = Parser.ParseFile(sourceFile);
-		ct.ThrowIfCancellationRequested();
-
-		var reasoner = Reasoner.Create(this, tree);
-		ct.ThrowIfCancellationRequested();
-
-		state.SyntaxTree = tree;
-		state.Reasoner = reasoner;
-
+		var reasoner = GetReasoner(sourceFile);
 		var diags = reasoner.GetAllDiagnostics().ToImmutableArray();
 		state.FileDiagnostics = new FileDiagnostics(sourceFile, diags);
 
@@ -344,7 +371,7 @@ public class SurabProject
 	{
 		public bool IsAnalyzed { get; set; }
 
-		public required SyntaxTree SyntaxTree { get; set; }
+		public required SyntaxTree Tree { get; set; }
 
 		public required Reasoner Reasoner { get; set; }
 
