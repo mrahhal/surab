@@ -20,14 +20,11 @@ public class TextDocumentSyncHandler(
 
 	public TextDocumentSyncKind Change => TextDocumentSyncKind.Full;
 
-	public override Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken token)
-	{
-		return Unit.Task;
-	}
+	public override Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken token) => Unit.Task;
 
 	public override Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken token)
 	{
-		_logger.LogTrace("[DidChangeTextDocumentParams]");
+		_logger.LogInformation("[DidChangeTextDocumentParams]");
 
 		_solver.Project.LockForWrite(() =>
 		{
@@ -38,10 +35,7 @@ public class TextDocumentSyncHandler(
 		return Unit.Task;
 	}
 
-	public override Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken token)
-	{
-		return Unit.Task;
-	}
+	public override Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken token) => Unit.Task;
 
 	public override Task<Unit> Handle(DidSaveTextDocumentParams notification, CancellationToken token) => Unit.Task;
 
