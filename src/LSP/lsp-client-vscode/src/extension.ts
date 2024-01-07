@@ -20,7 +20,7 @@ export function activate(context: ExtensionContext) {
 
 	const serverOptions: ServerOptions = {
 		command,
-		transport: TransportKind.stdio,
+		transport: TransportKind.pipe,
 	};
 
 	const clientOptions: LanguageClientOptions = {};

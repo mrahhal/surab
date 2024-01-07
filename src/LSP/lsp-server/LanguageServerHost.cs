@@ -1,5 +1,4 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.IO.Pipes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
@@ -15,20 +14,23 @@ namespace Surab.LSPServer;
 public class LanguageServerHost
 {
 	private readonly Serilog.Core.Logger _serilogLogger;
+	private readonly NamedPipeClientStream _pipe;
 	private ILogger<LanguageServerHost> _logger = null!;
 
-	private LanguageServerHost(Serilog.Core.Logger logger)
+	private LanguageServerHost(Serilog.Core.Logger logger, string pipe)
 	{
 		_serilogLogger = logger;
+		_pipe = new NamedPipeClientStream(".", pipe, PipeDirection.InOut, System.IO.Pipes.PipeOptions.Asynchronous);
+		_pipe.Connect();
 	}
 
 	public LanguageServer Server { get; private set; } = null!;
 
 	public SurabProject Project { get; private set; } = null!;
 
-	public static LanguageServerHost Create(Serilog.Core.Logger logger)
+	public static LanguageServerHost Create(Serilog.Core.Logger logger, string pipe)
 	{
-		return new LanguageServerHost(logger);
+		return new LanguageServerHost(logger, pipe);
 	}
 
 	public async Task StartAsync()
@@ -42,8 +44,8 @@ public class LanguageServerHost
 			{
 				services.AddSingleton<SurabSolver>();
 			})
-			.WithInput(Console.OpenStandardInput())
-			.WithOutput(Console.OpenStandardOutput())
+			.WithInput(_pipe)
+			.WithOutput(_pipe)
 			.WithConfigurationItem(new ConfigurationItem
 			{
 				Section = "surab",
