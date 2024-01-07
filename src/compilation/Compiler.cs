@@ -21,20 +21,30 @@ public sealed class Compiler
 		_context = new CompilationContext(reasoners.ToList(), target, llvm, options);
 	}
 
+	/// <summary>
+	/// Compiles the given project and returns the compiled executable path.
+	///
+	/// Will throw if the project contains error diagnostics. It's the responsibility of the consumer to check
+	/// for those before calling compile.
+	/// </summary>
 	public static string Compile(
 		SurabProject project,
 		string targetTriple,
 		CompilationOptions? options = null)
 	{
-		project.EnsureAnalyzed();
+		// Note: We're not taking any locks (particular read) as the compilation doesn't run in an asynchronous environment right now.
 
-		return project.LockForRead(() =>
+		project.EnsureAnalyzedAsync().GetAwaiter().GetResult();
+		var diags = project.GetProjectDiagnostics();
+		if (diags.Any(fd => fd.HighestLevel is DiagnosticLevel.Error))
 		{
-			var target = ParseTargetTriple(targetTriple);
-			var reasoners = project.GetAllReasoners();
-			var compiler = new Compiler(reasoners, target, options ?? CompilationOptions.CreateDefault());
-			return compiler.Compile();
-		});
+			throw new InvalidOperationException("The project contains errors. You cannot call compile if there are errors.");
+		}
+
+		var target = ParseTargetTriple(targetTriple);
+		var reasoners = project.GetAllReasoners();
+		var compiler = new Compiler(reasoners, target, options ?? CompilationOptions.CreateDefault());
+		return compiler.Compile();
 	}
 
 	private string Compile()

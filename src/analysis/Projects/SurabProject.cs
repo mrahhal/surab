@@ -124,7 +124,8 @@ public class SurabProject
 			_rwl.ExitWriteLock();
 		}
 
-		EnsureAnalyzed(ct);
+		// We don't want to await anything here.
+		_ = EnsureAnalyzedAsync(ct);
 	}
 
 	/// <summary>
@@ -188,7 +189,7 @@ public class SurabProject
 		return _sourceFileToStateMap[sourceFile].Reasoner;
 	}
 
-	private IEnumerable<FileDiagnostics> GetProjectDiagnostics()
+	internal IEnumerable<FileDiagnostics> GetProjectDiagnostics()
 	{
 		foreach (var sourceFileState in _sourceFileToStateMap.Values)
 		{
@@ -283,9 +284,9 @@ public class SurabProject
 	/// <summary>
 	/// Analyze files that aren't analyzed.
 	/// </summary>
-	internal void EnsureAnalyzed(CancellationToken ct = default)
+	internal Task EnsureAnalyzedAsync(CancellationToken ct = default)
 	{
-		_ = Task.Run(() =>
+		return Task.Run(() =>
 		{
 			LockForRead(() =>
 			{
