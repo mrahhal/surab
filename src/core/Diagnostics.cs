@@ -71,9 +71,11 @@ public class DiagnosticBag
 	}
 }
 
-public class FileDiagnostics(SourceFile sourceFile, ImmutableArray<Diagnostic> diagnostics)
+public class FileDiagnostics(SourceFile sourceFile, ImmutableArray<Diagnostic> diagnostics, DiagnosticLevel? highestLevel)
 {
 	public SourceFile SourceFile { get; } = sourceFile;
 
 	public ImmutableArray<Diagnostic> Diagnostics { get; } = diagnostics;
+
+	public DiagnosticLevel? HighestLevel { get; } = highestLevel;
 }

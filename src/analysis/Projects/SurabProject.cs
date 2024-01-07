@@ -341,7 +341,8 @@ public class SurabProject
 
 		var reasoner = GetReasoner(sourceFile);
 		var diags = reasoner.GetAllDiagnostics().ToImmutableArray();
-		state.FileDiagnostics = new FileDiagnostics(sourceFile, diags);
+		var highestLevel = diags.Any() ? (DiagnosticLevel?)diags.Select(x => (int)x.Level).Max() : null;
+		state.FileDiagnostics = new FileDiagnostics(sourceFile, diags, highestLevel);
 
 		state.IsAnalyzed = true;
 	}
