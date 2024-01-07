@@ -549,6 +549,9 @@ public class Reasoner
 		return Project.GetReasoner(targetSourceFile);
 	}
 
+	/// <summary>
+	/// This is only to be called on the prelude reasoner. Use <see cref="SurabProject.ResolveKnownTypeSymbol(KnownTypeTag)"/> instead.
+	/// </summary>
 	internal TypeSymbol ResolveKnownTypeSymbol(KnownTypeTag tag)
 	{
 		Debug.Assert(_knownTypeTagToTypeSymbolMap != null, "This should only be called on a prelude reasoner.");

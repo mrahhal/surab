@@ -134,18 +134,28 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 
 	public override void VisitReturnStmt(ReturnStmtNode node)
 	{
-		Debug.Assert(node.Parent is BlockExprNode);
-		var block = (BlockExprNode)node.Parent;
+		// TODO: Lambdas
+		var decl = node.Ancestors().Where(x => x is MethodDeclNode or FnDeclNode).FirstOrDefault();
+		if (decl == null)
+		{
+			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"invalid context for a return statement");
+			return;
+		}
+		var returnTypeNode = decl switch
+		{
+			MethodDeclNode methodDecl => methodDecl.Sig.ReturnType,
+			FnDeclNode fnDecl => fnDecl.Sig.ReturnType,
+			_ => throw new UnreachableException(),
+		};
 
-		// If it's not the last stmt, warn.
-		// TODO: Removed fror now, as this needs control flow analysis.
-		// Example: `if () { return 1; } else { return 2; }`?
-		//if (block.Stmts.Last() != node)
-		//{
-		//    _diagnostics.Add(node.Span, DiagnosticLevel.Warning, $"unreachable code after the return stmt");
-		//}
+		var noneType = _reasoner.Project.ResolveKnownTypeSymbol(KnownTypeTag.None);
+		var fnReturnType = returnTypeNode == null ? noneType : _reasoner.LookupSymbol(returnTypeNode).AsTypeSymbolOrUnknown(_reasoner);
+		var returnType = node.Expr == null ? noneType : _reasoner.LookupType(node.Expr);
 
-		// TODO: Error if return has incompatible type with function return type.
+		if (!fnReturnType.IsAssignableFrom(returnType))
+		{
+			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"return type incompatible with function return type, expected `{fnReturnType}` but returning `{returnType}`");
+		}
 
 		base.VisitReturnStmt(node);
 	}
@@ -482,6 +492,11 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 
 	public override void VisitFnSig(FnSigNode node)
 	{
+		// TODO: Analyze code paths in body and add diag for if not all code paths return
+		// (without looking into the return type as that is an error on the return itself).
+
+		// TODO: Unreachable code warning.
+
 		base.VisitFnSig(node);
 	}
 
