@@ -702,6 +702,9 @@ public abstract class SyntaxNode : SyntaxEntity
 
 	public SyntaxNodeKind Kind { get; }
 
+	/// <summary>
+	/// Gets the child tokens of this node. Guaranteed to be ordered by the start of the child token's Span.
+	/// </summary>
 	public IEnumerable<SyntaxToken> ChildTokens
 	{
 		[DebuggerStepThrough]
@@ -717,6 +720,9 @@ public abstract class SyntaxNode : SyntaxEntity
 		}
 	}
 
+	/// <summary>
+	/// Gets the child nodes of this node. Guaranteed to be ordered by the start of the child node's Span.
+	/// </summary>
 	public IEnumerable<SyntaxNode> ChildNodes
 	{
 		[DebuggerStepThrough]

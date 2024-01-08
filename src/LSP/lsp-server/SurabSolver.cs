@@ -41,6 +41,25 @@ public class SurabSolver(
 		return GetNodeAtRecursive(tree.Root, linePosition);
 	}
 
+	/// <summary>
+	/// Gets the token at the position without taking into account trivia.
+	/// </summary>
+	public SyntaxToken? GetTokenAt(SyntaxNode node, LinePosition linePosition)
+	{
+		foreach (var token in node.ChildTokens)
+		{
+			if (token.Span.Line.Contains(linePosition))
+			{
+				return token;
+			}
+			else if (token.Span.Line.Start > linePosition)
+			{
+				break;
+			}
+		}
+		return null;
+	}
+
 	private SyntaxNode? GetNodeAtRecursive(SyntaxNode node, LinePosition linePosition)
 	{
 		foreach (var childNode in node.ChildNodes)
@@ -58,7 +77,12 @@ public class SurabSolver(
 		var sourceFile = GetSourceFile(textDocument)!;
 		var reasoner = Project.GetReasoner(sourceFile);
 		var linePosition = ConversionHelper.FromTo(position);
-		var node = GetNodeAt(sourceFile, linePosition)!;
+		var node = GetNodeAt(sourceFile, linePosition);
+		if (node == null)
+			return (null, null);
+		var token = GetTokenAt(node, linePosition);
+		if (token == null)
+			return (null, null);
 		var type = default(TypeSymbol?);
 		var symbol = reasoner.GetDeclaredSymbol(node) ?? reasoner.LookupSymbol(node);
 		if (symbol is TypeSymbol typeSymbol)
@@ -86,7 +110,12 @@ public class SurabSolver(
 		var sourceFile = GetSourceFile(textDocument)!;
 		var reasoner = Project.GetReasoner(sourceFile);
 		var linePosition = ConversionHelper.FromTo(position);
-		var node = GetNodeAt(sourceFile, linePosition)!;
+		var node = GetNodeAt(sourceFile, linePosition);
+		if (node == null)
+			return null;
+		var token = GetTokenAt(node, linePosition);
+		if (token == null)
+			return null;
 		var symbol = reasoner.LookupSymbol(node);
 		if (symbol != null)
 		{
