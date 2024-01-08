@@ -171,11 +171,12 @@ public class SemanticTokensFullHandler(
 					{
 						builder.SetType(identifierToken.Parent switch
 						{
+							ConstDeclNode => SemanticTokenType.Variable,
+							VarDeclNode => SemanticTokenType.Variable,
 							FnSigNode sig => sig.Parent is FnDeclNode ? (SemanticTokenType?)SemanticTokenType.Function : SemanticTokenType.Method,
 							StructDeclNode or StructCreationExprNode => SemanticTokenType.Struct,
 							FieldDeclNode => SemanticTokenType.Property,
 							ParamNode => SemanticTokenType.Parameter,
-							VarStmtNode => SemanticTokenType.Variable,
 							NamedTypeNode => SemanticTokenType.Type,
 							AttrNode => SemanticTokenType.Decorator,
 							_ => null,

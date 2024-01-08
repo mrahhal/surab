@@ -55,8 +55,8 @@ public class ReasonerTests
 			""";
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
-		var varStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Skip(1).Single();
-		var accessExpr = varStmt.Initializer!.Expr;
+		var varDecl = tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(1);
+		var accessExpr = varDecl.Initializer!.Expr;
 		var fieldSymbol = reasoner.LookupSymbol(accessExpr);
 
 		fieldSymbol.Should().NotBeNull().And.BeAssignableTo<FieldSymbol>();
@@ -71,8 +71,8 @@ public class ReasonerTests
 			""";
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
-		var varStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Single();
-		var structCreationExpr = (StructCreationExprNode)varStmt.Initializer!.Expr;
+		var varDecl = tree.Root.DescendantNodes().OfType<VarDeclNode>().Single();
+		var structCreationExpr = (StructCreationExprNode)varDecl.Initializer!.Expr;
 		var mapInitializer = structCreationExpr.MapInitializer;
 
 		var fieldSymbol = reasoner.LookupSymbol(mapInitializer.WellFormedExprs.ElementAt(0).Lhs);
@@ -147,8 +147,8 @@ public class ReasonerTests
 			""";
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
-		var letStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Single();
-		var initializerSymbol = reasoner.LookupType(letStmt.Initializer!);
+		var varDecl = tree.Root.DescendantNodes().OfType<VarDeclNode>().Single();
+		var initializerSymbol = reasoner.LookupType(varDecl.Initializer!);
 		initializerSymbol.KnownTypeTag.Should().Be(KnownTypeTag.i32);
 	}
 
@@ -254,8 +254,8 @@ public class ReasonerTests
 			""";
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
-		var varStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Skip(1).Single();
-		var accessExpr = varStmt.Initializer!.Expr;
+		var varDecl = tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(1);
+		var accessExpr = varDecl.Initializer!.Expr;
 		var fieldType = reasoner.LookupType(accessExpr);
 		fieldType.Should().NotBeNull();
 		fieldType.KnownTypeTag.Should().Be(KnownTypeTag.i32);
@@ -269,8 +269,8 @@ public class ReasonerTests
 			""";
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
-		var varStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Single();
-		var literalExpr = varStmt.Initializer!.Expr;
+		var varDecl = tree.Root.DescendantNodes().OfType<VarDeclNode>().Single();
+		var literalExpr = varDecl.Initializer!.Expr;
 		var numericType = reasoner.LookupType(literalExpr);
 		numericType.KnownTypeTag.Should().Be(KnownTypeTag.f32);
 	}
@@ -287,9 +287,9 @@ public class ReasonerTests
 			""";
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
-		var aType = ((LocalSymbol)reasoner.GetDeclaredSymbol(tree.Root.DescendantNodes().OfType<VarStmtNode>().ElementAt(0))!).Type;
-		var bType = ((LocalSymbol)reasoner.GetDeclaredSymbol(tree.Root.DescendantNodes().OfType<VarStmtNode>().ElementAt(1))!).Type;
-		var cType = ((LocalSymbol)reasoner.GetDeclaredSymbol(tree.Root.DescendantNodes().OfType<VarStmtNode>().ElementAt(2))!).Type;
+		var aType = ((LocalSymbol)reasoner.GetDeclaredSymbol(tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(0))!).Type;
+		var bType = ((LocalSymbol)reasoner.GetDeclaredSymbol(tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(1))!).Type;
+		var cType = ((LocalSymbol)reasoner.GetDeclaredSymbol(tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(2))!).Type;
 
 		aType.KnownTypeTag.Should().Be(KnownTypeTag.i32);
 		bType.Should().BeOfType<PtrTypeSymbol>().Subject.InnerType!.KnownTypeTag.Should().Be(KnownTypeTag.i32);
@@ -314,8 +314,8 @@ public class ReasonerTests
 			""";
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
-		var aType = ((LocalSymbol)reasoner.GetDeclaredSymbol(tree.Root.DescendantNodes().OfType<VarStmtNode>().ElementAt(1))!).Type;
-		var bType = ((LocalSymbol)reasoner.GetDeclaredSymbol(tree.Root.DescendantNodes().OfType<VarStmtNode>().ElementAt(3))!).Type;
+		var aType = ((LocalSymbol)reasoner.GetDeclaredSymbol(tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(1))!).Type;
+		var bType = ((LocalSymbol)reasoner.GetDeclaredSymbol(tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(3))!).Type;
 
 		aType.KnownTypeTag.Should().Be(KnownTypeTag.i32);
 		bType.KnownTypeTag.Should().Be(KnownTypeTag.i32);
@@ -331,8 +331,8 @@ public class ReasonerTests
 			""";
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
-		var letStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Single();
-		reasoner.TryGetDeclaredSymbol(letStmt, out var symbol).Should().BeTrue();
+		var varDecl = tree.Root.DescendantNodes().OfType<VarDeclNode>().Single();
+		reasoner.TryGetDeclaredSymbol(varDecl, out var symbol).Should().BeTrue();
 		var localSymbol = (LocalSymbol)symbol!;
 		localSymbol.Type.Should().BeOfType<UnknownTypeSymbol>();
 		localSymbol.IsTypeInferred.Should().BeFalse();
@@ -370,8 +370,8 @@ public class ReasonerTests
 	{
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
-		var letStmt = tree.Root.DescendantNodes().OfType<VarStmtNode>().Single();
-		reasoner.TryGetDeclaredSymbol(letStmt, out var symbol).Should().BeTrue();
+		var varDecl = tree.Root.DescendantNodes().OfType<VarDeclNode>().Single();
+		reasoner.TryGetDeclaredSymbol(varDecl, out var symbol).Should().BeTrue();
 		var localSymbol = symbol.Should().BeOfType<LocalSymbol>().Subject;
 		localSymbol.Type.KnownTypeTag.Should().Be(expectedTypeTag);
 		localSymbol.IsTypeInferred.Should().BeTrue();
@@ -439,7 +439,7 @@ public class ReasonerTests
 
 		TypeSymbol GetTypeAt(int index)
 		{
-			var a1Node = tree.Root.DescendantNodes().OfType<VarStmtNode>().ElementAt(index);
+			var a1Node = tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(index);
 			return ((LocalSymbol)reasoner.GetDeclaredSymbol(a1Node)!).Type;
 		}
 	}
@@ -498,11 +498,11 @@ public class ReasonerTests
 			""";
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
-		var f1Node = tree.Root.DescendantNodes().OfType<VarStmtNode>().ElementAt(0);
+		var f1Node = tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(0);
 		var f1Symbol = (LocalSymbol)reasoner.GetDeclaredSymbol(f1Node)!;
-		var f2Node = tree.Root.DescendantNodes().OfType<VarStmtNode>().ElementAt(1);
+		var f2Node = tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(1);
 		var f2Symbol = (LocalSymbol)reasoner.GetDeclaredSymbol(f2Node)!;
-		var f3Node = tree.Root.DescendantNodes().OfType<VarStmtNode>().ElementAt(2);
+		var f3Node = tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(2);
 		var f3Symbol = (LocalSymbol)reasoner.GetDeclaredSymbol(f3Node)!;
 
 		f1Symbol.Type.Should().BeOfType<FnTypeSymbol>();
@@ -525,9 +525,9 @@ public class ReasonerTests
 			""";
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
-		var f1Node = tree.Root.DescendantNodes().OfType<VarStmtNode>().ElementAt(0);
+		var f1Node = tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(0);
 		var f1Symbol = (LocalSymbol)reasoner.GetDeclaredSymbol(f1Node)!;
-		var f2Node = tree.Root.DescendantNodes().OfType<VarStmtNode>().ElementAt(1);
+		var f2Node = tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(1);
 		var f2Symbol = (LocalSymbol)reasoner.GetDeclaredSymbol(f2Node)!;
 
 		f1Symbol.Type.IsAssignableFrom(f2Symbol.Type).Should().BeTrue();

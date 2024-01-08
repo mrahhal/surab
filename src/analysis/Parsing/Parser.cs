@@ -530,6 +530,7 @@ internal class ParserImpl
 		return _current?.Kind switch
 		{
 			TokenKind.Const => ParseConstDecl(attrs),
+			TokenKind.Var => ParseVarDecl(attrs),
 			TokenKind.Fn => ParseFnDecl(attrs),
 			TokenKind.Struct => ParseStructDecl(attrs),
 			TokenKind.Class => ParseClassDecl(attrs),
@@ -571,6 +572,20 @@ internal class ParserImpl
 		var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
 		return new ConstDeclNode(_tree, attrs, constToken, identifier, type, initializer, semicolonToken);
+	}
+
+	/// <summary>
+	/// Parses `var a: Type = expr;`
+	/// </summary>
+	private DeclNode ParseVarDecl(AttrsListNode? attrs)
+	{
+		var varToken = EatAssertedSimpleToken(TokenKind.Var);
+		var identifier = ParseIdentifier();
+		var type = ParseOptionalColonType();
+		var initializer = ParseOptionalEqualsExprClause();
+		var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
+
+		return new VarDeclNode(_tree, attrs, varToken, identifier, type, initializer, semicolonToken);
 	}
 
 	/// <summary>
@@ -695,27 +710,13 @@ internal class ParserImpl
 
 		return _current?.Kind switch
 		{
-			TokenKind.Var => ParseVarStmt(),
 			TokenKind.Return => ParseReturnStmt(),
+			_ when _current != null && _current.Kind.CanStartDecl() => ParseDeclStmt(),
 			_ when _current != null && _current.Kind.CanStartExpr() => ParseExprStmt(),
 
 			// We have no idea what the shape is, so do stmt level recovery.
 			_ => RecoverStmt(),
 		};
-	}
-
-	/// <summary>
-	/// Parses `var a: Type = expr;`
-	/// </summary>
-	private StmtNode ParseVarStmt()
-	{
-		var varToken = EatAssertedSimpleToken(TokenKind.Var);
-		var identifier = ParseIdentifier();
-		var type = ParseOptionalColonType();
-		var initializer = ParseOptionalEqualsExprClause();
-		var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
-
-		return new VarStmtNode(_tree, varToken, identifier, type, initializer, semicolonToken);
 	}
 
 	/// <summary>
@@ -738,6 +739,17 @@ internal class ParserImpl
 		}
 
 		return new ReturnStmtNode(_tree, returnToken, expr, semicolonToken);
+	}
+
+	/// <summary>
+	/// Parses a local decl stmt.
+	/// Requirements: current can start decl.
+	/// </summary>
+	private StmtNode ParseDeclStmt()
+	{
+		var decl = ParseDecl();
+
+		return new DeclStmtNode(_tree, decl);
 	}
 
 	/// <summary>

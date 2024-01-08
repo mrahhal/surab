@@ -30,13 +30,14 @@ internal class Lowerer
 		{
 			FileNode n => Lower(n),
 			//ConstDeclNode n => Lower(n),
+			VarDeclNode n => Lower(n),
 			FnDeclNode n => Lower(n),
 			MethodDeclNode n => Lower(n),
 			StructDeclNode n => Lower(n),
 			//ClassDeclNode n => Lower(n),
 			AliasDeclNode n => new LoweredElidedDecl(n),
-			VarStmtNode n => Lower(n),
 			ReturnStmtNode n => Lower(n),
+			DeclStmtNode n => Lower(n.Decl),
 			ExprStmtNode n => Lower(n),
 			GroupingExprNode n => Lower(n.Expr),
 			BareExprStmtNode n => Lower(n),
@@ -100,7 +101,7 @@ internal class Lowerer
 			LowerWithCast(node.Members.OfType<MethodDeclNode>()));
 	}
 
-	private LoweredNode Lower(VarStmtNode node)
+	private LoweredNode Lower(VarDeclNode node)
 	{
 		var symbol = _reasoner.GetDeclaredSymbol(node) as LocalSymbol;
 		Debug.Assert(symbol != null);
@@ -121,11 +122,10 @@ internal class Lowerer
 
 		return new LoweredStmtList(
 			node,
-			new[]
-			{
+			[
 				variableStmt,
 				storeStmt,
-			});
+			]);
 	}
 
 	private LoweredNode Lower(ReturnStmtNode node)

@@ -11,6 +11,7 @@ public enum SyntaxNodeKind
 	ImportsList,
 	Import,
 	ConstDecl,
+	VarDecl,
 	FnDecl,
 	MethodDecl,
 	AliasDecl,
@@ -19,7 +20,7 @@ public enum SyntaxNodeKind
 	DeclsList,
 	FieldDecl,
 	SkippedTokensDecl,
-	VarStmt,
+	DeclStmt,
 	ReturnStmt,
 	ExprStmt,
 	BareExprStmt,
@@ -146,6 +147,31 @@ public partial class ConstDeclNode : DeclNode, ISyntaxNodeHasMainIdentifier
 	public override void Accept(SyntaxTreeVisitor visitor)
 	{
 		visitor.VisitConstDecl(this);
+	}
+}
+
+public partial class VarDeclNode : DeclNode, ISyntaxNodeHasMainIdentifier
+{
+	public VarDeclNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken varToken, IdentifierToken identifier, ColonTypeNode? type, EqualsExprClauseNode? initializer, SimpleToken semicolonToken)
+		: base(tree, SyntaxNodeKind.VarDecl)
+	{
+		_childTokens = new() { varToken, identifier, semicolonToken, };
+		_childNodes = new() { attrs, type, initializer, };
+
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		SetChildrenParent();
+	}
+
+	public AttrsListNode? Attrs => (AttrsListNode?)_childNodes[0]!;
+	public SimpleToken VarToken => (SimpleToken)_childTokens[0]!;
+	public IdentifierToken Identifier => (IdentifierToken)_childTokens[1]!;
+	public ColonTypeNode? Type => (ColonTypeNode?)_childNodes[1]!;
+	public EqualsExprClauseNode? Initializer => (EqualsExprClauseNode?)_childNodes[2]!;
+	public SimpleToken SemicolonToken => (SimpleToken)_childTokens[2]!;
+
+	public override void Accept(SyntaxTreeVisitor visitor)
+	{
+		visitor.VisitVarDecl(this);
 	}
 }
 
@@ -338,27 +364,23 @@ public partial class SkippedTokensDeclNode : DeclNode
 	}
 }
 
-public partial class VarStmtNode : StmtNode, ISyntaxNodeHasMainIdentifier
+public partial class DeclStmtNode : StmtNode
 {
-	public VarStmtNode(SyntaxTree tree, SimpleToken varToken, IdentifierToken identifier, ColonTypeNode? type, EqualsExprClauseNode? initializer, SimpleToken semicolonToken)
-		: base(tree, SyntaxNodeKind.VarStmt)
+	public DeclStmtNode(SyntaxTree tree, DeclNode decl)
+		: base(tree, SyntaxNodeKind.DeclStmt)
 	{
-		_childTokens = new() { varToken, identifier, semicolonToken, };
-		_childNodes = new() { type, initializer, };
+		_childTokens = new();
+		_childNodes = new() { decl, };
 
 		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
-	public SimpleToken VarToken => (SimpleToken)_childTokens[0]!;
-	public IdentifierToken Identifier => (IdentifierToken)_childTokens[1]!;
-	public ColonTypeNode? Type => (ColonTypeNode?)_childNodes[0]!;
-	public EqualsExprClauseNode? Initializer => (EqualsExprClauseNode?)_childNodes[1]!;
-	public SimpleToken SemicolonToken => (SimpleToken)_childTokens[2]!;
+	public DeclNode Decl => (DeclNode)_childNodes[0]!;
 
 	public override void Accept(SyntaxTreeVisitor visitor)
 	{
-		visitor.VisitVarStmt(this);
+		visitor.VisitDeclStmt(this);
 	}
 }
 

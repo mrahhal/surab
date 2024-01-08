@@ -27,6 +27,11 @@ public abstract partial class SyntaxTreeVisitor
 		Walk(node);
 	}
 
+	public virtual void VisitVarDecl(VarDeclNode node)
+	{
+		Walk(node);
+	}
+
 	public virtual void VisitFnDecl(FnDeclNode node)
 	{
 		Walk(node);
@@ -67,7 +72,7 @@ public abstract partial class SyntaxTreeVisitor
 		Walk(node);
 	}
 
-	public virtual void VisitVarStmt(VarStmtNode node)
+	public virtual void VisitDeclStmt(DeclStmtNode node)
 	{
 		Walk(node);
 	}

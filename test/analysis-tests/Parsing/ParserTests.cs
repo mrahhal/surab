@@ -98,7 +98,7 @@ public class ParserTests
 	public void Decl_Fn_Faulty()
 	{
 		var src = "fn some()";
-		var node = ParseDecl(src).Should().NotBeNull();
+		ParseDecl(src).Should().NotBeNull();
 	}
 
 	[Fact]
@@ -119,13 +119,13 @@ public class ParserTests
 			}
 			""";
 		var node = ParseDecl(src);
-		var varStmt1 = node.DescendantNodes().OfType<VarStmtNode>().ElementAt(0);
+		var varStmt1 = node.DescendantNodes().OfType<VarDeclNode>().ElementAt(0);
 		var ptrTypeNode1 = varStmt1.Type!.Type.Should().BeOfType<PtrTypeNode>().Subject;
 		ptrTypeNode1.InnerType.Should().BeOfType<NamedTypeNode>();
-		var varStmt2 = node.DescendantNodes().OfType<VarStmtNode>().ElementAt(1);
+		var varStmt2 = node.DescendantNodes().OfType<VarDeclNode>().ElementAt(1);
 		var ptrTypeNode2 = varStmt2.Type!.Type.Should().BeOfType<PtrTypeNode>().Subject;
 		ptrTypeNode2.InnerType.Should().BeOfType<FnTypeNode>();
-		var varStmt3 = node.DescendantNodes().OfType<VarStmtNode>().ElementAt(2);
+		var varStmt3 = node.DescendantNodes().OfType<VarDeclNode>().ElementAt(2);
 		var ptrTypeNode3 = varStmt3.Type!.Type.Should().BeOfType<PtrTypeNode>().Subject;
 		ptrTypeNode3.InnerType.Should().BeNull();
 	}
@@ -134,7 +134,7 @@ public class ParserTests
 	public void FnType()
 	{
 		var src = "var f: fn (i32, i32) i64;";
-		var node = ParseStmt(src).Should().BeOfType<VarStmtNode>().Subject;
+		var node = ParseDecl(src).Should().BeOfType<VarDeclNode>().Subject;
 		var fnTypeNode = node.Type!.Type.Should().BeOfType<FnTypeNode>().Subject;
 		var paramTypes = fnTypeNode.ParamTypes!;
 		paramTypes.Should().HaveCount(2);
@@ -149,7 +149,7 @@ public class ParserTests
 	public void FnTypeWithAttrs()
 	{
 		var src = "var f: @extern fn (i32, i32) i64;";
-		var node = ParseStmt(src).Should().BeOfType<VarStmtNode>().Subject;
+		var node = ParseDecl(src).Should().BeOfType<VarDeclNode>().Subject;
 		var fnTypeNode = node.Type!.Type.Should().BeOfType<FnTypeNode>().Subject;
 		fnTypeNode.ParamTypes!.Should().HaveCount(2);
 		fnTypeNode.Attrs.Should().NotBeNull();
@@ -253,7 +253,7 @@ public class ParserTests
 	public void Stmt_Var_1()
 	{
 		var src = "var a = 2;";
-		var node = ParseStmt(src).Should().BeOfType<VarStmtNode>().Subject;
+		var node = ParseDecl(src).Should().BeOfType<VarDeclNode>().Subject;
 		node.Type.Should().BeNull();
 	}
 
@@ -261,7 +261,7 @@ public class ParserTests
 	public void Stmt_Var_2()
 	{
 		var src = "var a: u32 = 2;";
-		var node = ParseStmt(src).Should().BeOfType<VarStmtNode>().Subject;
+		var node = ParseDecl(src).Should().BeOfType<VarDeclNode>().Subject;
 		node.Type.Should().NotBeNull();
 	}
 
@@ -269,7 +269,7 @@ public class ParserTests
 	public void Stmt_Var_MissingInitializer()
 	{
 		var src = "var a: u32;";
-		var node = ParseStmt(src).Should().BeOfType<VarStmtNode>().Subject;
+		var node = ParseDecl(src).Should().BeOfType<VarDeclNode>().Subject;
 		node.Type.Should().NotBeNull();
 		node.Initializer.Should().BeNull();
 	}
@@ -278,7 +278,7 @@ public class ParserTests
 	public void Stmt_Var_MissingTyAndInitializer()
 	{
 		var src = "var a;";
-		var node = ParseStmt(src).Should().BeOfType<VarStmtNode>().Subject;
+		var node = ParseDecl(src).Should().BeOfType<VarDeclNode>().Subject;
 		node.Type.Should().BeNull();
 		node.Initializer.Should().BeNull();
 	}
@@ -634,7 +634,7 @@ public class ParserTests
 	public void BlockAsExpr()
 	{
 		var src = "var a = { 2 };";
-		var node = ParseStmt(src).Should().BeOfType<VarStmtNode>().Subject;
+		var node = ParseDecl(src).Should().BeOfType<VarDeclNode>().Subject;
 		var block = node.Initializer!.Expr.Should().BeOfType<BlockExprNode>().Subject;
 		block.Stmts.Should().HaveCount(1);
 		var bareExpr = block.Stmts.ElementAt(0).Should().BeOfType<BareExprStmtNode>().Subject;

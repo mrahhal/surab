@@ -237,18 +237,23 @@ public static class TokenKindExtensions
 	public static bool CanStartAttribute(this TokenKind kind) => kind is
 		AtBeforeIdentifier;
 
+	/// <summary>
+	/// Returns if the token can start a decl.
+	/// Note that this doesn't include member decls as those have their own contextual parsing.
+	/// </summary>
 	public static bool CanStartDecl(this TokenKind kind) => kind is
 		Const or
+		Var or
 		Fn or
 		Struct or
 		Class or
-		Alias or
-		Identifier ||
-		CanStartAttribute(kind); // While an attribute isn't a part of the decl in the structural sense, we need to account for it here.
+		Alias ||
+		CanStartAttribute(kind);
 
 	public static bool CanStartStmt(this TokenKind kind) =>
+		kind.CanStartDecl() ||
 		kind.CanStartExpr() ||
-		kind is Var or Return;
+		kind is Return;
 
 	public static bool CanStartExpr(this TokenKind kind) =>
 		kind.IsUnary() ||

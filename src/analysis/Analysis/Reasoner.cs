@@ -40,19 +40,20 @@ public class Reasoner
 	}
 
 	/// <summary>
-	/// Tries getting a <see cref="Symbol"/> that is declared directly on the given node.
+	/// Tries getting a <see cref="Symbol"/> that is declared on the given node.
 	/// </summary>
 	public bool TryGetDeclaredSymbol(SyntaxNode node, [NotNullWhen(true)] out Symbol? symbol)
 	{
 		return node switch
 		{
+			DeclStmtNode declStmt => TryGetDeclaredSymbol(declStmt.Decl, out symbol),
 			FnSigNode sig when sig.Parent != null => TryGetDeclaredSymbol(sig.Parent, out symbol),
 			_ => _nodeToSymbolMap.TryGetValue(node, out symbol),
 		};
 	}
 
 	/// <summary>
-	/// Gets a <see cref="Symbol"/> that is declared directly on the given node.
+	/// Gets a <see cref="Symbol"/> that is declared on the given node.
 	/// Returns null if there's no declared symbol.
 	/// </summary>
 	public Symbol? GetDeclaredSymbol(SyntaxNode node)
@@ -430,7 +431,7 @@ public class Reasoner
 	{
 		return node switch
 		{
-			VarStmtNode varStmt => LookupType(varStmt.Initializer),
+			VarDeclNode varDecl => LookupType(varDecl.Initializer),
 			FieldDeclNode fieldDecl => LookupType(fieldDecl.Initializer),
 			_ => null,
 		};
@@ -675,15 +676,18 @@ public class Reasoner
 
 			symbol = node switch
 			{
+				// This is very important to have here so that the decl stmt can get the symbol that gets provided
+				// to the scope creation below. (i.e. We need the LocalSymbol for the scope created on VarDeclNode when the current node is DeclStmtNode)
+				DeclStmtNode n => GetOrCreateSymbolOnNode(n.Decl),
+
 				ConstDeclNode n => new ConstSymbol(_reasoner, n),
+				VarDeclNode n => new LocalSymbol(_reasoner, n),
 				FnDeclNode n => new FnSymbol(_reasoner, n.Sig),
 				MethodDeclNode n => new FnSymbol(_reasoner, n.Sig),
 				FieldDeclNode n => new FieldSymbolImpl(_reasoner, n, _typeContext == null ? -1 : _typeContext.FieldCounter++),
 				StructDeclNode n => new StructTypeSymbol(_reasoner, n),
 				ClassDeclNode n => new ClassTypeSymbol(_reasoner, n),
 				AliasDeclNode n => new AliasTypeSymbol(_reasoner, n),
-
-				VarStmtNode n => new LocalSymbol(_reasoner, n),
 
 				ParamNode n => new ParamSymbol(_reasoner, n),
 
@@ -715,14 +719,19 @@ public class Reasoner
 			return node switch
 			{
 				FileNode n => CreateFileScope(n),
+
+				// This is very important to have here so that the decls inside can create a scope on this level.
+				// If we wait until we go deeper, we'll create scopes with smaller lifetimes.
+				DeclStmtNode n => CreateScopeOnNode(n.Decl, symbol),
+
+				// TODO: const?
+
+				// Create a new local scope on each new var that will live until the end of the enclosing block.
+				VarDeclNode => new LocalScope((LocalSymbol)symbol!),
 				StructDeclNode n => new StructDeclScope(n, (StructTypeSymbol)symbol!),
 				ClassDeclNode n => new ClassDeclScope(n, (NamedTypeSymbol)symbol!),
 				FnDeclNode n => new FnScope(n.Sig, (FnSymbol)symbol!),
 				MethodDeclNode n => new FnScope(n.Sig, (FnSymbol)symbol!),
-
-				// Create a new local scope on each new var that will leave until the end of the enclosing block.
-				VarStmtNode => new LocalScope((LocalSymbol)symbol!),
-				// TODO: const?
 
 				_ => null,
 			};

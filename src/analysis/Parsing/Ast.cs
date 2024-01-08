@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace Surab.Analysis;
 
@@ -820,7 +821,7 @@ public abstract class SyntaxNode : SyntaxEntity
 	/// </summary>
 	public bool DeclaresSymbol()
 	{
-		return this is DeclNode or VarStmtNode or ParamNode;
+		return this is DeclNode or DeclStmtNode or ParamNode;
 	}
 }
 
@@ -973,6 +974,35 @@ public static class AttrsListNodeExtensions
 	}
 }
 
+public static class SyntaxNodeKindExtensions
+{
+	/// <summary>
+	/// Returns if the node is <see cref="FnDeclNode"/> or <see cref="MethodDeclNode"/>.
+	/// </summary>
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static bool IsFnOrMethod(this SyntaxNodeKind kind) => kind is
+		SyntaxNodeKind.FnDecl or
+		SyntaxNodeKind.MethodDecl;
+
+	/// <summary>
+	/// Returns if the node can contain executable code (i.e. a function, a method, etc).
+	/// </summary>
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static bool CanContainExecutableCode(this SyntaxNodeKind kind) => kind.IsFnOrMethod();
+
+	/// <summary>
+	/// Returns if the node is a logical enclosure, which is one of the following node types:
+	/// <see cref="StructDeclNode"/>, <see cref="ClassDeclNode"/>, <see cref="FnDeclNode"/>, <see cref="MethodDeclNode"/>
+	/// </summary>
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static bool IsLogicalEnclosure(this SyntaxNodeKind kind) => kind is
+		// TODO: Add lambdas.
+		SyntaxNodeKind.StructDecl or
+		SyntaxNodeKind.ClassDecl or
+		SyntaxNodeKind.FnDecl or
+		SyntaxNodeKind.MethodDecl;
+}
+
 public static class SyntaxNodeExtensions
 {
 	public static IdentifierToken? GetMainIdentifierToken(this SyntaxNode? node)
@@ -984,5 +1014,15 @@ public static class SyntaxNodeExtensions
 			MethodDeclNode n => GetMainIdentifierToken(n.Sig),
 			_ => null,
 		};
+	}
+
+	/// <summary>
+	/// Climbs up and returns the first logical enclosure node encountered.
+	/// </summary>
+	public static SyntaxNode? GetLogicalEnclosure(this SyntaxNode? node)
+	{
+		return node?.Ancestors()
+			.Where(x => x.Kind.IsLogicalEnclosure())
+			.FirstOrDefault();
 	}
 }

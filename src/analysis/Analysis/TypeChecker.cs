@@ -45,6 +45,28 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		base.VisitConstDecl(node);
 	}
 
+	public override void VisitVarDecl(VarDeclNode node)
+	{
+		var logicalEnclosure = node.GetLogicalEnclosure();
+		if (logicalEnclosure == null || !logicalEnclosure.Kind.CanContainExecutableCode())
+		{
+			_diagnostics.Add(TextSpan.FromTo(node.VarToken.Span, node.Identifier.Span), DiagnosticLevel.Error, $"invalid context for a var declaration");
+			return;
+		}
+
+		var lhsSymbol = (LocalSymbol)_reasoner.GetDeclaredSymbol(node)!;
+		var lhsType = lhsSymbol.Type;
+
+		if (node.Initializer != null)
+		{
+			var rhsType = _reasoner.LookupType(node.Initializer.Expr);
+
+			AnalyzeAssignment(node, lhsType, rhsType);
+		}
+
+		base.VisitVarDecl(node);
+	}
+
 	public override void VisitFnDecl(FnDeclNode node)
 	{
 		VerifyDeclIsTopLevel(node);
@@ -189,21 +211,6 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		}
 
 		base.VisitBareExprStmt(node);
-	}
-
-	public override void VisitVarStmt(VarStmtNode node)
-	{
-		var lhsSymbol = (LocalSymbol)_reasoner.GetDeclaredSymbol(node)!;
-		var lhsType = lhsSymbol.Type;
-
-		if (node.Initializer != null)
-		{
-			var rhsType = _reasoner.LookupType(node.Initializer.Expr);
-
-			AnalyzeAssignment(node, lhsType, rhsType);
-		}
-
-		base.VisitVarStmt(node);
 	}
 
 	public override void VisitAssignmentExpr(AssignmentExprNode node)

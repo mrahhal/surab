@@ -41,10 +41,6 @@ file class LocalVariableStmtsCollector : LoweredTreeVisitor
 
 	public override void VisitVariableStmt(LoweredVariableStmt node)
 	{
-		// TODO: Is this always true?
-		if (node.Symbol is LocalSymbol)
-		{
-			_stmts.Add(node);
-		}
+		_stmts.Add(node);
 	}
 }

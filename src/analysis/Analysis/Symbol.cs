@@ -131,6 +131,35 @@ public sealed class ConstSymbol : Symbol, ISymbolHasType
 	}
 }
 
+public sealed class LocalSymbol : Symbol, ISymbolHasType
+{
+	private readonly VarDeclNode _node;
+	private ResolvedType? _type;
+
+	internal LocalSymbol(Reasoner reasoner, VarDeclNode node)
+		: base(SymbolKind.Local, reasoner, node)
+	{
+		_node = node;
+		Identifier = _node.Identifier;
+	}
+
+	public new VarDeclNode DeclaringNode => _node;
+
+	internal new Scope Scope => base.Scope!;
+
+	/// <summary>
+	/// The type of the local.
+	/// </summary>
+	public TypeSymbol Type => EnsureResolveType().Type;
+
+	public bool IsTypeInferred => EnsureResolveType().IsInferred;
+
+	private ResolvedType EnsureResolveType()
+	{
+		return _type ??= Scope.ResolveType(_node, _node.Type);
+	}
+}
+
 public sealed class FnSymbol : Symbol, ISymbolHasType
 {
 	private readonly FnSigNode _node;
@@ -404,35 +433,6 @@ public sealed class ParamSymbol : Symbol, ISymbolHasType
 
 	// Param type is always typed.
 	public bool IsTypeInferred => false;
-}
-
-public sealed class LocalSymbol : Symbol, ISymbolHasType
-{
-	private readonly VarStmtNode _node;
-	private ResolvedType? _type;
-
-	internal LocalSymbol(Reasoner reasoner, VarStmtNode node)
-		: base(SymbolKind.Local, reasoner, node)
-	{
-		_node = node;
-		Identifier = _node.Identifier;
-	}
-
-	public new VarStmtNode DeclaringNode => _node;
-
-	internal new Scope Scope => base.Scope!;
-
-	/// <summary>
-	/// The type of the local.
-	/// </summary>
-	public TypeSymbol Type => EnsureResolveType().Type;
-
-	public bool IsTypeInferred => EnsureResolveType().IsInferred;
-
-	private ResolvedType EnsureResolveType()
-	{
-		return _type ??= Scope.ResolveType(_node, _node.Type);
-	}
 }
 
 [DebuggerDisplay("{ToString()}")]

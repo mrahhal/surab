@@ -76,6 +76,39 @@
 			]
 		},
 		{
+			"Name": "VarDecl",
+			"Base": "DeclNode",
+			"Members": [
+				{
+					"Name": "attrs",
+					"Type": "AttrsListNode",
+					"Optional": true
+				},
+				{
+					"Name": "varToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "identifier",
+					"Type": "IdentifierToken"
+				},
+				{
+					"Name": "type",
+					"Type": "ColonTypeNode",
+					"Optional": true
+				},
+				{
+					"Name": "initializer",
+					"Type": "EqualsExprClauseNode",
+					"optional": true
+				},
+				{
+					"Name": "semicolonToken",
+					"Type": "SimpleToken"
+				}
+			]
+		},
+		{
 			"Name": "FnDecl",
 			"Base": "DeclNode",
 			"Members": [
@@ -274,30 +307,12 @@
 			]
 		},
 		{
-			"Name": "VarStmt",
+			"Name": "DeclStmt",
 			"Base": "StmtNode",
 			"Members": [
 				{
-					"Name": "varToken",
-					"Type": "SimpleToken"
-				},
-				{
-					"Name": "identifier",
-					"Type": "IdentifierToken"
-				},
-				{
-					"Name": "type",
-					"Type": "ColonTypeNode",
-					"Optional": true
-				},
-				{
-					"Name": "initializer",
-					"Type": "EqualsExprClauseNode",
-					"optional": true
-				},
-				{
-					"Name": "semicolonToken",
-					"Type": "SimpleToken"
+					"Name": "decl",
+					"Type": "DeclNode"
 				}
 			]
 		},
