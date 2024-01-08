@@ -4,12 +4,14 @@ namespace Surab.Compilation;
 
 internal static class LoweringUtils
 {
-	public static List<LoweredVariableStmt> CollectLocalVariableStmts(LoweredNode node)
+	public static List<LoweredVariableDeclareStmt> CollectLocalVariableDeclareStmts(LoweredNode node)
 	{
-		return LocalVariableStmtsCollector.Collect(node);
+		return LocalVariableDeclareStmtsCollector.Collect(node);
 	}
 
-	// Will skip returning container nodes such as LoweredStmtList and enumerate the children directly.
+	/// <summary>
+	/// Skips container nodes such as <see cref="LoweredStmtList"/> and returns an enumeration of the children directly.
+	/// </summary>
 	public static IEnumerable<LoweredNode> EnumerateUnwrappedDescendants(LoweredNode node, bool includeSelf = false)
 	{
 		if (includeSelf && node is not LoweredStmtList)
@@ -28,18 +30,18 @@ internal static class LoweringUtils
 	}
 }
 
-file class LocalVariableStmtsCollector : LoweredTreeVisitor
+file class LocalVariableDeclareStmtsCollector : LoweredTreeVisitor
 {
-	private readonly List<LoweredVariableStmt> _stmts = [];
+	private readonly List<LoweredVariableDeclareStmt> _stmts = [];
 
-	public static List<LoweredVariableStmt> Collect(LoweredNode node)
+	public static List<LoweredVariableDeclareStmt> Collect(LoweredNode node)
 	{
-		var collector = new LocalVariableStmtsCollector();
+		var collector = new LocalVariableDeclareStmtsCollector();
 		collector.Visit(node);
 		return collector._stmts;
 	}
 
-	public override void VisitVariableStmt(LoweredVariableStmt node)
+	public override void VisitVariableDeclareStmt(LoweredVariableDeclareStmt node)
 	{
 		_stmts.Add(node);
 	}

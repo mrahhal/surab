@@ -263,7 +263,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 	{
 		if (_fnDecl.Body == null) return;
 
-		foreach (var variableStmt in LoweringUtils.CollectLocalVariableStmts(_fnDecl.Body))
+		foreach (var variableStmt in LoweringUtils.CollectLocalVariableDeclareStmts(_fnDecl.Body))
 		{
 			CreateLocal(variableStmt.Symbol);
 		}
@@ -278,7 +278,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 		_stack.Pop();
 	}
 
-	public override void VisitVariableStmt(LoweredVariableStmt node)
+	public override void VisitVariableDeclareStmt(LoweredVariableDeclareStmt node)
 	{
 		// Nothing todo here since these variable stmts are collected and processed at the start of a function
 		// to setup alloca instructions in the entry block.

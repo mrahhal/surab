@@ -58,7 +58,7 @@ public class LowererTests
 		var module = LowerFile(src);
 		var body = LoweringUtils.EnumerateUnwrappedDescendants(module.Decls[1]).ToList();
 		body.Should().HaveCount(2);
-		body[0].Should().BeOfType<LoweredVariableStmt>();
+		body[0].Should().BeOfType<LoweredVariableDeclareStmt>();
 		var storeStmt = body[1].Should().BeOfType<LoweredVariableStoreStmt>().Subject;
 		var storeExprNodes = LoweringUtils.EnumerateUnwrappedDescendants(storeStmt.Expr).ToList();
 

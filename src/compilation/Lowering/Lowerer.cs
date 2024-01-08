@@ -106,7 +106,7 @@ internal class Lowerer
 		var symbol = _reasoner.GetDeclaredSymbol(node) as LocalSymbol;
 		Debug.Assert(symbol != null);
 
-		var variableStmt = (LoweredStmt)new LoweredVariableStmt(
+		var variableStmt = (LoweredStmt)new LoweredVariableDeclareStmt(
 			node,
 			symbol);
 

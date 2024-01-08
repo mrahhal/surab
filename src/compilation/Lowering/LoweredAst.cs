@@ -116,8 +116,8 @@ internal sealed class LoweredStmtList(
 }
 
 // Lowered from local variables, ?
-// Only declares the variable. (i.e `var a: Type;`)
-internal sealed class LoweredVariableStmt(
+// Only declares the variable. (i.e. `var a: Type;`)
+internal sealed class LoweredVariableDeclareStmt(
 	SyntaxNode parsedNode,
 	LocalSymbol symbol) : LoweredStmt(parsedNode)
 {
