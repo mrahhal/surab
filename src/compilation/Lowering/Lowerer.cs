@@ -204,6 +204,7 @@ internal class Lowerer
 
 		// Store and restore previous hoisting bag. Imagine a function inside another function.
 		var prevBag = _varStmtsHoistingBag;
+		_varStmtsHoistingBag = new();
 
 		var (stmts, bareReturnExpr) = LowerBlock(node);
 

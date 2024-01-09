@@ -63,6 +63,26 @@ public class LowererTests
 	}
 
 	[Fact]
+	public void DeclHoisting_FnHoistingDoesNotMessWithVars()
+	{
+		// Used to happen because of a bug. f2 would have the var declare instead of f.
+		var src = """
+			fn f() {
+				var a = 2.0;
+				fn f2() { }
+			}
+			""";
+		var file = LowerFile(src);
+		var decls = file.UnwrapContainers().ToList();
+		decls.Should().HaveCount(2);
+		var fStmts = file.GetFnBody("f");
+		var f2Stmts = file.GetFnBody("f2");
+		f2Stmts.Should().BeEmpty();
+		fStmts[0].Should().BeOfType<LoweredVariableDeclareStmt>();
+		fStmts[1].Should().BeOfType<LoweredVariableStoreStmt>();
+	}
+
+	[Fact]
 	public void BareExprStmtToReturnStmt()
 	{
 		var src = """
