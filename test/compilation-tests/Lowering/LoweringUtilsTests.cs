@@ -15,7 +15,7 @@ public class LoweringUtilsTests
 				new LoweredReturnStmt(null!, null),
 			});
 
-		var list = LoweringUtils.EnumerateUnwrappedDescendants(node).ToList();
+		var list = node.UnwrapContainers().ToList();
 		list.Should().HaveCount(2);
 		list[0].Should().BeOfType<LoweredReturnStmt>();
 		list[1].Should().BeOfType<LoweredReturnStmt>();

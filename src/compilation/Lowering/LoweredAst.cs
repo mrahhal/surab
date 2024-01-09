@@ -37,9 +37,14 @@ internal abstract class LoweredNode(SyntaxNode parsedNode)
 
 		foreach (var child in EnumerateChildren())
 		{
-			if (child != null)
+			yield return child;
+		}
+
+		foreach (var child in EnumerateChildren())
+		{
+			foreach (var item in child.DescendantNodes())
 			{
-				yield return child;
+				yield return item;
 			}
 		}
 	}
@@ -58,9 +63,28 @@ internal abstract class LoweredDecl(SyntaxNode parsedNode) : LoweredNode(parsedN
 {
 }
 
-internal sealed class LoweredElidedDecl(SyntaxNode parsedNode) : LoweredDecl(parsedNode)
+/// <summary>
+/// Represents an elided decl. The parsed node will also be null so this whole elided node shouldn't be used.
+/// </summary>
+internal sealed class LoweredElidedDecl : LoweredDecl
 {
+	private LoweredElidedDecl() : base(null!)
+	{
+	}
+
+	public static LoweredElidedDecl Instance { get; } = new();
+
 	public override IEnumerable<LoweredNode> EnumerateChildren() => [];
+}
+
+// Used when hoisting the different decls.
+internal sealed class LoweredDeclList(
+	SyntaxNode parsedNode,
+	IEnumerable<LoweredDecl> decls) : LoweredDecl(parsedNode)
+{
+	public ImmutableArray<LoweredDecl> Decls { get; } = decls.ToImmutableArray();
+
+	public override IEnumerable<LoweredNode> EnumerateChildren() => [.. Decls];
 }
 
 // Lowered from both functions and methods.
@@ -87,23 +111,34 @@ internal sealed class LoweredFnDecl(
 internal sealed class LoweredTypeDecl(
 	SyntaxNode parsedNode,
 	TypeSymbol typeSymbol,
-	IEnumerable<FieldSymbol> fields,
-	IEnumerable<LoweredDecl> decls) : LoweredDecl(parsedNode)
+	IEnumerable<FieldSymbol> fields) : LoweredDecl(parsedNode)
 {
 	public TypeSymbol TypeSymbol { get; } = typeSymbol;
 
-	// Only includes data members. Behavior (methods) will be their own functions.
+	// Only includes data members. Behavior (methods) will be their own lowered functions (hoisted).
 	public ImmutableArray<FieldSymbol> Fields { get; } = fields.ToImmutableArray();
 
-	public ImmutableArray<LoweredDecl> Decls { get; } = decls.ToImmutableArray();
-
-	public override IEnumerable<LoweredNode> EnumerateChildren() => [.. Decls];
+	public override IEnumerable<LoweredNode> EnumerateChildren() => [];
 
 	public override string ToString() => $"type decl: {TypeSymbol.Name}";
 }
 
 internal abstract class LoweredStmt(SyntaxNode parsedNode) : LoweredNode(parsedNode)
 {
+}
+
+/// <summary>
+/// Represents an elided stmt. The parsed node will also be null so this whole elided node shouldn't be used.
+/// </summary>
+internal sealed class LoweredElidedStmt : LoweredStmt
+{
+	private LoweredElidedStmt() : base(null!)
+	{
+	}
+
+	public static LoweredElidedStmt Instance { get; } = new();
+
+	public override IEnumerable<LoweredNode> EnumerateChildren() => [];
 }
 
 internal sealed class LoweredStmtList(
@@ -333,4 +368,30 @@ internal sealed class LoweredSymbolLoadExpr(
 	public Symbol Symbol { get; } = symbol;
 
 	public override IEnumerable<LoweredNode> EnumerateChildren() => [];
+}
+
+internal static class LoweredNodeExtensions
+{
+	/// <summary>
+	/// Skips container nodes and returns an enumeration of the non container children:
+	/// <see cref="LoweredDeclList"/>, <see cref="LoweredStmtList"/>
+	/// </summary>
+	public static IEnumerable<LoweredNode> UnwrapContainers(this LoweredNode node, bool includeSelf = false)
+	{
+		Debug.Assert(node != null);
+
+		if (includeSelf && node is not LoweredDeclList and not LoweredStmtList)
+		{
+			yield return node;
+			yield break;
+		}
+
+		foreach (var child in node.EnumerateChildren())
+		{
+			foreach (var c in child.UnwrapContainers(includeSelf: true))
+			{
+				yield return c;
+			}
+		}
+	}
 }

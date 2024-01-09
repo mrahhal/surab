@@ -20,6 +20,7 @@ internal abstract partial class LoweredTreeVisitor
 		switch (node)
 		{
 			case LoweredFile n: VisitFile(n); break;
+			case LoweredDeclList n: VisitDeclList(n); break;
 			case LoweredFnDecl n: VisitFnDecl(n); break;
 			case LoweredTypeDecl n: VisitTypeDecl(n); break;
 			case LoweredVariableDeclareStmt n: VisitVariableDeclareStmt(n); break;
@@ -45,6 +46,11 @@ internal abstract partial class LoweredTreeVisitor
 	}
 
 	public virtual void VisitFile(LoweredFile node)
+	{
+		Walk(node);
+	}
+
+	public virtual void VisitDeclList(LoweredDeclList node)
 	{
 		Walk(node);
 	}

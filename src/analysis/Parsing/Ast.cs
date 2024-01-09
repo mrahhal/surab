@@ -953,6 +953,7 @@ public partial class ConstDeclNode
 
 public partial class StructDeclNode
 {
+	// REVIEW: Decls might be a better name. Not all these decls are members (e.g. local decl).
 	public IEnumerable<DeclNode> Members => DeclsList.Decls;
 }
 

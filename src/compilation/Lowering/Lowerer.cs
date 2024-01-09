@@ -7,6 +7,10 @@ internal class Lowerer
 {
 	private readonly Reasoner _reasoner;
 
+	private readonly HoistingBag<LoweredDecl> _declsHoistingBag = new();
+	private HoistingBag<LoweredVariableDeclareStmt> _varStmtsHoistingBag = new();
+	private bool _insideDecl;
+
 	private Lowerer(Reasoner reasoner)
 	{
 		_reasoner = reasoner;
@@ -15,7 +19,9 @@ internal class Lowerer
 	internal static LoweredTree Lower(Reasoner reasoner)
 	{
 		var lowerer = new Lowerer(reasoner);
-		return lowerer.Lower();
+		var tree = lowerer.Lower();
+		lowerer.AssertHoistingBagsAreEmpty();
+		return tree;
 	}
 
 	private LoweredTree Lower()
@@ -35,9 +41,9 @@ internal class Lowerer
 			MethodDeclNode n => Lower(n),
 			StructDeclNode n => Lower(n),
 			//ClassDeclNode n => Lower(n),
-			AliasDeclNode n => new LoweredElidedDecl(n),
+			AliasDeclNode => LoweredElidedDecl.Instance,
 			ReturnStmtNode n => Lower(n),
-			DeclStmtNode n => Lower(n.Decl),
+			DeclStmtNode n => Lower(n),
 			ExprStmtNode n => Lower(n),
 			GroupingExprNode n => Lower(n.Expr),
 			BareExprStmtNode n => Lower(n),
@@ -66,66 +72,80 @@ internal class Lowerer
 			LowerWithCast(node.Decls));
 	}
 
-	private LoweredNode Lower(FnDeclNode node)
-	{
-		var fnSymbol = _reasoner.GetDeclaredSymbol(node) as FnSymbol;
-		Debug.Assert(fnSymbol != null);
-
-		return new LoweredFnDecl(
-			node,
-			fnSymbol,
-			node.Body == null ? null : LowerFnBlock(node.Body));
-	}
-
-	private LoweredNode Lower(MethodDeclNode node)
-	{
-		var fnSymbol = _reasoner.GetDeclaredSymbol(node) as FnSymbol;
-		Debug.Assert(fnSymbol != null);
-
-		return new LoweredFnDecl(
-			node,
-			fnSymbol,
-			node.Body == null ? null : LowerFnBlock(node.Body));
-	}
-
-	private LoweredNode Lower(StructDeclNode node)
-	{
-		var structTypeSymbol = _reasoner.GetDeclaredSymbol(node) as StructTypeSymbol;
-		Debug.Assert(structTypeSymbol != null);
-
-		// TODO: Should support all other member decls.
-		return new LoweredTypeDecl(
-			node,
-			structTypeSymbol,
-			structTypeSymbol.Members.OfType<FieldSymbol>(),
-			LowerWithCast(node.Members.OfType<MethodDeclNode>()));
-	}
-
 	private LoweredNode Lower(VarDeclNode node)
 	{
 		var symbol = _reasoner.GetDeclaredSymbol(node) as LocalSymbol;
 		Debug.Assert(symbol != null);
 
-		var variableStmt = (LoweredStmt)new LoweredVariableDeclareStmt(
+		var variableStmt = new LoweredVariableDeclareStmt(
 			node,
 			symbol);
+		_varStmtsHoistingBag.Hoist(variableStmt);
 
 		if (node.Initializer == null)
 		{
-			return variableStmt;
+			return LoweredElidedStmt.Instance;
 		}
 
-		var storeStmt = new LoweredVariableStoreStmt(
+		return new LoweredVariableStoreStmt(
 			node,
 			symbol,
 			LowerWithCast(node.Initializer.Expr));
+	}
 
-		return new LoweredStmtList(
-			node,
-			[
-				variableStmt,
-				storeStmt,
-			]);
+	private LoweredNode Lower(FnDeclNode node)
+	{
+		return HoistLocalDecls((node) =>
+		{
+			var fnSymbol = _reasoner.GetDeclaredSymbol(node) as FnSymbol;
+			Debug.Assert(fnSymbol != null);
+			var body = node.Body == null ? null : LowerFnBlock(node.Body);
+
+			return new LoweredFnDecl(
+				node,
+				fnSymbol,
+				body);
+		}, node);
+	}
+
+	private LoweredNode Lower(MethodDeclNode node)
+	{
+		return HoistLocalDecls((node) =>
+		{
+			var fnSymbol = _reasoner.GetDeclaredSymbol(node) as FnSymbol;
+			Debug.Assert(fnSymbol != null);
+			var body = node.Body == null ? null : LowerFnBlock(node.Body);
+
+			return new LoweredFnDecl(
+				node,
+				fnSymbol,
+				body);
+		}, node);
+	}
+
+	private LoweredNode Lower(StructDeclNode node)
+	{
+		return HoistLocalDecls((node) =>
+		{
+			var structTypeSymbol = _reasoner.GetDeclaredSymbol(node) as StructTypeSymbol;
+			Debug.Assert(structTypeSymbol != null);
+
+			var fieldDecls = structTypeSymbol.Members.OfType<FieldSymbol>();
+			var nonFieldDecls = structTypeSymbol.Members.Where(x => x.Kind is not SymbolKind.Field);
+
+			foreach (var nonFieldDecl in nonFieldDecls)
+			{
+				// Non field decls should always be hoisted and so the lowering result should be elided.
+				Debug.Assert(nonFieldDecl.DeclaringNode != null);
+				var result = Lower(nonFieldDecl.DeclaringNode);
+				Debug.Assert(result == LoweredElidedDecl.Instance);
+			}
+
+			return new LoweredTypeDecl(
+				node,
+				structTypeSymbol,
+				fieldDecls);
+		}, node);
 	}
 
 	private LoweredNode Lower(ReturnStmtNode node)
@@ -134,6 +154,22 @@ internal class Lowerer
 		return new LoweredReturnStmt(
 			node,
 			expr);
+	}
+
+	private LoweredStmt Lower(DeclStmtNode node)
+	{
+		return Lower(node.Decl) switch
+		{
+			// This happens with decls that are lowered to stmts such as a var decl
+			// (we'll get either a var store, or an elided stmt since var declare stmt itself will be hoisted).
+			LoweredStmt stmt => stmt,
+
+			// This happens when lowering a nested decl inside a fn for example.
+			// This method should always return a stmt, so we simply return an elided stmt instead of the elided decl.
+			LoweredDecl decl when decl == LoweredElidedDecl.Instance => LoweredElidedStmt.Instance,
+
+			_ => throw new UnreachableException(),
+		};
 	}
 
 	private LoweredNode Lower(ExprStmtNode node)
@@ -159,8 +195,16 @@ internal class Lowerer
 		return Lower(node.Expr);
 	}
 
+	/// <summary>
+	/// Lowers the body of a function or a method.
+	/// </summary>
 	private LoweredStmtList LowerFnBlock(BlockExprNode node)
 	{
+		Debug.Assert(node.Parent is FnDeclNode or MethodDeclNode);
+
+		// Store and restore previous hoisting bag. Imagine a function inside another function.
+		var prevBag = _varStmtsHoistingBag;
+
 		var (stmts, bareReturnExpr) = LowerBlock(node);
 
 		if (bareReturnExpr != null)
@@ -170,9 +214,12 @@ internal class Lowerer
 				bareReturnExpr));
 		}
 
+		var hoistedVars = _varStmtsHoistingBag.TakeHoisted();
+		_varStmtsHoistingBag = prevBag;
+
 		return new LoweredStmtList(
 			node,
-			stmts);
+			[..hoistedVars, ..stmts]);
 	}
 
 	// BareReturnExpr will only be set if there's a bare block return expr (that's not treated as a stmt).
@@ -521,5 +568,72 @@ internal class Lowerer
 	private IEnumerable<LoweredExpr> LowerWithCast(IEnumerable<ExprNode> nodes)
 	{
 		return nodes.Select(LowerWithCast);
+	}
+
+	[Conditional("DEBUG")]
+	private void AssertHoistingBagsAreEmpty()
+	{
+		Debug.Assert(_declsHoistingBag.IsEmpty);
+		Debug.Assert(_varStmtsHoistingBag.IsEmpty);
+	}
+
+	/// <summary>
+	/// Manages local decl hoisting. Should be wrapped around any lowering that can have nested decls that need to be hoisted.
+	/// </summary>
+	private LoweredDecl HoistLocalDecls<TData, T>(Func<TData, T> func, TData data)
+		where T : LoweredDecl
+	{
+		// Store and restore previous _insideDecl value.
+		var wasInside = _insideDecl;
+		_insideDecl = true;
+		var result = func(data);
+		_insideDecl = wasInside;
+
+		if (wasInside)
+		{
+			// Result is inside another decl, so we hoist it and return an elided decl in its place.
+			_declsHoistingBag.Hoist(result);
+			return LoweredElidedDecl.Instance;
+		}
+		else
+		{
+			// Result is in top level, so we take any hoisted decls that were nested and create a decl list as the result.
+			var hoistedDecls = _declsHoistingBag.TakeHoisted();
+			if (hoistedDecls.Count == 0)
+			{
+				// Optimize for the most common case of no hoisted decls. No need to create a LoweredDeclList.
+				return result;
+			}
+			else
+			{
+				return new LoweredDeclList(result.ParsedNode, [result, .. hoistedDecls]);
+			}
+		}
+	}
+
+	private class HoistingBag<T>
+	{
+		private List<T> _hoisted = [];
+
+		public HoistingBag()
+		{
+		}
+
+		public bool IsEmpty => _hoisted.Count == 0;
+
+		public void Hoist(T node)
+		{
+			_hoisted.Add(node);
+		}
+
+		public List<T> TakeHoisted()
+		{
+			if (IsEmpty)
+				return [];
+
+			var hoisted = _hoisted;
+			_hoisted = [];
+			return hoisted;
+		}
 	}
 }

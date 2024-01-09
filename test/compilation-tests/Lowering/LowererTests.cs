@@ -5,6 +5,64 @@ namespace Surab.Compilation;
 public class LowererTests
 {
 	[Fact]
+	public void VarHoisting()
+	{
+		var src = """
+			fn f() {
+				var a = 2;
+				print_i32(a);
+				var b = 3;
+			}
+			""";
+		var f = LowerFn(src);
+		var body = f.GetFnBody();
+		body.Should().HaveCount(5);
+		var i = 0;
+		body[i++].Should().BeOfType<LoweredVariableDeclareStmt>();
+		body[i++].Should().BeOfType<LoweredVariableDeclareStmt>();
+		body[i++].Should().BeOfType<LoweredVariableStoreStmt>();
+		body[i++].Should().BeOfType<LoweredExprStmt>().Subject.Expr.Should().BeOfType<LoweredCallExpr>();
+		body[i++].Should().BeOfType<LoweredVariableStoreStmt>();
+	}
+
+	[Fact]
+	public void DeclHoisting()
+	{
+		var src = """
+			fn f() {
+				fn f2() {
+					fn f3() { }
+				}
+				var a = 2;
+				struct S {
+					a: i32;
+					struct S2 {
+						a: i32;
+					}
+				}
+			}
+			""";
+		var decls = LowerFile(src).UnwrapContainers().ToList();
+		decls.Should().HaveCount(5);
+		var i = 0;
+		var names = new[]
+		{
+			decls[i++].Should().BeOfType<LoweredFnDecl>().Subject.FnSymbol.Name,
+			decls[i++].Should().BeOfType<LoweredFnDecl>().Subject.FnSymbol.Name,
+			decls[i++].Should().BeOfType<LoweredFnDecl>().Subject.FnSymbol.Name,
+			decls[i++].Should().BeOfType<LoweredTypeDecl>().Subject.TypeSymbol.Name,
+			decls[i++].Should().BeOfType<LoweredTypeDecl>().Subject.TypeSymbol.Name,
+		};
+		names.Should().BeEquivalentTo([
+			"f",
+			"f3",
+			"f2",
+			"S2",
+			"S",
+		], o => o.WithStrictOrdering());
+	}
+
+	[Fact]
 	public void BareExprStmtToReturnStmt()
 	{
 		var src = """
@@ -13,7 +71,7 @@ public class LowererTests
 			}
 			""";
 		var f = LowerFn(src);
-		var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body!).ToList();
+		var body = f.GetFnBody();
 		body.Should().HaveCount(1);
 		body[0].Should().BeOfType<LoweredReturnStmt>().Subject
 			.Expr.Should().BeOfType<LoweredLiteralExpr>();
@@ -26,7 +84,7 @@ public class LowererTests
 			fn f() { }
 			""";
 		var f = LowerFn(src);
-		var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body!).ToList();
+		var body = f.GetFnBody();
 		body.Should().HaveCount(0);
 	}
 
@@ -39,7 +97,7 @@ public class LowererTests
 			}
 			""";
 		var f = LowerFn(src);
-		var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body!).ToList();
+		var body = f.GetFnBody();
 		body.Should().HaveCount(0);
 	}
 
@@ -55,12 +113,12 @@ public class LowererTests
 				var s = S { a = 42 };
 			}
 			""";
-		var module = LowerFile(src);
-		var body = LoweringUtils.EnumerateUnwrappedDescendants(module.Decls[1]).ToList();
+		var file = LowerFile(src);
+		var body = file.GetFnBody("f");
 		body.Should().HaveCount(2);
 		body[0].Should().BeOfType<LoweredVariableDeclareStmt>();
 		var storeStmt = body[1].Should().BeOfType<LoweredVariableStoreStmt>().Subject;
-		var storeExprNodes = LoweringUtils.EnumerateUnwrappedDescendants(storeStmt.Expr).ToList();
+		var storeExprNodes = storeStmt.Expr.UnwrapContainers().ToList();
 
 		storeExprNodes[0].Should().BeOfType<LoweredObjectAllocStmt>();
 		storeExprNodes[1].Should().BeOfType<LoweredFieldStoreStmt>();
@@ -79,8 +137,8 @@ public class LowererTests
 				var a = s.a;
 			}
 			""";
-		var module = LowerFile(src);
-		var body = LoweringUtils.EnumerateUnwrappedDescendants(module.Decls[1]).ToList();
+		var file = LowerFile(src);
+		var body = file.GetFnBody("f");
 		body.Should().HaveCount(4);
 		var variableStore = body.OfType<LoweredVariableStoreStmt>().Last();
 		var fieldStore = variableStore.Expr.Should().BeOfType<LoweredFieldLoadExpr>().Subject;
@@ -97,8 +155,8 @@ public class LowererTests
 				s.a = 43;
 			}
 			""";
-		var module = LowerFile(src);
-		var body = LoweringUtils.EnumerateUnwrappedDescendants(module.Decls[1]).ToList();
+		var file = LowerFile(src);
+		var body = file.GetFnBody("f");
 		body.Should().HaveCount(3);
 		var storeExpr = body[2].Should().BeOfType<LoweredExprStmt>().Subject
 			.Expr.Should().BeOfType<LoweredStmtListEndingWithExpr>().Subject;
@@ -118,7 +176,7 @@ public class LowererTests
 			}
 			""";
 		var f = LowerFn(src);
-		var body = LoweringUtils.EnumerateUnwrappedDescendants(f.Body!).ToList();
+		var body = f.GetFnBody();
 		body.Should().HaveCount(3);
 		body[2].Should().BeOfType<LoweredExprStmt>().Subject
 			.Expr.Should().BeOfType<LoweredVariableLoadExpr>(); // Deref(Address) disappears
@@ -144,8 +202,8 @@ public class LowererTests
 				s_ptr.mutate();
 			}
 			""";
-		var module = LowerFile(src);
-		var body = LoweringUtils.EnumerateUnwrappedDescendants(module.Decls[1]).ToList();
+		var file = LowerFile(src);
+		var body = file.GetFnBody("f");
 		var callExpr1 = body.OfType<LoweredExprStmt>().ElementAt(0).Expr.Should().BeOfType<LoweredCallExpr>().Subject;
 		{
 			var fieldLoadExpr = callExpr1.Args[0].Should().BeOfType<LoweredFieldLoadExpr>().Subject;
@@ -182,7 +240,7 @@ public class LowererTests
 			}
 			""";
 		var file = LowerFile(src);
-		var body = LoweringUtils.EnumerateUnwrappedDescendants(file.Decls[1]).ToList();
+		var body = file.GetFnBody("f");
 		var callExpr = body.OfType<LoweredExprStmt>().Single().Expr.Should().BeOfType<LoweredCallExpr>().Subject;
 		var fieldLoadExpr = callExpr.Args[0].Should().BeOfType<LoweredFieldLoadExpr>().Subject;
 		fieldLoadExpr.Target.Should().BeOfType<LoweredVariableLoadExpr>();
@@ -191,7 +249,7 @@ public class LowererTests
 	private static LoweredFnDecl LowerFn(string src)
 	{
 		var file = LowerFile(src);
-		return file.Decls.ElementAt(0).Should().BeOfType<LoweredFnDecl>().Subject;
+		return file.UnwrapContainers().ElementAt(0).Should().BeOfType<LoweredFnDecl>().Subject;
 	}
 
 	private static LoweredFile LowerFile(string src)
@@ -204,5 +262,42 @@ public class LowererTests
 	{
 		var (_, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 		return Lowerer.Lower(reasoner);
+	}
+}
+
+internal static class LowererTestsExtensions
+{
+	public static List<LoweredStmt> GetFnBody(this LoweredNode node, string? name = null)
+	{
+		LoweredFnDecl fnDecl;
+
+		if (node is LoweredFnDecl selfFnDecl)
+		{
+			if (name != null)
+			{
+				throw new Exception("Function name was specified but the given node is itself a function.");
+			}
+			fnDecl = selfFnDecl;
+		}
+		else
+		{
+			var fns = node.DescendantNodes().OfType<LoweredFnDecl>().ToList();
+			if (fns.Count > 1 && name == null)
+				throw new Exception("Specifying a name is required when there are more than one function.");
+
+			if (name == null)
+			{
+				fnDecl = fns.Single();
+			}
+			else
+			{
+				fnDecl = fns.Single(x => x.FnSymbol.Name == name);
+			}
+		}
+
+		return fnDecl.Body!
+			.UnwrapContainers()
+			.Cast<LoweredStmt>()
+			.ToList();
 	}
 }

@@ -95,8 +95,6 @@ internal sealed class FileCompiler(CompilationContext context, LoweredTree lower
 	public override void VisitFnDecl(LoweredFnDecl node)
 	{
 		CompileFn(node);
-
-		base.VisitFnDecl(node);
 	}
 
 	private void CompileFn(LoweredFnDecl fn)
@@ -156,7 +154,6 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 		LLVM.Builder.PositionAtEnd(entry);
 
 		SetupParams();
-		SetupLocals();
 
 		// This is where we could check for intrinsic fns to generate bodies for if we need to.
 		// ---
@@ -259,14 +256,11 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 		}
 	}
 
-	private void SetupLocals()
+	public override void VisitVariableDeclareStmt(LoweredVariableDeclareStmt node)
 	{
-		if (_fnDecl.Body == null) return;
-
-		foreach (var variableStmt in LoweringUtils.CollectLocalVariableDeclareStmts(_fnDecl.Body))
-		{
-			CreateLocal(variableStmt.Symbol);
-		}
+		// These are usually hoisted to the top of the body by the lowerer.
+		// Having these created in the entry basic block is important to enable certain LLVM optimizations.
+		CreateLocal(node.Symbol);
 	}
 
 	public override void VisitExprStmt(LoweredExprStmt node)
@@ -276,12 +270,6 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 		// The expr will always push a unit to the stack (even void fns).
 		// An ExprStmt marks the end of an expr pipeline, so we simply always discard that last value here.
 		_stack.Pop();
-	}
-
-	public override void VisitVariableDeclareStmt(LoweredVariableDeclareStmt node)
-	{
-		// Nothing todo here since these variable stmts are collected and processed at the start of a function
-		// to setup alloca instructions in the entry block.
 	}
 
 	public override void VisitReturnStmt(LoweredReturnStmt node)

@@ -939,7 +939,7 @@ public class StructTypeSymbol : NamedTypeSymbol
 
 	internal override IEnumerable<SyntaxNode> EnumerateMembers()
 	{
-		Debug.Assert(DeclaringNode != null, "Unreachable in built in types.");
+		Debug.Assert(DeclaringNode != null);
 		foreach (var member in DeclaringNode.Members)
 		{
 			yield return member;

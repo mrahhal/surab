@@ -521,11 +521,11 @@ internal class ParserImpl
 	/// <summary>
 	/// Parses any non member decl.
 	/// </summary>
-	private DeclNode ParseDecl()
+	private DeclNode ParseDecl(AttrsListNode? attrs = null)
 	{
 		// Parse decl, and if we don't know what kind at all, do recovery.
 
-		var attrs = ParseOptionalAttrsList();
+		attrs ??= ParseOptionalAttrsList();
 
 		return _current?.Kind switch
 		{
@@ -555,6 +555,9 @@ internal class ParserImpl
 			TokenKind.LeftParen => ParseMethodDecl(attrs),
 			// `+(`
 			_ when _current != null && _current.Kind.IsMethodOp() && P1()?.Kind is TokenKind.LeftParen => ParseMethodDecl(attrs),
+
+			// Local decl
+			_ when _current != null && _current.Kind.CanStartDecl() => ParseDecl(attrs),
 
 			_ => RecoverMemberDecl(),
 		};

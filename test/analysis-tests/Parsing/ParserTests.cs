@@ -696,6 +696,39 @@ public class ParserTests
 		tree.Diagnostics.Diagnostics.Should().NotBeNullOrEmpty();
 	}
 
+	[Fact]
+	public void LocalDecls()
+	{
+		var src = """
+			fn f() {
+				fn f2() {
+					fn f3() { }
+				}
+				var a = 2;
+				struct S {
+					a: i32;
+					struct S2 {
+						a: i32;
+					}
+				}
+			}
+			""";
+		var tree = Parser.ParseFile(src);
+		tree.Diagnostics.Diagnostics.Should().BeNullOrEmpty();
+		var fFnDecl = ((FileNode)tree.Root).Decls.ElementAt(0).Should().BeOfType<FnDeclNode>().Subject;
+		var fStmts = fFnDecl.Body!.Stmts;
+		fStmts.Should().HaveCount(3);
+		var f2FnDecl = fStmts.ElementAt(0).Should().BeOfType<DeclStmtNode>().Subject.Decl.Should().BeOfType<FnDeclNode>().Subject;
+		var f2Stmts = f2FnDecl.Body!.Stmts;
+		f2Stmts.Should().HaveCount(1);
+		f2Stmts.ElementAt(0).Should().BeOfType<DeclStmtNode>().Subject.Decl.Should().BeOfType<FnDeclNode>();
+		var sStructDecl = fStmts.ElementAt(2).Should().BeOfType<DeclStmtNode>().Subject.Decl.Should().BeOfType<StructDeclNode>().Subject;
+		var sDecls = sStructDecl.DeclsList.Decls;
+		sDecls.Should().HaveCount(2);
+		sDecls.ElementAt(0).Should().BeOfType<FieldDeclNode>();
+		sDecls.ElementAt(1).Should().BeOfType<StructDeclNode>();
+	}
+
 	// ---
 
 	private static FileNode ParseFile(string src)
