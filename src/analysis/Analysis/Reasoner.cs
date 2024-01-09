@@ -665,7 +665,13 @@ public class Reasoner
 		private Symbol? CreateSymbol(SyntaxNode node)
 		{
 			var symbol = GetOrCreateSymbolOnNode(node);
-			symbol?.SetParent(_parentSymbol);
+			// This (symbol == _parentSymbol) is possible for DeclStmtNode since we return the symbol on the parent even though it's defined on the child.
+			// Not doing this check means we'll set S as the parent of S which can cause a stack overflow in analysis.
+			// REVIEW: Find a better way to handle this?
+			if (symbol != _parentSymbol)
+			{
+				symbol?.SetParent(_parentSymbol);
+			}
 			return symbol;
 		}
 

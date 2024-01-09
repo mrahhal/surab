@@ -51,8 +51,6 @@ var src = """
 	@extern
 	fn print_s3_from_rust(s3: S3);
 
-	fn noop() { }
-
 	@extern
 	fn f(x: f64, y: f64) f64 {
 		var e = x + y;
@@ -66,6 +64,7 @@ var src = """
 
 	fn main() {
 		var a = 2.0;
+		fn noop() { }
 		noop();
 		var b: f64 = 4.0;
 		var c = f(a, b);

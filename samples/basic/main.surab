@@ -25,8 +25,6 @@ struct S2 {
 @extern
 fn print_from_rust(s2: S2);
 
-fn noop() { }
-
 @extern
 fn f(x: f64, y: f64) f64 {
 	var e = x + y;
@@ -40,6 +38,7 @@ fn fs(s1: S1, s2: S2) {
 
 fn main() {
 	var a = 2.0;
+	fn noop() { }
 	noop();
 	var b: f64 = 4.0;
 	var c = f(a, b);

@@ -1,6 +1,4 @@
-﻿using Microsoft.VisualBasic;
-
-namespace Surab.Analysis;
+﻿namespace Surab.Analysis;
 
 public class ReasonerTests
 {
@@ -593,5 +591,29 @@ public class ReasonerTests
 		var fnSymbol = symbol.Should().BeOfType<FnSymbol>().Subject;
 		fnSymbol.Type.ParamTypes.Should().HaveCount(1); // reciever
 		fnSymbol.TypeWithoutReceiver.ParamTypes.Should().HaveCount(0); // no receiver
+	}
+
+	// See Reasoner.Builder.CreateSymbol for a note on this.
+	[Fact]
+	public void EnsureLocalDeclDoesNotIncludeItselfInChildren()
+	{
+		var src = """
+			fn main() {
+				struct S {
+					a: i32;
+				}
+
+				fn f { }
+			}
+			""";
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
+
+		var sDecl = tree.Root.DescendantNodes().OfType<StructDeclNode>().Single();
+		var sSymbol = reasoner.GetDeclaredSymbol(sDecl)!;
+		sSymbol.Children.Should().HaveCount(1);
+
+		var fDecl = tree.Root.DescendantNodes().OfType<FnDeclNode>().Single(x => x.Sig.Identifier.Value == "f");
+		var fSymbol = reasoner.GetDeclaredSymbol(fDecl)!;
+		fSymbol.Children.Should().HaveCount(0);
 	}
 }
