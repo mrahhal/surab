@@ -58,6 +58,14 @@ public class LanguageServerHost
 
 				await InitializeProjectAsync(workspaceUri);
 			})
+			.OnInitialized((_, _, _, ct) =>
+			{
+				// Launch a preliminary analysis when a workspace is opened and initialized.
+				// We don't need to await for the task before replying to the client because this can be a long running operation.
+				// The project in this state is already ready to handle change requests.
+				_ = Project.EnsureAnalyzedAsync(ct);
+				return Task.CompletedTask;
+			})
 			.WithHandler<TextDocumentSyncHandler>()
 			.WithHandler<DidChangeWatchedFilesHandler>()
 			.WithHandler<SemanticTokensFullHandler>()
@@ -98,10 +106,6 @@ public class LanguageServerHost
 		//	Type = MessageType.Error,
 		//});
 		//progress.OnCompleted();
-
-		// Launch a preliminary analysis when a workspace is opened.
-		// We don't need to wait for the task before telling the client we're initialized because this can be a long running operation, and that's fine.
-		_ = Project.EnsureAnalyzedAsync();
 
 		return Task.CompletedTask;
 	}
