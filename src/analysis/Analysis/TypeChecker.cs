@@ -40,8 +40,6 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 
 	public override void VisitConstDecl(ConstDeclNode node)
 	{
-		VerifyDeclIsTopLevel(node);
-
 		base.VisitConstDecl(node);
 	}
 
@@ -69,41 +67,17 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 
 	public override void VisitFnDecl(FnDeclNode node)
 	{
-		VerifyDeclIsTopLevel(node);
-
 		base.VisitFnDecl(node);
 	}
 
 	public override void VisitStructDecl(StructDeclNode node)
 	{
-		VerifyDeclIsTopLevel(node);
-
 		base.VisitStructDecl(node);
 	}
 
 	public override void VisitClassDecl(ClassDeclNode node)
 	{
-		VerifyDeclIsTopLevel(node);
-
 		base.VisitClassDecl(node);
-	}
-
-	private void VerifyDeclIsTopLevel(SyntaxNode node)
-	{
-		var name = node switch
-		{
-			ConstDeclNode => "const",
-			FnDeclNode => "fn",
-			StructDeclNode => "struct",
-			ClassDeclNode => "class",
-			_ => throw new UnreachableException(),
-		};
-
-		// Temp: Should be allowed only in top level.
-		if (node.Parent is not DeclsListNode declsList || declsList.Parent is not FileNode)
-		{
-			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a {name} decl is allowed only in top level");
-		}
 	}
 
 	public override void VisitFieldDecl(FieldDeclNode node)

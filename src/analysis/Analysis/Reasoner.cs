@@ -590,12 +590,12 @@ public class Reasoner
 		{
 			if (isPrelude)
 			{
-				// For the prelude, we'll especially go over the top level decls first to fill in BuiltinTypeSystem first thing before doing anything else.
-				// Lots of other processes depends on these known types to be created first.
+				// For the prelude, we'll especially go over the top level decls first to fill in the known type tag map first thing before doing anything else.
+				// Some places depend on these known types to be created first.
 
 				Debug.Assert(tree.Root is FileNode);
-				var moduleNode = (FileNode)tree.Root;
-				foreach (var decl in moduleNode.Decls)
+				var fileNode = (FileNode)tree.Root;
+				foreach (var decl in fileNode.Decls)
 				{
 					var symbol = GetOrCreateSymbolOnNode(decl);
 					Debug.Assert(symbol != null);
@@ -732,6 +732,7 @@ public class Reasoner
 				ClassDeclNode n => new ClassDeclScope(n, (NamedTypeSymbol)symbol!),
 				FnDeclNode n => new FnScope(n.Sig, (FnSymbol)symbol!),
 				MethodDeclNode n => new FnScope(n.Sig, (FnSymbol)symbol!),
+				BlockExprNode n => new BlockScope(n),
 
 				_ => null,
 			};

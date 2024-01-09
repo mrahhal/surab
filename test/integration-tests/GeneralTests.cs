@@ -215,4 +215,24 @@ public class GeneralTests
 
 		output.Should().Be(expectedOutput);
 	}
+
+	[Fact]
+	public void General_LocalDecls()
+	{
+		var output = IntegrationRunner.Run($$"""
+			fn main() {
+				struct S {
+					a: i32;
+				}
+
+				var s = S { a = 42 };
+				print_i32(s.a);
+			}
+			""");
+
+		var expectedOutput =
+			"42".NL();
+
+		output.Should().Be(expectedOutput);
+	}
 }

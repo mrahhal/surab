@@ -302,3 +302,45 @@ internal class LocalScope(LocalSymbol symbol) : Scope
 		return node is BlockExprNode;
 	}
 }
+
+/// <summary>
+/// A scope that exposes declarations local to the block to the entire block.
+/// This means declaring a struct anywhere inside the block makes it available to any statement inside the whole block.
+/// </summary>
+internal class BlockScope(BlockExprNode blockExprNode) : Scope
+{
+	private ImmutableArray<Symbol> _localDecls;
+
+	public BlockExprNode BlockExprNode { get; } = blockExprNode;
+
+	public ImmutableArray<Symbol> LocalDecls
+	{
+		get
+		{
+			if (_localDecls.IsDefault)
+			{
+				ImmutableInterlocked.InterlockedCompareExchange(ref _localDecls, BuildDecls(), default);
+			}
+
+			return _localDecls;
+		}
+	}
+
+	public override Symbol? LookupIdentifierHere(string identifier)
+	{
+		return LookupIdentifierIn(LocalDecls, identifier);
+	}
+
+	private ImmutableArray<Symbol> BuildDecls()
+	{
+		var builder = ImmutableArray.CreateBuilder<Symbol>();
+		foreach (var declStmt in BlockExprNode.Stmts.OfType<DeclStmtNode>())
+		{
+			if (Reasoner.TryGetDeclaredSymbol(declStmt.Decl, out var symbol))
+			{
+				builder.Add(symbol);
+			}
+		}
+		return builder.ToImmutable();
+	}
+}
