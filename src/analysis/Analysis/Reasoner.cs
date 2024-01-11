@@ -734,7 +734,7 @@ public class Reasoner
 
 				// Create a new local scope on each new var that will live until the end of the enclosing block.
 				VarDeclNode => new LocalScope((LocalSymbol)symbol!),
-				StructDeclNode n => new StructDeclScope(n, (StructTypeSymbol)symbol!),
+				StructDeclNode n => new NamedTypeDeclScope(n, (StructTypeSymbol)symbol!),
 				//ClassDeclNode n => new ClassDeclScope(n, (NamedTypeSymbol)symbol!),
 				FnDeclNode n => new FnScope(n.Sig, (FnSymbol)symbol!),
 				MethodDeclNode n => new FnScope(n.Sig, (FnSymbol)symbol!),

@@ -232,15 +232,38 @@ internal class FileScope(FileNode file, Reasoner fileReasoner, Reasoner? prelude
 	}
 }
 
-internal class TypeDeclScope(NamedTypeSymbol symbol) : Scope
+/// <summary>
+/// A scope that exposes declarations local in the type.
+/// </summary>
+internal class NamedTypeDeclScope(
+	DeclNode decl,
+	NamedTypeSymbol symbol) : Scope
 {
 	protected readonly NamedTypeSymbol _symbol = symbol;
 
+	private ImmutableArray<Symbol> _localDecls;
+
+	public DeclNode DeclNode { get; } = decl;
+
+	public ImmutableArray<Symbol> LocalDecls
+	{
+		get
+		{
+			if (_localDecls.IsDefault)
+			{
+				ImmutableInterlocked.InterlockedCompareExchange(ref _localDecls, BuildLocalDecls(), default);
+			}
+
+			return _localDecls;
+		}
+	}
+
 	public override Symbol? LookupIdentifierHere(string identifier)
 	{
-		// Type members are accessed through `this`, so they're not visible from the scope.
-		return null;
-		//return LookupIdentifierIn(_symbol.Members, identifier);
+		// Type members (fields and methods) are accessed through `this`, so they're not visible from the scope.
+		// Local decls don't use `this`, so here we only need to lookup using LocalDecls.
+
+		return LookupIdentifierIn(LocalDecls, identifier);
 	}
 
 	public override TypeSymbol? LookupThisHere()
@@ -252,20 +275,26 @@ internal class TypeDeclScope(NamedTypeSymbol symbol) : Scope
 	{
 		return _symbol;
 	}
-}
 
-internal class StructDeclScope(
-	StructDeclNode structDecl,
-	StructTypeSymbol symbol) : TypeDeclScope(symbol)
-{
-	private readonly StructDeclNode _structDecl = structDecl;
-}
+	private ImmutableArray<Symbol> BuildLocalDecls()
+	{
+		var nestedDecls = DeclNode switch
+		{
+			StructDeclNode structDeclNode => structDeclNode.DeclsList.Decls,
+			ClassDeclNode classDeclNode => classDeclNode.DeclsList.Decls,
+			_ => throw new UnreachableException(),
+		};
 
-internal class ClassDeclScope(
-	ClassDeclNode classDecl,
-	NamedTypeSymbol symbol) : TypeDeclScope(symbol)
-{
-	private readonly ClassDeclNode _classDecl = classDecl;
+		var builder = ImmutableArray.CreateBuilder<Symbol>();
+		foreach (var localDecl in nestedDecls.Where(x => x is StructDeclNode or ClassDeclNode or FnDeclNode))
+		{
+			if (Reasoner.TryGetDeclaredSymbol(localDecl, out var symbol))
+			{
+				builder.Add(symbol);
+			}
+		}
+		return builder.ToImmutable();
+	}
 }
 
 internal class FnScope(
@@ -319,7 +348,7 @@ internal class BlockScope(BlockExprNode blockExprNode) : Scope
 		{
 			if (_localDecls.IsDefault)
 			{
-				ImmutableInterlocked.InterlockedCompareExchange(ref _localDecls, BuildDecls(), default);
+				ImmutableInterlocked.InterlockedCompareExchange(ref _localDecls, BuildLocalDecls(), default);
 			}
 
 			return _localDecls;
@@ -331,7 +360,7 @@ internal class BlockScope(BlockExprNode blockExprNode) : Scope
 		return LookupIdentifierIn(LocalDecls, identifier);
 	}
 
-	private ImmutableArray<Symbol> BuildDecls()
+	private ImmutableArray<Symbol> BuildLocalDecls()
 	{
 		var builder = ImmutableArray.CreateBuilder<Symbol>();
 		foreach (var declStmt in BlockExprNode.Stmts.OfType<DeclStmtNode>())

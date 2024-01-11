@@ -235,4 +235,46 @@ public class GeneralTests
 
 		output.Should().Be(expectedOutput);
 	}
+
+	[Fact]
+	public void General_LocalDecls_2()
+	{
+		var output = IntegrationRunner.Run($$"""
+			struct S {
+				a: i32;
+				s_nested: SNested;
+
+				struct SNested {
+					na: i32;
+
+					fn create() SNested {
+						SNested {
+							na = 45,
+						}
+					}
+				}
+			}
+
+			fn main() {
+				var s = S {
+					a = 42,
+					s_nested = SNested {
+						na = 43,
+					},
+				};
+				print_i32(s.s_nested.na);
+				print_i32(s.a);
+
+				var another_s_nested = S.SNested.create();
+				print_i32(another_s_nested.na);
+			}
+			""");
+
+		var expectedOutput =
+			"43".NL() +
+			"42".NL() +
+			"45".NL();
+
+		output.Should().Be(expectedOutput);
+	}
 }
