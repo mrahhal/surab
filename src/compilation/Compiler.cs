@@ -275,6 +275,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 	public override void VisitReturnStmt(LoweredReturnStmt node)
 	{
 		_returnSeen = true;
+
 		if (node.Expr == null)
 		{
 			LLVM.Builder.BuildRetVoid();
@@ -282,8 +283,13 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 		else
 		{
 			Visit(node.Expr);
-			var (_, value) = _stack.Pop().Unwrap(LLVM);
-			LLVM.Builder.BuildRet(value);
+			var exprUnit = _stack.Pop();
+			LLVMValueRef? sretPtr = null;
+			if (_llvmFn.SRet.HasValue)
+			{
+				sretPtr = _llvmFnUnit.Value.GetParam(0);
+			}
+			LLVMTarget.CompileFnReturnStmt(FnSymbol.ReturnType,exprUnit, sretPtr);
 		}
 	}
 
@@ -772,7 +778,14 @@ internal abstract class LLVMTarget
 		return LowerFnReturnTypeCore(fnType);
 	}
 
-	public abstract LLVMTypeRef LowerFnReturnTypeCore(FnTypeSymbol fnType);
+	protected abstract LLVMTypeRef LowerFnReturnTypeCore(FnTypeSymbol fnType);
+
+	public void CompileFnReturnStmt(TypeSymbol returnType, LLVMUnit exprUnit, LLVMValueRef? sretOpt)
+	{
+		CompileFnReturnStmtCore(returnType, exprUnit, sretOpt);
+	}
+
+	protected abstract void CompileFnReturnStmtCore(TypeSymbol returnType, LLVMUnit exprUnit, LLVMValueRef? sretOpt);
 
 	/// <summary>
 	/// Lowers a type from Surab to LLVM.
@@ -948,7 +961,7 @@ internal abstract class x86_64WindowsLLVMTarget(CompilationContext context) : LL
 		return Target.Classify(fnType.ReturnType) == Classification.Memory;
 	}
 
-	public override LLVMTypeRef LowerFnReturnTypeCore(FnTypeSymbol fnType)
+	protected override LLVMTypeRef LowerFnReturnTypeCore(FnTypeSymbol fnType)
 	{
 		var returnType = fnType.ReturnType;
 		var classification = Target.Classify(returnType);
@@ -960,6 +973,49 @@ internal abstract class x86_64WindowsLLVMTarget(CompilationContext context) : LL
 			Classification.SSE => LowerType(returnType),
 			_ => throw new UnreachableException(),
 		};
+	}
+
+	// Logic sync'd with LowerFnReturnTypeCore above.
+	protected override void CompileFnReturnStmtCore(TypeSymbol returnType, LLVMUnit exprUnit, LLVMValueRef? sretOpt)
+	{
+		Debug.Assert(!returnType.IsUnknown && !Target.GetAbiSize(returnType).IsZeroSized);
+
+		var classification = Target.Classify(returnType);
+
+		var passthroughCase =
+			(classification is Classification.Integer && returnType.IsScalar()) ||
+			classification is Classification.SSE;
+		if (passthroughCase)
+		{
+			var (_, value) = exprUnit.Unwrap(LLVM);
+			LLVM.Builder.BuildRet(value);
+			return;
+		}
+
+		if (classification is Classification.Memory)
+		{
+			// sret
+			Debug.Assert(sretOpt.HasValue);
+			var sretPtr = sretOpt.Value;
+			Debug.Assert(sretPtr.TypeOf.Kind is LLVMTypeKind.LLVMPointerTypeKind);
+			var (_, exprValue) = exprUnit.Unwrap(LLVM);
+			LLVM.Builder.BuildStore(exprValue, sretPtr);
+			return;
+		}
+
+		if (classification is Classification.Integer)
+		{
+			// abi int
+
+			Debug.Assert(exprUnit.IsWrapped);
+			var (_, exprValuePtr) = exprUnit;
+			var layout = Target.GetLayout(returnType);
+			var llvmIntType = LLVMTypeRef.CreateInt((uint)layout.Size.Bits);
+			var loaded = LLVM.Builder.BuildLoad2(llvmIntType, exprValuePtr);
+			loaded.SetAlignment((uint)layout.Alignment.Bytes);
+			LLVM.Builder.BuildRet(loaded);
+			return;
+		}
 	}
 
 	protected override LLVMTypeLowering GetLLVMLoweringCore(TypeSymbol type)
