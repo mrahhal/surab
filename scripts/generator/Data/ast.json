@@ -524,12 +524,14 @@
 			]
 		},
 		{
-			"Name": "StructCreationExpr", // Should be renamed to a more general ObjectCreationExpr?
+			"Name": "TypeCreationExpr",
 			"Base": "ExprNode",
+			"Comment": "TypeAsExpr { ... }",
 			"Members": [
 				{
-					"Name": "identifier",
-					"Type": "IdentifierToken"
+					"Name": "typeExpr",
+					"Type": "ExprNode",
+					"Comment": "Well formed: IdentifierExpr or AccessExpr"
 				},
 				{
 					"Name": "mapInitializer",

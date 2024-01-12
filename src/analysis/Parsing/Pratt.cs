@@ -22,20 +22,23 @@ public enum Precedence
 	Exponent,       // ^^
 	Prefix,         // ! - ++ --
 	Postfix,        // -- ++
-	Call,           // . ()
+	Call,           // . () {}
 }
 
 public class InfixRule(
 	Precedence precedence,
-	Associativity associativity)
+	Associativity associativity,
+	Func<ExprNode, bool>? leftPredicate)
 {
 	public Precedence Precedence { get; } = precedence;
 
 	public Associativity Associativity { get; } = associativity;
 
-	public static InfixRule LeftAssociative(Precedence precedence) => new(precedence, Associativity.Left);
+	public Func<ExprNode, bool>? LeftPredicate { get; } = leftPredicate;
 
-	public static InfixRule RightAssociative(Precedence precedence) => new(precedence, Associativity.Right);
+	public static InfixRule LeftAssociative(Precedence precedence, Func<ExprNode, bool>? leftPredicate = null) => new(precedence, Associativity.Left, leftPredicate);
+
+	public static InfixRule RightAssociative(Precedence precedence, Func<ExprNode, bool>? leftPredicate = null) => new(precedence, Associativity.Right, leftPredicate);
 
 	public Precedence AdjustedPreference() => Associativity switch
 	{
@@ -65,8 +68,10 @@ public static class Pratt
 		{ TokenKind.Slash, InfixRule.LeftAssociative(Precedence.Product) },
 		{ TokenKind.Asterisk, InfixRule.LeftAssociative(Precedence.Product) },
 		{ TokenKind.CaretCaret, InfixRule.RightAssociative(Precedence.Exponent) },
-		{ TokenKind.LeftParen, InfixRule.LeftAssociative(Precedence.Call) },
 		{ TokenKind.Dot, InfixRule.RightAssociative(Precedence.Call) },
+		{ TokenKind.LeftParen, InfixRule.LeftAssociative(Precedence.Call) },
+		// The predicate avoids a situation where `{ 2 } { ... }` is regarded as creation.
+		{ TokenKind.LeftBrace, InfixRule.LeftAssociative(Precedence.Call, leftExpr => leftExpr is IdentifierExprNode or AccessExprNode) },
 	};
 
 	public static bool IsPrefixRule(TokenKind tokenKind) => tokenKind is

@@ -136,7 +136,6 @@ public class Reasoner
 			ArgNode n => LookupSymbol(n.Expr),
 			//CallExprNode n => LookupSymbol(n.Callee),
 			AccessExprNode n => LookupSymbol(n),
-			StructCreationExprNode n => LookupSymbol(n.Identifier, n),
 
 			_ => null,
 		};
@@ -193,13 +192,15 @@ public class Reasoner
 
 	private Symbol? LookupSymbol(AccessExprNode node)
 	{
-		// Lookup the field/etc symbol in the access expr.
+		// Lookup the field/method/nested/etc symbol in the access expr.
 
-		// This might need an update if we have access exprs for other than types later.
 		var targetType = LookupType(node.Target);
-		Debug.Assert(targetType != null);
 
-		return targetType.GetMember(node.Identifier);
+		// Allow pass through type analysis on pointers for access exprs, as compiler will do auto derefing.
+		// REVIEW: PtrTypeSymbol's GetMember already does pass through, so this isn't really needed?
+		targetType = targetType.UnwrapPointers();
+
+		return targetType?.GetMember(node.Identifier);
 	}
 
 	// TODO: What does "exported" mean in this context? (right now it means a public symbol in a module)
@@ -258,7 +259,7 @@ public class Reasoner
 			LiteralExprNode n => LookupType(n),
 			IdentifierExprNode n => LookupType(n),
 			ThisExprNode n => LookupType(n),
-			StructCreationExprNode n => LookupType(n),
+			TypeCreationExprNode n => LookupType(n),
 
 			_ => UnknownTypeSymbol.Create(this),
 		};
@@ -299,20 +300,14 @@ public class Reasoner
 
 	private TypeSymbol LookupType(AccessExprNode node)
 	{
-		var targetType = LookupType(node.Target).UnwrapAliases();
-		targetType = targetType switch
-		{
-			// Allow pass through type analysis on pointers for acccess expr, as compiler will do auto derefing/addressing.
-			PtrTypeSymbol ptrType => ptrType.UnwrapPointers(),
-			_ => targetType,
-		};
-
-		var member = targetType?.GetMember(node.Identifier);
-		return member switch
+		var memberSymbol = LookupSymbol(node);
+		return memberSymbol switch
 		{
 			// For `a.b()`, when it's an instance access, we want to return an fn type without the receiver.
+			// TypeWithoutReceiver accounts for both fns and methods, so we can use it here without a method check.
 			FnSymbol fn => this.IsInstanceAccess(node) ? fn.TypeWithoutReceiver : fn.Type,
-			ISymbolHasType s => s.Type,
+			TypeSymbol type => type,
+			ISymbolHasType hasType => hasType.Type,
 			_ => UnknownTypeSymbol.Create(this),
 		};
 	}
@@ -357,30 +352,10 @@ public class Reasoner
 
 	private TypeSymbol LookupType(IdentifierExprNode node)
 	{
-		if (TryResolveIdentifierExprSymbolInCreationExpr(node, out var symbol))
+		return LookupSymbol(node) switch
 		{
-			return (symbol as ISymbolHasType)?.Type ?? UnknownTypeSymbol.Create(this);
-		}
-		else
-		{
-			return LookupType(node.Identifier, node);
-		}
-	}
-
-	private TypeSymbol LookupType(IdentifierToken identifier, SyntaxNode node)
-	{
-		var scope = GetEnclosingScope(node);
-		return LookupType(identifier, scope);
-	}
-
-	private TypeSymbol LookupType(IdentifierToken identifier, Scope? scope)
-	{
-		var symbol = scope?.LookupIdentifier(identifier);
-
-		return symbol switch
-		{
-			TypeSymbol s => s,
-			ISymbolHasType s => s.Type,
+			TypeSymbol type => type,
+			ISymbolHasType hasType => hasType.Type,
 			_ => UnknownTypeSymbol.Create(this),
 		};
 	}
@@ -391,9 +366,18 @@ public class Reasoner
 		return thisSymbol?.Type ?? UnknownTypeSymbol.Create(this);
 	}
 
-	private TypeSymbol LookupType(StructCreationExprNode node)
+	private TypeSymbol LookupType(TypeCreationExprNode node)
 	{
-		return LookupType(node.Identifier, node);
+		var targetTypeSymbol = node.TypeExpr switch
+		{
+			// A { ... }
+			IdentifierExprNode identifierExpr => LookupSymbol(identifierExpr.Identifier, node),
+			// A.B { ... }
+			AccessExprNode accessExpr => LookupSymbol(accessExpr),
+			_ => null,
+		};
+
+		return targetTypeSymbol.AsTypeSymbolOrUnknown(this);
 	}
 
 	public (FnSymbol? Fn, FnTypeSymbol? FnType) LookupFnSymbolOrType(CallExprNode callExpr)
@@ -418,10 +402,10 @@ public class Reasoner
 			assignmentExpr.Lhs == identifierExpr &&
 			assignmentExpr.Parent is MapInitializerItemNode mapInitializerItem &&
 			mapInitializerItem.Parent is MapInitializerNode mapInitializer &&
-			mapInitializer.Parent is StructCreationExprNode structCreationExpr)
+			mapInitializer.Parent is TypeCreationExprNode typeCreationExpr)
 		{
-			var structType = LookupType(structCreationExpr);
-			symbol = structType?.GetCreationSymbol(identifierExpr.Identifier)?.Symbol;
+			var type = LookupType(typeCreationExpr);
+			symbol = type?.GetCreationMemberSymbol(identifierExpr.Identifier)?.Symbol;
 			return true;
 		}
 		return false;

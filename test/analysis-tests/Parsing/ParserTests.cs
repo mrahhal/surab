@@ -37,7 +37,6 @@ public class ParserTests
 			""";
 		var tree = Parser.ParseFile(src);
 		var file = (FileNode)tree.Root;
-		tree.Diagnostics.Diagnostics.Should().BeEmpty();
 
 		file.Should().NotBeNull();
 		file.Decls.Should().HaveCount(1);
@@ -57,7 +56,6 @@ public class ParserTests
 			""";
 		var tree = Parser.ParseFile(src);
 		var file = (FileNode)tree.Root;
-		tree.Diagnostics.Diagnostics.Should().BeEmpty();
 
 		file.Should().NotBeNull();
 		file.Decls.Should().HaveCount(1);
@@ -98,14 +96,15 @@ public class ParserTests
 	public void Decl_Fn_Faulty()
 	{
 		var src = "fn some()";
-		ParseDecl(src).Should().NotBeNull();
+		// Semicolon and body can body be nulls so this won't have a parsing diag.
+		ParseDecl(src, hasDiags: false).Should().NotBeNull();
 	}
 
 	[Fact]
 	public void Decl_Fn_Faulty2()
 	{
 		var src = "fn some() /* some fn not complete */ fn main() {}";
-		ParseFile(src).Should().NotBeNull();
+		ParseFile(src, hasDiags: true).Should().NotBeNull();
 	}
 
 	[Fact]
@@ -496,29 +495,40 @@ public class ParserTests
 	}
 
 	[Fact]
-	public void Expr_StructCreation()
+	public void Expr_TypeCreation()
 	{
 		var src = "Foo { a = 42, b = false }";
-		var structCreationExprNode = ParseExpr(src).Should().BeOfType<StructCreationExprNode>().Subject;
-		structCreationExprNode.Identifier.Value.Should().Be("Foo");
-		structCreationExprNode.MapInitializer.Items.Should().HaveCount(2);
-		structCreationExprNode.MapInitializer.WellFormedExprs.ElementAt(0).Lhs.Should().BeOfType<IdentifierExprNode>()
+		var creationExpr = ParseExpr(src).Should().BeOfType<TypeCreationExprNode>().Subject;
+		creationExpr.TypeExpr.Should().BeOfType<IdentifierExprNode>().Subject.Identifier.Value.Should().Be("Foo");
+		creationExpr.MapInitializer.Items.Should().HaveCount(2);
+		creationExpr.MapInitializer.WellFormedExprs.ElementAt(0).Lhs.Should().BeOfType<IdentifierExprNode>()
 			.Which.Identifier.Value.Should().Be("a");
-		structCreationExprNode.MapInitializer.WellFormedExprs.ElementAt(0).Rhs.Should().BeOfType<LiteralExprNode>()
+		creationExpr.MapInitializer.WellFormedExprs.ElementAt(0).Rhs.Should().BeOfType<LiteralExprNode>()
 			.Which.Literal.LiteralTokenKind.Should().Be(LiteralTokenKind.NumericInteger);
-		structCreationExprNode.MapInitializer.WellFormedExprs.ElementAt(1).Lhs.Should().BeOfType<IdentifierExprNode>()
+		creationExpr.MapInitializer.WellFormedExprs.ElementAt(1).Lhs.Should().BeOfType<IdentifierExprNode>()
 			.Which.Identifier.Value.Should().Be("b");
-		structCreationExprNode.MapInitializer.WellFormedExprs.ElementAt(1).Rhs.Should().BeOfType<LiteralExprNode>()
+		creationExpr.MapInitializer.WellFormedExprs.ElementAt(1).Rhs.Should().BeOfType<LiteralExprNode>()
 			.Which.Literal.LiteralTokenKind.Should().Be(LiteralTokenKind.Bool);
 	}
 
 	[Fact]
-	public void Expr_StructCreation_EmptyInitializer()
+	public void Expr_TypeCreation_EmptyInitializer()
 	{
 		var src = "Foo { }";
-		var structCreationExprNode = ParseExpr(src).Should().BeOfType<StructCreationExprNode>().Subject;
-		structCreationExprNode.Identifier.Value.Should().Be("Foo");
-		structCreationExprNode.MapInitializer.WellFormedExprs.Should().HaveCount(0);
+		var creationExpr = ParseExpr(src).Should().BeOfType<TypeCreationExprNode>().Subject;
+		creationExpr.TypeExpr.Should().BeOfType<IdentifierExprNode>().Subject.Identifier.Value.Should().Be("Foo");
+		creationExpr.MapInitializer.WellFormedExprs.Should().HaveCount(0);
+	}
+
+	[Fact]
+	public void Expr_TypeCreation_NestedAccess()
+	{
+		var src = "S.SNested { a = 42 }";
+		var tree = Parser.ParseExpr(src);
+		var creationExpr = tree.Root.Should().BeOfType<TypeCreationExprNode>().Subject;
+		var accessExpr = creationExpr.TypeExpr.Should().BeOfType<AccessExprNode>().Subject;
+		accessExpr.Identifier.Value.Should().Be("SNested");
+		accessExpr.Target.Should().BeOfType<IdentifierExprNode>().Subject.Identifier.Value.Should().Be("S");
 	}
 
 	[Fact]
@@ -670,7 +680,7 @@ public class ParserTests
 	public void SkippedTokens()
 	{
 		var src = "saunk ;";
-		var node = ParseDecl(src).Should().BeOfType<SkippedTokensDeclNode>().Subject;
+		var node = ParseDecl(src, hasDiags: true).Should().BeOfType<SkippedTokensDeclNode>().Subject;
 		node.Skipped.Should().HaveCount(2);
 	}
 
@@ -693,7 +703,7 @@ public class ParserTests
 			}
 			""";
 		var tree = Parser.ParseFile(src);
-		tree.Diagnostics.Diagnostics.Should().NotBeNullOrEmpty();
+		tree.Diagnostics.Diagnostics.Should().NotBeEmpty();
 	}
 
 	[Fact]
@@ -731,28 +741,44 @@ public class ParserTests
 
 	// ---
 
-	private static FileNode ParseFile(string src)
+	private static FileNode ParseFile(string src, bool? hasDiags = false)
 	{
 		var tree = Parser.ParseFile(src);
+		ValidateDiags(tree, hasDiags);
 		return ValidateNode((FileNode)tree.Root);
 	}
 
-	private static DeclNode ParseDecl(string src)
+	private static DeclNode ParseDecl(string src, bool? hasDiags = false)
 	{
 		var tree = Parser.ParseDecl(src);
+		ValidateDiags(tree, hasDiags);
 		return ValidateNode((DeclNode)tree.Root);
 	}
 
-	private static StmtNode ParseStmt(string src)
+	private static StmtNode ParseStmt(string src, bool? hasDiags = false)
 	{
 		var tree = Parser.ParseStmt(src);
+		ValidateDiags(tree, hasDiags);
 		return ValidateNode((StmtNode)tree.Root);
 	}
 
-	private static ExprNode ParseExpr(string src)
+	private static ExprNode ParseExpr(string src, bool? hasDiags = false)
 	{
 		var tree = Parser.ParseExpr(src);
+		ValidateDiags(tree, hasDiags);
 		return ValidateNode((ExprNode)tree.Root);
+	}
+
+	private static void ValidateDiags(SyntaxTree tree, bool? hasDiags)
+	{
+		if (hasDiags == false)
+		{
+			tree.Diagnostics.Diagnostics.Should().BeEmpty();
+		}
+		else if (hasDiags == true)
+		{
+			tree.Diagnostics.Diagnostics.Should().NotBeEmpty();
+		}
 	}
 
 	private static T ValidateNode<T>(T node)

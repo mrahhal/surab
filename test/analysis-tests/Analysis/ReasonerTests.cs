@@ -61,7 +61,30 @@ public class ReasonerTests
 	}
 
 	[Fact]
-	public void LookupSymbol_LookupType_Field_InsideMapInitializer()
+	public void TypeCreation_Nested()
+	{
+		var src = """
+			struct S {
+				a: i32;
+				struct SNested {
+					b: i32;
+				}
+			}
+			fn f() {
+				var s_nested = S.SNested { b = 42 };
+			}
+			""";
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
+
+		var creationExpr = (TypeCreationExprNode)tree.Root.DescendantNodes().OfType<VarDeclNode>().Single().Initializer!.Expr;
+
+		var creationExprType = reasoner.LookupType(creationExpr);
+
+		creationExprType.Should().BeOfType<StructTypeSymbol>().Subject.Name.Should().Be("SNested");
+	}
+
+	[Fact]
+	public void Field_InsideMapInitializer()
 	{
 		var src = """
 			struct S1 { a: i32; }
@@ -70,8 +93,8 @@ public class ReasonerTests
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
 		var varDecl = tree.Root.DescendantNodes().OfType<VarDeclNode>().Single();
-		var structCreationExpr = (StructCreationExprNode)varDecl.Initializer!.Expr;
-		var mapInitializer = structCreationExpr.MapInitializer;
+		var creationExpr = (TypeCreationExprNode)varDecl.Initializer!.Expr;
+		var mapInitializer = creationExpr.MapInitializer;
 
 		var fieldSymbol = reasoner.LookupSymbol(mapInitializer.WellFormedExprs.ElementAt(0).Lhs);
 		var fieldType = reasoner.LookupType(mapInitializer.WellFormedExprs.ElementAt(0).Lhs);
@@ -90,7 +113,7 @@ public class ReasonerTests
 			""";
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
-		var creationExpr = tree.Root.DescendantNodes().OfType<StructCreationExprNode>().Single();
+		var creationExpr = tree.Root.DescendantNodes().OfType<TypeCreationExprNode>().Single();
 		var assignmentExpr = creationExpr.MapInitializer.DescendantNodes().OfType<AssignmentExprNode>().Single();
 		var symbol = reasoner.LookupSymbol(assignmentExpr.Lhs);
 		symbol.Should().BeAssignableTo<FieldSymbol>().Subject.
@@ -106,7 +129,7 @@ public class ReasonerTests
 			""";
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
-		var creationExpr = tree.Root.DescendantNodes().OfType<StructCreationExprNode>().Single();
+		var creationExpr = tree.Root.DescendantNodes().OfType<TypeCreationExprNode>().Single();
 		var assignmentExpr = creationExpr.MapInitializer.DescendantNodes().OfType<AssignmentExprNode>().Single();
 		var symbol = reasoner.LookupSymbol(assignmentExpr.Lhs);
 		symbol.Should().BeOfType<ParamSymbol>().Subject.

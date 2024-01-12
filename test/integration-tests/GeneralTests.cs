@@ -258,7 +258,7 @@ public class GeneralTests
 			fn main() {
 				var s = S {
 					a = 42,
-					s_nested = SNested {
+					s_nested = S.SNested {
 						na = 43,
 					},
 				};

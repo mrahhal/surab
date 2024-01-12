@@ -789,12 +789,6 @@ internal class ParserImpl
 	{
 		if (IsAtEnd()) return CreateMissingExprNode();
 
-		// Struct creation takes priority.
-		if (_current.Kind == TokenKind.Identifier && P1()?.Kind == TokenKind.LeftBrace)
-		{
-			return ParseStructCreationExpr();
-		}
-
 		if (!Pratt.IsPrefixRule(_current.Kind))
 		{
 			// TODO: Should we try to perform a recovery of some kind?
@@ -806,12 +800,14 @@ internal class ParserImpl
 		while (!IsAtEnd())
 		{
 			var rule = Pratt.GetInfixRule(_current.Kind);
-			if (rule == null) break;
+			if (rule == null)
+				break;
+
+			if (rule.LeftPredicate != null && !rule.LeftPredicate(expr))
+				break;
 
 			if (precedence >= rule.Precedence)
-			{
 				break;
-			}
 
 			expr = ParseInfixExpr(rule, expr);
 		}
@@ -979,12 +975,22 @@ internal class ParserImpl
 
 		return token.Kind switch
 		{
-			TokenKind.LeftParen => ParseCallExpr(left),
 			TokenKind.Dot => ParseAccessExpr(left),
+			TokenKind.LeftParen => ParseCallExpr(left),
+			TokenKind.LeftBrace => ParseTypeCreationExpr(left),
 			TokenKind.Equal => ParseAssignmentExpr(targetPrecedence, left),
 			_ when token.Kind.IsBinary() => ParseBinaryExpr(targetPrecedence, left),
 			_ => CreateMissingExprNode(),
 		};
+	}
+
+	private ExprNode ParseAccessExpr(ExprNode left)
+	{
+		// In an access expr, we always parse one identifier, so we don't pass the precedence.
+		var dotToken = EatAssertedSimpleToken(TokenKind.Dot);
+		var identifier = ParseIdentifier();
+
+		return new AccessExprNode(_tree, left, dotToken, identifier);
 	}
 
 	private ExprNode ParseCallExpr(ExprNode left)
@@ -996,13 +1002,15 @@ internal class ParserImpl
 		return new CallExprNode(_tree, left, args);
 	}
 
-	private ExprNode ParseAccessExpr(ExprNode left)
+	/// <summary>
+	/// Parses `module.Decl.Struct1 { a = b, c = d }`
+	/// Requirements: current is LeftBrace.
+	/// </summary>
+	private ExprNode ParseTypeCreationExpr(ExprNode left)
 	{
-		// In an access expr, we always parse one identifier, so we don't pass the precedence.
-		var dotToken = EatAssertedSimpleToken(TokenKind.Dot);
-		var identifier = ParseIdentifier();
+		var mapInitializer = ParseMapInitializer();
 
-		return new AccessExprNode(_tree, left, dotToken, identifier);
+		return new TypeCreationExprNode(_tree, left, mapInitializer);
 	}
 
 	/// <summary>
@@ -1047,18 +1055,6 @@ internal class ParserImpl
 		var closedBraceToken = EatExpectedSimpleToken(TokenKind.RightBrace);
 
 		return new BlockExprNode(_tree, openBraceToken, stmts, closedBraceToken);
-	}
-
-	/// <summary>
-	/// Parses `Struct1 { a = b, c = d }`
-	/// Requirements: current is Identifier and next is LeftParen.
-	/// </summary>
-	private StructCreationExprNode ParseStructCreationExpr()
-	{
-		var identifier = ParseAssertedIdentifier();
-		var mapInitializer = ParseMapInitializer();
-
-		return new StructCreationExprNode(_tree, identifier, mapInitializer);
 	}
 
 	/// <summary>

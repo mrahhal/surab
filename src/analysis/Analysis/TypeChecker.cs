@@ -57,9 +57,10 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 
 		if (node.Initializer != null)
 		{
+			var rhsSymbol = _reasoner.LookupSymbol(node.Initializer.Expr);
 			var rhsType = _reasoner.LookupType(node.Initializer.Expr);
 
-			AnalyzeAssignment(node, lhsType, rhsType);
+			AnalyzeAssignment(node, lhsType, rhsSymbol, rhsType);
 		}
 
 		base.VisitVarDecl(node);
@@ -106,7 +107,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 			if (enclosingType.InitializerMethodDecl == node)
 			{
 				// Report conflicting initializer param if it conflicts with a field.
-				var conflictingParams = enclosingType.CreationSymbols.Where(x => x.IsConflicting);
+				var conflictingParams = enclosingType.CreationMemberSymbols.Where(x => x.IsConflicting);
 				foreach (var conflicting in conflictingParams)
 				{
 					// TODO: Better diag message.
@@ -189,17 +190,14 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 
 	public override void VisitAssignmentExpr(AssignmentExprNode node)
 	{
-		// Compatibility
-		//var lhsSymbol = _reasoner.LookupSymbol(node.Lhs);
-		// TODO: Use lhsSymbol.Type if lhsSymbol has a Type?
 		var lhsType = _reasoner.LookupType(node.Lhs);
 
-		//var rhsSymbol = _reasoner.LookupSymbol(node.Rhs);
+		var rhsSymbol = _reasoner.LookupSymbol(node.Rhs);
 		var rhsType = _reasoner.LookupType(node.Rhs);
 
-		AnalyzeAssignment(node, lhsType, rhsType);
+		AnalyzeAssignment(node, lhsType, rhsSymbol, rhsType);
 
-		// TODO (SemanticAnalyzer): Invalid target of assignment.
+		// TODO (SemanticAnalyzer): Invalid target of assignment (not a valid lvalue).
 		/*switch (node.Lhs)
 		{
 			//case AccessExprNode accessExprNode:
@@ -215,7 +213,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		base.VisitAssignmentExpr(node);
 	}
 
-	private void AnalyzeAssignment(SyntaxNode node, TypeSymbol lhsType, TypeSymbol rhsType)
+	private void AnalyzeAssignment(SyntaxNode node, TypeSymbol lhsType, Symbol? rhsSymbol, TypeSymbol rhsType)
 	{
 		if (lhsType.IsUnknown || rhsType.IsUnknown)
 		{
@@ -225,6 +223,10 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		{
 			// Incompatible types
 			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"invalid assignment because of incompatible types, expected `{lhsType}` but received `{rhsType}`");
+		}
+		else if (rhsSymbol is TypeSymbol)
+		{
+			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"Invalid assignment of a type. Did you mean to create the type instead using `Type {{ ... }}`?");
 		}
 	}
 
@@ -402,14 +404,18 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		base.VisitThisExpr(node);
 	}
 
-	public override void VisitStructCreationExpr(StructCreationExprNode node)
+	public override void VisitTypeCreationExpr(TypeCreationExprNode node)
 	{
-		var symbol = _reasoner.LookupSymbol(node);
-		AnalyzeLookedUpIdentifier(node.Identifier, symbol);
-
+		var symbol = _reasoner.LookupSymbol(node.TypeExpr);
+		if (symbol == null)
+		{
+			_diagnostics.Add(node.TypeExpr.Span, DiagnosticLevel.Error, $"unknown type to create");
+			return;
+		}
 		if (symbol is not TypeSymbol typeSymbol)
 		{
-			// If type symbol is null, skip analyzing lhs for each initializer as we won't be able to resolve them anyway.
+			// If type symbol is null, skip analyzing lhs for each initializer item as we won't be able to resolve them anyway.
+			// Do analyze rhs.
 			foreach (var initializerExpr in node.MapInitializer.Items.Select(x => x.Expr as AssignmentExprNode))
 			{
 				if (initializerExpr != null)
@@ -417,6 +423,8 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 					Visit(initializerExpr.Rhs);
 				}
 			}
+
+			_diagnostics.Add(node.TypeExpr.Span, DiagnosticLevel.Error, $"not a type that can be created");
 			return;
 		}
 
@@ -428,13 +436,13 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 			.Where(x => x.Symbol != null)
 			.ToList();
 		var setSymbolsMap = setSymbols.ToDictionary(x => x.Symbol!, x => x.Assignment);
-		var creationSymbols = typeSymbol.CreationSymbols.Select(x => x.Symbol).ToList();
-		var requiredSymbols = typeSymbol.CreationSymbols.Where(x => !x.IsOptional && !x.IsConflicting).Select(x => x.Symbol);
+		var creationSymbols = typeSymbol.CreationMemberSymbols.Select(x => x.Symbol).ToList();
+		var requiredSymbols = typeSymbol.CreationMemberSymbols.Where(x => !x.IsOptional && !x.IsConflicting).Select(x => x.Symbol);
 		var unsetSymbols = requiredSymbols.Where(requiredSymbol => !setSymbolsMap.ContainsKey(requiredSymbol)).ToList();
 		if (unsetSymbols.Count != 0)
 		{
 			var missingText = string.Join(", ", unsetSymbols.Select(x => x.ToString()));
-			_diagnostics.Add(node.Identifier.Span, DiagnosticLevel.Error, $"missing required members in initializer: {missingText}");
+			_diagnostics.Add(node.TypeExpr.Span, DiagnosticLevel.Error, $"missing required members in initializer: {missingText}");
 		}
 
 		// Report set symbols that are not creation symbols.
@@ -448,7 +456,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 			}
 		}
 
-		base.VisitStructCreationExpr(node);
+		base.VisitTypeCreationExpr(node);
 	}
 
 	public override void VisitMapInitializerItem(MapInitializerItemNode node)

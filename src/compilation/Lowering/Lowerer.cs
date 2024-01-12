@@ -56,7 +56,7 @@ internal class Lowerer
 			LiteralExprNode n => Lower(n),
 			IdentifierExprNode n => Lower(n),
 			ThisExprNode n => Lower(n),
-			StructCreationExprNode n => Lower(n),
+			TypeCreationExprNode n => Lower(n),
 
 			// All other nodes not in this switch should be taken care of as part of these nodes mentioned above.
 			_ => throw new UnreachableException(),
@@ -480,7 +480,7 @@ internal class Lowerer
 			type);
 	}
 
-	private LoweredNode Lower(StructCreationExprNode node)
+	private LoweredNode Lower(TypeCreationExprNode node)
 	{
 		// Lowered into LoweredStmtListEndingWithExpr with:
 		// - ObjectAllocStmt

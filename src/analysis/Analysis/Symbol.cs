@@ -496,9 +496,9 @@ public enum KnownTypeTag
 	@string,
 }
 
-public readonly struct TypeCreationSymbol
+public readonly struct TypeCreationMemberSymbol
 {
-	internal TypeCreationSymbol(Symbol symbol, bool isConflicting)
+	internal TypeCreationMemberSymbol(Symbol symbol, bool isConflicting)
 	{
 		Symbol = symbol;
 		IsConflicting = isConflicting;
@@ -527,18 +527,18 @@ public readonly struct TypeCreationSymbol
 /// </remarks>
 public abstract class TypeSymbol : Symbol
 {
+	private readonly struct InitializerMethod
+	{
+		public MethodDeclNode? Node { get; init; }
+	}
+
 	private ImmutableArray<Symbol> _members;
-	private ImmutableArray<TypeCreationSymbol> _creationSymbols;
+	private ImmutableArray<TypeCreationMemberSymbol> _creationMemberSymbols;
 	private InitializerMethod? _initializerMethod = default;
 
 	internal TypeSymbol(SymbolKind kind, Reasoner reasoner, SyntaxNode? node)
 		: base(kind, reasoner, node)
 	{
-	}
-
-	private readonly struct InitializerMethod
-	{
-		public MethodDeclNode? Node { get; init; }
 	}
 
 	public bool IsUnknown => this is UnknownTypeSymbol;
@@ -561,16 +561,16 @@ public abstract class TypeSymbol : Symbol
 	/// <summary>
 	/// Gets the members that can be set in a type creation expr. Can include both field and param symbols (from the initializer).
 	/// </summary>
-	public virtual ImmutableArray<TypeCreationSymbol> CreationSymbols
+	public virtual ImmutableArray<TypeCreationMemberSymbol> CreationMemberSymbols
 	{
 		get
 		{
-			if (_creationSymbols.IsDefault)
+			if (_creationMemberSymbols.IsDefault)
 			{
-				ImmutableInterlocked.InterlockedCompareExchange(ref _creationSymbols, BuildCreationSymbols(), default);
+				ImmutableInterlocked.InterlockedCompareExchange(ref _creationMemberSymbols, BuildCreationMemberSymbols(), default);
 			}
 
-			return _creationSymbols;
+			return _creationMemberSymbols;
 		}
 	}
 
@@ -613,7 +613,7 @@ public abstract class TypeSymbol : Symbol
 		return new InitializerMethod { Node = null };
 	}
 
-	private ImmutableArray<TypeCreationSymbol> BuildCreationSymbols()
+	private ImmutableArray<TypeCreationMemberSymbol> BuildCreationMemberSymbols()
 	{
 		var symbols = new List<Symbol>();
 
@@ -643,8 +643,8 @@ public abstract class TypeSymbol : Symbol
 			}
 		}
 
-		var fields = symbols.OfType<FieldSymbol>().Select(x => new TypeCreationSymbol(x, false));
-		var @params = symbols.OfType<ParamSymbol>().Select(x => new TypeCreationSymbol(x, isConflicting: fields.Any(f => f.Symbol.Name == x.Name)));
+		var fields = symbols.OfType<FieldSymbol>().Select(x => new TypeCreationMemberSymbol(x, false));
+		var @params = symbols.OfType<ParamSymbol>().Select(x => new TypeCreationMemberSymbol(x, isConflicting: fields.Any(f => f.Symbol.Name == x.Name)));
 
 		return [.. fields, .. @params];
 	}
@@ -667,13 +667,13 @@ public abstract class TypeSymbol : Symbol
 		return null;
 	}
 
-	public TypeCreationSymbol? GetCreationSymbol(IdentifierToken identifier) => GetCreationSymbol(identifier.Value);
+	public TypeCreationMemberSymbol? GetCreationMemberSymbol(IdentifierToken identifier) => GetCreationMemberSymbol(identifier.Value);
 
-	public TypeCreationSymbol? GetCreationSymbol(string name)
+	public TypeCreationMemberSymbol? GetCreationMemberSymbol(string name)
 	{
-		for (var i = CreationSymbols.Length - 1; i >= 0; i--)
+		for (var i = CreationMemberSymbols.Length - 1; i >= 0; i--)
 		{
-			var item = CreationSymbols[i];
+			var item = CreationMemberSymbols[i];
 			if (!item.IsConflicting && item.Symbol.Identifier != null && item.Symbol.Identifier.Value == name)
 			{
 				return item;
@@ -900,10 +900,7 @@ public class PtrTypeSymbol : TypeSymbol
 
 	public override ImmutableArray<Symbol> Members => InnerType?.Members ?? [];
 
-	public override string ToString()
-	{
-		return Key.ToString();
-	}
+	public override string ToString() => Key.ToString();
 }
 
 public abstract class NamedTypeSymbol : TypeSymbol
@@ -940,10 +937,7 @@ public class StructTypeSymbol : NamedTypeSymbol
 	internal override IEnumerable<SyntaxNode> EnumerateMembers()
 	{
 		Debug.Assert(DeclaringNode != null);
-		foreach (var member in DeclaringNode.Members)
-		{
-			yield return member;
-		}
+		return [.. DeclaringNode.Members];
 	}
 }
 
@@ -962,10 +956,7 @@ public class ClassTypeSymbol : NamedTypeSymbol
 	internal override IEnumerable<SyntaxNode> EnumerateMembers()
 	{
 		Debug.Assert(DeclaringNode != null, "Unreachable in built in types.");
-		foreach (var member in DeclaringNode.Members)
-		{
-			yield return member;
-		}
+		return [.. DeclaringNode.Members];
 	}
 }
 

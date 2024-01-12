@@ -35,7 +35,7 @@ public enum SyntaxNodeKind
 	LiteralExpr,
 	IdentifierExpr,
 	ThisExpr,
-	StructCreationExpr,
+	TypeCreationExpr,
 	MissingExpr,
 	MapInitializer,
 	MapInitializerItem,
@@ -691,24 +691,30 @@ public partial class ThisExprNode : ExprNode
 	}
 }
 
-public partial class StructCreationExprNode : ExprNode, ISyntaxNodeHasMainIdentifier
+/// <summary>
+/// TypeAsExpr { ... }
+/// </summary>
+public partial class TypeCreationExprNode : ExprNode
 {
-	public StructCreationExprNode(SyntaxTree tree, IdentifierToken identifier, MapInitializerNode mapInitializer)
-		: base(tree, SyntaxNodeKind.StructCreationExpr)
+	public TypeCreationExprNode(SyntaxTree tree, ExprNode typeExpr, MapInitializerNode mapInitializer)
+		: base(tree, SyntaxNodeKind.TypeCreationExpr)
 	{
-		_childTokens = new() { identifier, };
-		_childNodes = new() { mapInitializer, };
+		_childTokens = new();
+		_childNodes = new() { typeExpr, mapInitializer, };
 
 		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
-	public IdentifierToken Identifier => (IdentifierToken)_childTokens[0]!;
-	public MapInitializerNode MapInitializer => (MapInitializerNode)_childNodes[0]!;
+	/// <summary>
+	/// Well formed: IdentifierExpr or AccessExpr
+	/// </summary>
+	public ExprNode TypeExpr => (ExprNode)_childNodes[0]!;
+	public MapInitializerNode MapInitializer => (MapInitializerNode)_childNodes[1]!;
 
 	public override void Accept(SyntaxTreeVisitor visitor)
 	{
-		visitor.VisitStructCreationExpr(this);
+		visitor.VisitTypeCreationExpr(this);
 	}
 }
 

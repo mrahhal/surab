@@ -174,7 +174,7 @@ public class SemanticTokensFullHandler(
 							ConstDeclNode => SemanticTokenType.Variable,
 							VarDeclNode => SemanticTokenType.Variable,
 							FnSigNode sig => sig.Parent is FnDeclNode ? (SemanticTokenType?)SemanticTokenType.Function : SemanticTokenType.Method,
-							StructDeclNode or StructCreationExprNode => SemanticTokenType.Struct,
+							StructDeclNode or TypeCreationExprNode => SemanticTokenType.Struct,
 							FieldDeclNode => SemanticTokenType.Property,
 							ParamNode => SemanticTokenType.Parameter,
 							NamedTypeNode => SemanticTokenType.Type,
