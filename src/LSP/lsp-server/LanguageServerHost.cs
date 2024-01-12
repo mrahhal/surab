@@ -58,12 +58,14 @@ public class LanguageServerHost
 
 				await InitializeProjectAsync(workspaceUri);
 			})
-			.OnInitialized((_, _, _, ct) =>
+			.OnInitialized((_, _, _, _) =>
 			{
 				// Launch a preliminary analysis when a workspace is opened and initialized.
 				// We don't need to await for the task before replying to the client because this can be a long running operation.
 				// The project in this state is already ready to handle change requests.
-				_ = Project.EnsureAnalyzedAsync(ct);
+
+				// Shouldn't pass the cancellation token from OnInitialized as that will cancel the analysis right away.
+				_ = Project.EnsureAnalyzedAsync(CancellationToken.None);
 				return Task.CompletedTask;
 			})
 			.WithHandler<TextDocumentSyncHandler>()
@@ -112,6 +114,7 @@ public class LanguageServerHost
 
 	private void HandleFullDiagnosticsReady(IEnumerable<FileDiagnostics> diags)
 	{
+		_logger.LogInformation("Publishing diagnostics");
 		foreach (var fileDiagnostics in diags)
 		{
 			Server.PublishDiagnostics(new PublishDiagnosticsParams
