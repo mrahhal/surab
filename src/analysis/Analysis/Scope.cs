@@ -165,7 +165,7 @@ internal abstract class Scope
 	}
 }
 
-internal class FileScope(FileNode file, Reasoner fileReasoner, Reasoner? preludeReasoner) : Scope
+internal sealed class FileScope(FileNode file, Reasoner fileReasoner, Reasoner? preludeReasoner) : Scope
 {
 	private ImmutableArray<Symbol> _decls;
 
@@ -235,11 +235,11 @@ internal class FileScope(FileNode file, Reasoner fileReasoner, Reasoner? prelude
 /// <summary>
 /// A scope that exposes declarations local in the type.
 /// </summary>
-internal class NamedTypeDeclScope(
+internal sealed class NamedTypeDeclScope(
 	DeclNode decl,
 	NamedTypeSymbol symbol) : Scope
 {
-	protected readonly NamedTypeSymbol _symbol = symbol;
+	private readonly NamedTypeSymbol _symbol = symbol;
 
 	private ImmutableArray<Symbol> _localDecls;
 
@@ -297,7 +297,7 @@ internal class NamedTypeDeclScope(
 	}
 }
 
-internal class FnScope(
+internal sealed class FnScope(
 	FnSigNode fnSig,
 	FnSymbol fnSymbol) : Scope
 {
@@ -316,7 +316,7 @@ internal class FnScope(
 /// <remarks>
 /// This scope gets extended until the end of a block node. This scope replaces explicit block scopes to allow var shadowing.
 /// </remarks>
-internal class LocalScope(LocalSymbol symbol) : Scope
+internal sealed class LocalScope(LocalSymbol symbol) : Scope
 {
 	private readonly LocalSymbol _symbol = symbol;
 
@@ -336,7 +336,7 @@ internal class LocalScope(LocalSymbol symbol) : Scope
 /// A scope that exposes declarations local to the block to the entire block.
 /// This means declaring a struct anywhere inside the block makes it available to any statement inside the whole block.
 /// </summary>
-internal class BlockScope(BlockExprNode blockExprNode) : Scope
+internal sealed class BlockScope(BlockExprNode blockExprNode) : Scope
 {
 	private ImmutableArray<Symbol> _localDecls;
 
