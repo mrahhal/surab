@@ -1,4 +1,5 @@
-﻿using Surab.Analysis;
+﻿using LLVMSharp.Interop;
+using Surab.Analysis;
 using Surab.Compilation.LLVM;
 
 namespace Surab.Compilation;
@@ -29,23 +30,10 @@ public sealed class CompilationContext
 
 	public CompilationOptions Options { get; }
 
-	// TODO: Some of these might need to be moved to a reasoner context so that we can bust them.
+	// TODO: Some of these might need to be moved to a reasoner context so that we can bust them as we rebuild reasoners on changes.
+	// Also, some of these should not be here in the first place as they're tied to LLVM.
 
 	internal Dictionary<Symbol, LLVMUnit> SymbolToLLVMUnit { get; } = [];
 
-	internal Dictionary<TypeSymbol, LLVMType> TypeSymbolToLLVMType { get; } = [];
-
-	// Not used for now. How to properly bust caches like this?
-	internal LLVMType GetOrCreateType(TypeSymbol typeSymbol)
-	{
-		// Cache LLVM lowered types.
-		if (!TypeSymbolToLLVMType.TryGetValue(typeSymbol, out var llvmTypeUnit))
-		{
-			var llvmType = LLVMTarget.LowerType(typeSymbol);
-			llvmTypeUnit = new LLVMType(llvmType);
-			TypeSymbolToLLVMType[typeSymbol] = llvmTypeUnit;
-		}
-
-		return llvmTypeUnit;
-	}
+	internal Dictionary<TypeSymbol, LLVMTypeRef> TypeSymbolToLLVMType { get; } = [];
 }

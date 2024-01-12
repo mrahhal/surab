@@ -74,14 +74,3 @@ internal class LLVMFn(LLVMTypeRef? sret, LLVMFnAttrsDef attrs)
 		attrs = Attrs;
 	}
 }
-
-/// <summary>
-/// Represents a created LLVM type lowered from a <see cref="TypeSymbol"/>.
-/// </summary>
-internal sealed class LLVMType(LLVMTypeRef type)
-{
-	/// <summary>
-	/// The LLVM lowered type of the <see cref="TypeSymbol"/>.
-	/// </summary>
-	public LLVMTypeRef Type { get; } = type;
-}

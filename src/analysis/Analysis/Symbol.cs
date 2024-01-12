@@ -934,6 +934,8 @@ public class StructTypeSymbol : NamedTypeSymbol
 
 	public new StructDeclNode? DeclaringNode => _node;
 
+	public new string Name => base.Name!;
+
 	internal override IEnumerable<SyntaxNode> EnumerateMembers()
 	{
 		Debug.Assert(DeclaringNode != null);
@@ -952,6 +954,8 @@ public class ClassTypeSymbol : NamedTypeSymbol
 	}
 
 	public new ClassDeclNode? DeclaringNode => _node;
+
+	public new string Name => base.Name!;
 
 	internal override IEnumerable<SyntaxNode> EnumerateMembers()
 	{

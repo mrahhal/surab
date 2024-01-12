@@ -795,6 +795,19 @@ internal abstract class LLVMTarget
 	public LLVMTypeRef LowerType(TypeSymbol type)
 	{
 		type = type.UnwrapAliases();
+
+		if (Context.TypeSymbolToLLVMType.TryGetValue(type, out var llvmType))
+		{
+			return llvmType;
+		}
+
+		llvmType = LowerTypeCore(type);
+		Context.TypeSymbolToLLVMType[type] = llvmType;
+		return llvmType;
+	}
+
+	private LLVMTypeRef LowerTypeCore(TypeSymbol type)
+	{
 		var tag = type.KnownTypeTag;
 
 		if (tag is KnownTypeTag.None)
@@ -826,7 +839,10 @@ internal abstract class LLVMTarget
 					_ => throw new UnreachableException(),
 				};
 			}).ToArray();
-			return LLVMTypeRef.CreateStruct(elements, Packed: false);
+			// TODO: Optionally mangled/full name instead.
+			var llvmType = LLVM.Context.CreateNamedStruct(structType.Name);
+			llvmType.StructSetBody(elements, Packed: false);
+			return llvmType;
 		}
 
 		if (type is FnTypeSymbol fnType)
