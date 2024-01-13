@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Text;
 
 namespace Surab.Analysis;
 
@@ -26,6 +27,7 @@ public enum SymbolKind
 public abstract class Symbol
 {
 	private List<Symbol>? _children;
+	private string? _fullName;
 
 	protected Symbol(SymbolKind kind, Reasoner reasoner, SyntaxNode? declaringNode = null)
 	{
@@ -69,6 +71,8 @@ public abstract class Symbol
 
 	public virtual string? Name => Identifier?.Value;
 
+	public string? FullName => _fullName ??= BuildFullName();
+
 	internal void SetParent(Symbol? parent)
 	{
 		Parent = parent;
@@ -84,6 +88,24 @@ public abstract class Symbol
 	internal void SetScope(Scope scope)
 	{
 		Scope = scope;
+	}
+
+	private string? BuildFullName()
+	{
+		if (Name == null)
+			return null;
+
+		var sb = new StringBuilder();
+		var current = Parent;
+		while (current != null)
+		{
+			sb.Insert(0, ".");
+			sb.Insert(0, current.Name);
+			current = current.Parent;
+		}
+
+		sb.Append(Name);
+		return sb.ToString();
 	}
 
 	public override string ToString() => Name ?? string.Empty;
@@ -103,6 +125,16 @@ public interface ISymbolHasType
 	/// Gets whether the type of the symbol was inferred rather than typed.
 	/// </summary>
 	public bool IsTypeInferred { get; }
+}
+
+public interface ISymbolHasAccessorAttrs
+{
+	public bool IsPublic { get; }
+}
+
+public interface ISymbolHasExternAttr
+{
+	public bool IsExtern { get; }
 }
 
 public sealed class ConstSymbol : Symbol, ISymbolHasType
@@ -160,7 +192,7 @@ public sealed class LocalSymbol : Symbol, ISymbolHasType
 	}
 }
 
-public sealed class FnSymbol : Symbol, ISymbolHasType
+public sealed class FnSymbol : Symbol, ISymbolHasType, ISymbolHasAccessorAttrs, ISymbolHasExternAttr
 {
 	private readonly FnSigNode _node;
 	private FnTypeSymbol? _type;
@@ -319,13 +351,17 @@ public sealed class FnSymbol : Symbol, ISymbolHasType
 		}
 	}
 
+	public new string Name => base.Name!;
+
+	public new string FullName => base.FullName!;
+
 	public override string ToString()
 	{
 		return $"{Identifier!.Value}({string.Join(", ", Params.Select(p => $"{p.Name}: {p.Type.Name}"))}) {ReturnType.Name}";
 	}
 }
 
-public abstract class FieldSymbol : Symbol, ISymbolHasType
+public abstract class FieldSymbol : Symbol, ISymbolHasType, ISymbolHasAccessorAttrs
 {
 	internal FieldSymbol(Reasoner reasoner, SyntaxNode? node)
 		: base(SymbolKind.Field, reasoner, node)
@@ -903,7 +939,7 @@ public class PtrTypeSymbol : TypeSymbol
 	public override string ToString() => Key.ToString();
 }
 
-public abstract class NamedTypeSymbol : TypeSymbol
+public abstract class NamedTypeSymbol : TypeSymbol, ISymbolHasAccessorAttrs
 {
 	private readonly DeclNode? _node;
 
@@ -920,9 +956,11 @@ public abstract class NamedTypeSymbol : TypeSymbol
 	}
 
 	public new DeclNode? DeclaringNode => _node;
+
+	public abstract bool IsPublic { get; }
 }
 
-public class StructTypeSymbol : NamedTypeSymbol
+public class StructTypeSymbol : NamedTypeSymbol, ISymbolHasExternAttr
 {
 	private readonly StructDeclNode? _node;
 
@@ -934,13 +972,19 @@ public class StructTypeSymbol : NamedTypeSymbol
 
 	public new StructDeclNode? DeclaringNode => _node;
 
-	public new string Name => base.Name!;
-
 	internal override IEnumerable<SyntaxNode> EnumerateMembers()
 	{
 		Debug.Assert(DeclaringNode != null);
 		return [.. DeclaringNode.Members];
 	}
+
+	public new string Name => base.Name!;
+
+	public new string FullName => base.FullName!;
+
+	public override bool IsPublic => _node?.Attrs.HasAttr(KnownAttrs.Public) ?? false;
+
+	public bool IsExtern => _node?.Attrs.HasAttr(KnownAttrs.Extern) ?? false;
 }
 
 public class ClassTypeSymbol : NamedTypeSymbol
@@ -956,6 +1000,10 @@ public class ClassTypeSymbol : NamedTypeSymbol
 	public new ClassDeclNode? DeclaringNode => _node;
 
 	public new string Name => base.Name!;
+
+	public new string FullName => base.FullName!;
+
+	public override bool IsPublic => _node?.Attrs.HasAttr(KnownAttrs.Public) ?? false;
 
 	internal override IEnumerable<SyntaxNode> EnumerateMembers()
 	{

@@ -289,7 +289,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 			{
 				sretPtr = _llvmFnUnit.Value.GetParam(0);
 			}
-			LLVMTarget.CompileFnReturnStmt(FnSymbol.ReturnType,exprUnit, sretPtr);
+			LLVMTarget.CompileFnReturnStmt(FnSymbol.ReturnType, exprUnit, sretPtr);
 		}
 	}
 
@@ -707,7 +707,8 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 			// Do we need to rewrite llvmPtrType? It's an opaque ptr, so maybe not.
 		}
 
-		var llvmFnValue = LLVM.Module.AddFunction(fnSymbol.Identifier!.Value, llvmFnType);
+		var name = fnSymbol.IsExtern || fnSymbol.IsMain ? fnSymbol.Name : fnSymbol.FullName;
+		var llvmFnValue = LLVM.Module.AddFunction(name, llvmFnType);
 
 		if (!fnSymbol.IsExtern && !fnSymbol.IsMain)
 		{
@@ -839,7 +840,7 @@ internal abstract class LLVMTarget
 				};
 			}).ToArray();
 			// TODO: Optionally mangled name instead.
-			var llvmType = LLVM.Context.CreateNamedStruct(structType.Name);
+			var llvmType = LLVM.Context.CreateNamedStruct(structType.FullName);
 			llvmType.StructSetBody(elements, Packed: false);
 			return llvmType;
 		}
