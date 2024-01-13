@@ -121,7 +121,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 		_context = context;
 		_fnDecl = fnDecl;
 
-		_llvmFnUnit = Get(fnDecl.FnSymbol);
+		_llvmFnUnit = GetUnit(fnDecl.FnSymbol);
 		_llvmFn = LLVMTarget.GetFnInfoFromFnType(fnDecl.FnSymbol.Type);
 		Debug.Assert(_llvmFnUnit.Value.BasicBlocksCount == 0);
 	}
@@ -224,7 +224,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 						LLVM.Builder.BuildStore(paramValue, ptr);
 						var unit = LLVMUnit.Wrapped(llvmType, ptr);
 
-						CreateParam(t.Symbol, unit);
+						CreateParamUnit(t.Symbol, unit);
 					}
 					break;
 				case LLVMTypeLoweringKind.ByCopyRef:
@@ -233,10 +233,10 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 						var alignment = Target.GetAbiAlignment(t.Type);
 						Debug.Assert(paramValue.TypeOf.Kind == LLVMTypeKind.LLVMPointerTypeKind, "Param value should already be a ptr.");
 						var unit = LLVMUnit.Wrapped(llvmType, paramValue);
-						CreateParam(t.Symbol, unit);
+						CreateParamUnit(t.Symbol, unit);
 					}
 					break;
-				case LLVMTypeLoweringKind.AbiInt:
+				case LLVMTypeLoweringKind.AsInt:
 					{
 						var layout = Target.GetLayout(t.Type);
 						var llvmIntType = LLVMTypeRef.CreateInt((uint)layout.Size.Bits);
@@ -247,7 +247,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 						LLVM.Builder.BuildStore(paramValue, ptr);
 						var unit = LLVMUnit.Wrapped(llvmType, ptr);
 
-						CreateParam(t.Symbol, unit);
+						CreateParamUnit(t.Symbol, unit);
 					}
 					break;
 			}
@@ -260,7 +260,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 	{
 		// These are usually hoisted to the top of the body by the lowerer.
 		// Having these created in the entry basic block is important to enable certain LLVM optimizations.
-		CreateLocal(node.Symbol);
+		CreateLocalUnit(node.Symbol);
 	}
 
 	public override void VisitExprStmt(LoweredExprStmt node)
@@ -364,7 +364,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 						args.Add(copyPtr);
 					}
 					break;
-				case LLVMTypeLoweringKind.AbiInt:
+				case LLVMTypeLoweringKind.AsInt:
 					{
 						// Might not be right, so this assertion is to detect a case where this isn't
 						// true so we can look into it when it happens.
@@ -503,7 +503,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 	public override void VisitVariableLoadExpr(LoweredVariableLoadExpr node)
 	{
 		// Units tied to a variable are always wrapped.
-		var unit = Get(node.Variable);
+		var unit = GetUnit(node.Variable);
 		// We don't load it, but give that option to the consumer of this unit.
 		// Some consumers will want to simply load it and deal with the value, but others will need access to the ptr.
 		_stack.Push(unit);
@@ -511,7 +511,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 
 	public override void VisitVariableStoreExpr(LoweredVariableStoreStmt node)
 	{
-		var (_, value) = Get(node.Variable);
+		var (_, value) = GetUnit(node.Variable);
 		Visit(node.Expr);
 		var rhsUnit = _stack.Pop();
 
@@ -593,7 +593,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 	public override void VisitSymbolLoadExpr(LoweredSymbolLoadExpr node)
 	{
 		// TODO: Merge with VariableLoad?
-		var unit = Get(node.Symbol);
+		var unit = GetUnit(node.Symbol);
 		_stack.Push(unit);
 	}
 
@@ -651,29 +651,38 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 		}
 	}
 
-	private LLVMUnit Get(Symbol symbol)
+	private LLVMUnit GetUnit(Symbol symbol)
 	{
+		Debug.Assert(symbol is not TypeSymbol, "Type symbols don't have units.");
+
+		// FnSymbol's unit is lazily created below, whereas all other symbols should have been already created by the time this is called.
+
+		if (_context.SymbolToLLVMUnit.TryGetValue(symbol, out var llvmUnit))
+		{
+			return llvmUnit;
+		}
+
 		if (symbol is FnSymbol fnSymbol)
 		{
-			if (_context.SymbolToLLVMUnit.TryGetValue(fnSymbol, out var llvmUnit))
-			{
-				return llvmUnit;
-			}
-			llvmUnit = CreateFn(fnSymbol);
+			llvmUnit = CreateFnUnit(fnSymbol);
 			_context.SymbolToLLVMUnit[fnSymbol] = llvmUnit;
 			return llvmUnit;
 		}
 
-		if (_context.SymbolToLLVMUnit.TryGetValue(symbol, out var unit))
-		{
-			return unit;
-		}
+		throw new UnreachableException();
+	}
 
-		throw new UnreachableException("Unexpected?");
+	private LLVMUnit CreateLocalUnit(LocalSymbol localSymbol)
+	{
+		var typeRef = LLVMTarget.LowerType(localSymbol.Type);
+		var ptr = LLVM.Builder.BuildAlloca(typeRef, localSymbol.Identifier?.Value ?? string.Empty);
+		var unit = LLVMUnit.Wrapped(typeRef, ptr);
+		_context.SymbolToLLVMUnit[localSymbol] = unit;
+		return unit;
 	}
 
 	// paramSymbol is null for the receiver param.
-	private LLVMUnit CreateParam(ParamSymbol? paramSymbol, LLVMUnit unit)
+	private LLVMUnit CreateParamUnit(ParamSymbol? paramSymbol, LLVMUnit unit)
 	{
 		if (paramSymbol != null)
 		{
@@ -686,17 +695,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 		return unit;
 	}
 
-	private LLVMUnit CreateLocal(LocalSymbol localSymbol)
-	{
-		var typeRef = LLVMTarget.LowerType(localSymbol.Type);
-		var ptr = LLVM.Builder.BuildAlloca(typeRef, localSymbol.Identifier?.Value ?? string.Empty);
-		var unit = LLVMUnit.Wrapped(typeRef, ptr);
-
-		_context.SymbolToLLVMUnit[localSymbol] = unit;
-		return unit;
-	}
-
-	private LLVMUnit CreateFn(FnSymbol fnSymbol)
+	private LLVMUnit CreateFnUnit(FnSymbol fnSymbol)
 	{
 		var (sret, attrs) = LLVMTarget.GetFnInfoFromFnType(fnSymbol.Type);
 		var (llvmPtrType, llvmFnType) = LLVMTarget.LowerType(fnSymbol.Type);
@@ -839,7 +838,7 @@ internal abstract class LLVMTarget
 					_ => throw new UnreachableException(),
 				};
 			}).ToArray();
-			// TODO: Optionally mangled/full name instead.
+			// TODO: Optionally mangled name instead.
 			var llvmType = LLVM.Context.CreateNamedStruct(structType.Name);
 			llvmType.StructSetBody(elements, Packed: false);
 			return llvmType;
@@ -894,7 +893,7 @@ internal abstract class LLVMTarget
 						@params.Add(LLVMTypeRef.CreatePointer(paramLLVMType, 0));
 					}
 					break;
-				case LLVMTypeLoweringKind.AbiInt:
+				case LLVMTypeLoweringKind.AsInt:
 					{
 						var layout = Target.GetLayout(paramType);
 						var llvmIntType = LLVMTypeRef.CreateInt((uint)layout.Size.Bits);
@@ -945,7 +944,7 @@ internal abstract class LLVMTarget
 					{
 					}
 					break;
-				case LLVMTypeLoweringKind.AbiInt:
+				case LLVMTypeLoweringKind.AsInt:
 					{
 					}
 					break;
@@ -1040,7 +1039,7 @@ internal abstract class x86_64WindowsLLVMTarget(CompilationContext context) : LL
 
 		return Target.Classify(type) switch
 		{
-			Classification.Integer => type.IsScalar() ? LLVMTypeLowering.ByValue : LLVMTypeLowering.AbiInt,
+			Classification.Integer => type.IsScalar() ? LLVMTypeLowering.ByValue : LLVMTypeLowering.AsInt,
 			//win_i128 =>
 			Classification.Memory => LLVMTypeLowering.ByCopyRef,
 			Classification.SSE => LLVMTypeLowering.ByValue,
