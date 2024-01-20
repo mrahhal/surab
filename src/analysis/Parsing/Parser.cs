@@ -1129,7 +1129,7 @@ internal class ParserImpl
 	/// <summary>
 	/// Parses the various type syntax.
 	/// - `@extern *NamedType`
-	/// - `NamedType`
+	/// - `NamedType.NestedType`
 	/// - `@extern fn (i32) i32`
 	/// </summary>
 	private TypeNode ParseType()
@@ -1139,11 +1139,14 @@ internal class ParserImpl
 		return _current?.Kind switch
 		{
 			TokenKind.Asterisk => ParsePtrType(attrs),
-			TokenKind.Identifier => ParseNamedType(attrs),
 			// Note that in the faulty: `fn some() /* not complete */ fn main() {}`
 			// The parser will think the next fn keyword (for main) the start of the fn return type of some.
 			// Currently, can't figure out a good way to recover this better without doing a lot of lookaheads.
 			TokenKind.Fn => ParseFnType(attrs),
+
+			_ when _current.Kind.CanStartExpr() => ParseExpr(),
+			//TokenKind.Identifier => ParseNamedType(attrs),
+
 			// IsAtEnd check is included here.
 			_ => CreateMissingTypeNode(attrs),
 		};

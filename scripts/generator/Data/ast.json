@@ -477,7 +477,7 @@
 		{
 			"Name": "AccessExpr",
 			"Base": "ExprNode",
-			"Comment": "A member access (`target.identifier`).",
+			"Comment": "A member access (`target.identifier`). Can resolve to a type (qualified type name).",
 			"Members": [
 				{
 					"Name": "target",
@@ -506,6 +506,7 @@
 		{
 			"Name": "IdentifierExpr",
 			"Base": "ExprNode",
+			"Comment": "Can resolve to a type (simple type name).",
 			"Members": [
 				{
 					"Name": "identifier",
@@ -724,23 +725,9 @@
 			]
 		},
 		{
-			"Name": "NamedType",
-			"Base": "TypeNode",
-			"Members": [
-				{
-					"Name": "attrs",
-					"Type": "AttrsListNode",
-					"Optional": true
-				},
-				{
-					"Name": "identifier",
-					"Type": "IdentifierToken"
-				}
-			]
-		},
-		{
 			"Name": "FnType",
 			"Base": "TypeNode",
+			"Comment": "Anonymous fn type: `fn (i32, i32) i32`.",
 			"Members": [
 				{
 					"Name": "attrs",

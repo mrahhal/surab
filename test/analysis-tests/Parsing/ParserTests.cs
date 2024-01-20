@@ -711,8 +711,9 @@ public class ParserTests
 	{
 		var src = """
 			fn f() {
-				fn f2() {
+				fn f2() S.S2 {
 					fn f3() { }
+					return S.S2 { a = 42 };
 				}
 				var a = 2;
 				struct S {
@@ -730,7 +731,7 @@ public class ParserTests
 		fStmts.Should().HaveCount(3);
 		var f2FnDecl = fStmts.ElementAt(0).Should().BeOfType<DeclStmtNode>().Subject.Decl.Should().BeOfType<FnDeclNode>().Subject;
 		var f2Stmts = f2FnDecl.Body!.Stmts;
-		f2Stmts.Should().HaveCount(1);
+		f2Stmts.Should().HaveCount(2);
 		f2Stmts.ElementAt(0).Should().BeOfType<DeclStmtNode>().Subject.Decl.Should().BeOfType<FnDeclNode>();
 		var sStructDecl = fStmts.ElementAt(2).Should().BeOfType<DeclStmtNode>().Subject.Decl.Should().BeOfType<StructDeclNode>().Subject;
 		var sDecls = sStructDecl.DeclsList.Decls;

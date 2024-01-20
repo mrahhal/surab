@@ -841,12 +841,15 @@ public abstract class StmtNode(SyntaxTree tree, SyntaxNodeKind kind) : SyntaxNod
 
 public abstract class ExprNode(SyntaxTree tree, SyntaxNodeKind kind) : SyntaxNode(tree, kind)
 {
-	public bool IsMissing => this is MissingExprNode;
+	public bool IsMissing => Kind is SyntaxNodeKind.MissingExpr or SyntaxNodeKind.MissingType;
 }
 
-public abstract class TypeNode(SyntaxTree tree, SyntaxNodeKind kind) : SyntaxNode(tree, kind)
+public abstract class TypeNode(SyntaxTree tree, SyntaxNodeKind kind) : ExprNode(tree, kind)
 {
-	public bool IsMissing => this is MissingTypeNode;
+}
+
+public class TypeExprWrapperNode
+{
 }
 
 // ---

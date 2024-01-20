@@ -256,6 +256,10 @@ public class GeneralTests
 			}
 
 			fn main() {
+				fn create_s_nested() S.SNested {
+					S.SNested.create()
+				}
+
 				var s = S {
 					a = 42,
 					s_nested = S.SNested {
@@ -265,7 +269,7 @@ public class GeneralTests
 				print_i32(s.s_nested.na);
 				print_i32(s.a);
 
-				var another_s_nested = S.SNested.create();
+				var another_s_nested = create_s_nested();
 				print_i32(another_s_nested.na);
 			}
 			""");

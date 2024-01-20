@@ -19,95 +19,37 @@ p.Start();
 p.WaitForExit();
 
 var src = """
-	alias Delegate1 as @extern fn (S2);
+	struct S {
+		a: i32;
+		s_nested: SNested;
 
-	struct S1 {
-		a: f64;
-		b: bool;
-	}
+		struct SNested {
+			na: i32;
 
-	@extern
-	struct S2 {
-		a: f64;
-	}
-
-	@extern
-	struct S3 {
-		a: f64;
-		b: f64;
-	}
-
-	@extern
-	struct S4 {
-		s3: S3;
-	}
-
-	@extern
-	fn print_from_rust(s2: S2);
-
-	@extern
-	fn get_s3_from_rust() S3;
-
-	@extern
-	fn print_s3_from_rust(s3: S3);
-
-	@extern
-	fn f(x: f64, y: f64) f64 {
-		var e = x + y;
-		return e + 1.0;
-	}
-
-	fn fs(s1: S1, s2: S2) {
-		print_f64(s1.a);
-		print_f64(s2.a);
+			fn create() SNested {
+				SNested {
+					na = 45,
+				}
+			}
+		}
 	}
 
 	fn main() {
-		var a = 2.0;
-		fn noop() { }
-		noop();
-		var b: f64 = 4.0;
-		var c = f(a, b);
-		c = {
-			var c2 = 999.0;
-			c2 + 0.2
+		fn create_s_nested() S.SNested {
+			S.SNested.create()
+		}
+
+		var s = S {
+			a = 42,
+			s_nested = S.SNested {
+				na = 43,
+			},
 		};
-		print_f64(c);
-		print_i32(41 + 1);
+		print_i32(s.s_nested.na);
+		print_i32(s.a);
 
-		var s1 = S1 {
-			a = 82.0,
-			b = true,
-		};
-		print_f64(s1.a);
-		s1.a = 83.0;
-		print_f64(s1.a);
-		print_bool(s1.b);
-
-		var s2 = S2 { a = 42.3 };
-
-		fs(s1, s2);
-
-		print_from_rust(s2);
-
-		// Fn pointers
-		var fn_ptr /* : @extern fn (f64, f64) f64 */ = f;
-		print_f64(fn_ptr(2.0, 3.0));
-
-		var fn_ptr: @extern fn (S2) = print_from_rust;
-		fn_ptr(s2);
-
-		var fn_ptr: Delegate1 = print_from_rust;
-		fn_ptr(s2);
-
-		var s3_from_rust = get_s3_from_rust();
-		print_s3_from_rust(s3_from_rust);
-
-		var s4 = S4 { s3 = s3_from_rust };
-		print_s3_from_rust(s4.s3);
-
-		var str = "This is created in surab and printed from rust.";
-		print_string(str);
+		var another_s_nested = create_s_nested();
+		print_i32(another_s_nested.na);
 	}
 	""";
 var sourceFile = SourceFile.FromText(src);

@@ -380,6 +380,20 @@ public class Reasoner
 		return targetTypeSymbol.AsTypeSymbolOrUnknown(this);
 	}
 
+	/// <summary>
+	/// Returns the type symbol if the expr resolves to a type. Returns null if the expr resolves to a non type.
+	/// Returns an unknown type if the expr can't be resolved.
+	/// </summary>
+	/// <remarks>
+	/// This is completely different from lookup up the type of an expr.
+	/// </remarks>
+	public TypeSymbol? ResolveExprToType(ExprNode expr)
+	{
+		// cases:
+		// - IdentifierExpr/AccessExpr
+		// - PtrType/FnType/MissingType
+	}
+
 	public (FnSymbol? Fn, FnTypeSymbol? FnType) LookupFnSymbolOrType(CallExprNode callExpr)
 	{
 		if (LookupSymbol(callExpr.Callee) is FnSymbol fn)
