@@ -28,7 +28,13 @@ public class Diagnostic(TextSpan span, DiagnosticLevel level, string message)
 
 		var leading = $"{lineNumber}: ";
 		var v = leading + src[windowStart..windowEnd] + Environment.NewLine;
-		v += string.Concat(Enumerable.Repeat(' ', leading.Length + start - windowStart));
+		v += string.Concat(v[..(leading.Length + start - windowStart)].Select(ch =>
+		{
+			if (char.IsWhiteSpace(ch))
+				return ch;
+			else
+				return ' ';
+		}));
 		v += string.Concat(Enumerable.Repeat('^', end - start));
 
 		return $"[{Level}] " + Message + Environment.NewLine + Environment.NewLine + v;
