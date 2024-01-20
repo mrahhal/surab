@@ -186,7 +186,7 @@
 				},
 				{
 					"Name": "type",
-					"Type": "TypeNode"
+					"Type": "TypeExprNode"
 				},
 				{
 					"Name": "semicolonToken",
@@ -650,7 +650,7 @@
 			"Members": [
 				{
 					"Name": "type",
-					"Type": "TypeNode"
+					"Type": "TypeExprNode"
 				},
 				{
 					"Name": "commaToken",
@@ -700,13 +700,24 @@
 				},
 				{
 					"Name": "type",
-					"Type": "TypeNode"
+					"Type": "TypeExprNode"
+				}
+			]
+		},
+		{
+			"Name": "TypeExpr",
+			"Base": "ExprNode",
+			"Members": [
+				{
+					"Name": "expr",
+					"Type": "ExprNode",
+					"Comment": "Well formed: Resolves to a type"
 				}
 			]
 		},
 		{
 			"Name": "PtrType",
-			"Base": "TypeNode",
+			"Base": "ExprNode",
 			"Members": [
 				{
 					"Name": "attrs",
@@ -719,14 +730,14 @@
 				},
 				{
 					"Name": "innerType",
-					"Type": "TypeNode",
+					"Type": "TypeExprNode",
 					"Optional": true
 				}
 			]
 		},
 		{
 			"Name": "FnType",
-			"Base": "TypeNode",
+			"Base": "ExprNode",
 			"Comment": "Anonymous fn type: `fn (i32, i32) i32`.",
 			"Members": [
 				{
@@ -746,14 +757,14 @@
 				},
 				{
 					"Name": "returnType",
-					"Type": "TypeNode",
+					"Type": "TypeExprNode",
 					"Optional": true
 				}
 			]
 		},
 		{
 			"Name": "MissingType",
-			"Base": "TypeNode",
+			"Base": "TypeExprNode",
 			"TakesSpan": true,
 			"Members": [
 				{
@@ -776,7 +787,7 @@
 				},
 				{
 					"Name": "returnType",
-					"Type": "TypeNode",
+					"Type": "TypeExprNode",
 					"Optional": true
 				}
 			]

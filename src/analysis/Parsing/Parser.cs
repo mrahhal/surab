@@ -1132,9 +1132,12 @@ internal class ParserImpl
 	/// - `NamedType.NestedType`
 	/// - `@extern fn (i32) i32`
 	/// </summary>
-	private TypeNode ParseType()
+	private TypeExprNode ParseType()
 	{
 		var attrs = ParseOptionalAttrsList();
+
+		var expr = ParseExpr();
+		return new TypeExprNode(_tree, expr);
 
 		return _current?.Kind switch
 		{

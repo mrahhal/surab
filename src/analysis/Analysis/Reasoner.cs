@@ -385,9 +385,10 @@ public class Reasoner
 	/// Returns an unknown type if the expr can't be resolved.
 	/// </summary>
 	/// <remarks>
-	/// This is completely different from lookup up the type of an expr.
+	/// This is completely different from <see cref="LookupType(ExprNode)"/>, which looks up the type of an expr (`1` => i32 type symbol).
+	/// This in contrast gets the type that is resolved from this expr (`i32` => i32 type symbol, `1` => null).
 	/// </remarks>
-	public TypeSymbol? ResolveExprToType(ExprNode expr)
+	public TypeSymbol? ResolveTypeFromExpr(ExprNode expr)
 	{
 		// cases:
 		// - IdentifierExpr/AccessExpr

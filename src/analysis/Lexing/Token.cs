@@ -251,14 +251,15 @@ public static class TokenKindExtensions
 		CanStartAttribute(kind);
 
 	public static bool CanStartStmt(this TokenKind kind) =>
+		kind is Return ||
 		kind.CanStartDecl() ||
-		kind.CanStartExpr() ||
-		kind is Return;
+		kind.CanStartExpr();
 
 	public static bool CanStartExpr(this TokenKind kind) =>
+		kind is LeftParen or LeftBrace or This or Identifier ||
 		kind.IsUnary() ||
 		kind.IsLiteral() ||
-		kind is LeftParen or LeftBrace or This or Identifier;
+		kind.CanStartType();
 
 	public static bool CanStartParam(this TokenKind kind) =>
 		kind is Identifier ||

@@ -844,14 +844,6 @@ public abstract class ExprNode(SyntaxTree tree, SyntaxNodeKind kind) : SyntaxNod
 	public bool IsMissing => Kind is SyntaxNodeKind.MissingExpr or SyntaxNodeKind.MissingType;
 }
 
-public abstract class TypeNode(SyntaxTree tree, SyntaxNodeKind kind) : ExprNode(tree, kind)
-{
-}
-
-public class TypeExprWrapperNode
-{
-}
-
 // ---
 
 public partial class FileNode

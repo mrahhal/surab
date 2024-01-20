@@ -46,8 +46,8 @@ public enum SyntaxNodeKind
 	ArgsList,
 	Arg,
 	ColonType,
+	TypeExpr,
 	PtrType,
-	NamedType,
 	FnType,
 	MissingType,
 	FnSig,
@@ -227,7 +227,7 @@ public partial class MethodDeclNode : DeclNode
 
 public partial class AliasDeclNode : DeclNode, ISyntaxNodeHasMainIdentifier
 {
-	public AliasDeclNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken aliasToken, IdentifierToken identifier, SimpleToken asToken, TypeNode type, SimpleToken semicolonToken)
+	public AliasDeclNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken aliasToken, IdentifierToken identifier, SimpleToken asToken, TypeExprNode type, SimpleToken semicolonToken)
 		: base(tree, SyntaxNodeKind.AliasDecl)
 	{
 		_childTokens = new() { aliasToken, identifier, asToken, semicolonToken, };
@@ -241,7 +241,7 @@ public partial class AliasDeclNode : DeclNode, ISyntaxNodeHasMainIdentifier
 	public SimpleToken AliasToken => (SimpleToken)_childTokens[0]!;
 	public IdentifierToken Identifier => (IdentifierToken)_childTokens[1]!;
 	public SimpleToken AsToken => (SimpleToken)_childTokens[2]!;
-	public TypeNode Type => (TypeNode)_childNodes[1]!;
+	public TypeExprNode Type => (TypeExprNode)_childNodes[1]!;
 	public SimpleToken SemicolonToken => (SimpleToken)_childTokens[3]!;
 
 	public override void Accept(SyntaxTreeVisitor visitor)
@@ -607,7 +607,7 @@ public partial class CallExprNode : ExprNode
 }
 
 /// <summary>
-/// A member access (`target.identifier`).
+/// A member access (`target.identifier`). Can resolve to a type (qualified type name).
 /// </summary>
 public partial class AccessExprNode : ExprNode, ISyntaxNodeHasMainIdentifier
 {
@@ -651,6 +651,9 @@ public partial class LiteralExprNode : ExprNode
 	}
 }
 
+/// <summary>
+/// Can resolve to a type (simple type name).
+/// </summary>
 public partial class IdentifierExprNode : ExprNode, ISyntaxNodeHasMainIdentifier
 {
 	public IdentifierExprNode(SyntaxTree tree, IdentifierToken identifier)
@@ -856,7 +859,7 @@ public partial class ParamTypesListNode : SyntaxNode
 
 public partial class ParamTypeNode : SyntaxNode
 {
-	public ParamTypeNode(SyntaxTree tree, TypeNode type, SimpleToken? commaToken)
+	public ParamTypeNode(SyntaxTree tree, TypeExprNode type, SimpleToken? commaToken)
 		: base(tree, SyntaxNodeKind.ParamType)
 	{
 		_childTokens = new() { commaToken, };
@@ -866,7 +869,7 @@ public partial class ParamTypeNode : SyntaxNode
 		SetChildrenParent();
 	}
 
-	public TypeNode Type => (TypeNode)_childNodes[0]!;
+	public TypeExprNode Type => (TypeExprNode)_childNodes[0]!;
 	public SimpleToken? CommaToken => (SimpleToken?)_childTokens[0]!;
 
 	public override void Accept(SyntaxTreeVisitor visitor)
@@ -920,7 +923,7 @@ public partial class ArgNode : SyntaxNode
 
 public partial class ColonTypeNode : SyntaxNode
 {
-	public ColonTypeNode(SyntaxTree tree, SimpleToken colonToken, TypeNode type)
+	public ColonTypeNode(SyntaxTree tree, SimpleToken colonToken, TypeExprNode type)
 		: base(tree, SyntaxNodeKind.ColonType)
 	{
 		_childTokens = new() { colonToken, };
@@ -931,7 +934,7 @@ public partial class ColonTypeNode : SyntaxNode
 	}
 
 	public SimpleToken ColonToken => (SimpleToken)_childTokens[0]!;
-	public TypeNode Type => (TypeNode)_childNodes[0]!;
+	public TypeExprNode Type => (TypeExprNode)_childNodes[0]!;
 
 	public override void Accept(SyntaxTreeVisitor visitor)
 	{
@@ -939,9 +942,29 @@ public partial class ColonTypeNode : SyntaxNode
 	}
 }
 
-public partial class PtrTypeNode : TypeNode
+public partial class TypeExprNode : ExprNode
 {
-	public PtrTypeNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken asteriskToken, TypeNode? innerType)
+	public TypeExprNode(SyntaxTree tree, ExprNode expr)
+		: base(tree, SyntaxNodeKind.TypeExpr)
+	{
+		_childTokens = new();
+		_childNodes = new() { expr, };
+
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		SetChildrenParent();
+	}
+
+	public ExprNode Expr => (ExprNode)_childNodes[0]!;
+
+	public override void Accept(SyntaxTreeVisitor visitor)
+	{
+		visitor.VisitTypeExpr(this);
+	}
+}
+
+public partial class PtrTypeNode : ExprNode
+{
+	public PtrTypeNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken asteriskToken, TypeExprNode? innerType)
 		: base(tree, SyntaxNodeKind.PtrType)
 	{
 		_childTokens = new() { asteriskToken, };
@@ -953,7 +976,7 @@ public partial class PtrTypeNode : TypeNode
 
 	public AttrsListNode? Attrs => (AttrsListNode?)_childNodes[0]!;
 	public SimpleToken AsteriskToken => (SimpleToken)_childTokens[0]!;
-	public TypeNode? InnerType => (TypeNode?)_childNodes[1]!;
+	public TypeExprNode? InnerType => (TypeExprNode?)_childNodes[1]!;
 
 	public override void Accept(SyntaxTreeVisitor visitor)
 	{
@@ -961,30 +984,12 @@ public partial class PtrTypeNode : TypeNode
 	}
 }
 
-public partial class NamedTypeNode : TypeNode, ISyntaxNodeHasMainIdentifier
+/// <summary>
+/// Anonymous fn type: `fn (i32, i32) i32`.
+/// </summary>
+public partial class FnTypeNode : ExprNode
 {
-	public NamedTypeNode(SyntaxTree tree, AttrsListNode? attrs, IdentifierToken identifier)
-		: base(tree, SyntaxNodeKind.NamedType)
-	{
-		_childTokens = new() { identifier, };
-		_childNodes = new() { attrs, };
-
-		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
-		SetChildrenParent();
-	}
-
-	public AttrsListNode? Attrs => (AttrsListNode?)_childNodes[0]!;
-	public IdentifierToken Identifier => (IdentifierToken)_childTokens[0]!;
-
-	public override void Accept(SyntaxTreeVisitor visitor)
-	{
-		visitor.VisitNamedType(this);
-	}
-}
-
-public partial class FnTypeNode : TypeNode
-{
-	public FnTypeNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken fnToken, ParamTypesListNode? paramTypesList, TypeNode? returnType)
+	public FnTypeNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken fnToken, ParamTypesListNode? paramTypesList, TypeExprNode? returnType)
 		: base(tree, SyntaxNodeKind.FnType)
 	{
 		_childTokens = new() { fnToken, };
@@ -997,7 +1002,7 @@ public partial class FnTypeNode : TypeNode
 	public AttrsListNode? Attrs => (AttrsListNode?)_childNodes[0]!;
 	public SimpleToken FnToken => (SimpleToken)_childTokens[0]!;
 	public ParamTypesListNode? ParamTypesList => (ParamTypesListNode?)_childNodes[1]!;
-	public TypeNode? ReturnType => (TypeNode?)_childNodes[2]!;
+	public TypeExprNode? ReturnType => (TypeExprNode?)_childNodes[2]!;
 
 	public override void Accept(SyntaxTreeVisitor visitor)
 	{
@@ -1005,7 +1010,7 @@ public partial class FnTypeNode : TypeNode
 	}
 }
 
-public partial class MissingTypeNode : TypeNode
+public partial class MissingTypeNode : TypeExprNode
 {
 	public MissingTypeNode(SyntaxTree tree, TextSpan span, AttrsListNode? attrs)
 		: base(tree, SyntaxNodeKind.MissingType)
@@ -1027,7 +1032,7 @@ public partial class MissingTypeNode : TypeNode
 
 public partial class FnSigNode : SyntaxNode, ISyntaxNodeHasMainIdentifier
 {
-	public FnSigNode(SyntaxTree tree, IdentifierToken identifier, ParamsListNode paramsList, TypeNode? returnType)
+	public FnSigNode(SyntaxTree tree, IdentifierToken identifier, ParamsListNode paramsList, TypeExprNode? returnType)
 		: base(tree, SyntaxNodeKind.FnSig)
 	{
 		_childTokens = new() { identifier, };
@@ -1039,7 +1044,7 @@ public partial class FnSigNode : SyntaxNode, ISyntaxNodeHasMainIdentifier
 
 	public IdentifierToken Identifier => (IdentifierToken)_childTokens[0]!;
 	public ParamsListNode ParamsList => (ParamsListNode)_childNodes[0]!;
-	public TypeNode? ReturnType => (TypeNode?)_childNodes[1]!;
+	public TypeExprNode? ReturnType => (TypeExprNode?)_childNodes[1]!;
 
 	public override void Accept(SyntaxTreeVisitor visitor)
 	{
