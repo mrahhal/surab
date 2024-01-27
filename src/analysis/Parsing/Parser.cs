@@ -818,6 +818,23 @@ internal class ParserImpl
 	private ExprNode ParsePrefixExpr()
 	{
 		var token = AssertedCurrent();
+
+		return _current?.Kind switch
+		{
+			//TokenKind.Asterisk => ParsePtrType(attrs),
+
+			// Note that in the faulty: `fn some() /* not complete */ fn main() {}`
+			// The parser will think the next fn keyword (for main) the start of the fn return type of some.
+			// Currently, can't figure out a good way to recover this better without doing a lot of lookaheads.
+			TokenKind.Fn => ParseFnType(attrs),
+
+			_ when _current.Kind.CanStartExpr() => ParseExpr(),
+			//TokenKind.Identifier => ParseNamedType(attrs),
+
+			//// IsAtEnd check is included here.
+			//_ => CreateMissingTypeNode(attrs),
+		};
+
 		return token.Kind switch
 		{
 			TokenKind.LeftParen => ParseGroupingExpr(),
@@ -1137,22 +1154,11 @@ internal class ParserImpl
 		var attrs = ParseOptionalAttrsList();
 
 		var expr = ParseExpr();
-		return new TypeExprNode(_tree, expr);
-
-		return _current?.Kind switch
+		if (expr.IsMissing)
 		{
-			TokenKind.Asterisk => ParsePtrType(attrs),
-			// Note that in the faulty: `fn some() /* not complete */ fn main() {}`
-			// The parser will think the next fn keyword (for main) the start of the fn return type of some.
-			// Currently, can't figure out a good way to recover this better without doing a lot of lookaheads.
-			TokenKind.Fn => ParseFnType(attrs),
-
-			_ when _current.Kind.CanStartExpr() => ParseExpr(),
-			//TokenKind.Identifier => ParseNamedType(attrs),
-
-			// IsAtEnd check is included here.
-			_ => CreateMissingTypeNode(attrs),
-		};
+			return CreateMissingTypeNode(attrs);
+		}
+		return new TypeExprNode(_tree, expr);
 	}
 
 	/// <summary>

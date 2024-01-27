@@ -954,6 +954,9 @@ public partial class TypeExprNode : ExprNode
 		SetChildrenParent();
 	}
 
+	/// <summary>
+	/// Well formed: Resolves to a type
+	/// </summary>
 	public ExprNode Expr => (ExprNode)_childNodes[0]!;
 
 	public override void Accept(SyntaxTreeVisitor visitor)
