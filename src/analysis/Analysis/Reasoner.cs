@@ -131,7 +131,7 @@ public class Reasoner
 			IdentifierExprNode n => LookupSymbol(n),
 			ThisExprNode n => LookupSymbol(n),
 			PtrTypeNode n => LookupSymbol(n),
-			NamedTypeNode n => LookupSymbol(n.Identifier, n),
+			ExprTypeNode n => LookupSymbol(n.Expr),
 			FnTypeNode n => LookupSymbol(n),
 			ArgNode n => LookupSymbol(n.Expr),
 			//CallExprNode n => LookupSymbol(n.Callee),
@@ -146,7 +146,7 @@ public class Reasoner
 		return typeNode switch
 		{
 			PtrTypeNode n => LookupSymbol(n),
-			NamedTypeNode n => LookupSymbol(n.Identifier, n),
+			ExprTypeNode n => LookupSymbol(n.Expr),
 			FnTypeNode n => LookupSymbol(n),
 			_ => null,
 		};

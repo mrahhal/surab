@@ -774,18 +774,24 @@ internal class ParserImpl
 	// Exprs
 	// -----
 
+	private enum ParseExprContext
+	{
+		Normal,
+		Type,
+	}
+
 	/// <summary>
 	/// Parses any expr.
 	/// </summary>
-	private ExprNode ParseExpr()
+	private ExprNode ParseExpr(ParseExprContext context = ParseExprContext.Normal)
 	{
-		return ParseExprForPrecedence(Precedence.None);
+		return ParseExprForPrecedence(Precedence.None, context);
 	}
 
 	/// <summary>
 	/// Keeps parsing right exprs as long as the next precedence is greater than the given `precedence`.
 	/// </summary>
-	private ExprNode ParseExprForPrecedence(Precedence precedence)
+	private ExprNode ParseExprForPrecedence(Precedence precedence, ParseExprContext context = ParseExprContext.Normal)
 	{
 		if (IsAtEnd()) return CreateMissingExprNode();
 
@@ -795,7 +801,7 @@ internal class ParserImpl
 			return CreateMissingExprNode();
 		}
 
-		var expr = ParsePrefixExpr();
+		var expr = ParsePrefixExpr(context);
 
 		while (!IsAtEnd())
 		{
@@ -809,25 +815,42 @@ internal class ParserImpl
 			if (precedence >= rule.Precedence)
 				break;
 
-			expr = ParseInfixExpr(rule, expr);
+			var result = ParseInfixExpr(rule, expr, context);
+			if (result == expr)
+			{
+				// Left expr was returned as is, so stop parsing exprs here.
+				break;
+			}
+			expr = result;
 		}
 
 		return expr;
 	}
 
-	private ExprNode ParsePrefixExpr()
+	private ExprNode ParsePrefixExpr(ParseExprContext context)
 	{
 		var token = AssertedCurrent();
-		return token.Kind switch
+		if (context is ParseExprContext.Type)
 		{
-			TokenKind.LeftParen => ParseGroupingExpr(),
-			TokenKind.LeftBrace => ParseBlockExpr(),
-			TokenKind.Identifier => ParseIdentifierExpr(),
-			TokenKind.This => ParseThisExpr(),
-			_ when token.Kind.IsUnary() => ParseUnaryExpr(),
-			_ when token.Kind.IsLiteral() => ParseLiteralExpr(),
-			_ => CreateMissingExprNode(),
-		};
+			return token.Kind switch
+			{
+				TokenKind.Identifier => ParseIdentifierExpr(),
+				_ => throw new UnreachableException(),
+			};
+		}
+		else
+		{
+			return token.Kind switch
+			{
+				TokenKind.LeftParen => ParseGroupingExpr(),
+				TokenKind.LeftBrace => ParseBlockExpr(),
+				TokenKind.Identifier => ParseIdentifierExpr(),
+				TokenKind.This => ParseThisExpr(),
+				_ when token.Kind.IsUnary() => ParseUnaryExpr(),
+				_ when token.Kind.IsLiteral() => ParseLiteralExpr(),
+				_ => CreateMissingExprNode(),
+			};
+		}
 	}
 
 	private ExprNode ParseGroupingExpr()
@@ -968,20 +991,32 @@ internal class ParserImpl
 		}
 	}
 
-	private ExprNode ParseInfixExpr(InfixRule rule, ExprNode left)
+	private ExprNode ParseInfixExpr(InfixRule rule, ExprNode left, ParseExprContext context)
 	{
 		var token = AssertedCurrent();
 		var targetPrecedence = rule.AdjustedPreference();
 
-		return token.Kind switch
+		if (context is ParseExprContext.Type)
 		{
-			TokenKind.Dot => ParseAccessExpr(left),
-			TokenKind.LeftParen => ParseCallExpr(left),
-			TokenKind.LeftBrace => ParseTypeCreationExpr(left),
-			TokenKind.Equal => ParseAssignmentExpr(targetPrecedence, left),
-			_ when token.Kind.IsBinary() => ParseBinaryExpr(targetPrecedence, left),
-			_ => CreateMissingExprNode(),
-		};
+			return token.Kind switch
+			{
+				TokenKind.Dot => ParseAccessExpr(left),
+				// Stop
+				_ => left,
+			};
+		}
+		else
+		{
+			return token.Kind switch
+			{
+				TokenKind.Dot => ParseAccessExpr(left),
+				TokenKind.LeftParen => ParseCallExpr(left),
+				TokenKind.LeftBrace => ParseTypeCreationExpr(left),
+				TokenKind.Equal => ParseAssignmentExpr(targetPrecedence, left),
+				_ when token.Kind.IsBinary() => ParseBinaryExpr(targetPrecedence, left),
+				_ => CreateMissingExprNode(),
+			};
+		}
 	}
 
 	private ExprNode ParseAccessExpr(ExprNode left)
@@ -1128,8 +1163,8 @@ internal class ParserImpl
 
 	/// <summary>
 	/// Parses the various type syntax.
-	/// - `@extern *NamedType`
-	/// - `NamedType`
+	/// - `@extern *Type`
+	/// - `Type`
 	/// - `@extern fn (i32) i32`
 	/// </summary>
 	private TypeNode ParseType()
@@ -1139,7 +1174,7 @@ internal class ParserImpl
 		return _current?.Kind switch
 		{
 			TokenKind.Asterisk => ParsePtrType(attrs),
-			TokenKind.Identifier => ParseNamedType(attrs),
+			TokenKind.Identifier => ParseExprType(attrs),
 			// Note that in the faulty: `fn some() /* not complete */ fn main() {}`
 			// The parser will think the next fn keyword (for main) the start of the fn return type of some.
 			// Currently, can't figure out a good way to recover this better without doing a lot of lookaheads.
@@ -1166,13 +1201,14 @@ internal class ParserImpl
 	}
 
 	/// <summary>
-	/// Parses `NamedType`
+	/// Parses `ExprTypeNode` for Identifier.
+	/// Requirements: current is Identifier.
 	/// </summary>
-	private NamedTypeNode ParseNamedType(AttrsListNode? attrs)
+	private ExprTypeNode ParseExprType(AttrsListNode? attrs)
 	{
-		var identifier = ParseAssertedIdentifier();
+		var expr = ParseExpr(context: ParseExprContext.Type);
 
-		return new NamedTypeNode(_tree, attrs, identifier);
+		return new ExprTypeNode(_tree, attrs, expr);
 	}
 
 	/// <summary>

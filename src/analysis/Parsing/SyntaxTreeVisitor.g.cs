@@ -207,7 +207,7 @@ public abstract partial class SyntaxTreeVisitor
 		Walk(node);
 	}
 
-	public virtual void VisitNamedType(NamedTypeNode node)
+	public virtual void VisitExprType(ExprTypeNode node)
 	{
 		Walk(node);
 	}

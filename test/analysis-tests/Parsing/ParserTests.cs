@@ -120,7 +120,7 @@ public class ParserTests
 		var node = ParseDecl(src);
 		var varStmt1 = node.DescendantNodes().OfType<VarDeclNode>().ElementAt(0);
 		var ptrTypeNode1 = varStmt1.Type!.Type.Should().BeOfType<PtrTypeNode>().Subject;
-		ptrTypeNode1.InnerType.Should().BeOfType<NamedTypeNode>();
+		ptrTypeNode1.InnerType.Should().BeOfType<ExprTypeNode>().Subject.Expr.Should().BeOfType<IdentifierExprNode>();
 		var varStmt2 = node.DescendantNodes().OfType<VarDeclNode>().ElementAt(1);
 		var ptrTypeNode2 = varStmt2.Type!.Type.Should().BeOfType<PtrTypeNode>().Subject;
 		ptrTypeNode2.InnerType.Should().BeOfType<FnTypeNode>();
@@ -137,11 +137,11 @@ public class ParserTests
 		var fnTypeNode = node.Type!.Type.Should().BeOfType<FnTypeNode>().Subject;
 		var paramTypes = fnTypeNode.ParamTypes!;
 		paramTypes.Should().HaveCount(2);
-		paramTypes.ElementAt(0).Type.Should().BeOfType<NamedTypeNode>();
+		paramTypes.ElementAt(0).Type.Should().BeOfType<ExprTypeNode>().Subject.Expr.Should().BeOfType<IdentifierExprNode>();
 		paramTypes.ElementAt(0).CommaToken.Should().NotBeNull();
-		paramTypes.ElementAt(1).Type.Should().BeOfType<NamedTypeNode>();
+		paramTypes.ElementAt(1).Type.Should().BeOfType<ExprTypeNode>().Subject.Expr.Should().BeOfType<IdentifierExprNode>();
 		paramTypes.ElementAt(1).CommaToken.Should().BeNull();
-		fnTypeNode.ReturnType.Should().BeOfType<NamedTypeNode>();
+		fnTypeNode.ReturnType.Should().BeOfType<ExprTypeNode>().Subject.Expr.Should().BeOfType<IdentifierExprNode>();
 	}
 
 	[Fact]
@@ -185,7 +185,7 @@ public class ParserTests
 		node.AsToken.SimpleTokenKind.Should().Be(SimpleTokenKind.AsKeyword);
 		node.AsToken.IsKeyword.Should().BeTrue();
 		node.AsToken.IsContextualKeyword.Should().BeTrue();
-		node.Type.Should().BeOfType<NamedTypeNode>().Subject.Identifier.Value.Should().Be("Bar");
+		node.Type.Should().BeOfType<ExprTypeNode>().Subject.Expr.Should().BeOfType<IdentifierExprNode>().Subject.Identifier.Value.Should().Be("Bar");
 		node.SemicolonToken.Should().NotBeNull();
 	}
 
@@ -711,8 +711,9 @@ public class ParserTests
 	{
 		var src = """
 			fn f() {
-				fn f2() {
+				fn f2() S.S2 {
 					fn f3() { }
+					return S.S2 { a = 42 };
 				}
 				var a = 2;
 				struct S {
@@ -730,7 +731,7 @@ public class ParserTests
 		fStmts.Should().HaveCount(3);
 		var f2FnDecl = fStmts.ElementAt(0).Should().BeOfType<DeclStmtNode>().Subject.Decl.Should().BeOfType<FnDeclNode>().Subject;
 		var f2Stmts = f2FnDecl.Body!.Stmts;
-		f2Stmts.Should().HaveCount(1);
+		f2Stmts.Should().HaveCount(2);
 		f2Stmts.ElementAt(0).Should().BeOfType<DeclStmtNode>().Subject.Decl.Should().BeOfType<FnDeclNode>();
 		var sStructDecl = fStmts.ElementAt(2).Should().BeOfType<DeclStmtNode>().Subject.Decl.Should().BeOfType<StructDeclNode>().Subject;
 		var sDecls = sStructDecl.DeclsList.Decls;

@@ -724,7 +724,7 @@
 			]
 		},
 		{
-			"Name": "NamedType",
+			"Name": "ExprType",
 			"Base": "TypeNode",
 			"Members": [
 				{
@@ -733,8 +733,9 @@
 					"Optional": true
 				},
 				{
-					"Name": "identifier",
-					"Type": "IdentifierToken"
+					"Name": "expr",
+					"Type": "ExprNode",
+					"Comment": "Well formed: IdentifierExpr or AccessExpr"
 				}
 			]
 		},

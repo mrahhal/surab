@@ -505,7 +505,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		}
 	}
 
-	public override void VisitNamedType(NamedTypeNode node)
+	public override void VisitExprType(ExprTypeNode node)
 	{
 		var symbol = _reasoner.LookupSymbol(node);
 		if (symbol == null)
@@ -517,7 +517,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"not a type");
 		}
 
-		base.VisitNamedType(node);
+		base.VisitExprType(node);
 	}
 
 	public override void VisitFnType(FnTypeNode node)

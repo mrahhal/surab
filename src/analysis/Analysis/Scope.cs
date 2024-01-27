@@ -142,7 +142,7 @@ internal abstract class Scope
 		var resolvedType = typeNode switch
 		{
 			PtrTypeNode ptrTypeNode => Reasoner.LookupSymbol(ptrTypeNode),
-			NamedTypeNode namedTypeNode => LookupIdentifier(namedTypeNode.Identifier),
+			ExprTypeNode exprTypeNode => Reasoner.LookupSymbol(exprTypeNode),
 			FnTypeNode fnTypeNode => Reasoner.LookupSymbol(fnTypeNode),
 			MissingTypeNode => UnknownTypeSymbol.Create(Reasoner),
 			_ => throw new UnreachableException(),

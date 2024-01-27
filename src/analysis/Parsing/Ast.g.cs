@@ -47,7 +47,7 @@ public enum SyntaxNodeKind
 	Arg,
 	ColonType,
 	PtrType,
-	NamedType,
+	ExprType,
 	FnType,
 	MissingType,
 	FnSig,
@@ -961,24 +961,27 @@ public partial class PtrTypeNode : TypeNode
 	}
 }
 
-public partial class NamedTypeNode : TypeNode, ISyntaxNodeHasMainIdentifier
+public partial class ExprTypeNode : TypeNode
 {
-	public NamedTypeNode(SyntaxTree tree, AttrsListNode? attrs, IdentifierToken identifier)
-		: base(tree, SyntaxNodeKind.NamedType)
+	public ExprTypeNode(SyntaxTree tree, AttrsListNode? attrs, ExprNode expr)
+		: base(tree, SyntaxNodeKind.ExprType)
 	{
-		_childTokens = new() { identifier, };
-		_childNodes = new() { attrs, };
+		_childTokens = new();
+		_childNodes = new() { attrs, expr, };
 
 		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
 	public AttrsListNode? Attrs => (AttrsListNode?)_childNodes[0]!;
-	public IdentifierToken Identifier => (IdentifierToken)_childTokens[0]!;
+	/// <summary>
+	/// Well formed: IdentifierExpr or AccessExpr
+	/// </summary>
+	public ExprNode Expr => (ExprNode)_childNodes[1]!;
 
 	public override void Accept(SyntaxTreeVisitor visitor)
 	{
-		visitor.VisitNamedType(this);
+		visitor.VisitExprType(this);
 	}
 }
 

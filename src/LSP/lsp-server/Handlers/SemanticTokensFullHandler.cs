@@ -150,9 +150,9 @@ public class SemanticTokensFullHandler(
 						var symbol = reasoner.LookupSymbol(identifierExpr);
 						builder.SetType(GetTokenType(symbol));
 					}
-					else if (identifierToken.Parent is NamedTypeNode namedType)
+					else if (identifierToken.Parent is ExprTypeNode exprType)
 					{
-						var symbol = reasoner.LookupSymbol(namedType);
+						var symbol = reasoner.LookupSymbol(exprType);
 						builder.SetType(GetTokenType(symbol));
 
 						if (symbol is TypeSymbol typeSymbol && typeSymbol.IsBuiltin())
@@ -177,7 +177,7 @@ public class SemanticTokensFullHandler(
 							StructDeclNode or TypeCreationExprNode => SemanticTokenType.Struct,
 							FieldDeclNode => SemanticTokenType.Property,
 							ParamNode => SemanticTokenType.Parameter,
-							NamedTypeNode => SemanticTokenType.Type,
+							TypeNode => SemanticTokenType.Type,
 							AttrNode => SemanticTokenType.Decorator,
 							_ => null,
 						});
