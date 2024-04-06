@@ -1,5 +1,5 @@
 //! The prelude for Surab which is implicitly imported in all Surab modules.
-//! It contains fundemantal and built in types and functions.
+//! It contains fundamental and built in types and functions.
 
 @public
 struct None { }
