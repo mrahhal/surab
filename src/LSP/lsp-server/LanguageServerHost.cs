@@ -87,10 +87,11 @@ public class LanguageServerHost
 	{
 		var workspacePath = workspaceUri.GetFileSystemPath();
 		var sourceFiles = Directory
-			.GetFiles(workspacePath, "*.surab")
+			.GetFiles(workspacePath, "*.surab", SearchOption.AllDirectories)
 			.Select(x => SourceFile.Create(x, File.ReadAllText(x)))
 			.ToList();
-		Project = SurabProject.Create(sourceFiles);
+		// TODO: workspacePath is not always the project path. We need to look for surab-project.json and create a project there.
+		Project = SurabProject.Create(workspacePath, sourceFiles);
 		Project.SubscribeToFullDiagnosticsReady(HandleFullDiagnosticsReady);
 
 		// TODO:
@@ -119,7 +120,7 @@ public class LanguageServerHost
 		{
 			Server.PublishDiagnostics(new PublishDiagnosticsParams
 			{
-				Uri = DocumentUri.FromFileSystemPath(fileDiagnostics.SourceFile.Path!),
+				Uri = DocumentUri.FromFileSystemPath(fileDiagnostics.SourceFile.Path.Value!),
 				Diagnostics = Container.From(fileDiagnostics.Diagnostics.Select(d => new OmniSharp.Extensions.LanguageServer.Protocol.Models.Diagnostic
 				{
 					Range = ConversionHelper.FromTo(d.Span),

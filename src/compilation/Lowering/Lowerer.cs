@@ -131,7 +131,7 @@ internal class Lowerer
 			Debug.Assert(structTypeSymbol != null);
 
 			var fieldDecls = structTypeSymbol.Members.OfType<FieldSymbol>();
-			var nonFieldDecls = structTypeSymbol.Members.Where(x => x.Kind is not SymbolKind.Field);
+			var nonFieldDecls = structTypeSymbol.Members.Where(x => x.Kind is not SymbolKind.Field).Cast<InFileSymbol>();
 
 			foreach (var nonFieldDecl in nonFieldDecls)
 			{

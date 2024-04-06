@@ -26,7 +26,7 @@ public class DocumentSymbolHandler(
 			if (firstLevelSymbols == null)
 				return null;
 
-			List<SymbolInformationOrDocumentSymbol> documentSymbols = [.. Cleanup(firstLevelSymbols.Select(Convert))];
+			List<SymbolInformationOrDocumentSymbol> documentSymbols = [.. Cleanup(firstLevelSymbols.Cast<InFileSymbol>().Select(Convert))];
 			return new SymbolInformationOrDocumentSymbolContainer(documentSymbols);
 		});
 	}
@@ -50,7 +50,7 @@ public class DocumentSymbolHandler(
 		return symbols.Where(s => s != null).Select(s => s!);
 	}
 
-	private DocumentSymbol? Convert(Symbol symbol)
+	private DocumentSymbol? Convert(InFileSymbol symbol)
 	{
 		var kind = GetSymbolKind(symbol);
 		if (kind == null)
@@ -58,7 +58,7 @@ public class DocumentSymbolHandler(
 
 		return new DocumentSymbol
 		{
-			Children = new([.. Cleanup(symbol.Children.Select(Convert))]),
+			Children = new([.. Cleanup(symbol.Children.Cast<InFileSymbol>().Select(Convert))]),
 			Name = string.IsNullOrEmpty(symbol.Name) ? FillEmptyName(symbol) : symbol.Name,
 			Kind = kind.Value,
 			Range = ConversionHelper.FromTo(symbol.Span),

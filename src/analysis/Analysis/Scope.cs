@@ -165,6 +165,14 @@ internal abstract class Scope
 	}
 }
 
+internal sealed class ModuleScope(SurabProject project, IEnumerable<SourceFile> sourceFiles) : Scope
+{
+	// TODO: This is not good.
+	public SurabProject Project => project;
+
+	public ImmutableArray<SourceFile> SourceFiles { get; } = sourceFiles.ToImmutableArray();
+}
+
 internal sealed class FileScope(FileNode file, Reasoner fileReasoner, Reasoner? preludeReasoner) : Scope
 {
 	private ImmutableArray<Symbol> _decls;
@@ -191,7 +199,15 @@ internal sealed class FileScope(FileNode file, Reasoner fileReasoner, Reasoner? 
 	{
 		return
 			LookupIdentifierIn(Decls, identifier) ??
+			LookupInCurrentModule(identifier) ??
 			LookupInImports(identifier);
+	}
+
+	private Symbol? LookupInCurrentModule(string identifier)
+	{
+		var module = _fileReasoner.ResolveCurrentModule();
+		// All exported symbols of current module are exposed to files inside the module.
+		return module.GetExportedSymbol(identifier);
 	}
 
 	private Symbol? LookupInImports(string identifier)
@@ -200,8 +216,8 @@ internal sealed class FileScope(FileNode file, Reasoner fileReasoner, Reasoner? 
 		for (var i = imports.Count - 1; i >= 0; i--)
 		{
 			var import = imports[i];
-			var targetReasoner = _fileReasoner.ResolveImportedFileReasoner(import);
-			var result = targetReasoner?.LookupExportedSymbolByName(identifier);
+			var resolvedModule = _fileReasoner.ResolveImport(import);
+			var result = resolvedModule.ExposedSymbols.FirstOrDefault(s => s.Name == identifier);
 
 			if (result != null)
 			{
@@ -211,6 +227,19 @@ internal sealed class FileScope(FileNode file, Reasoner fileReasoner, Reasoner? 
 
 		// If nothing else works, try resolve from the prelude.
 		return _preludeReasoner?.LookupExportedSymbolByName(identifier);
+	}
+
+	internal ModuleSymbol? LookupImportedModule(string identifier)
+	{
+		foreach (var import in _file.Imports)
+		{
+			var resolvedModule = _fileReasoner.ResolveImport(import);
+			if (!resolvedModule.IsFailed && resolvedModule.Module.Name == identifier)
+			{
+				return resolvedModule.Module;
+			}
+		}
+		return null;
 	}
 
 	public override Symbol? LookupExportedIdentifier(string identifier)

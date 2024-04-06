@@ -139,6 +139,7 @@ public enum SimpleTokenKind
 	RightBrace,
 	Comma,
 	Dot,
+	ColonColon,
 	Semicolon,
 	Colon,
 	Question,
@@ -209,6 +210,7 @@ public sealed class SimpleToken : SyntaxToken
 				TokenKind.RightBrace => SimpleTokenKind.RightBrace,
 				TokenKind.Comma => SimpleTokenKind.Comma,
 				TokenKind.Dot => SimpleTokenKind.Dot,
+				TokenKind.ColonColon => SimpleTokenKind.ColonColon,
 				TokenKind.Semicolon => SimpleTokenKind.Semicolon,
 				TokenKind.Colon => SimpleTokenKind.Colon,
 				TokenKind.Question => SimpleTokenKind.Question,
@@ -266,6 +268,7 @@ public sealed class SimpleToken : SyntaxToken
 			SimpleTokenKind.RightBrace => "}",
 			SimpleTokenKind.Comma => ",",
 			SimpleTokenKind.Dot => ".",
+			SimpleTokenKind.ColonColon => "::",
 			SimpleTokenKind.Semicolon => ";",
 			SimpleTokenKind.Colon => ":",
 			SimpleTokenKind.Question => "?",
@@ -856,19 +859,6 @@ public partial class FileNode
 	public IEnumerable<ImportNode> Imports => ImportsList.Imports;
 
 	public IEnumerable<DeclNode> Decls => DeclsList.Decls;
-}
-
-public partial class ImportNode
-{
-	public string WellFormedModulePath
-	{
-		get
-		{
-			var succeeded = ((LiteralExprNode)ModulePath).Literal.TryGetStringValue(out var value);
-			Debug.Assert(succeeded);
-			return value!;
-		}
-	}
 }
 
 public partial class MethodDeclNode

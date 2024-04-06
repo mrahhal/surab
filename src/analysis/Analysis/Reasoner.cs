@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Xml.Linq;
 
 namespace Surab.Analysis;
 
@@ -91,6 +92,13 @@ public class Reasoner
 		return _nodeToScopeMap.TryGetValue(node, out scope);
 	}
 
+	internal FileScope GetFileScope()
+	{
+		var scope = GetEnclosingScope(Tree.Root);
+		Debug.Assert(scope is FileScope);
+		return (FileScope)scope;
+	}
+
 	/// <summary>
 	/// Gets the first <see cref="Scope"/> found when climbing up the tree starting and including the given node.
 	/// </summary>
@@ -136,6 +144,7 @@ public class Reasoner
 			ArgNode n => LookupSymbol(n.Expr),
 			//CallExprNode n => LookupSymbol(n.Callee),
 			AccessExprNode n => LookupSymbol(n),
+			ModuleAccessExprNode n => LookupSymbol(n),
 
 			_ => null,
 		};
@@ -203,15 +212,32 @@ public class Reasoner
 		return targetType?.GetMember(node.Identifier);
 	}
 
+	private Symbol? LookupSymbol(ModuleAccessExprNode node)
+	{
+		var targetSymbol = LookupModule(node.Target);
+		if (targetSymbol is not ModuleSymbol module)
+		{
+			return null;
+		}
+
+		return module.GetExportedSymbol(node.Identifier);
+	}
+
 	// TODO: What does "exported" mean in this context? (right now it means a public symbol in a module)
 	/// <summary>
 	/// Looks up an exported <see cref="Symbol"/> matching the given name.
 	/// </summary>
 	public Symbol? LookupExportedSymbolByName(string name)
 	{
-		// Should be the module's scope.
-		var scope = GetEnclosingScope(Tree.Root);
-		return scope?.LookupExportedIdentifier(name);
+		var scope = GetFileScope();
+		return scope.LookupExportedIdentifier(name);
+	}
+
+	public List<InFileSymbol> GetExportedSymbols()
+	{
+		// TODO: Need to report a conflict for exported symbols in the same module.
+		var scope = GetFileScope();
+		return scope.Decls.Cast<InFileSymbol>().ToList();
 	}
 
 	/// <summary>
@@ -256,6 +282,7 @@ public class Reasoner
 			GroupingExprNode n => LookupType(n.Expr),
 			CallExprNode n => LookupType(n),
 			AccessExprNode n => LookupType(n),
+			ModuleAccessExprNode n => LookupType(n),
 			LiteralExprNode n => LookupType(n),
 			IdentifierExprNode n => LookupType(n),
 			ThisExprNode n => LookupType(n),
@@ -301,11 +328,22 @@ public class Reasoner
 	private TypeSymbol LookupType(AccessExprNode node)
 	{
 		var memberSymbol = LookupSymbol(node);
-		return memberSymbol switch
+		return GetTypeOfSymbol(memberSymbol, this.IsInstanceAccess(node));
+	}
+
+	private TypeSymbol LookupType(ModuleAccessExprNode node)
+	{
+		var symbol = LookupSymbol(node);
+		return GetTypeOfSymbol(symbol, false);
+	}
+
+	private TypeSymbol GetTypeOfSymbol(Symbol? symbol, bool isInstanceAccess)
+	{
+		return symbol switch
 		{
 			// For `a.b()`, when it's an instance access, we want to return an fn type without the receiver.
 			// TypeWithoutReceiver accounts for both fns and methods, so we can use it here without a method check.
-			FnSymbol fn => this.IsInstanceAccess(node) ? fn.TypeWithoutReceiver : fn.Type,
+			FnSymbol fn => isInstanceAccess ? fn.TypeWithoutReceiver : fn.Type,
 			TypeSymbol type => type,
 			ISymbolHasType hasType => hasType.Type,
 			_ => UnknownTypeSymbol.Create(this),
@@ -374,6 +412,8 @@ public class Reasoner
 			IdentifierExprNode identifierExpr => LookupSymbol(identifierExpr.Identifier, node),
 			// A.B { ... }
 			AccessExprNode accessExpr => LookupSymbol(accessExpr),
+			// a::B { ... }
+			ModuleAccessExprNode moduleAccessExpr => LookupSymbol(moduleAccessExpr),
 			_ => null,
 		};
 
@@ -388,6 +428,29 @@ public class Reasoner
 		}
 
 		return (null, LookupType(callExpr.Callee) as FnTypeSymbol);
+	}
+
+	public ModuleSymbol? LookupModule(SyntaxNode? node)
+	{
+		return node switch
+		{
+			IdentifierExprNode n => LookupModule(n),
+			AccessExprNode n => LookupModule(n),
+
+			_ => null,
+		};
+	}
+
+	private ModuleSymbol? LookupModule(IdentifierExprNode identifierExpr)
+	{
+		return GetFileScope().LookupImportedModule(identifierExpr.Identifier.Value);
+	}
+
+	private ModuleSymbol? LookupModule(AccessExprNode accessExpr)
+	{
+		var path = GetModuleImportPathFromExpr(accessExpr);
+		if (path == null) return null;
+		return Project.ResolveModule(this, path);
 	}
 
 	/// <summary>
@@ -522,16 +585,51 @@ public class Reasoner
 			}));
 	}
 
-	internal Reasoner? ResolveImportedFileReasoner(ImportNode import)
+	internal ModuleSymbol ResolveCurrentModule()
 	{
-		if (import.ModulePath is not LiteralExprNode literalExpr || !literalExpr.Literal.TryGetStringValue(out var modulePath) || modulePath == null)
-			return null;
+		return Project.ResolveModule(this);
+	}
 
-		var targetSourceFile = Project.ModuleResolver.ResolveModule(SourceFile, modulePath);
-		if (targetSourceFile == null)
-			return null;
+	// TODO: This should return a new model containing either a module, or symbols to expose?
+	internal ResolvedImport ResolveImport(ImportNode import)
+	{
+		var path = GetModuleImportPathFromExpr(import.Target);
+		if (path == null) return ResolvedImport.Failed();
 
-		return Project.GetReasoner(targetSourceFile);
+		var targetModule = Project.ResolveModule(this, path);
+		if (targetModule == null) return ResolvedImport.Failed();
+
+		return ResolvedImport.Resolved(targetModule, [targetModule]);
+	}
+
+	/// <summary>
+	/// Returns a string array representing the expr: std.memory => ["std", "memory"]
+	/// </summary>
+	private IEnumerable<string>? GetModuleImportPathFromExpr(ExprNode? expr)
+	{
+		var reversePaths = new List<string>();
+
+		var current = expr;
+		while (true)
+		{
+			if (current is IdentifierExprNode identifierExpr)
+			{
+				reversePaths.Add(identifierExpr.Identifier.Value);
+				break;
+			}
+			else if (current is AccessExprNode accessExpr)
+			{
+				reversePaths.Add(accessExpr.Identifier.Value);
+				current = accessExpr.Target;
+			}
+			else
+			{
+				return null;
+			}
+		}
+
+		reversePaths.Reverse();
+		return reversePaths;
 	}
 
 	/// <summary>
@@ -574,6 +672,8 @@ public class Reasoner
 		{
 			if (isPrelude)
 			{
+				// UPDATE: This whole block doesn't seem to be necessary. Instead, we can just add the KnownTypeTag assignment thing inside GetOrCreateSymbolOnNode.
+
 				// For the prelude, we'll especially go over the top level decls first to fill in the known type tag map first thing before doing anything else.
 				// Some places depend on these known types to be created first.
 
@@ -699,7 +799,7 @@ public class Reasoner
 			{
 				scope.Reasoner = _reasoner;
 				scope.SetParent(_parentScope);
-				//_reasoner._nodeToScopeMap[node] = scope;
+				//////_reasoner._nodeToScopeMap[node] = scope;
 			}
 			return scope;
 		}

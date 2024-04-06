@@ -22,7 +22,7 @@ public enum Precedence
 	Exponent,       // ^^
 	Prefix,         // ! - ++ --
 	Postfix,        // -- ++
-	Call,           // . () {}
+	Call,           // . :: () {}
 }
 
 public class InfixRule(
@@ -69,9 +69,10 @@ public static class Pratt
 		{ TokenKind.Asterisk, InfixRule.LeftAssociative(Precedence.Product) },
 		{ TokenKind.CaretCaret, InfixRule.RightAssociative(Precedence.Exponent) },
 		{ TokenKind.Dot, InfixRule.RightAssociative(Precedence.Call) },
+		{ TokenKind.ColonColon, InfixRule.RightAssociative(Precedence.Call) },
 		{ TokenKind.LeftParen, InfixRule.LeftAssociative(Precedence.Call) },
 		// The predicate avoids a situation where `{ 2 } { ... }` is regarded as creation.
-		{ TokenKind.LeftBrace, InfixRule.LeftAssociative(Precedence.Call, leftExpr => leftExpr is IdentifierExprNode or AccessExprNode) },
+		{ TokenKind.LeftBrace, InfixRule.LeftAssociative(Precedence.Call, leftExpr => leftExpr is IdentifierExprNode or AccessExprNode or ModuleAccessExprNode) },
 	};
 
 	public static bool IsPrefixRule(TokenKind tokenKind) => tokenKind is

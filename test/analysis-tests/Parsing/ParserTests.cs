@@ -17,14 +17,16 @@ public class ParserTests
 	public void FileWithImports()
 	{
 		var src = """
-			import "a.surab";
-			import "b.surab";
+			import foo;
+			import bar.baz;
 
 			const a = 2;
 			""";
 		var file = ParseFile(src);
 		file.Should().NotBeNull();
 		file.Imports.Should().HaveCount(2);
+		file.Imports.ElementAt(0).Target.Should().BeOfType<IdentifierExprNode>();
+		file.Imports.ElementAt(1).Target.Should().BeOfType<AccessExprNode>();
 		file.Decls.Should().HaveCount(1);
 	}
 
@@ -495,6 +497,26 @@ public class ParserTests
 	}
 
 	[Fact]
+	public void Expr_Access()
+	{
+		var src = "a.b";
+		var tree = Parser.ParseExpr(src);
+		var accessExpr = tree.Root.Should().BeOfType<AccessExprNode>().Subject;
+		accessExpr.Identifier.Value.Should().Be("b");
+		accessExpr.Target.Should().BeOfType<IdentifierExprNode>().Subject.Identifier.Value.Should().Be("a");
+	}
+
+	[Fact]
+	public void Expr_ModuleAccess()
+	{
+		var src = "a::b";
+		var tree = Parser.ParseExpr(src);
+		var accessExpr = tree.Root.Should().BeOfType<ModuleAccessExprNode>().Subject;
+		accessExpr.Identifier.Value.Should().Be("b");
+		accessExpr.Target.Should().BeOfType<IdentifierExprNode>().Subject.Identifier.Value.Should().Be("a");
+	}
+
+	[Fact]
 	public void Expr_TypeCreation()
 	{
 		var src = "Foo { a = 42, b = false }";
@@ -529,6 +551,17 @@ public class ParserTests
 		var accessExpr = creationExpr.TypeExpr.Should().BeOfType<AccessExprNode>().Subject;
 		accessExpr.Identifier.Value.Should().Be("SNested");
 		accessExpr.Target.Should().BeOfType<IdentifierExprNode>().Subject.Identifier.Value.Should().Be("S");
+	}
+
+	[Fact]
+	public void Expr_TypeCreation_ModuleAccess()
+	{
+		var src = "a::B { a = 42 }";
+		var tree = Parser.ParseExpr(src);
+		var creationExpr = tree.Root.Should().BeOfType<TypeCreationExprNode>().Subject;
+		var accessExpr = creationExpr.TypeExpr.Should().BeOfType<ModuleAccessExprNode>().Subject;
+		accessExpr.Identifier.Value.Should().Be("B");
+		accessExpr.Target.Should().BeOfType<IdentifierExprNode>().Subject.Identifier.Value.Should().Be("a");
 	}
 
 	[Fact]

@@ -70,7 +70,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 			',' => MakeToken(TokenKind.Comma),
 			'.' => MakeToken(TokenKind.Dot),
 			';' => MakeToken(TokenKind.Semicolon),
-			':' => MakeToken(TokenKind.Colon),
+			':' => CreateTokenIfMatchesOrToken(':', TokenKind.ColonColon, TokenKind.Colon),
 			'?' => MakeToken(TokenKind.Question),
 			'-' => MakeToken(TokenKind.Minus),
 			'+' => MakeToken(TokenKind.Plus),

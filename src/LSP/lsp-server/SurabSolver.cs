@@ -89,6 +89,10 @@ public class SurabSolver(
 		{
 			type = typeSymbol;
 		}
+		else if (symbol is ModuleSymbol moduleSymbol)
+		{
+			return (moduleSymbol, null);
+		}
 		else if (symbol is FnSymbol && reasoner.GetDeclaredSymbol(node) == null)
 		{
 			// LookupType can perform updates to the receiver arg.
@@ -117,12 +121,12 @@ public class SurabSolver(
 		if (token == null)
 			return null;
 		var symbol = reasoner.LookupSymbol(node);
-		if (symbol != null)
+		if (symbol != null && symbol is InFileSymbol inFileSymbol)
 		{
-			var span = symbol.DeclaringNode?.GetMainIdentifierToken()?.Span ?? symbol.DeclaringNode?.Span ?? new();
+			var span = inFileSymbol.DeclaringNode?.GetMainIdentifierToken()?.Span ?? inFileSymbol.DeclaringNode?.Span ?? new();
 			var locations = new LocationOrLocationLinks(new LocationOrLocationLink(new Location
 			{
-				Uri = DocumentUri.FromFileSystemPath(symbol.DeclaringSourceFile!.Path!),
+				Uri = DocumentUri.FromFileSystemPath(inFileSymbol.DeclaringSourceFile!.Path.Value!),
 				Range = ConversionHelper.FromTo(span),
 			}));
 			return locations;
