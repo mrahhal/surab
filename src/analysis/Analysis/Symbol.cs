@@ -657,6 +657,8 @@ public abstract class TypeSymbol : InFileSymbol
 
 	public bool IsUnknown => this is UnknownTypeSymbol;
 
+	public bool IsFn => this is FnTypeSymbol;
+
 	public KnownTypeTag? KnownTypeTag { get; internal set; }
 
 	public virtual ImmutableArray<Symbol> Members

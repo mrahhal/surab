@@ -62,11 +62,6 @@ public class SurabProject
 		return project;
 	}
 
-	public SourceFile? GetSourceFile(string path)
-	{
-		return VFS.GetSourceFile(path);
-	}
-
 	public void SubscribeToFullDiagnosticsReady(Action<IEnumerable<FileDiagnostics>> action)
 	{
 		_fullDiagnosticsReadyActions.Add(action);
@@ -77,7 +72,7 @@ public class SurabProject
 	/// </summary>
 	/// <remarks>
 	/// For convenience, read/write methods won't throw if you use them without locking. It's the responsibility of
-	/// the consumer to make sure access is synchronized by locking for read or write when running in an asynchornous environment.
+	/// the consumer to make sure access is synchronized by locking for read or write when running in a possibly concurrent environment.
 	/// Methods will be marked in their doc if they need a read or write lock.
 	/// </remarks>
 	public void LockForRead(Action action)
@@ -94,7 +89,7 @@ public class SurabProject
 	/// </summary>
 	/// <remarks>
 	/// For convenience, read/write methods won't throw if you use them without locking. It's the responsibility of
-	/// the consumer to make sure access is synchronized by locking for read or write when running in an asynchornous environment.
+	/// the consumer to make sure access is synchronized by locking for read or write when running in a possibly concurrent environment.
 	/// Methods will be marked in their doc if they need a read or write lock.
 	/// </remarks>
 	public T LockForRead<T>(Func<T> func)
@@ -210,6 +205,17 @@ public class SurabProject
 	}
 
 	/// <summary>
+	/// Gets the <see cref="SourceFile"/> that matches the given path.
+	/// </summary>
+	/// <remarks>
+	/// This method is a read operation.
+	/// </remarks>
+	public SourceFile? GetSourceFile(string path)
+	{
+		return VFS.GetSourceFile(path);
+	}
+
+	/// <summary>
 	/// Gets the <see cref="SyntaxTree"/> for a given <see cref="SourceFile"/>.
 	/// </summary>
 	/// <remarks>
@@ -229,6 +235,42 @@ public class SurabProject
 	public Reasoner GetReasoner(SourceFile sourceFile)
 	{
 		return GetSourceFileState(sourceFile).Reasoner;
+	}
+
+	/// <summary>
+	/// Returns all <see cref="Reasoner"/>s in the project.
+	/// </summary>
+	/// <remarks>
+	/// This method is a read operation.
+	/// </remarks>
+	public IEnumerable<Reasoner> GetAllReasoners()
+	{
+		yield return _preludeReasoner;
+
+		foreach (var sourceFile in VFS.EnumerateSourceFiles())
+		{
+			yield return GetSourceFileState(sourceFile).Reasoner;
+		}
+	}
+
+	/// <summary>
+	/// Resolves a known <see cref="TypeSymbol"/> from its given name.
+	/// </summary>
+	public TypeSymbol? ResolveKnownTypeSymbolFromName(string? name)
+	{
+		var tag = KnownTypes.GetTag(name);
+		if (tag == null)
+			return null;
+
+		return ResolveKnownTypeSymbol(tag.Value);
+	}
+
+	/// <summary>
+	/// Resolves a known <see cref="TypeSymbol"/> from its given <see cref="KnownTypeTag"/>.
+	/// </summary>
+	public TypeSymbol ResolveKnownTypeSymbol(KnownTypeTag tag)
+	{
+		return _preludeReasoner.ResolveKnownTypeSymbol(tag);
 	}
 
 	/// <summary>
@@ -292,48 +334,6 @@ public class SurabProject
 			var fileDiagnostics = GetSourceFileState(sourceFile).FileDiagnostics;
 			if (fileDiagnostics != null)
 				yield return fileDiagnostics;
-		}
-	}
-
-	/// <summary>
-	/// Resolves a known <see cref="TypeSymbol"/> from its given name.
-	/// </summary>
-	/// <remarks>
-	/// This method is a read operation.
-	/// </remarks>
-	public TypeSymbol? ResolveKnownTypeSymbolFromName(string? name)
-	{
-		var tag = KnownTypes.GetTag(name);
-		if (tag == null)
-			return null;
-
-		return ResolveKnownTypeSymbol(tag.Value);
-	}
-
-	/// <summary>
-	/// Resolves a known <see cref="TypeSymbol"/> from its given <see cref="KnownTypeTag"/>.
-	/// </summary>
-	/// <remarks>
-	/// This method is a read operation.
-	/// </remarks>
-	public TypeSymbol ResolveKnownTypeSymbol(KnownTypeTag tag)
-	{
-		return _preludeReasoner.ResolveKnownTypeSymbol(tag);
-	}
-
-	/// <summary>
-	/// Returns all <see cref="Reasoner"/>s in the project.
-	/// </summary>
-	/// <remarks>
-	/// This method is a read operation.
-	/// </remarks>
-	public IEnumerable<Reasoner> GetAllReasoners()
-	{
-		yield return _preludeReasoner;
-
-		foreach (var sourceFile in VFS.EnumerateSourceFiles())
-		{
-			yield return GetSourceFileState(sourceFile).Reasoner;
 		}
 	}
 

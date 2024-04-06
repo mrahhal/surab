@@ -1,6 +1,6 @@
 import sub;
 
-alias Delegate1 as @extern fn (S2);
+alias @extern fn (S2) as Delegate1;
 
 /* c */ const /* c */ /* c */ a /* c */ = /* c */ 2 /* c */; // c
 
