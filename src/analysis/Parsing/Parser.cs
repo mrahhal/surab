@@ -637,7 +637,7 @@ internal class ParserImpl
 	private DeclNode ParseStructDecl(AttrsListNode? attrs)
 	{
 		var structToken = EatAssertedSimpleToken(TokenKind.Struct);
-		var identifier = ParseIdentifier();
+		var identifier = ParseTypeIdentifier();
 		var openBraceToken = EatExpectedSimpleToken(TokenKind.LeftBrace);
 		var members = ParseDeclMembers();
 		var closedBraceToken = EatExpectedSimpleToken(TokenKind.RightBrace);
@@ -651,7 +651,7 @@ internal class ParserImpl
 	private DeclNode ParseClassDecl(AttrsListNode? attrs)
 	{
 		var classToken = EatAssertedSimpleToken(TokenKind.Class);
-		var identifier = ParseIdentifier();
+		var identifier = ParseTypeIdentifier();
 		var openBraceToken = EatExpectedSimpleToken(TokenKind.LeftBrace);
 		var members = ParseDeclMembers();
 		var closedBraceToken = EatExpectedSimpleToken(TokenKind.RightBrace);
@@ -680,7 +680,7 @@ internal class ParserImpl
 		var aliasToken = EatAssertedSimpleToken(TokenKind.Alias);
 		var type = ParseType();
 		var asToken = EatExpectedContextualKeywordToken(ContextualKeyword.As);
-		var identifier = ParseIdentifier();
+		var identifier = ParseTypeIdentifier();
 		var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
 		return new AliasDeclNode(_tree, attrs, aliasToken, identifier, asToken, type, semicolonToken);
@@ -1164,7 +1164,7 @@ internal class ParserImpl
 	private TypeNode? ParseOptionalType()
 	{
 		var type = default(TypeNode?);
-		if (_current?.Kind.CanStartType() ?? false)
+		if (CurrentCanStartType())
 		{
 			type = ParseType();
 		}
@@ -1184,7 +1184,7 @@ internal class ParserImpl
 		return _current?.Kind switch
 		{
 			TokenKind.Asterisk => ParsePtrType(attrs),
-			TokenKind.Identifier => ParseExprType(attrs),
+			TokenKind.Identifier when CurrentIdentifierAllowedAsTypeName() => ParseExprType(attrs),
 			// Note that in the faulty: `fn some() /* not complete */ fn main() {}`
 			// The parser will think the next fn keyword (for main) the start of the fn return type of some.
 			// Currently, can't figure out a good way to recover this better without doing a lot of lookaheads.
@@ -1192,6 +1192,29 @@ internal class ParserImpl
 			// IsAtEnd check is included here.
 			_ => CreateMissingTypeNode(attrs),
 		};
+	}
+
+	private bool CurrentCanStartType()
+	{
+		if (IsAtEnd() || !_current.Kind.CanStartType())
+			return false;
+
+		if (_current.Kind is TokenKind.Identifier && !CurrentIdentifierAllowedAsTypeName())
+			return false;
+
+		return true;
+	}
+
+	/// <summary>
+	/// Returns false for type names that are not allowed (e.g. `as`).
+	/// This is so that we can still parse certain syntax properly without having to create reserved keywords.
+	/// </summary>
+	private bool CurrentIdentifierAllowedAsTypeName()
+	{
+		Debug.Assert(!IsAtEnd() && _current.Kind is TokenKind.Identifier);
+
+		var lexeme = GetLexeme(_current);
+		return !TokenHelper.IsContextualKeyword(ContextualKeyword.As, lexeme);
 	}
 
 	/// <summary>
@@ -1392,16 +1415,40 @@ internal class ParserImpl
 		}
 	}
 
+	/// <summary>
+	/// Similar to ParseIdentifier, but also ensures the identifier is allowed. If not, a diag is added.
+	/// </summary>
+	private IdentifierToken ParseTypeIdentifier()
+	{
+		return ParseOptionalTypeIdentifier() ?? CreateMissingIdentifierToken();
+	}
+
+	private IdentifierToken? ParseOptionalTypeIdentifier()
+	{
+		if (!CheckToken(TokenKind.Identifier))
+		{
+			return null;
+		}
+
+		if (!CurrentIdentifierAllowedAsTypeName())
+		{
+			// TODO: This alone is not ideal. Would be better if we can also create an *error* identifier token to represent this.
+			_diagnostics.Add(_current.Span, DiagnosticLevel.Error, $"not allowed as type name");
+		}
+
+		return ParseOptionalIdentifier();
+	}
+
 	private IdentifierToken ParseIdentifier()
 	{
 		return ParseOptionalIdentifier() ?? CreateMissingIdentifierToken();
+	}
 
-		IdentifierToken CreateMissingIdentifierToken()
-		{
-			var token = IdentifierToken.CreateMissing(_tree, GetProperSpanForMissingThingAtCurrent());
-			_diagnostics.Add(token.Span, DiagnosticLevel.Error, $"expected an identifier");
-			return token;
-		}
+	private IdentifierToken CreateMissingIdentifierToken()
+	{
+		var token = IdentifierToken.CreateMissing(_tree, GetProperSpanForMissingThingAtCurrent());
+		_diagnostics.Add(token.Span, DiagnosticLevel.Error, $"expected an identifier");
+		return token;
 	}
 
 	private IdentifierToken? ParseOptionalIdentifier()
