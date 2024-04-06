@@ -1,8 +1,11 @@
-﻿namespace Surab;
+﻿using System.Diagnostics;
+
+namespace Surab;
 
 /// <summary>
 /// A source file in a Surab project.
 /// </summary>
+[DebuggerDisplay("{ToString(),nq}")]
 public class SourceFile
 {
 	private SourceFile(string path, string text)
@@ -39,5 +42,11 @@ public class SourceFile
 	internal void UpdateText(string newText)
 	{
 		Text = newText;
+	}
+
+	public override string ToString()
+	{
+		var name = System.IO.Path.GetFileName(Path.Value);
+		return $"Name=\"{name}\" Path=\"{Path.Value}\"";
 	}
 }

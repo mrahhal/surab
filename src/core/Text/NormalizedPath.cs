@@ -2,7 +2,6 @@
 
 namespace Surab;
 
-[DebuggerDisplay("{Value}")]
 /// <summary>
 /// Represents a normalized fs path. The goal is to always use this type instead of a string for fs paths
 /// so that we can ensure we have consistent paths across operating systems.
@@ -10,6 +9,7 @@ namespace Surab;
 /// Directory separator is always `/` in tests and hard coded places. This type will replace these with the proper
 /// separator of the environment we're running in.
 /// </summary>
+[DebuggerDisplay("{ToString()}")]
 public readonly struct NormalizedPath
 {
 	public static readonly NormalizedPath Empty = new() { Value = string.Empty };
@@ -40,4 +40,6 @@ public readonly struct NormalizedPath
 	{
 		return normalizedPath.Value;
 	}
+
+	public override string ToString() => Value;
 }
