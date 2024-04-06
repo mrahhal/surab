@@ -511,7 +511,7 @@ public class Reasoner
 	// - FnDeclNode: From `fn foo(v: i32) i32 { ... }`
 	// - MethodDeclNode: ^ but method
 	// - TypeNode: e.g. From the type in `var f: fn (i32) i32;`
-	// - AliasDeclNode: `alias Delegate as fn (i32) i32;`
+	// - AliasDeclNode: `alias fn (i32) i32 as Delegate;`
 	public FnTypeSymbol GetFnType(SyntaxNode node)
 	{
 		return node switch

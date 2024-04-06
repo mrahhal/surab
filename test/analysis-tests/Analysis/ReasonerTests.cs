@@ -177,7 +177,7 @@ public class ReasonerTests
 	public void Symbol_Alias()
 	{
 		var src = """
-			alias Integer as i32;
+			alias i32 as Integer;
 			""";
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
@@ -190,8 +190,8 @@ public class ReasonerTests
 	public void Symbol_Alias_UnwrapAliases()
 	{
 		var src = """
-			alias Integer as i32;
-			alias AnotherInteger as Integer;
+			alias i32 as Integer;
+			alias Integer as AnotherInteger;
 			""";
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
@@ -204,8 +204,8 @@ public class ReasonerTests
 	public void Symbol_IsAssignableFrom()
 	{
 		var src = """
-			alias Integer as i32;
-			alias AnotherInteger as Integer;
+			alias i32 as Integer;
+			alias Integer as AnotherInteger;
 			""";
 		var (project, tree, reasoner) = AnalysisTestUtils.CreateProjectAndTreeAndReasoner(src);
 
@@ -219,8 +219,8 @@ public class ReasonerTests
 	public void Symbol_IsAssignableFrom2()
 	{
 		var src = """
-			alias Delegate1 as fn (i32) f64;
-			alias Delegate2 as fn (i32) f64;
+			alias fn (i32) f64 as Delegate1;
+			alias fn (i32) f64 as Delegate2;
 			""";
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 
@@ -433,7 +433,7 @@ public class ReasonerTests
 	public void PtrTypes()
 	{
 		var src = """
-			alias Integer as i32;
+			alias i32 as Integer;
 
 			fn f() {
 				var a1: *i32;
@@ -535,9 +535,9 @@ public class ReasonerTests
 	public void FnTypesUsingTypeAliases()
 	{
 		var src = """
-			alias Integer1 i32;
-			alias Integer2 i32;
-			alias Float f64;
+			alias i32 as Integer1;
+			alias i32 as Integer2;
+			alias f64 as Float;
 
 			fn f() {
 				var f1: fn (Integer1, i32, Integer1) f64;

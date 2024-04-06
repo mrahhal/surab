@@ -678,9 +678,9 @@ internal class ParserImpl
 	private DeclNode ParseAliasDecl(AttrsListNode? attrs)
 	{
 		var aliasToken = EatAssertedSimpleToken(TokenKind.Alias);
-		var identifier = ParseIdentifier();
-		var asToken = EatExpectedContextualKeywordToken(ContextualKeyword.As);
 		var type = ParseType();
+		var asToken = EatExpectedContextualKeywordToken(ContextualKeyword.As);
+		var identifier = ParseIdentifier();
 		var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
 		return new AliasDeclNode(_tree, attrs, aliasToken, identifier, asToken, type, semicolonToken);

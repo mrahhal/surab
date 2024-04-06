@@ -54,7 +54,7 @@ public class ParserTests
 	{
 		var src = """
 			// some
-			alias Integer as i32;
+			alias i32 as Integer;
 			""";
 		var tree = Parser.ParseFile(src);
 		var file = (FileNode)tree.Root;
@@ -183,25 +183,46 @@ public class ParserTests
 		node.Attrs.Should().NotBeNull();
 		node.Attrs!.Attrs.Should().HaveCount(1);
 		node.AliasToken.Kind.Should().Be(SyntaxTokenKind.Simple);
-		node.Identifier.Value.Should().Be("Foo");
+		node.Identifier.Value.Should().Be("Bar");
+		node.AsToken.IsMissing.Should().BeFalse();
 		node.AsToken.SimpleTokenKind.Should().Be(SimpleTokenKind.AsKeyword);
 		node.AsToken.IsKeyword.Should().BeTrue();
 		node.AsToken.IsContextualKeyword.Should().BeTrue();
-		node.Type.Should().BeOfType<ExprTypeNode>().Subject.Expr.Should().BeOfType<IdentifierExprNode>().Subject.Identifier.Value.Should().Be("Bar");
+		node.Type.Should().BeOfType<ExprTypeNode>().Subject.Expr.Should().BeOfType<IdentifierExprNode>().Subject.Identifier.Value.Should().Be("Foo");
 		node.SemicolonToken.Should().NotBeNull();
 	}
 
 	[Fact]
 	public void Decl_Alias_Fn()
 	{
-		var src = "alias Delegate as @extern fn (S2);";
+		var src = "alias @extern fn (S2) i32 as Delegate;";
 		var node = ParseDecl(src).Should().BeOfType<AliasDeclNode>().Subject;
 		node.AliasToken.Kind.Should().Be(SyntaxTokenKind.Simple);
 		node.Identifier.Value.Should().Be("Delegate");
+		node.AsToken.IsMissing.Should().BeFalse();
 		node.AsToken.SimpleTokenKind.Should().Be(SimpleTokenKind.AsKeyword);
 		node.AsToken.IsKeyword.Should().BeTrue();
 		node.AsToken.IsContextualKeyword.Should().BeTrue();
-		node.Type.Should().BeOfType<FnTypeNode>().Subject.Attrs.Should().NotBeNull();
+		var fnType = node.Type.Should().BeOfType<FnTypeNode>().Subject;
+		fnType.Attrs.Should().NotBeNull();
+		fnType.ReturnType.Should().NotBeNull();
+		node.SemicolonToken.Should().NotBeNull();
+	}
+
+	[Fact]
+	public void Decl_Alias_Fn2()
+	{
+		var src = "alias @extern fn (S2) as Delegate;";
+		var node = ParseDecl(src).Should().BeOfType<AliasDeclNode>().Subject;
+		node.AliasToken.Kind.Should().Be(SyntaxTokenKind.Simple);
+		node.Identifier.Value.Should().Be("Delegate");
+		node.AsToken.IsMissing.Should().BeFalse();
+		node.AsToken.SimpleTokenKind.Should().Be(SimpleTokenKind.AsKeyword);
+		node.AsToken.IsKeyword.Should().BeTrue();
+		node.AsToken.IsContextualKeyword.Should().BeTrue();
+		var fnType = node.Type.Should().BeOfType<FnTypeNode>().Subject;
+		fnType.Attrs.Should().NotBeNull();
+		fnType.ReturnType.Should().BeNull();
 		node.SemicolonToken.Should().NotBeNull();
 	}
 
@@ -232,6 +253,28 @@ public class ParserTests
 			.IsMethodOp.Should().BeTrue();
 		node.Members.ElementAt(3).Should().BeOfType<MethodDeclNode>().Subject
 			.IsNormallyCallable.Should().BeTrue();
+	}
+
+	[Fact]
+	public void Decl_Struct_MissingName()
+	{
+		var src = """
+			struct {
+				a: u32;
+			}
+			""";
+		ParseDecl(src, hasDiags: true).Should().BeOfType<StructDeclNode>();
+	}
+
+	[Fact]
+	public void Decl_Struct_NotAllowedAsTypeName()
+	{
+		var src = """
+			struct as {
+				a: u32;
+			}
+			""";
+		ParseDecl(src, hasDiags: true).Should().BeOfType<StructDeclNode>();
 	}
 
 	[Fact]
