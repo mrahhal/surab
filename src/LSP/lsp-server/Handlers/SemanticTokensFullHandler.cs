@@ -194,6 +194,7 @@ public class SemanticTokensFullHandler(
 	{
 		return symbol switch
 		{
+			ModuleSymbol => SemanticTokenType.Namespace,
 			FieldSymbol => (SemanticTokenType?)SemanticTokenType.Property,
 			ParamSymbol => SemanticTokenType.Parameter,
 			LocalSymbol => SemanticTokenType.Variable,

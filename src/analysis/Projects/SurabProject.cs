@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Diagnostics;
 
 namespace Surab.Analysis;
 
@@ -11,45 +12,59 @@ namespace Surab.Analysis;
 /// </remarks>
 public class SurabProject
 {
-	private readonly List<SourceFile> _sourceFiles;
-	private readonly Dictionary<SourceFile, SourceFileState> _sourceFileToStateMap = [];
 	private readonly ReaderWriterLockSlim _rwl = new();
-	// This cancellation token will fire when a new change is being requested and just before a write lock is taken.
-	private CancellationTokenSource _ctsOnChange = null!;
 	private readonly List<Action<IEnumerable<FileDiagnostics>>> _fullDiagnosticsReadyActions = [];
+	private readonly Dictionary<SourceFile, SourceFileState> _sourceFileToStateMap = [];
 
-	private readonly ModuleResolver _moduleResolver;
+	private readonly VFS _vfs;
 	private readonly ReasoningContext _reasoningContext = new();
 
+	// This cancellation token will fire when a new change is being requested and just before a write lock is taken.
+	private CancellationTokenSource _ctsOnChange = null!;
 	private Reasoner _preludeReasoner = default!;
+	private ModuleSymbol? _rootModule;
 
-	private SurabProject(IEnumerable<SourceFile> sourceFiles)
-	{
-		_moduleResolver = new(this);
-		_sourceFiles = sourceFiles.ToList();
-	}
-
-	public static SurabProject Create(
+	private SurabProject(
+		NormalizedPath projectPath,
+		SurabProjectConfig config,
 		IEnumerable<SourceFile> sourceFiles)
 	{
-		var project = new SurabProject(sourceFiles);
-		project.LoadPrelude();
-		project.InitializeSourceFiles();
-		return project;
+		ProjectPath = projectPath;
+		Config = config;
+		_vfs = VFS.Create(projectPath, sourceFiles);
 	}
 
-	public IReadOnlyList<SourceFile> SourceFiles => _sourceFiles;
+	public NormalizedPath ProjectPath { get; }
+
+	public SurabProjectConfig Config { get; }
 
 	internal ReasoningContext ReasoningContext => _reasoningContext;
 
 	internal Reasoner PreludeReasoner => _preludeReasoner;
 
-	internal ModuleResolver ModuleResolver => _moduleResolver;
+	internal VFS VFS => _vfs;
+
+	public static SurabProject Create(IEnumerable<SourceFile> sourceFiles)
+	{
+		return Create(string.Empty, sourceFiles);
+	}
+
+	public static SurabProject Create(
+		string projectPath,
+		IEnumerable<SourceFile> sourceFiles)
+	{
+		var normalizedProjectPath = (NormalizedPath)projectPath;
+		var config = SurabProjectConfigLoader.Load(normalizedProjectPath);
+		var project = new SurabProject(normalizedProjectPath, config, sourceFiles);
+		project.LoadPrelude();
+		project.InitializeSourceFiles();
+		project.CreateRootModule();
+		return project;
+	}
 
 	public SourceFile? GetSourceFile(string path)
 	{
-		// TODO: Optimize.
-		return _sourceFiles.FirstOrDefault(x => x.Path == path);
+		return VFS.GetSourceFile(path);
 	}
 
 	public void SubscribeToFullDiagnosticsReady(Action<IEnumerable<FileDiagnostics>> action)
@@ -118,6 +133,7 @@ public class SurabProject
 		try
 		{
 			action();
+			ResetAfterWrite();
 		}
 		finally
 		{
@@ -128,6 +144,35 @@ public class SurabProject
 		_ = EnsureAnalyzedAsync(ct);
 	}
 
+	private void ResetAfterWrite()
+	{
+		// Reset cached/computed proj state that is stale on writes, e.g. modules
+
+		// Or, just go ahead for now and create and set the root module (containing all the modules hierarchy).
+		CreateRootModule();
+	}
+
+	private void CreateRootModule()
+	{
+		_rootModule = CreateModule(VFS.GetRootFolder(), Config.Name);
+	}
+
+	private ModuleSymbol CreateModule(VFSFolder folder, string? name = null)
+	{
+		var moduleName = name ?? folder.Name;
+		var module = new ModuleSymbol(moduleName, [folder]);
+		var moduleScope = new ModuleScope(this, folder.SourceFiles);
+		module.SetScope(moduleScope);
+
+		foreach (var subFolder in folder.SubFolders)
+		{
+			var childModule = CreateModule(subFolder);
+			childModule.SetParent(module);
+		}
+
+		return module;
+	}
+
 	/// <summary>
 	/// Adds a <see cref="SourceFile"/> to the project.
 	/// </summary>
@@ -136,9 +181,8 @@ public class SurabProject
 	/// </remarks>
 	public void AddSourceFile(SourceFile sourceFile)
 	{
-		_sourceFiles.Add(sourceFile);
+		VFS.AddSourceFile(sourceFile);
 		InitializeSourceFile(sourceFile);
-		MarkChangedDependencies(sourceFile);
 	}
 
 	/// <summary>
@@ -149,9 +193,8 @@ public class SurabProject
 	/// </remarks>
 	public void UpdateSourceFile(SourceFile sourceFile, string text)
 	{
-		sourceFile.UpdateText(text);
+		VFS.UpdateSourceFile(sourceFile, text);
 		UpdateTreeAndReasoner(sourceFile);
-		MarkChangedDependencies(sourceFile);
 	}
 
 	/// <summary>
@@ -162,9 +205,8 @@ public class SurabProject
 	/// </remarks>
 	public void RemoveSourceFile(SourceFile sourceFile)
 	{
-		_sourceFiles.Remove(sourceFile);
+		VFS.RemoveSourceFile(sourceFile);
 		_sourceFileToStateMap.Remove(sourceFile);
-		MarkChangedDependencies(sourceFile);
 	}
 
 	/// <summary>
@@ -175,7 +217,7 @@ public class SurabProject
 	/// </remarks>
 	public SyntaxTree GetSyntaxTree(SourceFile sourceFile)
 	{
-		return _sourceFileToStateMap[sourceFile].Tree;
+		return GetSourceFileState(sourceFile).Tree;
 	}
 
 	/// <summary>
@@ -186,15 +228,70 @@ public class SurabProject
 	/// </remarks>
 	public Reasoner GetReasoner(SourceFile sourceFile)
 	{
-		return _sourceFileToStateMap[sourceFile].Reasoner;
+		return GetSourceFileState(sourceFile).Reasoner;
+	}
+
+	/// <summary>
+	/// Resolves module of the reasoner file.
+	/// </summary>
+	public ModuleSymbol ResolveModule(Reasoner reasoner)
+	{
+		var folder = VFS.GetFolder(reasoner.SourceFile);
+		var module = FindModule(m => m.Folders.Contains(folder));
+		Debug.Assert(module != null);
+		return module;
+	}
+
+	/// <summary>
+	/// Resolves the target module relative to the reasoner file.
+	/// </summary>
+	public ModuleSymbol? ResolveModule(Reasoner reasoner, IEnumerable<string> path)
+	{
+		var module = ResolveModule(reasoner);
+		// TODO: Resolve from absolute, etc.
+		var current = module;
+		var found = true;
+		foreach (var targetName in path)
+		{
+			var targetModule = current.Children.FirstOrDefault(m => m.Name == targetName);
+			if (targetModule == null)
+			{
+				found = false;
+				break;
+			}
+			current = targetModule;
+		}
+		if (!found)
+		{
+			return null;
+		}
+		return current;
+	}
+
+	private ModuleSymbol? FindModule(Func<ModuleSymbol, bool> func)
+	{
+		Debug.Assert(_rootModule != null);
+		return FindModule(func, _rootModule);
+	}
+
+	private ModuleSymbol? FindModule(Func<ModuleSymbol, bool> func, ModuleSymbol module)
+	{
+		if (func(module)) return module;
+		foreach (var childModule in module.Children)
+		{
+			var result = FindModule(func, childModule);
+			if (result != null) return result;
+		}
+		return null;
 	}
 
 	internal IEnumerable<FileDiagnostics> GetProjectDiagnostics()
 	{
-		foreach (var sourceFileState in _sourceFileToStateMap.Values)
+		foreach (var sourceFile in VFS.EnumerateSourceFiles())
 		{
-			if (sourceFileState.FileDiagnostics != null)
-				yield return sourceFileState.FileDiagnostics;
+			var fileDiagnostics = GetSourceFileState(sourceFile).FileDiagnostics;
+			if (fileDiagnostics != null)
+				yield return fileDiagnostics;
 		}
 	}
 
@@ -234,51 +331,17 @@ public class SurabProject
 	{
 		yield return _preludeReasoner;
 
-		foreach (var sourceFileState in _sourceFileToStateMap.Values)
+		foreach (var sourceFile in VFS.EnumerateSourceFiles())
 		{
-			yield return sourceFileState.Reasoner;
+			yield return GetSourceFileState(sourceFile).Reasoner;
 		}
 	}
 
-	private (SyntaxTree, Reasoner) CreateNewTreeAndReasoner(SourceFile sourceFile)
+	internal (SyntaxTree, Reasoner) CreateNewTreeAndReasoner(SourceFile sourceFile)
 	{
 		var tree = Parser.ParseFile(sourceFile);
 		var reasoner = Reasoner.Create(this, tree);
 		return (tree, reasoner);
-	}
-
-	private void InitializeSourceFile(SourceFile sourceFile)
-	{
-		var (tree, reasoner) = CreateNewTreeAndReasoner(sourceFile);
-
-		_sourceFileToStateMap[sourceFile] = new SourceFileState
-		{
-			IsAnalyzed = false,
-			Tree = tree,
-			Reasoner = reasoner,
-		};
-	}
-
-	private void UpdateTreeAndReasoner(SourceFile sourceFile)
-	{
-		var (tree, reasoner) = CreateNewTreeAndReasoner(sourceFile);
-
-		if (!_sourceFileToStateMap.TryGetValue(sourceFile, out var state))
-		{
-			// TODO: LogWarning
-			return;
-		}
-
-		state.Tree = tree;
-		state.Reasoner = reasoner;
-	}
-
-	private void MarkChangedDependencies(SourceFile sourceFile)
-	{
-		// TODO: Do this properly.
-		// If the dependency only uses exported symbols that didn't change (or if exported symbols didn't change in the first place), don't mark it as changed.
-
-		// souceFile is the file that changed. Go to all files that have a dependency on this file and mark them to be re-analyzed.
 	}
 
 	/// <summary>
@@ -293,9 +356,9 @@ public class SurabProject
 			{
 				try
 				{
-					foreach (var sourceFile in _sourceFiles)
+					foreach (var sourceFile in VFS.EnumerateSourceFiles())
 					{
-						EnsureAnalyzeSourceFile(sourceFile, ct);
+						AnalyzeSourceFile(sourceFile, ct);
 					}
 
 					ct.ThrowIfCancellationRequested();
@@ -319,34 +382,16 @@ public class SurabProject
 		}
 	}
 
-	private void EnsureAnalyzeSourceFile(SourceFile sourceFile, CancellationToken ct)
+	private void AnalyzeSourceFile(SourceFile sourceFile, CancellationToken ct)
 	{
-		// Can call AnalyzeSourceFile on other dependent files.
-
-		if (!_sourceFileToStateMap.TryGetValue(sourceFile, out var state))
-		{
-			// TODO: LogWarning
-			return;
-		}
-
-		// Can't tell if the changed file affected others so for now we're reanalysing all files.
-		//if (state.IsAnalyzed)
-		//	return;
-
-		AnalyzeSourceFile(sourceFile, state, ct);
-	}
-
-	private void AnalyzeSourceFile(SourceFile sourceFile, SourceFileState state, CancellationToken ct)
-	{
-		// Later:
+		// Later?:
 		// reasoner.GetDependentSourceFiles() => each => EnsureAnalyzeSourceFile()
 
-		var reasoner = GetReasoner(sourceFile);
+		var state = GetSourceFileState(sourceFile);
+		var reasoner = state.Reasoner;
 		var diags = reasoner.GetAllDiagnostics().ToImmutableArray();
 		var highestLevel = diags.Any() ? (DiagnosticLevel?)diags.Select(x => (int)x.Level).Max() : null;
 		state.FileDiagnostics = new FileDiagnostics(sourceFile, diags, highestLevel);
-
-		state.IsAnalyzed = true;
 	}
 
 	private void LoadPrelude()
@@ -366,18 +411,49 @@ public class SurabProject
 		}
 	}
 
+	private void UpdateTreeAndReasoner(SourceFile sourceFile)
+	{
+		var (tree, reasoner) = CreateNewTreeAndReasoner(sourceFile);
+
+		if (!_sourceFileToStateMap.TryGetValue(sourceFile, out var state))
+		{
+			// TODO: LogWarning
+			return;
+		}
+
+		state.Tree = tree;
+		state.Reasoner = reasoner;
+	}
+
 	private void InitializeSourceFiles()
 	{
-		foreach (var sourceFile in _sourceFiles)
+		foreach (var file in VFS.EnumerateSourceFiles())
 		{
-			InitializeSourceFile(sourceFile);
+			InitializeSourceFile(file);
 		}
 	}
 
-	private class SourceFileState
+	private void InitializeSourceFile(SourceFile sourceFile)
 	{
-		public bool IsAnalyzed { get; set; }
+		var (tree, reasoner) = CreateNewTreeAndReasoner(sourceFile);
 
+		_sourceFileToStateMap[sourceFile] = new SourceFileState
+		{
+			Tree = tree,
+			Reasoner = reasoner,
+		};
+	}
+
+	private SourceFileState GetSourceFileState(SourceFile sourceFile)
+	{
+		// TODO: LogWarning instead?
+		Debug.Assert(_sourceFileToStateMap.ContainsKey(sourceFile));
+
+		return _sourceFileToStateMap[sourceFile];
+	}
+
+	public class SourceFileState
+	{
 		public required SyntaxTree Tree { get; set; }
 
 		public required Reasoner Reasoner { get; set; }

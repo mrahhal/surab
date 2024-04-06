@@ -1,4 +1,4 @@
-import "./add.surab";
+import sub;
 
 alias Delegate1 as @extern fn (S2);
 
@@ -78,4 +78,5 @@ fn main() {
 	fn_ptr(s2);
 
 	add(42);
+	sub::sub(42);
 }

@@ -1,11 +1,13 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Text;
+using System.Xml.Linq;
 
 namespace Surab.Analysis;
 
 public enum SymbolKind
 {
+	Module,
 	Const,
 	Fn,
 	Field,
@@ -21,7 +23,7 @@ public enum SymbolKind
 }
 
 /// <summary>
-/// Represents a symbol.
+/// Represents a symbol that can be referenced, either by name (e.g. functions) or by special syntax (ptr type).
 /// </summary>
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
 public abstract class Symbol
@@ -29,22 +31,12 @@ public abstract class Symbol
 	private List<Symbol>? _children;
 	private string? _fullName;
 
-	protected Symbol(SymbolKind kind, Reasoner reasoner, SyntaxNode? declaringNode = null)
+	protected Symbol(SymbolKind kind)
 	{
 		Kind = kind;
-		Reasoner = reasoner;
-		DeclaringNode = declaringNode;
 	}
 
 	public SymbolKind Kind { get; }
-
-	public Reasoner Reasoner { get; }
-
-	/// <summary>
-	/// The node in the tree representing this symbol.
-	/// This can be `null` when the declaration isn't in the src (synthesized, etc).
-	/// </summary>
-	public SyntaxNode? DeclaringNode { get; }
 
 	/// <summary>
 	/// The parent symbol enclosing this symbol.
@@ -61,11 +53,7 @@ public abstract class Symbol
 	/// </summary>
 	internal Scope? Scope { get; private set; }
 
-	public SourceFile? DeclaringSourceFile => DeclaringNode?.Tree.SourceFile;
-
 	public IdentifierToken? Identifier { get; protected set; }
-
-	public virtual TextSpan Span => DeclaringNode?.Span ?? TextSpan.Empty;
 
 	public virtual TextSpan SelectionSpan => Identifier?.Span ?? TextSpan.Empty;
 
@@ -112,6 +100,30 @@ public abstract class Symbol
 }
 
 /// <summary>
+/// A symbol originating in a source file, with a reasoner and usually a declaring node associated with it.
+/// </summary>
+public abstract class InFileSymbol : Symbol
+{
+	protected InFileSymbol(SymbolKind kind, Reasoner reasoner, SyntaxNode? declaringNode = null) : base(kind)
+	{
+		Reasoner = reasoner;
+		DeclaringNode = declaringNode;
+	}
+
+	public Reasoner Reasoner { get; }
+
+	/// <summary>
+	/// The node in the tree representing this symbol.
+	/// This can be `null` when the declaration isn't in the src (synthesized, etc).
+	/// </summary>
+	public SyntaxNode? DeclaringNode { get; }
+
+	public SourceFile? DeclaringSourceFile => DeclaringNode?.Tree.SourceFile;
+
+	public virtual TextSpan Span => DeclaringNode?.Span ?? TextSpan.Empty;
+}
+
+/// <summary>
 /// Marks symbols that have a type.
 /// </summary>
 public interface ISymbolHasType
@@ -137,7 +149,73 @@ public interface ISymbolHasExternAttr
 	public bool IsExtern { get; }
 }
 
-public sealed class ConstSymbol : Symbol, ISymbolHasType
+/// <summary>
+/// A symbol that represents a Surab module.
+/// e.g. main, std.io, etc
+/// </summary>
+public sealed class ModuleSymbol : Symbol
+{
+	private readonly string _name;
+	private ImmutableArray<InFileSymbol> _exportedSymbols;
+
+	public ModuleSymbol(string name, IEnumerable<VFSFolder> folders) : base(SymbolKind.Module)
+	{
+		_name = name;
+		Folders = folders.ToImmutableArray();
+	}
+
+	public override string? Name => _name;
+
+	/// <summary>
+	/// The parent <see cref="ModuleSymbol"/> if this is a nested module.
+	/// </summary>
+	public new ModuleSymbol? Parent => (ModuleSymbol?)base.Parent;
+
+	/// <summary>
+	/// The child <see cref="ModuleSymbol"/>s under this symbol.
+	/// </summary>
+	public new IEnumerable<ModuleSymbol> Children => base.Children.Cast<ModuleSymbol>();
+
+	internal new ModuleScope Scope => (ModuleScope)base.Scope!;
+
+	public ImmutableArray<VFSFolder> Folders { get; }
+
+	public ImmutableArray<InFileSymbol> ExportedSymbols
+	{
+		get
+		{
+			if (_exportedSymbols.IsDefault)
+			{
+				ImmutableInterlocked.InterlockedCompareExchange(ref _exportedSymbols, BuildExportedSymbols(), default);
+			}
+
+			return _exportedSymbols;
+		}
+	}
+
+	public Symbol? GetExportedSymbol(IdentifierToken identifier) => GetExportedSymbol(identifier.Value);
+
+	public Symbol? GetExportedSymbol(string name)
+	{
+		return ExportedSymbols.FirstOrDefault(s => s.Name == name);
+	}
+
+	private ImmutableArray<InFileSymbol> BuildExportedSymbols()
+	{
+		var builder = ImmutableArray.CreateBuilder<InFileSymbol>();
+		foreach (var sourceFile in Scope.SourceFiles)
+		{
+			var reasoner = Scope.Project.GetReasoner(sourceFile);
+			foreach (var symbol in reasoner.GetExportedSymbols())
+			{
+				builder.Add(symbol);
+			}
+		}
+		return builder.ToImmutable();
+	}
+}
+
+public sealed class ConstSymbol : InFileSymbol, ISymbolHasType
 {
 	private readonly ConstDeclNode _node;
 	private ResolvedType? _type;
@@ -163,7 +241,7 @@ public sealed class ConstSymbol : Symbol, ISymbolHasType
 	}
 }
 
-public sealed class LocalSymbol : Symbol, ISymbolHasType
+public sealed class LocalSymbol : InFileSymbol, ISymbolHasType
 {
 	private readonly VarDeclNode _node;
 	private ResolvedType? _type;
@@ -192,7 +270,7 @@ public sealed class LocalSymbol : Symbol, ISymbolHasType
 	}
 }
 
-public sealed class FnSymbol : Symbol, ISymbolHasType, ISymbolHasAccessorAttrs, ISymbolHasExternAttr
+public sealed class FnSymbol : InFileSymbol, ISymbolHasType, ISymbolHasAccessorAttrs, ISymbolHasExternAttr
 {
 	private readonly FnSigNode _node;
 	private FnTypeSymbol? _type;
@@ -361,7 +439,7 @@ public sealed class FnSymbol : Symbol, ISymbolHasType, ISymbolHasAccessorAttrs, 
 	}
 }
 
-public abstract class FieldSymbol : Symbol, ISymbolHasType, ISymbolHasAccessorAttrs
+public abstract class FieldSymbol : InFileSymbol, ISymbolHasType, ISymbolHasAccessorAttrs
 {
 	internal FieldSymbol(Reasoner reasoner, SyntaxNode? node)
 		: base(SymbolKind.Field, reasoner, node)
@@ -439,7 +517,7 @@ internal sealed class FieldSymbolImpl : FieldSymbol, ISymbolHasType
 	}
 }
 
-public sealed class ParamSymbol : Symbol, ISymbolHasType
+public sealed class ParamSymbol : InFileSymbol, ISymbolHasType
 {
 	private readonly ParamNode _node;
 	private TypeSymbol? _type;
@@ -479,7 +557,7 @@ internal readonly record struct ThisSymbolKey(TypeSymbol type)
 	public override string ToString() => "this";
 }
 
-public sealed class ThisSymbol : Symbol, ISymbolHasType
+public sealed class ThisSymbol : InFileSymbol, ISymbolHasType
 {
 	internal ThisSymbol(Reasoner reasoner, ThisSymbolKey key)
 		: base(SymbolKind.This, reasoner, null)
@@ -502,7 +580,7 @@ public sealed class ThisSymbol : Symbol, ISymbolHasType
 /// <summary>
 /// Represents a temporary symbol that gets created in the lowering phase to be used in subsequent lowered nodes. (e.g. struct creation)
 /// </summary>
-public sealed class TempSymbol : Symbol, ISymbolHasType
+public sealed class TempSymbol : InFileSymbol, ISymbolHasType
 {
 	internal TempSymbol(Reasoner reasoner, TypeSymbol type)
 		: base(SymbolKind.Local, reasoner)
@@ -534,13 +612,13 @@ public enum KnownTypeTag
 
 public readonly struct TypeCreationMemberSymbol
 {
-	internal TypeCreationMemberSymbol(Symbol symbol, bool isConflicting)
+	internal TypeCreationMemberSymbol(InFileSymbol symbol, bool isConflicting)
 	{
 		Symbol = symbol;
 		IsConflicting = isConflicting;
 	}
 
-	public Symbol Symbol { get; }
+	public InFileSymbol Symbol { get; }
 
 	/// <summary>
 	/// Gets whether this symbol conflicts with another creation symbol.
@@ -561,7 +639,7 @@ public readonly struct TypeCreationMemberSymbol
 /// <remarks>
 /// <see cref="IsAssignableFrom(TypeSymbol?)"/> should be used instead of referential equality.
 /// </remarks>
-public abstract class TypeSymbol : Symbol
+public abstract class TypeSymbol : InFileSymbol
 {
 	private readonly struct InitializerMethod
 	{

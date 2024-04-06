@@ -32,6 +32,7 @@ public enum SyntaxNodeKind
 	GroupingExpr,
 	CallExpr,
 	AccessExpr,
+	ModuleAccessExpr,
 	LiteralExpr,
 	IdentifierExpr,
 	ThisExpr,
@@ -99,11 +100,11 @@ public partial class ImportsListNode : SyntaxNode
 
 public partial class ImportNode : SyntaxNode
 {
-	public ImportNode(SyntaxTree tree, SimpleToken importToken, ExprNode modulePath, SimpleToken semicolonToken)
+	public ImportNode(SyntaxTree tree, SimpleToken importToken, ExprNode target, SimpleToken semicolonToken)
 		: base(tree, SyntaxNodeKind.Import)
 	{
 		_childTokens = new() { importToken, semicolonToken, };
-		_childNodes = new() { modulePath, };
+		_childNodes = new() { target, };
 
 		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
@@ -111,9 +112,9 @@ public partial class ImportNode : SyntaxNode
 
 	public SimpleToken ImportToken => (SimpleToken)_childTokens[0]!;
 	/// <summary>
-	/// Well formed: String literal
+	/// Well formed: IdentifierExpr or AccessExpr
 	/// </summary>
-	public ExprNode ModulePath => (ExprNode)_childNodes[0]!;
+	public ExprNode Target => (ExprNode)_childNodes[0]!;
 	public SimpleToken SemicolonToken => (SimpleToken)_childTokens[1]!;
 
 	public override void Accept(SyntaxTreeVisitor visitor)
@@ -631,6 +632,31 @@ public partial class AccessExprNode : ExprNode, ISyntaxNodeHasMainIdentifier
 	}
 }
 
+/// <summary>
+/// A module access (`target::identifier`).
+/// </summary>
+public partial class ModuleAccessExprNode : ExprNode, ISyntaxNodeHasMainIdentifier
+{
+	public ModuleAccessExprNode(SyntaxTree tree, ExprNode target, SimpleToken colonColonToken, IdentifierToken identifier)
+		: base(tree, SyntaxNodeKind.ModuleAccessExpr)
+	{
+		_childTokens = new() { colonColonToken, identifier, };
+		_childNodes = new() { target, };
+
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		SetChildrenParent();
+	}
+
+	public ExprNode Target => (ExprNode)_childNodes[0]!;
+	public SimpleToken ColonColonToken => (SimpleToken)_childTokens[0]!;
+	public IdentifierToken Identifier => (IdentifierToken)_childTokens[1]!;
+
+	public override void Accept(SyntaxTreeVisitor visitor)
+	{
+		visitor.VisitModuleAccessExpr(this);
+	}
+}
+
 public partial class LiteralExprNode : ExprNode
 {
 	public LiteralExprNode(SyntaxTree tree, LiteralToken literal)
@@ -975,7 +1001,7 @@ public partial class ExprTypeNode : TypeNode
 
 	public AttrsListNode? Attrs => (AttrsListNode?)_childNodes[0]!;
 	/// <summary>
-	/// Well formed: IdentifierExpr or AccessExpr
+	/// Well formed: IdentifierExpr or AccessExpr or ModuleAccessExpr
 	/// </summary>
 	public ExprNode Expr => (ExprNode)_childNodes[1]!;
 

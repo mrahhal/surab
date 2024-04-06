@@ -132,6 +132,11 @@ public abstract partial class SyntaxTreeVisitor
 		Walk(node);
 	}
 
+	public virtual void VisitModuleAccessExpr(ModuleAccessExprNode node)
+	{
+		Walk(node);
+	}
+
 	public virtual void VisitLiteralExpr(LiteralExprNode node)
 	{
 		Walk(node);

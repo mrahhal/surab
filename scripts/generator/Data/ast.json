@@ -31,9 +31,9 @@
 					"Type": "SimpleToken"
 				},
 				{
-					"Name": "modulePath",
+					"Name": "target",
 					"Type": "ExprNode",
-					"Comment": "Well formed: String literal"
+					"Comment": "Well formed: IdentifierExpr or AccessExpr"
 				},
 				{
 					"Name": "semicolonToken",
@@ -494,6 +494,25 @@
 			]
 		},
 		{
+			"Name": "ModuleAccessExpr",
+			"Base": "ExprNode",
+			"Comment": "A module access (`target::identifier`).",
+			"Members": [
+				{
+					"Name": "target",
+					"Type": "ExprNode"
+				},
+				{
+					"Name": "colonColonToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "identifier",
+					"Type": "IdentifierToken"
+				}
+			]
+		},
+		{
 			"Name": "LiteralExpr",
 			"Base": "ExprNode",
 			"Members": [
@@ -735,7 +754,7 @@
 				{
 					"Name": "expr",
 					"Type": "ExprNode",
-					"Comment": "Well formed: IdentifierExpr or AccessExpr"
+					"Comment": "Well formed: IdentifierExpr or AccessExpr or ModuleAccessExpr"
 				}
 			]
 		},

@@ -1001,6 +1001,7 @@ internal class ParserImpl
 			return token.Kind switch
 			{
 				TokenKind.Dot => ParseAccessExpr(left),
+				TokenKind.ColonColon => ParseModuleAccessExpr(left),
 				// Stop
 				_ => left,
 			};
@@ -1010,6 +1011,7 @@ internal class ParserImpl
 			return token.Kind switch
 			{
 				TokenKind.Dot => ParseAccessExpr(left),
+				TokenKind.ColonColon => ParseModuleAccessExpr(left),
 				TokenKind.LeftParen => ParseCallExpr(left),
 				TokenKind.LeftBrace => ParseTypeCreationExpr(left),
 				TokenKind.Equal => ParseAssignmentExpr(targetPrecedence, left),
@@ -1026,6 +1028,14 @@ internal class ParserImpl
 		var identifier = ParseIdentifier();
 
 		return new AccessExprNode(_tree, left, dotToken, identifier);
+	}
+
+	private ExprNode ParseModuleAccessExpr(ExprNode left)
+	{
+		var colonColonToken = EatAssertedSimpleToken(TokenKind.ColonColon);
+		var identifier = ParseIdentifier();
+
+		return new ModuleAccessExprNode(_tree, left, colonColonToken, identifier);
 	}
 
 	private ExprNode ParseCallExpr(ExprNode left)

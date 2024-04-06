@@ -24,13 +24,13 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 
 	public override void VisitImport(ImportNode node)
 	{
-		if (node.ModulePath is not LiteralExprNode literalExpr || literalExpr.Literal.LiteralTokenKind != LiteralTokenKind.String)
+		if (node.Target is not IdentifierExprNode and not AccessExprNode)
 		{
-			_diagnostics.Add(node.ModulePath.Span, DiagnosticLevel.Error, $"expected a string for the module path to import");
+			_diagnostics.Add(node.Target.Span, DiagnosticLevel.Error, $"invalid syntax for import");
 		}
-		else if (_reasoner.ResolveImportedFileReasoner(node) == null)
+		else if (_reasoner.ResolveImport(node).IsFailed)
 		{
-			_diagnostics.Add(node.ModulePath.Span, DiagnosticLevel.Error, $"failed to resolve imported module");
+			_diagnostics.Add(node.Target.Span, DiagnosticLevel.Error, $"failed to resolve module to import");
 		}
 
 		// TODO: Need a way to try resolve an import that connects back to the SurabProject somehow.
@@ -363,6 +363,13 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 
 	public override void VisitAccessExpr(AccessExprNode node)
 	{
+		var targetSymbol = _reasoner.LookupSymbol(node.Target);
+		if (targetSymbol is ModuleSymbol)
+		{
+			_diagnostics.Add(node.Identifier.Span, DiagnosticLevel.Error, $"invalid access on a module, did you mean to use :: instead?");
+			return;
+		}
+
 		var targetType = _reasoner.LookupType(node.Target);
 		if (targetType.IsUnknown)
 		{
@@ -391,6 +398,27 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		}
 
 		base.VisitAccessExpr(node);
+	}
+
+	public override void VisitModuleAccessExpr(ModuleAccessExprNode node)
+	{
+		var targetSymbol = _reasoner.LookupModule(node.Target);
+		if (targetSymbol is not ModuleSymbol module)
+		{
+			_diagnostics.Add(TextSpan.FromTo(node.Target.Span, node.ColonColonToken.Span), DiagnosticLevel.Error, $"not a module");
+			return;
+		}
+
+		var result = module.GetExportedSymbol(node.Identifier);
+		if (result == null)
+		{
+			_diagnostics.Add(node.Identifier.Span, DiagnosticLevel.Error, $"can't find exported symbol");
+			return;
+		}
+
+		// TODO: "Did you mean to use . to access module hierarchy?" (b/c similar to rust).
+
+		base.VisitModuleAccessExpr(node);
 	}
 
 	public override void VisitThisExpr(ThisExprNode node)
