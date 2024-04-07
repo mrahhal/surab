@@ -35,11 +35,11 @@ var code = """
 	struct S3 {
 		a: f64;
 		b: f64;
-	}
 
-	@extern
-	struct S4 {
-		s3: S3;
+		@extern
+		struct S4 {
+			s3: S3;
+		}
 	}
 
 	@extern
@@ -103,7 +103,7 @@ var code = """
 		var s3_from_rust = get_s3_from_rust();
 		print_s3_from_rust(s3_from_rust);
 
-		var s4 = S4 { s3 = s3_from_rust };
+		var s4 = S3.S4 { s3 = s3_from_rust };
 		print_s3_from_rust(s4.s3);
 
 		var str = "This is created in surab and printed from rust.";

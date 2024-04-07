@@ -1,7 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Text;
-using System.Xml.Linq;
 
 namespace Surab.Analysis;
 
@@ -61,6 +60,24 @@ public abstract class Symbol
 
 	public string? FullName => _fullName ??= BuildFullName();
 
+	/// <summary>
+	/// The <see cref="ModuleSymbol"/> this symbol is in. If this is a <see cref="ModuleSymbol"/> then `this` is returned.
+	/// </summary>
+	public ModuleSymbol Module
+	{
+		get
+		{
+			// Cache?
+			if (this is ModuleSymbol thisModuleSymbol)
+			{
+				return thisModuleSymbol;
+			}
+
+			Debug.Assert(Scope != null);
+			return Scope.Reasoner.ResolveCurrentModule();
+		}
+	}
+
 	internal void SetParent(Symbol? parent)
 	{
 		Parent = parent;
@@ -90,6 +107,11 @@ public abstract class Symbol
 			sb.Insert(0, ".");
 			sb.Insert(0, current.Name);
 			current = current.Parent;
+		}
+
+		if (this is not ModuleSymbol)
+		{
+			sb.Insert(0, $"{Module.FullName}::");
 		}
 
 		sb.Append(Name);

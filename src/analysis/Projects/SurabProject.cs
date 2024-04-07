@@ -272,6 +272,8 @@ public class SurabProject
 		return _preludeReasoner.ResolveKnownTypeSymbol(tag);
 	}
 
+	public ModuleSymbol RootModule => _rootModule!;
+
 	/// <summary>
 	/// Resolves module of the reasoner file.
 	/// </summary>
