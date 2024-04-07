@@ -48,6 +48,8 @@ public class TextDocumentSyncHandler(
 
 	protected override TextDocumentSyncRegistrationOptions CreateRegistrationOptions(TextSynchronizationCapability capability, ClientCapabilities clientCapabilities)
 	{
+		// TODO: Track surab-project.json
+
 		return new()
 		{
 			DocumentSelector = LanguageServerHelper.CreateSurabDocumentSelector(),

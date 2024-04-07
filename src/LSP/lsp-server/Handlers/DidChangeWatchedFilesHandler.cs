@@ -62,6 +62,8 @@ public class DidChangeWatchedFilesHandler(
 
 	protected override DidChangeWatchedFilesRegistrationOptions CreateRegistrationOptions(DidChangeWatchedFilesCapability capability, ClientCapabilities clientCapabilities)
 	{
+		// TODO: Track surab-project.json
+
 		return new()
 		{
 			Watchers = new Container<FileSystemWatcher>(
