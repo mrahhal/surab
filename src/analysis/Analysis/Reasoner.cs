@@ -550,7 +550,7 @@ public class Reasoner
 		// Also, this method is not even used currently.
 
 		var aliasSymbol = (AliasTypeSymbol)_nodeToSymbolMap[aliasDecl]!;
-		return (FnTypeSymbol)aliasSymbol.Type.UnwrapAliases();
+		return (FnTypeSymbol)aliasSymbol.Type.UnwrapTypeAliases();
 	}
 
 	private FnTypeKey CreateFnTypeKey(FnSigNode sig)
@@ -589,7 +589,6 @@ public class Reasoner
 		return Project.ResolveModule(this);
 	}
 
-	// TODO: This should return a new model containing either a module, or symbols to expose?
 	internal ResolvedImport ResolveImport(ImportNode import)
 	{
 		var path = GetModuleImportPathFromExpr(import.Target);
@@ -597,6 +596,12 @@ public class Reasoner
 
 		var targetModule = Project.ResolveModule(this, path);
 		if (targetModule == null) return ResolvedImport.Failed();
+
+		if (import.AsIdentifier != null)
+		{
+			var alias = import.AsIdentifier.Identifier.Value;
+			targetModule = new AliasModuleSymbol(alias, targetModule);
+		}
 
 		return ResolvedImport.Resolved(targetModule, [targetModule]);
 	}

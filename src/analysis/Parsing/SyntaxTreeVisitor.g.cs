@@ -47,6 +47,11 @@ public abstract partial class SyntaxTreeVisitor
 		Walk(node);
 	}
 
+	public virtual void VisitAsIdentifier(AsIdentifierNode node)
+	{
+		Walk(node);
+	}
+
 	public virtual void VisitStructDecl(StructDeclNode node)
 	{
 		Walk(node);

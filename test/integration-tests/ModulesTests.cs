@@ -123,4 +123,33 @@ public class ModulesTests
 
 		output.Should().Be(expectedOutput);
 	}
+
+	[Fact]
+	public void Aliased()
+	{
+		var vfs = VFS.Create();
+
+		vfs.AddCodeFile("/mod1/mod2/add.surab", $$"""
+			@public
+			fn add(x: i32, y: i32) i32 {
+				x + y
+			}
+			""");
+
+		vfs.AddCodeFile("/main.surab", $$"""
+			import mod1.mod2 as another;
+
+			fn main() {
+				print_i32(another::add(4, 2));
+			}
+			""");
+
+		var project = SurabProject.Create(vfs);
+		var output = IntegrationRunner.Run(project);
+
+		var expectedOutput =
+			"6".NL();
+
+		output.Should().Be(expectedOutput);
+	}
 }

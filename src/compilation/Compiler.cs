@@ -792,7 +792,7 @@ internal abstract class LLVMTarget
 	/// <returns>The lowered LLVM type.</returns>
 	public LLVMTypeRef LowerType(TypeSymbol type)
 	{
-		type = type.UnwrapAliases();
+		type = type.UnwrapTypeAliases();
 
 		if (Context.TypeSymbolToLLVMType.TryGetValue(type, out var llvmType))
 		{

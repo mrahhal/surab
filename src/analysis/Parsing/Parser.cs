@@ -490,16 +490,17 @@ internal class ParserImpl
 	}
 
 	/// <summary>
-	/// Parses `import "..."`
+	/// Parses `import mod1.mod2 as another;`
 	/// Requirements: current is Identifier (import)
 	/// </summary>
 	private ImportNode ParseImport()
 	{
 		var importToken = EatAssertedContextualKeywordToken(ContextualKeyword.Import);
 		var expr = ParseExpr();
+		var asIdentifier = ParseOptionalAsIdentifier();
 		var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
-		return new ImportNode(_tree, importToken, expr, semicolonToken);
+		return new ImportNode(_tree, importToken, expr, asIdentifier, semicolonToken);
 	}
 
 	private DeclsListNode ParseDeclsList()
@@ -679,11 +680,29 @@ internal class ParserImpl
 	{
 		var aliasToken = EatAssertedSimpleToken(TokenKind.Alias);
 		var type = ParseType();
-		var asToken = EatExpectedContextualKeywordToken(ContextualKeyword.As);
-		var identifier = ParseTypeIdentifier();
+		var asIdentifier = ParseAsIdentifier();
 		var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
-		return new AliasDeclNode(_tree, attrs, aliasToken, identifier, asToken, type, semicolonToken);
+		return new AliasDeclNode(_tree, attrs, aliasToken, type, asIdentifier, semicolonToken);
+	}
+
+	private AsIdentifierNode ParseAsIdentifier()
+	{
+		var asToken = EatExpectedContextualKeywordToken(ContextualKeyword.As);
+		var identifier = ParseTypeIdentifier();
+		return new AsIdentifierNode(_tree, asToken, identifier);
+	}
+
+	private AsIdentifierNode? ParseOptionalAsIdentifier()
+	{
+		if (!CheckContextualKeyword(ContextualKeyword.As))
+		{
+			return null;
+		}
+
+		var asToken = EatAssertedContextualKeywordToken(ContextualKeyword.As);
+		var identifier = ParseTypeIdentifier();
+		return new AsIdentifierNode(_tree, asToken, identifier);
 	}
 
 	/// <summary>

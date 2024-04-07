@@ -213,7 +213,7 @@ public class ReasonerTests
 
 		var anotherIntegerAliasDecl = tree.Root.DescendantNodes().OfType<AliasDeclNode>().ElementAt(1);
 		var symbol = (AliasTypeSymbol)reasoner.GetDeclaredSymbol(anotherIntegerAliasDecl)!;
-		symbol.UnwrapAliases().KnownTypeTag.Should().Be(KnownTypeTag.i32);
+		symbol.UnwrapTypeAliases().KnownTypeTag.Should().Be(KnownTypeTag.i32);
 	}
 
 	[Fact]

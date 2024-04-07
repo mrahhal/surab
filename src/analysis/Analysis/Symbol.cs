@@ -175,15 +175,13 @@ public interface ISymbolHasExternAttr
 /// A symbol that represents a Surab module.
 /// e.g. main, std.io, etc
 /// </summary>
-public sealed class ModuleSymbol : Symbol
+public abstract class ModuleSymbol : Symbol
 {
 	private readonly string _name;
-	private ImmutableArray<InFileSymbol> _exportedSymbols;
 
-	public ModuleSymbol(string name, IEnumerable<ProjectFolder> folders) : base(SymbolKind.Module)
+	public ModuleSymbol(string name) : base(SymbolKind.Module)
 	{
 		_name = name;
-		Folders = folders.ToImmutableArray();
 	}
 
 	public override string? Name => _name;
@@ -200,9 +198,31 @@ public sealed class ModuleSymbol : Symbol
 
 	internal new ModuleScope Scope => (ModuleScope)base.Scope!;
 
-	public ImmutableArray<ProjectFolder> Folders { get; }
+	public abstract ImmutableArray<ProjectFolder> Folders { get; }
 
-	public ImmutableArray<InFileSymbol> ExportedSymbols
+	public abstract ImmutableArray<InFileSymbol> ExportedSymbols { get; }
+
+	// REVIEW: Should we use EnumerateMembers/Members instead? But these aren't members. Should we rename Members or do we expand the term to include this?
+	public Symbol? GetExportedSymbol(IdentifierToken identifier) => GetExportedSymbol(identifier.Value);
+
+	public Symbol? GetExportedSymbol(string name)
+	{
+		return ExportedSymbols.FirstOrDefault(s => s.Name == name);
+	}
+}
+
+public sealed class ImplModuleSymbol : ModuleSymbol
+{
+	private ImmutableArray<InFileSymbol> _exportedSymbols;
+
+	public ImplModuleSymbol(string name, IEnumerable<ProjectFolder> folders) : base(name)
+	{
+		Folders = folders.ToImmutableArray();
+	}
+
+	public override ImmutableArray<ProjectFolder> Folders { get; }
+
+	public override ImmutableArray<InFileSymbol> ExportedSymbols
 	{
 		get
 		{
@@ -213,13 +233,6 @@ public sealed class ModuleSymbol : Symbol
 
 			return _exportedSymbols;
 		}
-	}
-
-	public Symbol? GetExportedSymbol(IdentifierToken identifier) => GetExportedSymbol(identifier.Value);
-
-	public Symbol? GetExportedSymbol(string name)
-	{
-		return ExportedSymbols.FirstOrDefault(s => s.Name == name);
 	}
 
 	private ImmutableArray<InFileSymbol> BuildExportedSymbols()
@@ -235,6 +248,23 @@ public sealed class ModuleSymbol : Symbol
 		}
 		return builder.ToImmutable();
 	}
+}
+
+public sealed class AliasModuleSymbol : ModuleSymbol
+{
+	private readonly ModuleSymbol _module;
+
+	internal AliasModuleSymbol(string name, ModuleSymbol module)
+		: base(name)
+	{
+		_module = module;
+	}
+
+	public ModuleSymbol AliasedModule => _module;
+
+	public override ImmutableArray<ProjectFolder> Folders => _module.Folders;
+
+	public override ImmutableArray<InFileSymbol> ExportedSymbols => _module.ExportedSymbols;
 }
 
 public sealed class ConstSymbol : InFileSymbol, ISymbolHasType
@@ -828,7 +858,7 @@ public abstract class TypeSymbol : InFileSymbol
 	/// <summary>
 	/// Unwraps aliases and return the actual type. The result should always be a non aliased type.
 	/// </summary>
-	public virtual TypeSymbol UnwrapAliases()
+	public virtual TypeSymbol UnwrapTypeAliases()
 	{
 		return this;
 	}
@@ -849,7 +879,7 @@ public abstract class TypeSymbol : InFileSymbol
 	public bool IsAssignableFrom(TypeSymbol? from)
 	{
 		if (from == null) return false;
-		return IsAssignableFromCore(UnwrapAliases(), from.UnwrapAliases());
+		return IsAssignableFromCore(UnwrapTypeAliases(), from.UnwrapTypeAliases());
 	}
 
 	public virtual bool IsAssignableFromCore(TypeSymbol to, TypeSymbol from)
@@ -1123,7 +1153,7 @@ public class AliasTypeSymbol : TypeSymbol
 		: base(SymbolKind.AliasType, reasoner, node)
 	{
 		_node = node;
-		Identifier = _node.Identifier;
+		Identifier = _node.AsIdentifier.Identifier;
 	}
 
 	internal new Scope Scope => base.Scope!;
@@ -1138,10 +1168,10 @@ public class AliasTypeSymbol : TypeSymbol
 		}
 	}
 
-	public override TypeSymbol UnwrapAliases()
+	public override TypeSymbol UnwrapTypeAliases()
 	{
 		// A second unwrap call on the Type is required in case the aliased type is another alias.
-		return Type.UnwrapAliases();
+		return Type.UnwrapTypeAliases();
 	}
 
 	// REVIEW: Is this what we should really do? Shouldn't we depend on unwrapping instead?

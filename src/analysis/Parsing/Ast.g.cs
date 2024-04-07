@@ -15,6 +15,7 @@ public enum SyntaxNodeKind
 	FnDecl,
 	MethodDecl,
 	AliasDecl,
+	AsIdentifier,
 	StructDecl,
 	ClassDecl,
 	DeclsList,
@@ -100,11 +101,11 @@ public partial class ImportsListNode : SyntaxNode
 
 public partial class ImportNode : SyntaxNode
 {
-	public ImportNode(SyntaxTree tree, SimpleToken importToken, ExprNode target, SimpleToken semicolonToken)
+	public ImportNode(SyntaxTree tree, SimpleToken importToken, ExprNode target, AsIdentifierNode? asIdentifier, SimpleToken semicolonToken)
 		: base(tree, SyntaxNodeKind.Import)
 	{
 		_childTokens = new() { importToken, semicolonToken, };
-		_childNodes = new() { target, };
+		_childNodes = new() { target, asIdentifier, };
 
 		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
@@ -115,6 +116,7 @@ public partial class ImportNode : SyntaxNode
 	/// Well formed: IdentifierExpr or AccessExpr
 	/// </summary>
 	public ExprNode Target => (ExprNode)_childNodes[0]!;
+	public AsIdentifierNode? AsIdentifier => (AsIdentifierNode?)_childNodes[1]!;
 	public SimpleToken SemicolonToken => (SimpleToken)_childTokens[1]!;
 
 	public override void Accept(SyntaxTreeVisitor visitor)
@@ -226,13 +228,13 @@ public partial class MethodDeclNode : DeclNode
 	}
 }
 
-public partial class AliasDeclNode : DeclNode, ISyntaxNodeHasMainIdentifier
+public partial class AliasDeclNode : DeclNode
 {
-	public AliasDeclNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken aliasToken, IdentifierToken identifier, SimpleToken asToken, TypeNode type, SimpleToken semicolonToken)
+	public AliasDeclNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken aliasToken, TypeNode type, AsIdentifierNode asIdentifier, SimpleToken semicolonToken)
 		: base(tree, SyntaxNodeKind.AliasDecl)
 	{
-		_childTokens = new() { aliasToken, identifier, asToken, semicolonToken, };
-		_childNodes = new() { attrs, type, };
+		_childTokens = new() { aliasToken, semicolonToken, };
+		_childNodes = new() { attrs, type, asIdentifier, };
 
 		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
@@ -240,14 +242,34 @@ public partial class AliasDeclNode : DeclNode, ISyntaxNodeHasMainIdentifier
 
 	public AttrsListNode? Attrs => (AttrsListNode?)_childNodes[0]!;
 	public SimpleToken AliasToken => (SimpleToken)_childTokens[0]!;
-	public IdentifierToken Identifier => (IdentifierToken)_childTokens[1]!;
-	public SimpleToken AsToken => (SimpleToken)_childTokens[2]!;
 	public TypeNode Type => (TypeNode)_childNodes[1]!;
-	public SimpleToken SemicolonToken => (SimpleToken)_childTokens[3]!;
+	public AsIdentifierNode AsIdentifier => (AsIdentifierNode)_childNodes[2]!;
+	public SimpleToken SemicolonToken => (SimpleToken)_childTokens[1]!;
 
 	public override void Accept(SyntaxTreeVisitor visitor)
 	{
 		visitor.VisitAliasDecl(this);
+	}
+}
+
+public partial class AsIdentifierNode : SyntaxNode, ISyntaxNodeHasMainIdentifier
+{
+	public AsIdentifierNode(SyntaxTree tree, SimpleToken asToken, IdentifierToken identifier)
+		: base(tree, SyntaxNodeKind.AsIdentifier)
+	{
+		_childTokens = new() { asToken, identifier, };
+		_childNodes = new();
+
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		SetChildrenParent();
+	}
+
+	public SimpleToken AsToken => (SimpleToken)_childTokens[0]!;
+	public IdentifierToken Identifier => (IdentifierToken)_childTokens[1]!;
+
+	public override void Accept(SyntaxTreeVisitor visitor)
+	{
+		visitor.VisitAsIdentifier(this);
 	}
 }
 

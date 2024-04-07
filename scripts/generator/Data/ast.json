@@ -36,6 +36,11 @@
 					"Comment": "Well formed: IdentifierExpr or AccessExpr"
 				},
 				{
+					"Name": "asIdentifier",
+					"Type": "AsIdentifierNode",
+					"Optional": true
+				},
+				{
 					"Name": "semicolonToken",
 					"Type": "SimpleToken"
 				}
@@ -177,20 +182,29 @@
 					"Type": "SimpleToken"
 				},
 				{
-					"Name": "identifier",
-					"Type": "IdentifierToken"
+					"Name": "type",
+					"Type": "TypeNode"
 				},
+				{
+					"Name": "asIdentifier",
+					"Type": "AsIdentifierNode"
+				},
+				{
+					"Name": "semicolonToken",
+					"Type": "SimpleToken"
+				}
+			]
+		},
+		{
+			"Name": "AsIdentifier",
+			"Members": [
 				{
 					"Name": "asToken",
 					"Type": "SimpleToken"
 				},
 				{
-					"Name": "type",
-					"Type": "TypeNode"
-				},
-				{
-					"Name": "semicolonToken",
-					"Type": "SimpleToken"
+					"Name": "identifier",
+					"Type": "IdentifierToken"
 				}
 			]
 		},

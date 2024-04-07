@@ -39,7 +39,7 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 	{
 		ArgumentNullException.ThrowIfNull(type);
 
-		type = type.UnwrapAliases();
+		type = type.UnwrapTypeAliases();
 		var tag = type.KnownTypeTag;
 
 		if (tag is KnownTypeTag.None)
@@ -126,7 +126,7 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 
 	public IntegerSign GetIntegerSign(TypeSymbol type)
 	{
-		type = type.UnwrapAliases();
+		type = type.UnwrapTypeAliases();
 		var tag = type.KnownTypeTag;
 
 		if (tag is KnownTypeTag.i32 or KnownTypeTag.i64)

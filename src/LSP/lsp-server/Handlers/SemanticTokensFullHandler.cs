@@ -194,7 +194,7 @@ public class SemanticTokensFullHandler(
 	{
 		return symbol switch
 		{
-			AliasTypeSymbol aliasType => GetTokenType(aliasType.UnwrapAliases()),
+			AliasTypeSymbol aliasType => GetTokenType(aliasType.UnwrapTypeAliases()),
 			ModuleSymbol => SemanticTokenType.Namespace,
 			// TODO: An identifier could both be a variable and a function so can't just simply change the type to function.
 			// Need a better way to represent this in the token. Maybe use custom modifiers (rust adds callable modifier)?

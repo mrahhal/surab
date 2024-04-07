@@ -154,7 +154,7 @@ public class SurabProject
 	private ModuleSymbol CreateModule(ProjectFolder folder, string? name = null)
 	{
 		var moduleName = name ?? folder.Name;
-		var module = new ModuleSymbol(moduleName, [folder]);
+		var module = new ImplModuleSymbol(moduleName, [folder]);
 		var moduleScope = new ModuleScope(this, folder.Files.Where(f => f.Kind is ProjectFileKind.Code));
 		module.SetScope(moduleScope);
 
@@ -166,53 +166,6 @@ public class SurabProject
 
 		return module;
 	}
-
-	///// <summary>
-	///// Adds a <see cref="SourceFile"/> to the project.
-	///// </summary>
-	///// <remarks>
-	///// This method is a write operation.
-	///// </remarks>
-	//public void AddSourceFile(SourceFile sourceFile)
-	//{
-	//	VFS.AddCodeFile(sourceFile);
-	//	InitializeSourceFile(sourceFile);
-	//}
-
-	///// <summary>
-	///// Updates a <see cref="SourceFile"/> with new content.
-	///// </summary>
-	///// <remarks>
-	///// This method is a write operation.
-	///// </remarks>
-	//public void UpdateSourceFile(SourceFile sourceFile, string text)
-	//{
-	//	VFS.UpdateSourceFile(sourceFile, text);
-	//	UpdateTreeAndReasoner(sourceFile);
-	//}
-
-	///// <summary>
-	///// Removes a <see cref="SourceFile"/> from the project.
-	///// </summary>
-	///// <remarks>
-	///// This method is a write operation.
-	///// </remarks>
-	//public void RemoveSourceFile(SourceFile sourceFile)
-	//{
-	//	VFS.RemoveSourceFile(sourceFile);
-	//	_codeFileToStateMap.Remove(sourceFile);
-	//}
-
-	///// <summary>
-	///// Gets the <see cref="SourceFile"/> that matches the given path.
-	///// </summary>
-	///// <remarks>
-	///// This method is a read operation.
-	///// </remarks>
-	//public SourceFile? GetSourceFile(string path)
-	//{
-	//	return VFS.GetFile(path);
-	//}
 
 	/// <summary>
 	/// Gets the <see cref="SyntaxTree"/> for a given <see cref="SourceFile"/>.

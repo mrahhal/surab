@@ -336,7 +336,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 
 	public override void VisitCallExpr(CallExprNode node)
 	{
-		var calleeType = _reasoner.LookupType(node.Callee).UnwrapAliases();
+		var calleeType = _reasoner.LookupType(node.Callee).UnwrapTypeAliases();
 
 		// Ensure callee is a function and validate args.
 

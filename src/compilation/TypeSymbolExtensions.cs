@@ -27,7 +27,7 @@ public static class TypeSymbolExtensions
 
 	public static RuntimeTypeKind GetRuntimeKind(this TypeSymbol type)
 	{
-		type = type.UnwrapAliases();
+		type = type.UnwrapTypeAliases();
 		var tag = type.KnownTypeTag;
 
 		if (tag == KnownTypeTag.None) return RuntimeTypeKind.ZeroSized;

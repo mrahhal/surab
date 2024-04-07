@@ -387,7 +387,7 @@ internal class Lowerer
 		// Note: LookupType will give as an FnType that doesn't include the receiver param for non static methods accessed through an instance.
 		// (see `FnSymbol.TypeWithoutReceiver`)
 		// For this reason, we get back the normal type back in these cases below.
-		var fnType = (FnTypeSymbol)_reasoner.LookupType(node.Callee).UnwrapAliases();
+		var fnType = (FnTypeSymbol)_reasoner.LookupType(node.Callee).UnwrapTypeAliases();
 
 		var receiverArgs = Enumerable.Empty<LoweredExpr>();
 		if (symbol is FnSymbol fnSymbol && node.Callee is AccessExprNode accessExpr && _reasoner.IsInstanceAccess(accessExpr))
@@ -502,7 +502,7 @@ internal class Lowerer
 
 		var stmts = new List<LoweredStmt>();
 
-		var structType = (StructTypeSymbol)_reasoner.LookupType(node).UnwrapAliases();
+		var structType = (StructTypeSymbol)_reasoner.LookupType(node).UnwrapTypeAliases();
 		var structTempSymbol = new TempSymbol(_reasoner, structType);
 
 		var structLoadExpr = new LoweredSymbolLoadExpr(node, structType, structTempSymbol);
