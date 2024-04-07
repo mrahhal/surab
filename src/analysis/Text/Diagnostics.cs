@@ -1,4 +1,5 @@
-﻿using System.Collections.Immutable;
+﻿using System;
+using System.Collections.Immutable;
 
 namespace Surab;
 
@@ -9,24 +10,18 @@ public enum DiagnosticLevel
 	Error,
 }
 
-public class Diagnostic(TextSpan span, DiagnosticLevel level, string message)
+internal static class DiagnosticHelper
 {
-	public TextSpan Span { get; } = span;
-
-	public DiagnosticLevel Level { get; } = level;
-
-	public string Message { get; } = message;
-
-	public string Visualize(string text)
+	public static string Visualize(string text, FileSpan fileSpan, LineSpan? lineSpan, string? level, string? message)
 	{
-		var start = Span.File.Start;
-		var end = Span.File.End;
+		var start = fileSpan.Start;
+		var end = fileSpan.End;
 
 		var windowStart = BTill(start);
 		var windowEnd = FTill(end);
-		var lineNumber = Span.Line.Start.Line + 1;
+		var lineNumber = lineSpan.HasValue ? (lineSpan.Value.Start.Line + 1).ToString() : null;
 
-		var leading = $"{lineNumber}: ";
+		var leading = lineNumber != null ? $"{lineNumber}: " : string.Empty;
 		var v = leading + text[windowStart..windowEnd] + Environment.NewLine;
 		v += string.Concat(v[..(leading.Length + start - windowStart)].Select(ch =>
 		{
@@ -37,7 +32,11 @@ public class Diagnostic(TextSpan span, DiagnosticLevel level, string message)
 		}));
 		v += string.Concat(Enumerable.Repeat('^', end - start));
 
-		return $"[{Level}] " + Message + Environment.NewLine + Environment.NewLine + v;
+		var levelText = level != null ? $"[{level}] " : string.Empty;
+		var messageText = message ?? string.Empty;
+		var levelAndMessageText = levelText + messageText;
+
+		return string.IsNullOrEmpty(levelAndMessageText) ? v : levelAndMessageText.NL().NL() + v;
 
 		int BTill(int p)
 		{
@@ -55,6 +54,20 @@ public class Diagnostic(TextSpan span, DiagnosticLevel level, string message)
 			}
 			return p;
 		}
+	}
+}
+
+public class Diagnostic(TextSpan span, DiagnosticLevel level, string message)
+{
+	public TextSpan Span { get; } = span;
+
+	public DiagnosticLevel Level { get; } = level;
+
+	public string Message { get; } = message;
+
+	public string Visualize(string text)
+	{
+		return DiagnosticHelper.Visualize(text, Span.File, Span.Line, Level.ToString(), Message);
 	}
 }
 
