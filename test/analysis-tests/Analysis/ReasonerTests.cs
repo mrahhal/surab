@@ -61,6 +61,22 @@ public class ReasonerTests
 	}
 
 	[Fact]
+	public void LookupSymbol_CannotAccessSymbolBeforeDeclaration()
+	{
+		var code = """
+			fn f() {
+				print_i32(a);
+				var a = 2;
+			}
+			""";
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(code);
+
+		var callExpr = tree.Root.DescendantNodes().OfType<CallExprNode>().Single();
+		var symbol = reasoner.LookupSymbol(callExpr.Args.ElementAt(0).Expr);
+		symbol.Should().BeNull();
+	}
+
+	[Fact]
 	public void TypeCreation_Nested()
 	{
 		var code = """

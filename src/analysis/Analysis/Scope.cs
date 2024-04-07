@@ -392,7 +392,11 @@ internal sealed class BlockScope(BlockExprNode blockExprNode) : Scope
 	private ImmutableArray<Symbol> BuildLocalDecls()
 	{
 		var builder = ImmutableArray.CreateBuilder<Symbol>();
-		foreach (var declStmt in BlockExprNode.Stmts.OfType<DeclStmtNode>())
+		// We need to skip VarDeclNodes as those get their own LocalScopes and abide by a special ending scope.
+		var declStmts = BlockExprNode.Stmts
+			.OfType<DeclStmtNode>()
+			.Where(declStmt => declStmt.Decl is not VarDeclNode);
+		foreach (var declStmt in declStmts)
 		{
 			if (Reasoner.TryGetDeclaredSymbol(declStmt.Decl, out var symbol))
 			{
