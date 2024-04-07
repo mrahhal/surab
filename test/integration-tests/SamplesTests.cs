@@ -6,14 +6,23 @@ namespace Surab;
 
 public class SamplesTests
 {
-	[Fact]
-	public void SamplesSucceed()
+	[Theory, ClassData(typeof(Samples))]
+	public void SamplesSucceed(string sample)
 	{
-		var samplesFolders = Directory.GetDirectories(PathHelper.GetSamplesFolderPath());
-		foreach (var sampleFolder in samplesFolders)
+		var sampleFolderPath = Path.Combine(PathHelper.GetSamplesFolderPath(), sample);
+		var project = SurabProjectFSLoader.CreateProjectAt(sampleFolderPath);
+		IntegrationRunner.Run(project);
+	}
+
+	private class Samples : IEnumerable<object[]>
+	{
+		public IEnumerator<object[]> GetEnumerator()
 		{
-			var project = SurabProjectFSLoader.CreateProjectAt(sampleFolder);
-			IntegrationRunner.Run(project);
+			return Directory.GetDirectories(PathHelper.GetSamplesFolderPath())
+				.Select(x => new object[] { Path.GetFileName(x) })
+				.GetEnumerator();
 		}
+
+		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
 	}
 }
