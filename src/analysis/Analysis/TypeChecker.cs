@@ -35,7 +35,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 
 		// TODO: Need a way to try resolve an import that connects back to the SurabProject somehow.
 
-		base.VisitImport(node);
+		//base.VisitImport(node);
 	}
 
 	public override void VisitConstDecl(ConstDeclNode node)

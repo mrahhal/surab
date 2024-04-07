@@ -135,12 +135,20 @@ public class ModulesTests
 				x + y
 			}
 			""");
+		vfs.AddCodeFile("/mod3/sub.surab", $$"""
+			@public
+			fn sub(x: i32, y: i32) i32 {
+				x - y
+			}
+			""");
 
 		vfs.AddCodeFile("/main.surab", $$"""
-			import mod1.mod2 as another;
+			import mod1.mod2 as another1;
+			import mod3 as another2;
 
 			fn main() {
-				print_i32(another::add(4, 2));
+				print_i32(another1::add(4, 2));
+				print_i32(another2::sub(4, 2));
 			}
 			""");
 
@@ -148,7 +156,8 @@ public class ModulesTests
 		var output = IntegrationRunner.Run(project);
 
 		var expectedOutput =
-			"6".NL();
+			"6".NL() +
+			"2".NL();
 
 		output.Should().Be(expectedOutput);
 	}

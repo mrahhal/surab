@@ -808,6 +808,27 @@ public abstract class SyntaxNode : SyntaxEntity
 	}
 
 	/// <summary>
+	/// Enumerates descendant tokens in breadth first order.
+	/// </summary>
+	public IEnumerable<SyntaxToken> DescendantTokens()
+	{
+		foreach (var item in EnumerateBySpanStart())
+		{
+			if (item.Token != null)
+			{
+				yield return item.Token;
+			}
+			else if (item.Node != null)
+			{
+				foreach (var token in item.Node.DescendantTokens())
+				{
+					yield return token;
+				}
+			}
+		}
+	}
+
+	/// <summary>
 	/// Yields back child nodes or tokens in span start order.
 	/// </summary>
 	public IEnumerable<(SyntaxNode? Node, SyntaxToken? Token)> EnumerateBySpanStart()
