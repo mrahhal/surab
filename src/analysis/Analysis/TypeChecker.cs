@@ -60,7 +60,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 			var rhsSymbol = _reasoner.LookupSymbol(node.Initializer.Expr);
 			var rhsType = _reasoner.LookupType(node.Initializer.Expr);
 
-			AnalyzeAssignment(node, lhsType, rhsSymbol, rhsType);
+			AnalyzeAssignment(node, lhsSymbol, lhsType, rhsSymbol, rhsType);
 		}
 
 		base.VisitVarDecl(node);
@@ -190,12 +190,13 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 
 	public override void VisitAssignmentExpr(AssignmentExprNode node)
 	{
+		var lhsSymbol = _reasoner.LookupSymbol(node.Lhs);
 		var lhsType = _reasoner.LookupType(node.Lhs);
 
 		var rhsSymbol = _reasoner.LookupSymbol(node.Rhs);
 		var rhsType = _reasoner.LookupType(node.Rhs);
 
-		AnalyzeAssignment(node, lhsType, rhsSymbol, rhsType);
+		AnalyzeAssignment(node, lhsSymbol, lhsType, rhsSymbol, rhsType);
 
 		// TODO (SemanticAnalyzer): Invalid target of assignment (not a valid lvalue).
 		/*switch (node.Lhs)
@@ -213,11 +214,28 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		base.VisitAssignmentExpr(node);
 	}
 
-	private void AnalyzeAssignment(SyntaxNode node, TypeSymbol lhsType, Symbol? rhsSymbol, TypeSymbol rhsType)
+	private void AnalyzeAssignment(SyntaxNode node, Symbol? lhsSymbol, TypeSymbol lhsType, Symbol? rhsSymbol, TypeSymbol rhsType)
 	{
-		if (lhsType.IsUnknown || rhsType.IsUnknown)
+		// TODO: Add a test later including:
+		// ```
+		// var a: i32 = mod1; // error
+		// var b = mod1; // error
+		// mod1 = 2; // error
+		// var mod1 = 3;
+		// mod1 = 2;
+		// ```
+
+		if (lhsSymbol is ModuleSymbol)
 		{
-			// Reported somewhere else.
+			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"A module cannot be used as an l-value.");
+		}
+		else if (rhsSymbol is ModuleSymbol)
+		{
+			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"A module cannot be used as an r-value.");
+		}
+		else if (lhsType.IsUnknown || rhsType.IsUnknown)
+		{
+			// Reported somewhere else?
 		}
 		else if (!lhsType.IsAssignableFrom(rhsType))
 		{
