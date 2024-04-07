@@ -6,22 +6,31 @@ namespace Surab;
 
 public static class IntegrationRunner
 {
-	public static string Run(string src, bool fails = false)
+	public static string Run(string code, bool fails = false)
 	{
-		var sourceFile = SourceFile.FromText(src);
+		var project = SurabProject.CreateSimple(code);
+		return Run(project, fails);
+	}
 
-		var project = SurabProject.Create([sourceFile]);
-		var reasoner = project.GetReasoner(sourceFile);
-
-		var diags = reasoner.GetAllDiagnostics();
-		var errors = diags.Where(x => x.Level >= DiagnosticLevel.Error).Select(x => new { x.Level, x.Message, Text = src[x.Span.File.Start..x.Span.File.End] });
+	public static string Run(SurabProject project, bool fails = false)
+	{
+		var totalErrors = new List<(DiagnosticLevel, string, string)>();
+		foreach (var reasoner in project.GetAllReasoners())
+		{
+			var diags = reasoner.GetAllDiagnostics();
+			var src = reasoner.Tree.File.Text;
+			var errors = diags
+				.Where(x => x.Level >= DiagnosticLevel.Error)
+				.Select(x => (x.Level, x.Message, Text: src[x.Span.File.Start..x.Span.File.End]));
+			totalErrors.AddRange(errors);
+		}
 		if (!fails)
 		{
-			errors.Should().HaveCount(0);
+			totalErrors.Should().HaveCount(0);
 		}
 		else
 		{
-			errors.Should().NotBeEmpty();
+			totalErrors.Should().NotBeEmpty();
 			return string.Empty;
 		}
 
