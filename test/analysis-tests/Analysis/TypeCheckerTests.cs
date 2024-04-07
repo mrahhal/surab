@@ -4,6 +4,42 @@ namespace Surab.Analysis;
 
 public class TypeCheckerTests
 {
+	[Fact]
+	public void Import_InvalidSyntax()
+	{
+		Test("""
+			import [|2|];
+			""");
+
+		Test("""
+			import [|"asd"|];
+			""");
+	}
+
+	[Fact]
+	public void Import_FailedToResolve()
+	{
+		Test("""
+			import [|a|];
+			""");
+
+		Test("""
+			import [|a.b|];
+			""");
+	}
+
+	[Fact]
+	public void UnknownName()
+	{
+		Test("""
+			fn f() {
+				print_i32([|a|]);
+				var a = 2;
+			}
+			""");
+	}
+
+	private void Test(string markup) => AnalyzerTestUtils.Test(markup);
 }
 
 public static class AnalyzerTestUtils
