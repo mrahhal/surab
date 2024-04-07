@@ -54,8 +54,16 @@ public sealed class Compiler
 			FileCompiler.Compile(_context, reasoner);
 		}
 
+		if (VerificationEnabled)
+		{
+			_context.LLVM.Module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction);
+		}
+
+		//_context.LLVM.PassManager.FinalizeFunctionPassManager();
+		//_context.LLVM.PassManager.Run(_context.LLVM.Module);
+
 		_context.LLVM.Module.PrintToFile(_context.Options.LLFileName);
-		return ClangRunner.Run(new[] { _context.Options.LLFileName });
+		return ClangRunner.Run([_context.Options.LLFileName]);
 	}
 
 	private static Target ParseTargetTriple(string targetTriple)
@@ -70,8 +78,6 @@ internal sealed class FileCompiler(CompilationContext context, LoweredTree lower
 	private readonly CompilationContext _context = context;
 	private readonly LoweredTree _loweredTree = loweredTree;
 
-	private LLVMCompilationContext LLVM => _context.LLVM;
-
 	public static void Compile(CompilationContext context, Reasoner reasoner)
 	{
 		var loweredTree = Lowerer.Lower(reasoner);
@@ -82,14 +88,6 @@ internal sealed class FileCompiler(CompilationContext context, LoweredTree lower
 	private void CompileFile()
 	{
 		Visit(_loweredTree.Root);
-
-		if (Compiler.VerificationEnabled)
-		{
-			LLVM.Module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction);
-		}
-
-		//LLVM.PassManager.FinalizeFunctionPassManager();
-		//LLVM.PassManager.Run(LLVM.Module);
 	}
 
 	public override void VisitFnDecl(LoweredFnDecl node)
