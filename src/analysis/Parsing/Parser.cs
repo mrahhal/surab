@@ -252,7 +252,7 @@ internal class ParserImpl
 
 	private void ReportSkippedNode(SyntaxNode node)
 	{
-		_diags.Add(node.Span, DiagLevel.Error, $"skipped unparsed tokens");
+		_diags.Add(CoreDiags.S0001, node.Span);
 	}
 
 	private List<SkippedToken> RecoverMain()
@@ -394,7 +394,7 @@ internal class ParserImpl
 		else
 		{
 			var token = SimpleToken.CreateMissing(_tree, tokenKind, GetProperSpanForMissingThingAtCurrent());
-			_diags.Add(token.Span, DiagLevel.Error, $"expected '{token}'");
+			_diags.Add(CoreDiags.S0002, token.Span, [token]);
 			return token;
 		}
 	}
@@ -422,7 +422,7 @@ internal class ParserImpl
 		else
 		{
 			var token = SimpleToken.CreateMissing(_tree, contextualKeyword, GetProperSpanForMissingThingAtCurrent());
-			_diags.Add(token.Span, DiagLevel.Error, $"expected '{contextualKeyword}'");
+			_diags.Add(CoreDiags.S0002, token.Span, [contextualKeyword]);
 			return token;
 		}
 	}
@@ -431,14 +431,14 @@ internal class ParserImpl
 	{
 		// TODO: Is the span shrinking here correct?
 		var node = new MissingTypeNode(_tree, attrs == null ? GetProperSpanForMissingThingAtCurrent() : attrs.Span.ShrinkToEnd(), attrs);
-		_diags.Add(node.Span, DiagLevel.Error, $"expected type");
+		_diags.Add(CoreDiags.S0003, node.Span);
 		return node;
 	}
 
 	private MissingExprNode CreateMissingExprNode()
 	{
 		var node = new MissingExprNode(_tree, GetProperSpanForMissingThingAtCurrent());
-		_diags.Add(node.Span, DiagLevel.Error, $"expected expression");
+		_diags.Add(CoreDiags.S0004, node.Span);
 		return node;
 	}
 
@@ -1452,7 +1452,7 @@ internal class ParserImpl
 		if (!CurrentIdentifierAllowedAsTypeName())
 		{
 			// TODO: This alone is not ideal. Would be better if we can also create an *error* identifier token to represent this.
-			_diags.Add(_current.Span, DiagLevel.Error, $"not allowed as type name");
+			_diags.Add(CoreDiags.S0006, _current.Span, [GetLexeme(_current).ToString()]);
 		}
 
 		return ParseOptionalIdentifier();
@@ -1466,7 +1466,7 @@ internal class ParserImpl
 	private IdentifierToken CreateMissingIdentifierToken()
 	{
 		var token = IdentifierToken.CreateMissing(_tree, GetProperSpanForMissingThingAtCurrent());
-		_diags.Add(token.Span, DiagLevel.Error, $"expected an identifier");
+		_diags.Add(CoreDiags.S0005, token.Span);
 		return token;
 	}
 

@@ -8,11 +8,11 @@ public class TypeCheckerTests
 	public void Import_InvalidSyntax()
 	{
 		Test("""
-			import [|2|];
+			import {|S0100:2|};
 			""");
 
 		Test("""
-			import [|"asd"|];
+			import {|S0100:"asd"|};
 			""");
 	}
 
@@ -20,11 +20,11 @@ public class TypeCheckerTests
 	public void Import_FailedToResolve()
 	{
 		Test("""
-			import [|a|];
+			import {|S0101:a|};
 			""");
 
 		Test("""
-			import [|a.b|];
+			import {|S0101:a.b|};
 			""");
 	}
 
@@ -53,18 +53,14 @@ public static class AnalyzerTestUtils
 
 		foreach (var expectedDiag in codeAndDiags.ExpectedDiags)
 		{
-			if (expectedDiag.Id != null)
-			{
-				throw new NotImplementedException();
-			}
-
 			var matchingDiags = actualDiags
 				.Where(diag => diag.Span.File.Start == expectedDiag.Span.Start && diag.Span.File.End == expectedDiag.Span.End)
+				.Where(diag => diag.Id == expectedDiag.Id)
 				.ToList();
 			if (matchingDiags.Count == 0)
 			{
 				failureMessages.Add(
-					$"Failed to find expected diag at:".NL().NL() + DiagHelper.Visualize(codeAndDiags.Code, expectedDiag.Span, null, null, null));
+					$"Failed to find expected diag at:".NL().NL() + DiagHelper.Visualize(codeAndDiags.Code, expectedDiag.Span, null, expectedDiag.Id, null, null));
 			}
 			foreach (var matchingDiag in matchingDiags)
 			{

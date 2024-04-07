@@ -9,8 +9,10 @@ public enum DiagLevel
 	Error,
 }
 
-public class Diag(TextSpan span, DiagLevel level, string message)
+public class Diag(string? id, TextSpan span, DiagLevel level, string message)
 {
+	public string? Id { get; } = id;
+
 	public TextSpan Span { get; } = span;
 
 	public DiagLevel Level { get; } = level;
@@ -19,7 +21,7 @@ public class Diag(TextSpan span, DiagLevel level, string message)
 
 	public string Visualize(string text)
 	{
-		return DiagHelper.Visualize(text, Span.File, Span.Line, Level.ToString(), Message);
+		return DiagHelper.Visualize(text, Span.File, Span.Line, Id, Level.ToString(), Message);
 	}
 }
 
@@ -34,9 +36,20 @@ public class DiagBag
 {
 	public List<Diag> Diags { get; } = [];
 
+	public Diag Add(DiagDef def, TextSpan span, object[]? templateArgs = null)
+	{
+		var message = string.Format(def.MessageTemplate, templateArgs ?? []);
+		return Add(def.Id, span, def.DefaultLevel, message);
+	}
+
 	public Diag Add(TextSpan span, DiagLevel level, string message)
 	{
-		var diag = new Diag(span, level, message);
+		return Add(null, span, level, message);
+	}
+
+	public Diag Add(string? id, TextSpan span, DiagLevel level, string message)
+	{
+		var diag = new Diag(id, span, level, message);
 		Diags.Add(diag);
 		return diag;
 	}

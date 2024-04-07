@@ -26,11 +26,11 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 	{
 		if (node.Target is not IdentifierExprNode and not AccessExprNode)
 		{
-			_diags.Add(node.Target.Span, DiagLevel.Error, $"invalid syntax for import");
+			_diags.Add(CoreDiags.S0100, node.Target.Span);
 		}
 		else if (_reasoner.ResolveImport(node).IsFailed)
 		{
-			_diags.Add(node.Target.Span, DiagLevel.Error, $"failed to resolve module to import");
+			_diags.Add(CoreDiags.S0101, node.Target.Span);
 		}
 
 		// TODO: Need a way to try resolve an import that connects back to the SurabProject somehow.

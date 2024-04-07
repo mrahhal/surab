@@ -2,7 +2,7 @@
 
 internal static class DiagHelper
 {
-	public static string Visualize(string text, FileSpan fileSpan, LineSpan? lineSpan, string? level, string? message)
+	public static string Visualize(string text, FileSpan fileSpan, LineSpan? lineSpan, string? id, string? level, string? message)
 	{
 		var start = fileSpan.Start;
 		var end = fileSpan.End;
@@ -22,11 +22,11 @@ internal static class DiagHelper
 		}));
 		v += string.Concat(Enumerable.Repeat('^', end - start));
 
-		var levelText = level != null ? $"[{level}] " : string.Empty;
+		var idText = id != null ? $"[{id}:{level}] " : string.Empty;
 		var messageText = message ?? string.Empty;
-		var levelAndMessageText = levelText + messageText;
+		var idAndMessageText = idText + messageText;
 
-		return string.IsNullOrEmpty(levelAndMessageText) ? v : levelAndMessageText.NL().NL() + v;
+		return string.IsNullOrEmpty(idAndMessageText) ? v : idAndMessageText.NL().NL() + v;
 
 		int BTill(int p)
 		{
