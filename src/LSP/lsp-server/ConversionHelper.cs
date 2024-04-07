@@ -1,4 +1,5 @@
 ﻿using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Surab.Analysis;
 
 namespace Surab.LSPServer;
 

@@ -1,7 +1,6 @@
-﻿using System;
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 
-namespace Surab;
+namespace Surab.Analysis;
 
 public enum DiagnosticLevel
 {
