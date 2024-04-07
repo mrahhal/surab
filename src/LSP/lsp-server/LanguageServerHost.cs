@@ -86,12 +86,34 @@ public class LanguageServerHost
 	private Task InitializeProjectAsync(DocumentUri workspaceUri)
 	{
 		var workspacePath = workspaceUri.GetFileSystemPath();
-		var sourceFiles = Directory
-			.GetFiles(workspacePath, "*.surab", SearchOption.AllDirectories)
-			.Select(x => SourceFile.Create(x, File.ReadAllText(x)))
-			.ToList();
+		var vfs = VFS.Create(workspacePath);
+
+		var codeFiles = Directory
+			.GetFiles(workspacePath, Constants.CodeFilesGlob, SearchOption.AllDirectories);
+		var projectConfigFiles = Directory
+			.GetFiles(workspacePath, Constants.ProjectConfigFileName, SearchOption.AllDirectories);
+
+		foreach (var filePath in projectConfigFiles.Concat(codeFiles))
+		{
+			vfs.AddFile(filePath, File.ReadAllText(filePath));
+		}
+
 		// TODO: workspacePath is not always the project path. We need to look for surab-project.json and create a project there.
-		Project = SurabProject.Create(workspacePath, sourceFiles);
+		Project = SurabProject.Create(vfs);
+
+		// TODO: Load surab-project.json (and track it in TextDocumentSyncHandler/DidChangeWatchedFilesHandler).
+		//if (!projectPath.IsEmpty)
+		//{
+		//	// Try to find surab-project.json and parse it for config.
+		//	var configFilePath = Path.Combine(projectPath.Value, SurabProjectConfig.ConfigFileName);
+		//	if (File.Exists(configFilePath))
+		//	{
+		//		// TODO: This is using fs when project path is not empty. Do it better.
+		//		var json = File.ReadAllText(configFilePath);
+		//		config = JsonSerializer.Deserialize<SurabProjectConfig>(json);
+		//	}
+		//}
+
 		Project.SubscribeToFullDiagnosticsReady(HandleFullDiagnosticsReady);
 
 		// TODO:
@@ -120,7 +142,7 @@ public class LanguageServerHost
 		{
 			Server.PublishDiagnostics(new PublishDiagnosticsParams
 			{
-				Uri = DocumentUri.FromFileSystemPath(fileDiagnostics.SourceFile.Path.Value!),
+				Uri = DocumentUri.FromFileSystemPath(fileDiagnostics.FilePath.Value),
 				Diagnostics = Container.From(fileDiagnostics.Diagnostics.Select(d => new OmniSharp.Extensions.LanguageServer.Protocol.Models.Diagnostic
 				{
 					Range = ConversionHelper.FromTo(d.Span),

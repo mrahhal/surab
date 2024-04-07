@@ -1,34 +1,38 @@
-﻿using System.Text.Json;
+﻿using System.Diagnostics;
+using System.Text.Json;
 
 namespace Surab.Analysis;
 
 public class SurabProjectConfig
 {
-	public static readonly SurabProjectConfig Default = new();
-
-	public static readonly string ConfigFileName = "surab-project.json";
-
 	public string Name { get; init; } = "main";
+
+	public bool IsInvalid { get; init; }
+
+	public static SurabProjectConfig CreateDefault() => new();
+
+	public static SurabProjectConfig CreateDefaultInvalid() => new() { IsInvalid = true };
 }
 
 public static class SurabProjectConfigLoader
 {
-	public static SurabProjectConfig Load(NormalizedPath projectPath)
+	public static SurabProjectConfig Load(ProjectFile? projectConfigFile)
 	{
-		var config = SurabProjectConfig.Default;
-		if (!projectPath.IsEmpty)
+		if (projectConfigFile == null)
 		{
-			// Try to find surab-project.json and parse it for config.
-			var configFilePath = Path.Combine(projectPath.Value, SurabProjectConfig.ConfigFileName);
-			if (File.Exists(configFilePath))
-			{
-				// TODO: This is using fs when project path is not empty. Do it better.
-				var json = File.ReadAllText(configFilePath);
-				config = JsonSerializer.Deserialize<SurabProjectConfig>(json);
-			}
+			return SurabProjectConfig.CreateDefault();
 		}
 
-		// TODO: Need to account for invalid config file and report that properly.
-		return config ?? SurabProjectConfig.Default;
+		Debug.Assert(projectConfigFile.Kind is ProjectFileKind.ProjectConfig);
+
+		try
+		{
+			var config = JsonSerializer.Deserialize<SurabProjectConfig>(projectConfigFile.Text);
+			return config ?? SurabProjectConfig.CreateDefault();
+		}
+		catch (Exception)
+		{
+			return SurabProjectConfig.CreateDefaultInvalid();
+		}
 	}
 }

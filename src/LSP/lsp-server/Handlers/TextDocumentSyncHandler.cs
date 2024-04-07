@@ -26,10 +26,17 @@ public class TextDocumentSyncHandler(
 	{
 		_logger.LogInformation("[DidChangeTextDocumentParams]");
 
-		_solver.Project.LockForWrite(() =>
+		_solver.Project.LockForWrite(vfs =>
 		{
-			var sourceFile = _solver.GetSourceFile(notification.TextDocument)!;
-			_solver.Project.UpdateSourceFile(sourceFile, notification.ContentChanges.First().Text);
+			var file = vfs.GetFile(notification.TextDocument.Uri);
+			if (file == null)
+			{
+				_logger.LogInformation("Didn't find SourceFile with path {FilePath}.", notification.TextDocument.Uri);
+			}
+			else
+			{
+				vfs.UpdateFile(file, notification.ContentChanges.First().Text);
+			}
 		});
 
 		return Unit.Task;

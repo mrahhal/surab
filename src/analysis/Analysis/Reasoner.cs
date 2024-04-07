@@ -26,7 +26,7 @@ public class Reasoner
 
 	public SyntaxTree Tree { get; }
 
-	public SourceFile SourceFile => Tree.SourceFile;
+	public ProjectFile File => Tree.File;
 
 	private ReasoningContext ReasoningContext => Project.ReasoningContext;
 

@@ -17,7 +17,7 @@ public class SignatureHelpHandler(
 	{
 		return _solver.Project.LockForRead(() =>
 		{
-			var sourceFile = _solver.GetSourceFile(request.TextDocument);
+			var sourceFile = _solver.GetFile(request.TextDocument);
 			if (sourceFile == null)
 				return null;
 

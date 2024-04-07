@@ -18,11 +18,11 @@ public class DocumentSymbolHandler(
 	{
 		return _solver.Project.LockForRead(() =>
 		{
-			var sourceFile = _solver.GetSourceFile(request.TextDocument);
-			if (sourceFile == null)
+			var file = _solver.GetFile(request.TextDocument);
+			if (file == null)
 				return null;
 
-			var firstLevelSymbols = GetFirstLevelSymbols(sourceFile);
+			var firstLevelSymbols = GetFirstLevelSymbols(file);
 			if (firstLevelSymbols == null)
 				return null;
 
@@ -31,9 +31,9 @@ public class DocumentSymbolHandler(
 		});
 	}
 
-	private List<Symbol>? GetFirstLevelSymbols(SourceFile sourceFile)
+	private List<Symbol>? GetFirstLevelSymbols(ProjectFile file)
 	{
-		var reasoner = _solver.Project.GetReasoner(sourceFile);
+		var reasoner = _solver.Project.GetReasoner(file);
 		var root = reasoner.Tree.Root;
 		if (root is not FileNode fileNode)
 			return null;

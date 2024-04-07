@@ -7,70 +7,70 @@ namespace Surab.Analysis;
 public static class Parser
 {
 	/// <summary>
-	/// Parses the src into a file.
+	/// Parses the code into a file.
 	/// </summary>
-	public static SyntaxTree ParseFile(string src) => ParseFile(SourceFile.FromText(src));
+	public static SyntaxTree ParseFile(string code) => ParseFile(ProjectFile.CreateCode(code));
 
 	/// <summary>
-	/// Parses the src into a file.
+	/// Parses the code into a file.
 	/// </summary>
-	public static SyntaxTree ParseFile(SourceFile sourceFile)
+	public static SyntaxTree ParseFile(ProjectFile file)
 	{
-		var tokens = Lexer.Lex(sourceFile.Text);
-		var parser = new ParserImpl(sourceFile, tokens);
+		var tokens = Lexer.Lex(file.Text);
+		var parser = new ParserImpl(file, tokens);
 		return parser.ParseAsFile();
 	}
 
 	/// <summary>
-	/// Parses the src into a declaration.
+	/// Parses the code into a declaration.
 	/// </summary>
-	public static SyntaxTree ParseDecl(string src) => ParseDecl(SourceFile.FromText(src));
+	public static SyntaxTree ParseDecl(string code) => ParseDecl(ProjectFile.CreateCode(code));
 
 	/// <summary>
-	/// Parses the src into a declaration.
+	/// Parses the code into a declaration.
 	/// </summary>
-	public static SyntaxTree ParseDecl(SourceFile sourceFile)
+	public static SyntaxTree ParseDecl(ProjectFile file)
 	{
-		var tokens = Lexer.Lex(sourceFile.Text);
-		var parser = new ParserImpl(sourceFile, tokens);
+		var tokens = Lexer.Lex(file.Text);
+		var parser = new ParserImpl(file, tokens);
 		return parser.ParseAsDecl();
 	}
 
 	/// <summary>
-	/// Parses the src into a statement.
+	/// Parses the code into a statement.
 	/// </summary>
-	public static SyntaxTree ParseStmt(string src) => ParseStmt(SourceFile.FromText(src));
+	public static SyntaxTree ParseStmt(string code) => ParseStmt(ProjectFile.CreateCode(code));
 
 	/// <summary>
-	/// Parses the src into a statement.
+	/// Parses the code into a statement.
 	/// </summary>
-	public static SyntaxTree ParseStmt(SourceFile sourceFile)
+	public static SyntaxTree ParseStmt(ProjectFile file)
 	{
-		var tokens = Lexer.Lex(sourceFile.Text);
-		var parser = new ParserImpl(sourceFile, tokens);
+		var tokens = Lexer.Lex(file.Text);
+		var parser = new ParserImpl(file, tokens);
 		return parser.ParseAsStmt();
 	}
 
 	/// <summary>
-	/// Parses the src into a expression.
+	/// Parses the code into a expression.
 	/// </summary>
-	public static SyntaxTree ParseExpr(string src) => ParseExpr(SourceFile.FromText(src));
+	public static SyntaxTree ParseExpr(string code) => ParseExpr(ProjectFile.CreateCode(code));
 
 	/// <summary>
-	/// Parses the src into an expression.
+	/// Parses the code into an expression.
 	/// </summary>
-	public static SyntaxTree ParseExpr(SourceFile sourceFile)
+	public static SyntaxTree ParseExpr(ProjectFile file)
 	{
-		var tokens = Lexer.Lex(sourceFile.Text);
-		var parser = new ParserImpl(sourceFile, tokens);
+		var tokens = Lexer.Lex(file.Text);
+		var parser = new ParserImpl(file, tokens);
 		return parser.ParseAsExpr();
 	}
 }
 
 internal class ParserImpl
 {
-	private readonly string _src;
-	private readonly SourceFile _sourceFile;
+	private readonly string _code;
+	private readonly ProjectFile _file;
 	private readonly Peeker<Token> _tokens;
 	private Token? _current;
 	private Token? _prev;
@@ -83,13 +83,13 @@ internal class ParserImpl
 	private readonly Dictionary<int, (List<Token>? Leading, List<Token>? Trailing)> _tokenOffsetToTriviaMap = [];
 
 	public ParserImpl(
-		SourceFile sourceFile,
+		ProjectFile file,
 		IEnumerable<Token> tokens)
 	{
-		_src = sourceFile.Text;
-		_sourceFile = sourceFile;
+		_code = file.Text;
+		_file = file;
 		_tokens = new(tokens);
-		_tree = new(sourceFile);
+		_tree = new(file);
 
 		// So that the parser starts with the first token in current.
 		Advance();
@@ -464,7 +464,7 @@ internal class ParserImpl
 	private ReadOnlySpan<char> GetLexeme(TextSpan span)
 	{
 		var (start, end) = span.File;
-		return _src.AsSpan()[start..end];
+		return _code.AsSpan()[start..end];
 	}
 
 	// ---

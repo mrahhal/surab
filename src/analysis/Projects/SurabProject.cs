@@ -14,9 +14,8 @@ public class SurabProject
 {
 	private readonly ReaderWriterLockSlim _rwl = new();
 	private readonly List<Action<IEnumerable<FileDiagnostics>>> _fullDiagnosticsReadyActions = [];
-	private readonly Dictionary<SourceFile, SourceFileState> _sourceFileToStateMap = [];
+	private readonly Dictionary<ProjectFile, CodeFileState> _codeFileToStateMap = [];
 
-	private readonly VFS _vfs;
 	private readonly ReasoningContext _reasoningContext = new();
 
 	// This cancellation token will fire when a new change is being requested and just before a write lock is taken.
@@ -24,42 +23,42 @@ public class SurabProject
 	private Reasoner _preludeReasoner = default!;
 	private ModuleSymbol? _rootModule;
 
-	private SurabProject(
-		NormalizedPath projectPath,
-		SurabProjectConfig config,
-		IEnumerable<SourceFile> sourceFiles)
+	private SurabProject(VFS vfs)
 	{
-		ProjectPath = projectPath;
-		Config = config;
-		_vfs = VFS.Create(projectPath, sourceFiles);
+		VFS = vfs;
+
+		LoadPrelude();
+		Initialize();
+		CreateRootModule();
 	}
 
-	public NormalizedPath ProjectPath { get; }
+	// We start by loading a default config since there's always a possibility a config file doesn't exist.
+	// If it exists, this config file will be overriden as the project is initializing files.
+	public SurabProjectConfig Config { get; private set; } = SurabProjectConfig.CreateDefault();
 
-	public SurabProjectConfig Config { get; }
+	public VFS VFS { get; }
+
+	public NormalizedPath ProjectPath => VFS.ProjectPath;
 
 	internal ReasoningContext ReasoningContext => _reasoningContext;
 
 	internal Reasoner PreludeReasoner => _preludeReasoner;
 
-	internal VFS VFS => _vfs;
-
-	public static SurabProject Create(IEnumerable<SourceFile> sourceFiles)
+	/// <summary>
+	/// Creates a new Surab project.
+	/// </summary>
+	public static SurabProject Create(VFS vfs)
 	{
-		return Create(string.Empty, sourceFiles);
+		return new SurabProject(vfs);
 	}
 
-	public static SurabProject Create(
-		string projectPath,
-		IEnumerable<SourceFile> sourceFiles)
+	/// <summary>
+	/// Creates a new Surab project from a single in memory code file. Mainly used in tests.
+	/// </summary>
+	public static SurabProject CreateSimple(string code)
 	{
-		var normalizedProjectPath = (NormalizedPath)projectPath;
-		var config = SurabProjectConfigLoader.Load(normalizedProjectPath);
-		var project = new SurabProject(normalizedProjectPath, config, sourceFiles);
-		project.LoadPrelude();
-		project.InitializeSourceFiles();
-		project.CreateRootModule();
-		return project;
+		var vfs = VFS.CreateSimple(code);
+		return Create(vfs);
 	}
 
 	public void SubscribeToFullDiagnosticsReady(Action<IEnumerable<FileDiagnostics>> action)
@@ -114,7 +113,7 @@ public class SurabProject
 	/// the consumer to make sure access is synchronized by locking for read or write when running in an asynchornous environment.
 	/// Methods will be marked in their doc if theyre a read or a write operation.
 	/// </remarks>
-	public void LockForWrite(Action action)
+	public void LockForWrite(Action<VFS> action)
 	{
 		// Cancel in-flight read operations as they will mostly be unneeded now that a write lock is being requested.
 		// If we don't cancel, acquiring a write lock will block until all current read operations finish running.
@@ -127,7 +126,7 @@ public class SurabProject
 
 		try
 		{
-			action();
+			action(VFS);
 			ResetAfterWrite();
 		}
 		finally
@@ -152,11 +151,11 @@ public class SurabProject
 		_rootModule = CreateModule(VFS.GetRootFolder(), Config.Name);
 	}
 
-	private ModuleSymbol CreateModule(VFSFolder folder, string? name = null)
+	private ModuleSymbol CreateModule(ProjectFolder folder, string? name = null)
 	{
 		var moduleName = name ?? folder.Name;
 		var module = new ModuleSymbol(moduleName, [folder]);
-		var moduleScope = new ModuleScope(this, folder.SourceFiles);
+		var moduleScope = new ModuleScope(this, folder.Files);
 		module.SetScope(moduleScope);
 
 		foreach (var subFolder in folder.SubFolders)
@@ -168,52 +167,52 @@ public class SurabProject
 		return module;
 	}
 
-	/// <summary>
-	/// Adds a <see cref="SourceFile"/> to the project.
-	/// </summary>
-	/// <remarks>
-	/// This method is a write operation.
-	/// </remarks>
-	public void AddSourceFile(SourceFile sourceFile)
-	{
-		VFS.AddSourceFile(sourceFile);
-		InitializeSourceFile(sourceFile);
-	}
+	///// <summary>
+	///// Adds a <see cref="SourceFile"/> to the project.
+	///// </summary>
+	///// <remarks>
+	///// This method is a write operation.
+	///// </remarks>
+	//public void AddSourceFile(SourceFile sourceFile)
+	//{
+	//	VFS.AddCodeFile(sourceFile);
+	//	InitializeSourceFile(sourceFile);
+	//}
 
-	/// <summary>
-	/// Updates a <see cref="SourceFile"/> with new content.
-	/// </summary>
-	/// <remarks>
-	/// This method is a write operation.
-	/// </remarks>
-	public void UpdateSourceFile(SourceFile sourceFile, string text)
-	{
-		VFS.UpdateSourceFile(sourceFile, text);
-		UpdateTreeAndReasoner(sourceFile);
-	}
+	///// <summary>
+	///// Updates a <see cref="SourceFile"/> with new content.
+	///// </summary>
+	///// <remarks>
+	///// This method is a write operation.
+	///// </remarks>
+	//public void UpdateSourceFile(SourceFile sourceFile, string text)
+	//{
+	//	VFS.UpdateSourceFile(sourceFile, text);
+	//	UpdateTreeAndReasoner(sourceFile);
+	//}
 
-	/// <summary>
-	/// Removes a <see cref="SourceFile"/> from the project.
-	/// </summary>
-	/// <remarks>
-	/// This method is a write operation.
-	/// </remarks>
-	public void RemoveSourceFile(SourceFile sourceFile)
-	{
-		VFS.RemoveSourceFile(sourceFile);
-		_sourceFileToStateMap.Remove(sourceFile);
-	}
+	///// <summary>
+	///// Removes a <see cref="SourceFile"/> from the project.
+	///// </summary>
+	///// <remarks>
+	///// This method is a write operation.
+	///// </remarks>
+	//public void RemoveSourceFile(SourceFile sourceFile)
+	//{
+	//	VFS.RemoveSourceFile(sourceFile);
+	//	_codeFileToStateMap.Remove(sourceFile);
+	//}
 
-	/// <summary>
-	/// Gets the <see cref="SourceFile"/> that matches the given path.
-	/// </summary>
-	/// <remarks>
-	/// This method is a read operation.
-	/// </remarks>
-	public SourceFile? GetSourceFile(string path)
-	{
-		return VFS.GetSourceFile(path);
-	}
+	///// <summary>
+	///// Gets the <see cref="SourceFile"/> that matches the given path.
+	///// </summary>
+	///// <remarks>
+	///// This method is a read operation.
+	///// </remarks>
+	//public SourceFile? GetSourceFile(string path)
+	//{
+	//	return VFS.GetFile(path);
+	//}
 
 	/// <summary>
 	/// Gets the <see cref="SyntaxTree"/> for a given <see cref="SourceFile"/>.
@@ -221,9 +220,9 @@ public class SurabProject
 	/// <remarks>
 	/// This method is a read operation.
 	/// </remarks>
-	public SyntaxTree GetSyntaxTree(SourceFile sourceFile)
+	public SyntaxTree GetSyntaxTree(ProjectFile file)
 	{
-		return GetSourceFileState(sourceFile).Tree;
+		return GetCodeFileState(file).Tree;
 	}
 
 	/// <summary>
@@ -232,9 +231,9 @@ public class SurabProject
 	/// <remarks>
 	/// This method is a read operation.
 	/// </remarks>
-	public Reasoner GetReasoner(SourceFile sourceFile)
+	public Reasoner GetReasoner(ProjectFile file)
 	{
-		return GetSourceFileState(sourceFile).Reasoner;
+		return GetCodeFileState(file).Reasoner;
 	}
 
 	/// <summary>
@@ -247,9 +246,9 @@ public class SurabProject
 	{
 		yield return _preludeReasoner;
 
-		foreach (var sourceFile in VFS.EnumerateSourceFiles())
+		foreach (var sourceFile in VFS.EnumerateCodeFiles())
 		{
-			yield return GetSourceFileState(sourceFile).Reasoner;
+			yield return GetCodeFileState(sourceFile).Reasoner;
 		}
 	}
 
@@ -278,7 +277,7 @@ public class SurabProject
 	/// </summary>
 	public ModuleSymbol ResolveModule(Reasoner reasoner)
 	{
-		var folder = VFS.GetFolder(reasoner.SourceFile);
+		var folder = VFS.GetFolder(reasoner.File);
 		var module = FindModule(m => m.Folders.Contains(folder));
 		Debug.Assert(module != null);
 		return module;
@@ -329,17 +328,19 @@ public class SurabProject
 
 	internal IEnumerable<FileDiagnostics> GetProjectDiagnostics()
 	{
-		foreach (var sourceFile in VFS.EnumerateSourceFiles())
+		foreach (var file in VFS.EnumerateCodeFiles())
 		{
-			var fileDiagnostics = GetSourceFileState(sourceFile).FileDiagnostics;
+			var fileDiagnostics = GetCodeFileState(file).FileDiagnostics;
 			if (fileDiagnostics != null)
+			{
 				yield return fileDiagnostics;
+			}
 		}
 	}
 
-	internal (SyntaxTree, Reasoner) CreateNewTreeAndReasoner(SourceFile sourceFile)
+	internal (SyntaxTree, Reasoner) CreateNewTreeAndReasoner(ProjectFile file)
 	{
-		var tree = Parser.ParseFile(sourceFile);
+		var tree = Parser.ParseFile(file);
 		var reasoner = Reasoner.Create(this, tree);
 		return (tree, reasoner);
 	}
@@ -356,9 +357,9 @@ public class SurabProject
 			{
 				try
 				{
-					foreach (var sourceFile in VFS.EnumerateSourceFiles())
+					foreach (var file in VFS.EnumerateCodeFiles())
 					{
-						AnalyzeSourceFile(sourceFile, ct);
+						AnalyzeSourceFile(file, ct);
 					}
 
 					ct.ThrowIfCancellationRequested();
@@ -382,23 +383,23 @@ public class SurabProject
 		}
 	}
 
-	private void AnalyzeSourceFile(SourceFile sourceFile, CancellationToken ct)
+	private void AnalyzeSourceFile(ProjectFile file, CancellationToken ct)
 	{
 		// Later?:
 		// reasoner.GetDependentSourceFiles() => each => EnsureAnalyzeSourceFile()
 
-		var state = GetSourceFileState(sourceFile);
+		var state = GetCodeFileState(file);
 		var reasoner = state.Reasoner;
 		var diags = reasoner.GetAllDiagnostics().ToImmutableArray();
 		var highestLevel = diags.Any() ? (DiagnosticLevel?)diags.Select(x => (int)x.Level).Max() : null;
-		state.FileDiagnostics = new FileDiagnostics(sourceFile, diags, highestLevel);
+		state.FileDiagnostics = new FileDiagnostics(file.Path, diags, highestLevel);
 	}
 
 	private void LoadPrelude()
 	{
 		var preludeFilePath = Path.GetFullPath(Path.Combine(PathHelper.GetSrcFolderPath(), "lib/prelude.surab"));
 		var preludeContent = File.ReadAllText(preludeFilePath);
-		var preludeSourceFile = SourceFile.Create(preludeFilePath, preludeContent);
+		var preludeSourceFile = ProjectFile.CreateCode(preludeContent);
 		var tree = Parser.ParseFile(preludeSourceFile);
 
 		// Need to assing it before getting diags as that process might use this _preludeReasoner ref to resolve known types.
@@ -411,11 +412,11 @@ public class SurabProject
 		}
 	}
 
-	private void UpdateTreeAndReasoner(SourceFile sourceFile)
+	private void UpdateTreeAndReasoner(ProjectFile file)
 	{
-		var (tree, reasoner) = CreateNewTreeAndReasoner(sourceFile);
+		var (tree, reasoner) = CreateNewTreeAndReasoner(file);
 
-		if (!_sourceFileToStateMap.TryGetValue(sourceFile, out var state))
+		if (!_codeFileToStateMap.TryGetValue(file, out var state))
 		{
 			// TODO: LogWarning
 			return;
@@ -425,34 +426,75 @@ public class SurabProject
 		state.Reasoner = reasoner;
 	}
 
-	private void InitializeSourceFiles()
+	private void Initialize()
 	{
-		foreach (var file in VFS.EnumerateSourceFiles())
+		VFS.SubscribeToChanges(HandleVFSChange);
+
+		foreach (var file in VFS.EnumerateCodeFiles())
 		{
 			InitializeSourceFile(file);
 		}
 	}
 
-	private void InitializeSourceFile(SourceFile sourceFile)
+	private void HandleVFSChange(VFSChange change)
 	{
-		var (tree, reasoner) = CreateNewTreeAndReasoner(sourceFile);
-
-		_sourceFileToStateMap[sourceFile] = new SourceFileState
+		foreach (var file in change.AddedFiles)
 		{
-			Tree = tree,
-			Reasoner = reasoner,
-		};
+			InitializeSourceFile(file);
+		}
+
+		foreach (var file in change.UpdatedFiles)
+		{
+			UpdateTreeAndReasoner(file);
+		}
+
+		foreach (var file in change.RemovedFiles)
+		{
+			_codeFileToStateMap.Remove(file);
+		}
 	}
 
-	private SourceFileState GetSourceFileState(SourceFile sourceFile)
+	private void InitializeSourceFile(ProjectFile file)
 	{
-		// TODO: LogWarning instead?
-		Debug.Assert(_sourceFileToStateMap.ContainsKey(sourceFile));
+		switch (file.Kind)
+		{
+			case ProjectFileKind.Code:
+				{
+					var (tree, reasoner) = CreateNewTreeAndReasoner(file);
 
-		return _sourceFileToStateMap[sourceFile];
+					_codeFileToStateMap[file] = new CodeFileState
+					{
+						Tree = tree,
+						Reasoner = reasoner,
+					};
+				}
+				break;
+
+			case ProjectFileKind.ProjectConfig:
+				{
+					// Only load and set if the file is directly under the root folder.
+					if (file.Folder.IsRoot)
+					{
+						Config = SurabProjectConfigLoader.Load(file);
+					}
+				}
+				break;
+
+			default:
+				throw new NotImplementedException();
+		}
 	}
 
-	public class SourceFileState
+	private CodeFileState GetCodeFileState(ProjectFile file)
+	{
+		Debug.Assert(file.Kind is ProjectFileKind.Code);
+		// TODO: LogWarning instead?
+		Debug.Assert(_codeFileToStateMap.ContainsKey(file));
+
+		return _codeFileToStateMap[file];
+	}
+
+	public class CodeFileState
 	{
 		public required SyntaxTree Tree { get; set; }
 

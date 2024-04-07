@@ -6,12 +6,12 @@ namespace Surab.Analysis;
 
 public class SyntaxTree
 {
-	internal SyntaxTree(SourceFile sourceFile)
+	internal SyntaxTree(ProjectFile file)
 	{
-		SourceFile = sourceFile;
+		File = file;
 	}
 
-	public SourceFile SourceFile { get; }
+	public ProjectFile File { get; }
 
 	// Set during parsing.
 	public SyntaxNode Root { get; internal set; } = default!;
@@ -682,7 +682,7 @@ public readonly struct SyntaxTrivia
 
 	public override string ToString()
 	{
-		return Token.Tree.SourceFile.Text[Span.File.GetRange()];
+		return Token.Tree.File.Text[Span.File.GetRange()];
 	}
 }
 
@@ -822,7 +822,7 @@ public abstract class SyntaxNode : SyntaxEntity
 
 	public override string ToString()
 	{
-		return Tree.SourceFile.Text[Span.File.GetRange()];
+		return Tree.File.Text[Span.File.GetRange()];
 	}
 
 	/// <summary>

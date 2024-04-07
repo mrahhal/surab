@@ -19,25 +19,19 @@ public class SurabSolver(
 
 	public SurabProject Project => Host.Project;
 
-	public SourceFile? GetSourceFile(TextDocumentIdentifier identifier) => GetSourceFile(identifier.Uri);
+	public ProjectFile? GetFile(TextDocumentIdentifier identifier) => GetFile(identifier.Uri);
 
-	public SourceFile? GetSourceFile(DocumentUri uri)
+	public ProjectFile? GetFile(DocumentUri uri)
 	{
-		var filePath = uri.GetFileSystemPath();
-		var sourceFile = Host.Project.GetSourceFile(filePath);
-		if (sourceFile == null)
-		{
-			_logger.LogInformation("Didn't find SourceFile with path {FilePath}.", filePath);
-		}
-		return sourceFile;
+		return Host.Project.VFS.GetFile(uri);
 	}
 
 	/// <summary>
 	/// Gets the deepest node at the given position.
 	/// </summary>
-	public SyntaxNode? GetNodeAt(SourceFile sourceFile, LinePosition linePosition)
+	public SyntaxNode? GetNodeAt(ProjectFile file, LinePosition linePosition)
 	{
-		var tree = Project.GetSyntaxTree(sourceFile);
+		var tree = Project.GetSyntaxTree(file);
 		return GetNodeAtRecursive(tree.Root, linePosition);
 	}
 
@@ -74,7 +68,7 @@ public class SurabSolver(
 
 	public (Symbol? symbol, TypeSymbol? type) GetSymbolAndTypeOfPosition(TextDocumentIdentifier textDocument, Position position)
 	{
-		var sourceFile = GetSourceFile(textDocument)!;
+		var sourceFile = GetFile(textDocument)!;
 		var reasoner = Project.GetReasoner(sourceFile);
 		var linePosition = ConversionHelper.FromTo(position);
 		var node = GetNodeAt(sourceFile, linePosition);
@@ -111,7 +105,7 @@ public class SurabSolver(
 
 	public LocationOrLocationLinks? GetDefinitionRef(TextDocumentIdentifier textDocument, Position position)
 	{
-		var sourceFile = GetSourceFile(textDocument)!;
+		var sourceFile = GetFile(textDocument)!;
 		var reasoner = Project.GetReasoner(sourceFile);
 		var linePosition = ConversionHelper.FromTo(position);
 		var node = GetNodeAt(sourceFile, linePosition);
@@ -126,7 +120,7 @@ public class SurabSolver(
 			var span = inFileSymbol.DeclaringNode?.GetMainIdentifierToken()?.Span ?? inFileSymbol.DeclaringNode?.Span ?? new();
 			var locations = new LocationOrLocationLinks(new LocationOrLocationLink(new Location
 			{
-				Uri = DocumentUri.FromFileSystemPath(inFileSymbol.DeclaringSourceFile!.Path.Value!),
+				Uri = DocumentUri.FromFileSystemPath(inFileSymbol.DeclaringFile!.Path.Value!),
 				Range = ConversionHelper.FromTo(span),
 			}));
 			return locations;

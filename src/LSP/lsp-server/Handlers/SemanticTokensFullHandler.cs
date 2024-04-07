@@ -19,7 +19,7 @@ public class SemanticTokensFullHandler(
 
 		return _solver.Project.LockForRead(() =>
 		{
-			var sourceFile = _solver.GetSourceFile(request.TextDocument.Uri);
+			var sourceFile = _solver.GetFile(request.TextDocument.Uri);
 			if (sourceFile == null)
 				return null;
 
@@ -33,11 +33,11 @@ public class SemanticTokensFullHandler(
 
 	private void Tokenize(
 		SemanticTokensBuilder builder,
-		SourceFile sourceFile,
+		ProjectFile file,
 		CancellationToken ct)
 	{
-		var tree = _solver.Project.GetSyntaxTree(sourceFile);
-		var reasoner = _solver.Project.GetReasoner(sourceFile);
+		var tree = _solver.Project.GetSyntaxTree(file);
+		var reasoner = _solver.Project.GetReasoner(file);
 
 		ct.ThrowIfCancellationRequested();
 

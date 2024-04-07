@@ -2,22 +2,23 @@
 
 public static class AnalysisTestUtils
 {
-	public static (SurabProject, SourceFile) CreateProject(string src)
+	public static (SurabProject, ProjectFile) CreateProject(string code)
 	{
-		var sourceFile = SourceFile.FromText(src);
-		var tree = Parser.ParseFile(sourceFile);
-		return (SurabProject.Create([sourceFile]), sourceFile);
+		var vfs = VFS.Create();
+		var file = vfs.AddCodeFile(code);
+		var project = SurabProject.Create(vfs);
+		return (project, file);
 	}
 
-	public static (SurabProject, SyntaxTree, Reasoner) CreateProjectAndTreeAndReasoner(string src)
+	public static (SurabProject, SyntaxTree, Reasoner) CreateProjectAndTreeAndReasoner(string code)
 	{
-		var (project, sourceFile) = CreateProject(src);
-		return (project, project.GetSyntaxTree(sourceFile), project.GetReasoner(sourceFile));
+		var (project, file) = CreateProject(code);
+		return (project, project.GetSyntaxTree(file), project.GetReasoner(file));
 	}
 
-	public static (SyntaxTree, Reasoner) CreateTreeAndReasoner(string src)
+	public static (SyntaxTree, Reasoner) CreateTreeAndReasoner(string code)
 	{
-		var (_,  tree, reasoner) = CreateProjectAndTreeAndReasoner(src);
+		var (_,  tree, reasoner) = CreateProjectAndTreeAndReasoner(code);
 		return (tree, reasoner);
 	}
 }

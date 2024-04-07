@@ -18,7 +18,7 @@ public class DidChangeWatchedFilesHandler(
 	{
 		_logger.LogInformation("[DidChangeWatchedFilesParams]");
 
-		_solver.Project.LockForWrite(() =>
+		_solver.Project.LockForWrite(vfs =>
 		{
 			foreach (var change in request.Changes)
 			{
@@ -27,8 +27,7 @@ public class DidChangeWatchedFilesHandler(
 					case FileChangeType.Created:
 						{
 							var path = change.Uri.GetFileSystemPath();
-							var sourceFile = SourceFile.Create(path, File.ReadAllText(path));
-							_solver.Project.AddSourceFile(sourceFile);
+							vfs.AddFile(path, File.ReadAllText(path));
 						}
 						break;
 
@@ -40,10 +39,14 @@ public class DidChangeWatchedFilesHandler(
 
 					case FileChangeType.Deleted:
 						{
-							var sourceFile = _solver.GetSourceFile(change.Uri);
-							if (sourceFile != null)
+							var file = vfs.GetFile(change.Uri);
+							if (file == null)
 							{
-								_solver.Project.RemoveSourceFile(sourceFile);
+								_logger.LogInformation("Didn't find SourceFile with path {FilePath}.", change.Uri);
+							}
+							else
+							{
+								vfs.RemoveFile(file);
 							}
 						}
 						break;

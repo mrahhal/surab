@@ -18,7 +18,7 @@ var p = new Process
 p.Start();
 p.WaitForExit();
 
-var src = """
+var code = """
 	alias @extern fn (S2) as Delegate1;
 
 	struct S1 {
@@ -110,16 +110,17 @@ var src = """
 		print_string(str);
 	}
 	""";
-var sourceFile = SourceFile.FromText(src);
 
-var project = SurabProject.Create([sourceFile]);
-var tree = project.GetSyntaxTree(sourceFile);
-var reasoner = project.GetReasoner(sourceFile);
+var vfs = VFS.Create();
+var codeFile = vfs.AddCodeFile(code);
+var project = SurabProject.Create(vfs);
+var tree = project.GetSyntaxTree(codeFile);
+var reasoner = project.GetReasoner(codeFile);
 
 var diags = reasoner.GetAllDiagnostics();
 if (diags.Any(x => x.Level >= DiagnosticLevel.Error))
 {
-	var errors = diags.Select(d => (d, v: d.Visualize(src))).ToList();
+	var errors = diags.Select(d => (d, v: d.Visualize(code))).ToList();
 	ConsoleHelper.WriteError("ERROR COMPILING\n");
 	Console.WriteLine(string.Join('\n', errors.Select(x => x.v)));
 	return;

@@ -165,12 +165,12 @@ internal abstract class Scope
 	}
 }
 
-internal sealed class ModuleScope(SurabProject project, IEnumerable<SourceFile> sourceFiles) : Scope
+internal sealed class ModuleScope(SurabProject project, IEnumerable<ProjectFile> files) : Scope
 {
 	// TODO: This is not good.
 	public SurabProject Project => project;
 
-	public ImmutableArray<SourceFile> SourceFiles { get; } = sourceFiles.ToImmutableArray();
+	public ImmutableArray<ProjectFile> Files { get; } = files.ToImmutableArray();
 }
 
 internal sealed class FileScope(FileNode file, Reasoner fileReasoner, Reasoner? preludeReasoner) : Scope

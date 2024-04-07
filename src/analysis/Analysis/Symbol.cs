@@ -118,7 +118,7 @@ public abstract class InFileSymbol : Symbol
 	/// </summary>
 	public SyntaxNode? DeclaringNode { get; }
 
-	public SourceFile? DeclaringSourceFile => DeclaringNode?.Tree.SourceFile;
+	public ProjectFile? DeclaringFile => DeclaringNode?.Tree.File;
 
 	public virtual TextSpan Span => DeclaringNode?.Span ?? TextSpan.Empty;
 }
@@ -158,7 +158,7 @@ public sealed class ModuleSymbol : Symbol
 	private readonly string _name;
 	private ImmutableArray<InFileSymbol> _exportedSymbols;
 
-	public ModuleSymbol(string name, IEnumerable<VFSFolder> folders) : base(SymbolKind.Module)
+	public ModuleSymbol(string name, IEnumerable<ProjectFolder> folders) : base(SymbolKind.Module)
 	{
 		_name = name;
 		Folders = folders.ToImmutableArray();
@@ -178,7 +178,7 @@ public sealed class ModuleSymbol : Symbol
 
 	internal new ModuleScope Scope => (ModuleScope)base.Scope!;
 
-	public ImmutableArray<VFSFolder> Folders { get; }
+	public ImmutableArray<ProjectFolder> Folders { get; }
 
 	public ImmutableArray<InFileSymbol> ExportedSymbols
 	{
@@ -203,7 +203,7 @@ public sealed class ModuleSymbol : Symbol
 	private ImmutableArray<InFileSymbol> BuildExportedSymbols()
 	{
 		var builder = ImmutableArray.CreateBuilder<InFileSymbol>();
-		foreach (var sourceFile in Scope.SourceFiles)
+		foreach (var sourceFile in Scope.Files)
 		{
 			var reasoner = Scope.Project.GetReasoner(sourceFile);
 			foreach (var symbol in reasoner.GetExportedSymbols())
