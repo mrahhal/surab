@@ -155,7 +155,7 @@ public class SurabProject
 	{
 		var moduleName = name ?? folder.Name;
 		var module = new ModuleSymbol(moduleName, [folder]);
-		var moduleScope = new ModuleScope(this, folder.Files);
+		var moduleScope = new ModuleScope(this, folder.Files.Where(f => f.Kind is ProjectFileKind.Code));
 		module.SetScope(moduleScope);
 
 		foreach (var subFolder in folder.SubFolders)
