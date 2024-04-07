@@ -203,9 +203,9 @@ public sealed class ModuleSymbol : Symbol
 	private ImmutableArray<InFileSymbol> BuildExportedSymbols()
 	{
 		var builder = ImmutableArray.CreateBuilder<InFileSymbol>();
-		foreach (var sourceFile in Scope.Files)
+		foreach (var file in Scope.Files)
 		{
-			var reasoner = Scope.Project.GetReasoner(sourceFile);
+			var reasoner = Scope.Project.GetReasoner(file);
 			foreach (var symbol in reasoner.GetExportedSymbols())
 			{
 				builder.Add(symbol);

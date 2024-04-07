@@ -86,34 +86,18 @@ public class LanguageServerHost
 	private Task InitializeProjectAsync(DocumentUri workspaceUri)
 	{
 		var workspacePath = workspaceUri.GetFileSystemPath();
-		var vfs = VFS.Create(workspacePath);
-
-		var codeFiles = Directory
-			.GetFiles(workspacePath, Constants.CodeFilesGlob, SearchOption.AllDirectories);
-		var projectConfigFiles = Directory
-			.GetFiles(workspacePath, Constants.ProjectConfigFileName, SearchOption.AllDirectories);
-
-		foreach (var filePath in projectConfigFiles.Concat(codeFiles))
+		var projectPaths = SurabProjectFSLoader.FindProjects(workspacePath).ToList();
+		// TODO: Report this to the client properly, and have the ability to reload.
+		if (projectPaths.Count == 0)
 		{
-			vfs.AddFile(filePath, File.ReadAllText(filePath));
+			throw new Exception("No Surab projects.");
 		}
-
-		// TODO: workspacePath is not always the project path. We need to look for surab-project.json and create a project there.
-		Project = SurabProject.Create(vfs);
-
-		// TODO: Load surab-project.json (and track it in TextDocumentSyncHandler/DidChangeWatchedFilesHandler).
-		//if (!projectPath.IsEmpty)
-		//{
-		//	// Try to find surab-project.json and parse it for config.
-		//	var configFilePath = Path.Combine(projectPath.Value, SurabProjectConfig.ConfigFileName);
-		//	if (File.Exists(configFilePath))
-		//	{
-		//		// TODO: This is using fs when project path is not empty. Do it better.
-		//		var json = File.ReadAllText(configFilePath);
-		//		config = JsonSerializer.Deserialize<SurabProjectConfig>(json);
-		//	}
-		//}
-
+		if (projectPaths.Count > 1)
+		{
+			throw new Exception("More than one Surab project is not supported.");
+		}
+		var projectPath = projectPaths.Single();
+		Project = SurabProjectFSLoader.CreateProjectAt(projectPath);
 		Project.SubscribeToFullDiagnosticsReady(HandleFullDiagnosticsReady);
 
 		// TODO:
