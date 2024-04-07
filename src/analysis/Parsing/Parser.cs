@@ -551,11 +551,11 @@ internal class ParserImpl
 			TokenKind.Identifier when P1()?.Kind is TokenKind.Colon or TokenKind.Equal => ParseFieldDecl(attrs),
 
 			// `identifier(`
-			TokenKind.Identifier when P1()?.Kind is TokenKind.LeftParen => ParseMethodDecl(attrs),
+			TokenKind.Identifier when P1()?.Kind is TokenKind.OpenParen => ParseMethodDecl(attrs),
 			// `(` (initializer)
-			TokenKind.LeftParen => ParseMethodDecl(attrs),
+			TokenKind.OpenParen => ParseMethodDecl(attrs),
 			// `+(`
-			_ when _current != null && _current.Kind.IsMethodOp() && P1()?.Kind is TokenKind.LeftParen => ParseMethodDecl(attrs),
+			_ when _current != null && _current.Kind.IsMethodOp() && P1()?.Kind is TokenKind.OpenParen => ParseMethodDecl(attrs),
 
 			// Local decl
 			_ when _current != null && _current.Kind.CanStartDecl() => ParseDecl(attrs),
@@ -621,7 +621,7 @@ internal class ParserImpl
 	{
 		var body = default(BlockExprNode?);
 		var semicolonToken = default(SimpleToken?);
-		if (CheckToken(TokenKind.LeftBrace))
+		if (CheckToken(TokenKind.OpenBrace))
 		{
 			body = ParseBlockExpr();
 		}
@@ -639,9 +639,9 @@ internal class ParserImpl
 	{
 		var structToken = EatAssertedSimpleToken(TokenKind.Struct);
 		var identifier = ParseTypeIdentifier();
-		var openBraceToken = EatExpectedSimpleToken(TokenKind.LeftBrace);
+		var openBraceToken = EatExpectedSimpleToken(TokenKind.OpenBrace);
 		var members = ParseDeclMembers();
-		var closedBraceToken = EatExpectedSimpleToken(TokenKind.RightBrace);
+		var closedBraceToken = EatExpectedSimpleToken(TokenKind.ClosedBrace);
 
 		return new StructDeclNode(_tree, attrs, structToken, identifier, openBraceToken, members, closedBraceToken);
 	}
@@ -653,9 +653,9 @@ internal class ParserImpl
 	{
 		var classToken = EatAssertedSimpleToken(TokenKind.Class);
 		var identifier = ParseTypeIdentifier();
-		var openBraceToken = EatExpectedSimpleToken(TokenKind.LeftBrace);
+		var openBraceToken = EatExpectedSimpleToken(TokenKind.OpenBrace);
 		var members = ParseDeclMembers();
-		var closedBraceToken = EatExpectedSimpleToken(TokenKind.RightBrace);
+		var closedBraceToken = EatExpectedSimpleToken(TokenKind.ClosedBrace);
 
 		return new ClassDeclNode(_tree, attrs, classToken, identifier, openBraceToken, members, closedBraceToken);
 	}
@@ -664,7 +664,7 @@ internal class ParserImpl
 	{
 		var members = new List<DeclNode>();
 
-		while (!IsAtEnd() && !CheckToken(TokenKind.RightBrace))
+		while (!IsAtEnd() && !CheckToken(TokenKind.ClosedBrace))
 		{
 			var decl = ParseMemberDecl();
 			members.Add(decl);
@@ -861,8 +861,8 @@ internal class ParserImpl
 		{
 			return token.Kind switch
 			{
-				TokenKind.LeftParen => ParseGroupingExpr(),
-				TokenKind.LeftBrace => ParseBlockExpr(),
+				TokenKind.OpenParen => ParseGroupingExpr(),
+				TokenKind.OpenBrace => ParseBlockExpr(),
 				TokenKind.Identifier => ParseIdentifierExpr(),
 				TokenKind.This => ParseThisExpr(),
 				_ when token.Kind.IsUnary() => ParseUnaryExpr(),
@@ -874,9 +874,9 @@ internal class ParserImpl
 
 	private ExprNode ParseGroupingExpr()
 	{
-		var openParenToken = EatAssertedSimpleToken(TokenKind.LeftParen);
+		var openParenToken = EatAssertedSimpleToken(TokenKind.OpenParen);
 		var expr = ParseExpr();
-		var closedParenToken = EatExpectedSimpleToken(TokenKind.RightParen);
+		var closedParenToken = EatExpectedSimpleToken(TokenKind.ClosedParen);
 
 		return new GroupingExprNode(_tree, openParenToken, expr, closedParenToken);
 	}
@@ -1031,8 +1031,8 @@ internal class ParserImpl
 			{
 				TokenKind.Dot => ParseAccessExpr(left),
 				TokenKind.ColonColon => ParseModuleAccessExpr(left),
-				TokenKind.LeftParen => ParseCallExpr(left),
-				TokenKind.LeftBrace => ParseTypeCreationExpr(left),
+				TokenKind.OpenParen => ParseCallExpr(left),
+				TokenKind.OpenBrace => ParseTypeCreationExpr(left),
 				TokenKind.Equal => ParseAssignmentExpr(targetPrecedence, left),
 				_ when token.Kind.IsBinary() => ParseBinaryExpr(targetPrecedence, left),
 				_ => CreateMissingExprNode(),
@@ -1104,29 +1104,29 @@ internal class ParserImpl
 	/// </summary>
 	private BlockExprNode ParseBlockExpr()
 	{
-		var openBraceToken = EatAssertedSimpleToken(TokenKind.LeftBrace);
+		var openBraceToken = EatAssertedSimpleToken(TokenKind.OpenBrace);
 		var stmts = new List<StmtNode>();
 
 		while (true)
 		{
 			// REVIEW: Is CanStartStmt() right here?
-			if (IsAtEnd() || CheckToken(TokenKind.RightBrace) || !_current.Kind.CanStartStmt())
+			if (IsAtEnd() || CheckToken(TokenKind.ClosedBrace) || !_current.Kind.CanStartStmt())
 				break;
 
 			stmts.Add(ParseStmt());
 		}
 
-		var closedBraceToken = EatExpectedSimpleToken(TokenKind.RightBrace);
+		var closedBraceToken = EatExpectedSimpleToken(TokenKind.ClosedBrace);
 
 		return new BlockExprNode(_tree, openBraceToken, stmts, closedBraceToken);
 	}
 
 	/// <summary>
 	/// Parses `{ a = b, c = d }`
-	/// Requirements: current is LeftParen.
+	/// Requirements: current is OpenParen.
 	private MapInitializerNode ParseMapInitializer()
 	{
-		var openBraceToken = EatAssertedSimpleToken(TokenKind.LeftBrace);
+		var openBraceToken = EatAssertedSimpleToken(TokenKind.OpenBrace);
 
 		var items = new List<MapInitializerItemNode>();
 
@@ -1134,7 +1134,7 @@ internal class ParserImpl
 		{
 			VerifyLoopIsNotPossiblyInfinite(items, threshold: 1_000_000);
 
-			if (IsAtEnd() || CheckToken(TokenKind.RightBrace) || (!_current.Kind.CanStartExpr() && !CheckToken(TokenKind.Comma)))
+			if (IsAtEnd() || CheckToken(TokenKind.ClosedBrace) || (!_current.Kind.CanStartExpr() && !CheckToken(TokenKind.Comma)))
 				break;
 
 			// Will parse a whole single assignment expr.
@@ -1144,7 +1144,7 @@ internal class ParserImpl
 			items.Add(new MapInitializerItemNode(_tree, expr, commaToken));
 		}
 
-		var closedBraceToken = EatExpectedSimpleToken(TokenKind.RightBrace);
+		var closedBraceToken = EatExpectedSimpleToken(TokenKind.ClosedBrace);
 
 		return new MapInitializerNode(_tree, openBraceToken, items, closedBraceToken);
 	}
@@ -1281,7 +1281,7 @@ internal class ParserImpl
 	/// </summary>
 	private ParamsListNode ParseParamsList()
 	{
-		var openParenToken = EatExpectedSimpleToken(TokenKind.LeftParen);
+		var openParenToken = EatExpectedSimpleToken(TokenKind.OpenParen);
 
 		var @params = new List<ParamNode>();
 
@@ -1289,13 +1289,13 @@ internal class ParserImpl
 		{
 			VerifyLoopIsNotPossiblyInfinite(@params);
 
-			if (IsAtEnd() || CheckToken(TokenKind.RightParen) || (!_current.Kind.CanStartParam() && !CheckToken(TokenKind.Comma)))
+			if (IsAtEnd() || CheckToken(TokenKind.ClosedParen) || (!_current.Kind.CanStartParam() && !CheckToken(TokenKind.Comma)))
 				break;
 
 			@params.Add(ParseParam());
 		}
 
-		var closedParenToken = EatExpectedSimpleToken(TokenKind.RightParen);
+		var closedParenToken = EatExpectedSimpleToken(TokenKind.ClosedParen);
 
 		return new ParamsListNode(_tree, openParenToken, @params, closedParenToken);
 	}
@@ -1321,7 +1321,7 @@ internal class ParserImpl
 	/// </summary>
 	private ParamTypesListNode ParseParamTypesList()
 	{
-		var openParenToken = EatExpectedSimpleToken(TokenKind.LeftParen);
+		var openParenToken = EatExpectedSimpleToken(TokenKind.OpenParen);
 
 		var paramTypes = new List<ParamTypeNode>();
 
@@ -1329,13 +1329,13 @@ internal class ParserImpl
 		{
 			VerifyLoopIsNotPossiblyInfinite(paramTypes);
 
-			if (IsAtEnd() || CheckToken(TokenKind.RightParen) || (!_current.Kind.CanStartType() && !CheckToken(TokenKind.Comma)))
+			if (IsAtEnd() || CheckToken(TokenKind.ClosedParen) || (!_current.Kind.CanStartType() && !CheckToken(TokenKind.Comma)))
 				break;
 
 			paramTypes.Add(ParseParamType());
 		}
 
-		var closedParenToken = EatExpectedSimpleToken(TokenKind.RightParen);
+		var closedParenToken = EatExpectedSimpleToken(TokenKind.ClosedParen);
 
 		return new ParamTypesListNode(_tree, openParenToken, paramTypes, closedParenToken);
 	}
@@ -1355,11 +1355,11 @@ internal class ParserImpl
 
 	/// <summary>
 	/// Parses `(expr1, expr2)`
-	/// Requirements: current is LeftParen.
+	/// Requirements: current is OpenParen.
 	/// </summary>
 	private ArgsListNode ParseArgsList()
 	{
-		var openParenToken = EatAssertedSimpleToken(TokenKind.LeftParen);
+		var openParenToken = EatAssertedSimpleToken(TokenKind.OpenParen);
 
 		var args = new List<ArgNode>();
 
@@ -1367,13 +1367,13 @@ internal class ParserImpl
 		{
 			VerifyLoopIsNotPossiblyInfinite(args);
 
-			if (IsAtEnd() || CheckToken(TokenKind.RightParen) || (!_current.Kind.CanStartExpr() && !CheckToken(TokenKind.Comma)))
+			if (IsAtEnd() || CheckToken(TokenKind.ClosedParen) || (!_current.Kind.CanStartExpr() && !CheckToken(TokenKind.Comma)))
 				break;
 
 			args.Add(ParseArg());
 		}
 
-		var closedParenToken = EatExpectedSimpleToken(TokenKind.RightParen);
+		var closedParenToken = EatExpectedSimpleToken(TokenKind.ClosedParen);
 
 		return new ArgsListNode(_tree, openParenToken, args, closedParenToken);
 	}
@@ -1422,7 +1422,7 @@ internal class ParserImpl
 				var lexeme = GetLexeme(token);
 				return IdentifierToken.Create(_tree, leading, trailing, token.Span, lexeme.ToString());
 			}
-			else if (_current?.Kind is TokenKind.LeftParen)
+			else if (_current?.Kind is TokenKind.OpenParen)
 			{
 				// Empty identifier (initializer method)
 				return IdentifierToken.Create(_tree, [], [], GetProperSpanForMissingThingAtCurrent(), string.Empty);
@@ -1529,7 +1529,7 @@ internal class ParserImpl
 		var identifier = ParseAssertedIdentifier();
 
 		var args = default(ArgsListNode?);
-		if (CheckToken(TokenKind.LeftParen))
+		if (CheckToken(TokenKind.OpenParen))
 		{
 			args = ParseArgsList();
 		}

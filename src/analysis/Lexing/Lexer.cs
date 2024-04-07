@@ -63,10 +63,10 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 
 			_ when Chars.IsWhitespace(ch) => ConsumeWhitespace(),
 
-			'(' => MakeToken(TokenKind.LeftParen),
-			')' => MakeToken(TokenKind.RightParen),
-			'{' => MakeToken(TokenKind.LeftBrace),
-			'}' => MakeToken(TokenKind.RightBrace),
+			'(' => MakeToken(TokenKind.OpenParen),
+			')' => MakeToken(TokenKind.ClosedParen),
+			'{' => MakeToken(TokenKind.OpenBrace),
+			'}' => MakeToken(TokenKind.ClosedBrace),
 			',' => MakeToken(TokenKind.Comma),
 			'.' => MakeToken(TokenKind.Dot),
 			';' => MakeToken(TokenKind.Semicolon),

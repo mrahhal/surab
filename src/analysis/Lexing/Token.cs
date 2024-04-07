@@ -8,10 +8,10 @@ namespace Surab.Analysis;
 /// </summary>
 public enum TokenKind
 {
-	LeftParen,
-	RightParen,
-	LeftBrace,
-	RightBrace,
+	OpenParen,
+	ClosedParen,
+	OpenBrace,
+	ClosedBrace,
 	Comma,
 	Dot,
 	Semicolon,
@@ -89,10 +89,10 @@ public class Token(TokenKind kind, TextSpan span, object? data)
 	{
 		return Kind switch
 		{
-			LeftParen => "(",
-			RightParen => ")",
-			LeftBrace => "{",
-			RightBrace => "}",
+			OpenParen => "(",
+			ClosedParen => ")",
+			OpenBrace => "{",
+			ClosedBrace => "}",
 			Comma => ",",
 			Dot => ".",
 			Semicolon => ";",
@@ -260,7 +260,7 @@ public static class TokenKindExtensions
 	public static bool CanStartExpr(this TokenKind kind) =>
 		kind.IsUnary() ||
 		kind.IsLiteral() ||
-		kind is LeftParen or LeftBrace or This or Identifier;
+		kind is OpenParen or OpenBrace or This or Identifier;
 
 	public static bool CanStartParam(this TokenKind kind) =>
 		kind is Identifier ||

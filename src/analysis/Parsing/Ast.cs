@@ -133,10 +133,10 @@ internal static class TokenHelper
 
 public enum SimpleTokenKind
 {
-	LeftParen,
-	RightParen,
-	LeftBrace,
-	RightBrace,
+	OpenParen,
+	ClosedParen,
+	OpenBrace,
+	ClosedBrace,
 	Comma,
 	Dot,
 	ColonColon,
@@ -204,10 +204,10 @@ public sealed class SimpleToken : SyntaxToken
 			IsMissing = isMissing,
 			SimpleTokenKind = tokenKind switch
 			{
-				TokenKind.LeftParen => SimpleTokenKind.LeftParen,
-				TokenKind.RightParen => SimpleTokenKind.RightParen,
-				TokenKind.LeftBrace => SimpleTokenKind.LeftBrace,
-				TokenKind.RightBrace => SimpleTokenKind.RightBrace,
+				TokenKind.OpenParen => SimpleTokenKind.OpenParen,
+				TokenKind.ClosedParen => SimpleTokenKind.ClosedParen,
+				TokenKind.OpenBrace => SimpleTokenKind.OpenBrace,
+				TokenKind.ClosedBrace => SimpleTokenKind.ClosedBrace,
 				TokenKind.Comma => SimpleTokenKind.Comma,
 				TokenKind.Dot => SimpleTokenKind.Dot,
 				TokenKind.ColonColon => SimpleTokenKind.ColonColon,
@@ -262,10 +262,10 @@ public sealed class SimpleToken : SyntaxToken
 	{
 		return SimpleTokenKind switch
 		{
-			SimpleTokenKind.LeftParen => "(",
-			SimpleTokenKind.RightParen => ")",
-			SimpleTokenKind.LeftBrace => "{",
-			SimpleTokenKind.RightBrace => "}",
+			SimpleTokenKind.OpenParen => "(",
+			SimpleTokenKind.ClosedParen => ")",
+			SimpleTokenKind.OpenBrace => "{",
+			SimpleTokenKind.ClosedBrace => "}",
 			SimpleTokenKind.Comma => ",",
 			SimpleTokenKind.Dot => ".",
 			SimpleTokenKind.ColonColon => "::",
