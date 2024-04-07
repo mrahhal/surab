@@ -53,6 +53,7 @@ internal class Lowerer
 			BinaryExprNode n => Lower(n),
 			CallExprNode n => Lower(n),
 			AccessExprNode n => Lower(n),
+			ModuleAccessExprNode n => Lower(n),
 			LiteralExprNode n => Lower(n),
 			IdentifierExprNode n => Lower(n),
 			ThisExprNode n => Lower(n),
@@ -326,7 +327,7 @@ internal class Lowerer
 
 			case FnSymbol fn:
 				{
-					// The reason this doens't require a bespoke lowered node is because, unlike fields, methods become simple symbols untied to any struct.
+					// The reason this doesn't require a bespoke lowered node is because, unlike fields, methods become simple symbols untied to any struct.
 					return new LoweredSymbolLoadExpr(
 						node,
 						fn.Type,
@@ -336,6 +337,17 @@ internal class Lowerer
 			default:
 				throw new UnreachableException();
 		};
+	}
+
+	private LoweredExpr Lower(ModuleAccessExprNode node)
+	{
+		var symbol = _reasoner.LookupSymbol(node);
+		// Should only be here if we're loading a symbol with a type.
+		Debug.Assert(symbol is ISymbolHasType);
+		return new LoweredSymbolLoadExpr(
+			node,
+			((ISymbolHasType)symbol).Type,
+			symbol);
 	}
 
 	private LoweredNode Lower(UnaryExprNode node)
