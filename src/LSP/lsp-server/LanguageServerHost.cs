@@ -96,7 +96,7 @@ public class LanguageServerHost
 		}
 		var projectPath = projectPaths.Single();
 		Project = SurabProjectFSLoader.CreateProjectAt(projectPath);
-		Project.SubscribeToFullDiagnosticsReady(HandleFullDiagnosticsReady);
+		Project.SubscribeToFullDiagsReady(HandleFullDiagsReady);
 
 		// TODO:
 		//Project.SubscribeToAnalysis...?
@@ -117,15 +117,15 @@ public class LanguageServerHost
 		return Task.CompletedTask;
 	}
 
-	private void HandleFullDiagnosticsReady(IEnumerable<FileDiagnostics> diags)
+	private void HandleFullDiagsReady(IEnumerable<FileDiags> diags)
 	{
-		_logger.LogInformation("Publishing diagnostics");
-		foreach (var fileDiagnostics in diags)
+		_logger.LogInformation("Publishing diags");
+		foreach (var fileDiags in diags)
 		{
 			Server.PublishDiagnostics(new PublishDiagnosticsParams
 			{
-				Uri = DocumentUri.FromFileSystemPath(fileDiagnostics.FilePath.Value),
-				Diagnostics = Container.From(fileDiagnostics.Diagnostics.Select(d => new OmniSharp.Extensions.LanguageServer.Protocol.Models.Diagnostic
+				Uri = DocumentUri.FromFileSystemPath(fileDiags.FilePath.Value),
+				Diagnostics = Container.From(fileDiags.Diags.Select(d => new Diagnostic
 				{
 					Range = ConversionHelper.FromTo(d.Span),
 					Severity = ConversionHelper.FromTo(d.Level),

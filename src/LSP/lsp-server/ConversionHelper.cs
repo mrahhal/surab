@@ -25,13 +25,13 @@ public static class ConversionHelper
 		return new(position.Line, position.Character);
 	}
 
-	public static DiagnosticSeverity? FromTo(DiagnosticLevel level)
+	public static DiagnosticSeverity? FromTo(DiagLevel level)
 	{
 		return level switch
 		{
-			DiagnosticLevel.Error => DiagnosticSeverity.Error,
-			DiagnosticLevel.Warning => DiagnosticSeverity.Warning,
-			DiagnosticLevel.Suggestion => DiagnosticSeverity.Hint,
+			DiagLevel.Error => DiagnosticSeverity.Error,
+			DiagLevel.Warning => DiagnosticSeverity.Warning,
+			DiagLevel.Suggestion => DiagnosticSeverity.Hint,
 			_ => null,
 		};
 	}

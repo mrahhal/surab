@@ -8,13 +8,13 @@ namespace Surab.Analysis;
 internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 {
 	private readonly Reasoner _reasoner = reasoner;
-	private readonly DiagnosticBag _diagnostics = new();
+	private readonly DiagBag _diags = new();
 
-	public static DiagnosticBag Analyze(Reasoner reasoner)
+	public static DiagBag Analyze(Reasoner reasoner)
 	{
 		var analyzer = new TypeChecker(reasoner);
 		analyzer.Analyze();
-		return analyzer._diagnostics;
+		return analyzer._diags;
 	}
 
 	private void Analyze()
@@ -26,11 +26,11 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 	{
 		if (node.Target is not IdentifierExprNode and not AccessExprNode)
 		{
-			_diagnostics.Add(node.Target.Span, DiagnosticLevel.Error, $"invalid syntax for import");
+			_diags.Add(node.Target.Span, DiagLevel.Error, $"invalid syntax for import");
 		}
 		else if (_reasoner.ResolveImport(node).IsFailed)
 		{
-			_diagnostics.Add(node.Target.Span, DiagnosticLevel.Error, $"failed to resolve module to import");
+			_diags.Add(node.Target.Span, DiagLevel.Error, $"failed to resolve module to import");
 		}
 
 		// TODO: Need a way to try resolve an import that connects back to the SurabProject somehow.
@@ -48,7 +48,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		var logicalEnclosure = node.GetLogicalEnclosure();
 		if (logicalEnclosure == null || !logicalEnclosure.Kind.CanContainExecutableCode())
 		{
-			_diagnostics.Add(TextSpan.FromTo(node.VarToken.Span, node.Identifier.Span), DiagnosticLevel.Error, $"invalid context for a var declaration");
+			_diags.Add(TextSpan.FromTo(node.VarToken.Span, node.Identifier.Span), DiagLevel.Error, $"invalid context for a var declaration");
 			return;
 		}
 
@@ -85,7 +85,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 	{
 		if (!IsMemberOfStructOrClass(node))
 		{
-			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a field decl is not allowed in this context");
+			_diags.Add(node.Span, DiagLevel.Error, $"a field decl is not allowed in this context");
 		}
 
 		base.VisitFieldDecl(node);
@@ -95,7 +95,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 	{
 		if (!IsMemberOfStructOrClass(node))
 		{
-			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a method decl is not allowed in this context");
+			_diags.Add(node.Span, DiagLevel.Error, $"a method decl is not allowed in this context");
 		}
 
 		var fnSymbol = _reasoner.GetDeclaredSymbol(node) as FnSymbol;
@@ -111,13 +111,13 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 				foreach (var conflicting in conflictingParams)
 				{
 					// TODO: Better diag message.
-					_diagnostics.Add(conflicting.Symbol.DeclaringNode!.Span, DiagnosticLevel.Error, $"init member conflicts with another init member");
+					_diags.Add(conflicting.Symbol.DeclaringNode!.Span, DiagLevel.Error, $"init member conflicts with another init member");
 				}
 			}
 			else
 			{
 				// Report more than one initializer.
-				_diagnostics.Add(node.Sig.ParamsList.Span, DiagnosticLevel.Error, $"only one initializer is allowed on a type");
+				_diags.Add(node.Sig.ParamsList.Span, DiagLevel.Error, $"only one initializer is allowed on a type");
 			}
 		}
 
@@ -135,7 +135,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		var decl = node.Ancestors().Where(x => x is MethodDeclNode or FnDeclNode).FirstOrDefault();
 		if (decl == null)
 		{
-			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"invalid context for a return statement");
+			_diags.Add(node.Span, DiagLevel.Error, $"invalid context for a return statement");
 			return;
 		}
 		var returnTypeNode = decl switch
@@ -151,7 +151,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 
 		if (!fnReturnType.IsAssignableFrom(returnType))
 		{
-			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"return type incompatible with function return type, expected `{fnReturnType}` but returning `{returnType}`");
+			_diags.Add(node.Span, DiagLevel.Error, $"return type incompatible with function return type, expected `{fnReturnType}` but returning `{returnType}`");
 		}
 
 		base.VisitReturnStmt(node);
@@ -164,8 +164,8 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		if (node.ReturnsExpr &&
 			node.Parent is ExprStmtNode or BareExprStmtNode)
 		{
-			_diagnostics.Add(
-				node.Span, DiagnosticLevel.Error,
+			_diags.Add(
+				node.Span, DiagLevel.Error,
 				$"a block returning an expr can not stand on its own");
 		}
 
@@ -182,7 +182,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 
 		if (!node.IsTreatedAsStmt && parentBlock.Stmts.Last() != node)
 		{
-			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"a bare expr can only exist as the last stmt of a block");
+			_diags.Add(node.Span, DiagLevel.Error, $"a bare expr can only exist as the last stmt of a block");
 		}
 
 		base.VisitBareExprStmt(node);
@@ -227,11 +227,11 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 
 		if (lhsSymbol is ModuleSymbol)
 		{
-			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"A module cannot be used as an l-value.");
+			_diags.Add(node.Span, DiagLevel.Error, $"A module cannot be used as an l-value.");
 		}
 		else if (rhsSymbol is ModuleSymbol)
 		{
-			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"A module cannot be used as an r-value.");
+			_diags.Add(node.Span, DiagLevel.Error, $"A module cannot be used as an r-value.");
 		}
 		else if (lhsType.IsUnknown || rhsType.IsUnknown)
 		{
@@ -240,11 +240,11 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		else if (!lhsType.IsAssignableFrom(rhsType))
 		{
 			// Incompatible types
-			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"invalid assignment because of incompatible types, expected `{lhsType}` but received `{rhsType}`");
+			_diags.Add(node.Span, DiagLevel.Error, $"invalid assignment because of incompatible types, expected `{lhsType}` but received `{rhsType}`");
 		}
 		else if (rhsSymbol is TypeSymbol)
 		{
-			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"Invalid assignment of a type. Did you mean to create the type instead using `Type {{ ... }}`?");
+			_diags.Add(node.Span, DiagLevel.Error, $"Invalid assignment of a type. Did you mean to create the type instead using `Type {{ ... }}`?");
 		}
 	}
 
@@ -260,13 +260,13 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 			case UnaryOperatorTokenKind.Neg:
 				if (!exprType.IsNumeric())
 				{
-					_diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a numeric type");
+					_diags.Add(node.Op.Span, DiagLevel.Error, $"only valid with a numeric type");
 				}
 				break;
 			case UnaryOperatorTokenKind.Not:
 				if (exprType.KnownTypeTag != KnownTypeTag.@bool)
 				{
-					_diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a bool type");
+					_diags.Add(node.Op.Span, DiagLevel.Error, $"only valid with a bool type");
 				}
 				break;
 		}
@@ -285,7 +285,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		}
 		else if (!leftType.IsAssignableFrom(rightType))
 		{
-			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"incompatible types");
+			_diags.Add(node.Span, DiagLevel.Error, $"incompatible types");
 		}
 		else
 		{
@@ -302,14 +302,14 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 				case BinaryOperatorTokenKind.BitXor:
 					if (!exprType.IsNumeric())
 					{
-						_diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a numeric type");
+						_diags.Add(node.Op.Span, DiagLevel.Error, $"only valid with a numeric type");
 					}
 					break;
 				case BinaryOperatorTokenKind.And:
 				case BinaryOperatorTokenKind.Or:
 					if (exprType.KnownTypeTag != KnownTypeTag.@bool)
 					{
-						_diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a bool type");
+						_diags.Add(node.Op.Span, DiagLevel.Error, $"only valid with a bool type");
 					}
 					break;
 				//case BinaryOperatorTokenKind.Eq:
@@ -322,7 +322,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 				case BinaryOperatorTokenKind.Ge:
 					if (!exprType.IsNumeric())
 					{
-						_diagnostics.Add(node.Op.Span, DiagnosticLevel.Error, $"only valid with a numeric type");
+						_diags.Add(node.Op.Span, DiagLevel.Error, $"only valid with a numeric type");
 					}
 					break;
 
@@ -346,7 +346,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		}
 		else if (calleeType is not FnTypeSymbol)
 		{
-			_diagnostics.Add(node.Callee.Span, DiagnosticLevel.Error, $"invocation on a non function");
+			_diags.Add(node.Callee.Span, DiagLevel.Error, $"invocation on a non function");
 		}
 		else if (calleeType is FnTypeSymbol fnType)
 		{
@@ -355,7 +355,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 
 			if (paramTypes.Length != args.Count)
 			{
-				_diagnostics.Add(node.ArgsList.Span, DiagnosticLevel.Error, $"invalid invocation: wrong number of arguments");
+				_diags.Add(node.ArgsList.Span, DiagLevel.Error, $"invalid invocation: wrong number of arguments");
 			}
 			else
 			{
@@ -370,7 +370,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 					}
 					else if (!paramType.IsAssignableFrom(argType))
 					{
-						_diagnostics.Add(arg.Span, DiagnosticLevel.Error, $"incompatible type for arg, expected `{paramType}` but received `{argType}`");
+						_diags.Add(arg.Span, DiagLevel.Error, $"incompatible type for arg, expected `{paramType}` but received `{argType}`");
 					}
 				}
 			}
@@ -384,7 +384,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		var targetSymbol = _reasoner.LookupSymbol(node.Target);
 		if (targetSymbol is ModuleSymbol)
 		{
-			_diagnostics.Add(node.Identifier.Span, DiagnosticLevel.Error, $"invalid access on a module, did you mean to use :: instead?");
+			_diags.Add(node.Identifier.Span, DiagLevel.Error, $"invalid access on a module, did you mean to use :: instead?");
 			return;
 		}
 
@@ -405,13 +405,13 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		var member = targetType.GetMember(node.Identifier.Value);
 		if (member == null)
 		{
-			_diagnostics.Add(node.Identifier.Span, DiagnosticLevel.Error, $"unknown member access");
+			_diags.Add(node.Identifier.Span, DiagLevel.Error, $"unknown member access");
 		}
 		if (member is FnSymbol && _reasoner.IsInstanceAccess(node))
 		{
 			if (node.Parent is not CallExprNode)
 			{
-				_diagnostics.Add(node.Identifier.Span, DiagnosticLevel.Error, $"taking a value of a method is not allowed, call it with `()`");
+				_diags.Add(node.Identifier.Span, DiagLevel.Error, $"taking a value of a method is not allowed, call it with `()`");
 			}
 		}
 
@@ -423,14 +423,14 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		var targetSymbol = _reasoner.LookupModule(node.Target);
 		if (targetSymbol is not ModuleSymbol module)
 		{
-			_diagnostics.Add(TextSpan.FromTo(node.Target.Span, node.ColonColonToken.Span), DiagnosticLevel.Error, $"not a module");
+			_diags.Add(TextSpan.FromTo(node.Target.Span, node.ColonColonToken.Span), DiagLevel.Error, $"not a module");
 			return;
 		}
 
 		var result = module.GetExportedSymbol(node.Identifier);
 		if (result == null)
 		{
-			_diagnostics.Add(node.Identifier.Span, DiagnosticLevel.Error, $"can't find exported symbol");
+			_diags.Add(node.Identifier.Span, DiagLevel.Error, $"can't find exported symbol");
 			return;
 		}
 
@@ -444,7 +444,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		var thisType = _reasoner.LookupType(node);
 		if (thisType == null)
 		{
-			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"unknown this context");
+			_diags.Add(node.Span, DiagLevel.Error, $"unknown this context");
 		}
 
 		base.VisitThisExpr(node);
@@ -455,7 +455,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		var symbol = _reasoner.LookupSymbol(node.TypeExpr);
 		if (symbol == null)
 		{
-			_diagnostics.Add(node.TypeExpr.Span, DiagnosticLevel.Error, $"unknown type to create");
+			_diags.Add(node.TypeExpr.Span, DiagLevel.Error, $"unknown type to create");
 			return;
 		}
 		if (symbol is not TypeSymbol typeSymbol)
@@ -470,7 +470,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 				}
 			}
 
-			_diagnostics.Add(node.TypeExpr.Span, DiagnosticLevel.Error, $"not a type that can be created");
+			_diags.Add(node.TypeExpr.Span, DiagLevel.Error, $"not a type that can be created");
 			return;
 		}
 
@@ -488,7 +488,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		if (unsetSymbols.Count != 0)
 		{
 			var missingText = string.Join(", ", unsetSymbols.Select(x => x.ToString()));
-			_diagnostics.Add(node.TypeExpr.Span, DiagnosticLevel.Error, $"missing required members in initializer: {missingText}");
+			_diags.Add(node.TypeExpr.Span, DiagLevel.Error, $"missing required members in initializer: {missingText}");
 		}
 
 		// Report set symbols that are not creation symbols.
@@ -498,7 +498,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 			foreach (var invalidSetSymbol in invalidSetSymbols)
 			{
 				var assignmentNode = setSymbolsMap[invalidSetSymbol.Symbol];
-				_diagnostics.Add(assignmentNode.Span, DiagnosticLevel.Error, $"invalid init target");
+				_diags.Add(assignmentNode.Span, DiagLevel.Error, $"invalid init target");
 			}
 		}
 
@@ -509,7 +509,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 	{
 		if (node.Expr is not AssignmentExprNode)
 		{
-			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"invalid assignment in initializer");
+			_diags.Add(node.Span, DiagLevel.Error, $"invalid assignment in initializer");
 		}
 
 		base.VisitMapInitializerItem(node);
@@ -519,7 +519,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 	{
 		if (node.Type == null)
 		{
-			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"specifying type is required");
+			_diags.Add(node.Span, DiagLevel.Error, $"specifying type is required");
 		}
 
 		base.VisitParam(node);
@@ -547,7 +547,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 	{
 		if (symbol == null)
 		{
-			_diagnostics.Add(identifier.Span, DiagnosticLevel.Error, $"unknown name");
+			_diags.Add(identifier.Span, DiagLevel.Error, $"unknown name");
 		}
 	}
 
@@ -556,11 +556,11 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		var symbol = _reasoner.LookupSymbol(node);
 		if (symbol == null)
 		{
-			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"unknown type");
+			_diags.Add(node.Span, DiagLevel.Error, $"unknown type");
 		}
 		else if (symbol is not TypeSymbol)
 		{
-			_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"not a type");
+			_diags.Add(node.Span, DiagLevel.Error, $"not a type");
 		}
 
 		base.VisitExprType(node);

@@ -17,7 +17,7 @@ public class SyntaxTree
 	public SyntaxNode Root { get; internal set; } = default!;
 
 	// Set during parsing.
-	public DiagnosticBag Diagnostics { get; internal set; } = default!;
+	public DiagBag Diags { get; internal set; } = default!;
 }
 
 public abstract class SyntaxEntity : ISyntaxTreeVisitable

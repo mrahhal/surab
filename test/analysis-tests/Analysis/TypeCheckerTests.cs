@@ -48,7 +48,7 @@ public static class AnalyzerTestUtils
 	{
 		var codeAndDiags = Parse(markup);
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(codeAndDiags.Code);
-		var actualDiags = reasoner.GetAllDiagnostics().ToList();
+		var actualDiags = reasoner.GetAllDiags().ToList();
 		var failureMessages = new List<string>();
 
 		foreach (var expectedDiag in codeAndDiags.ExpectedDiags)
@@ -64,7 +64,7 @@ public static class AnalyzerTestUtils
 			if (matchingDiags.Count == 0)
 			{
 				failureMessages.Add(
-					$"Failed to find expected diag at:".NL().NL() + DiagnosticHelper.Visualize(codeAndDiags.Code, expectedDiag.Span, null, null, null));
+					$"Failed to find expected diag at:".NL().NL() + DiagHelper.Visualize(codeAndDiags.Code, expectedDiag.Span, null, null, null));
 			}
 			foreach (var matchingDiag in matchingDiags)
 			{

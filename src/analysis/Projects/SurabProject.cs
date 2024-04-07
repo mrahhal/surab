@@ -13,7 +13,7 @@ namespace Surab.Analysis;
 public class SurabProject
 {
 	private readonly ReaderWriterLockSlim _rwl = new();
-	private readonly List<Action<IEnumerable<FileDiagnostics>>> _fullDiagnosticsReadyActions = [];
+	private readonly List<Action<IEnumerable<FileDiags>>> _fullDiagsReadyActions = [];
 	private readonly Dictionary<ProjectFile, CodeFileState> _codeFileToStateMap = [];
 
 	private readonly ReasoningContext _reasoningContext = new();
@@ -61,9 +61,9 @@ public class SurabProject
 		return Create(vfs);
 	}
 
-	public void SubscribeToFullDiagnosticsReady(Action<IEnumerable<FileDiagnostics>> action)
+	public void SubscribeToFullDiagsReady(Action<IEnumerable<FileDiags>> action)
 	{
-		_fullDiagnosticsReadyActions.Add(action);
+		_fullDiagsReadyActions.Add(action);
 	}
 
 	/// <summary>
@@ -281,14 +281,14 @@ public class SurabProject
 		return null;
 	}
 
-	internal IEnumerable<FileDiagnostics> GetProjectDiagnostics()
+	internal IEnumerable<FileDiags> GetProjectDiags()
 	{
 		foreach (var file in VFS.EnumerateCodeFiles())
 		{
-			var fileDiagnostics = GetCodeFileState(file).FileDiagnostics;
-			if (fileDiagnostics != null)
+			var fileDiags = GetCodeFileState(file).FileDiags;
+			if (fileDiags != null)
 			{
-				yield return fileDiagnostics;
+				yield return fileDiags;
 			}
 		}
 	}
@@ -320,7 +320,7 @@ public class SurabProject
 					ct.ThrowIfCancellationRequested();
 
 					// REVIEW: Should this be here inside the lock?
-					RaiseFullDiagnosticsReady();
+					RaiseFullDiagsReady();
 				}
 				catch (OperationCanceledException)
 				{
@@ -329,10 +329,10 @@ public class SurabProject
 		}, ct);
 	}
 
-	private void RaiseFullDiagnosticsReady()
+	private void RaiseFullDiagsReady()
 	{
-		var diags = GetProjectDiagnostics();
-		foreach (var action in _fullDiagnosticsReadyActions)
+		var diags = GetProjectDiags();
+		foreach (var action in _fullDiagsReadyActions)
 		{
 			action(diags);
 		}
@@ -345,9 +345,9 @@ public class SurabProject
 
 		var state = GetCodeFileState(file);
 		var reasoner = state.Reasoner;
-		var diags = reasoner.GetAllDiagnostics().ToImmutableArray();
-		var highestLevel = diags.Any() ? (DiagnosticLevel?)diags.Select(x => (int)x.Level).Max() : null;
-		state.FileDiagnostics = new FileDiagnostics(file.Path, diags, highestLevel);
+		var diags = reasoner.GetAllDiags().ToImmutableArray();
+		var highestLevel = diags.Any() ? (DiagLevel?)diags.Select(x => (int)x.Level).Max() : null;
+		state.FileDiags = new FileDiags(file.Path, diags, highestLevel);
 	}
 
 	private void LoadPrelude()
@@ -359,9 +359,9 @@ public class SurabProject
 
 		// Need to assing it before getting diags as that process might use this _preludeReasoner ref to resolve known types.
 		_preludeReasoner = Reasoner.CreatePrelude(this, tree);
-		var diags = _preludeReasoner.GetAllDiagnostics();
+		var diags = _preludeReasoner.GetAllDiags();
 
-		if (diags.Any(x => x.Level >= DiagnosticLevel.Error))
+		if (diags.Any(x => x.Level >= DiagLevel.Error))
 		{
 			throw new Exception("Errors in prelude.");
 		}
@@ -455,6 +455,6 @@ public class SurabProject
 
 		public required Reasoner Reasoner { get; set; }
 
-		public FileDiagnostics? FileDiagnostics { get; set; }
+		public FileDiags? FileDiags { get; set; }
 	}
 }

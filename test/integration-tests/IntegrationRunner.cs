@@ -14,13 +14,13 @@ public static class IntegrationRunner
 
 	public static string Run(SurabProject project, bool fails = false)
 	{
-		var totalErrors = new List<(DiagnosticLevel, string, string)>();
+		var totalErrors = new List<(DiagLevel, string, string)>();
 		foreach (var reasoner in project.GetAllReasoners())
 		{
-			var diags = reasoner.GetAllDiagnostics();
+			var diags = reasoner.GetAllDiags();
 			var src = reasoner.Tree.File.Text;
 			var errors = diags
-				.Where(x => x.Level >= DiagnosticLevel.Error)
+				.Where(x => x.Level >= DiagLevel.Error)
 				.Select(x => (x.Level, x.Message, Text: src[x.Span.File.Start..x.Span.File.End]));
 			totalErrors.AddRange(errors);
 		}

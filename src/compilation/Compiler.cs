@@ -35,8 +35,8 @@ public sealed class Compiler
 		// Note: We're not taking any locks (particular read) as the compilation doesn't run in an asynchronous environment right now.
 
 		project.EnsureAnalyzedAsync().GetAwaiter().GetResult();
-		var diags = project.GetProjectDiagnostics();
-		if (diags.Any(fd => fd.HighestLevel is DiagnosticLevel.Error))
+		var diags = project.GetProjectDiags();
+		if (diags.Any(fd => fd.HighestLevel is DiagLevel.Error))
 		{
 			throw new InvalidOperationException("The project contains errors. You cannot call compile if there are errors.");
 		}

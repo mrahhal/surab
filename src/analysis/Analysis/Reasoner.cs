@@ -114,17 +114,17 @@ public class Reasoner
 	}
 
 	/// <summary>
-	/// Gets all diagnostics (syntax and semantic).
+	/// Gets all diags (syntax and semantic).
 	/// </summary>
-	public IEnumerable<Diagnostic> GetAllDiagnostics()
+	public IEnumerable<Diag> GetAllDiags()
 	{
 		// Syntax
-		var parserDiagnostics = Tree.Diagnostics.Diagnostics;
+		var parserDiags = Tree.Diags.Diags;
 
 		// Semantic
-		var semanticDiagnostics = TypeChecker.Analyze(this);
+		var semanticDiags = TypeChecker.Analyze(this);
 
-		return [.. parserDiagnostics, .. semanticDiagnostics.Diagnostics];
+		return [.. parserDiags, .. semanticDiags.Diags];
 	}
 
 	/// <summary>

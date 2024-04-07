@@ -74,7 +74,7 @@ internal class ParserImpl
 	private readonly Peeker<Token> _tokens;
 	private Token? _current;
 	private Token? _prev;
-	private DiagnosticBag _diagnostics = new();
+	private DiagBag _diags = new();
 	private readonly SyntaxTree _tree;
 
 	// To manage assigning trivia to tokens, we keep track of the trivia collected in this map for ease of consumption by tokens.
@@ -99,11 +99,11 @@ internal class ParserImpl
 	{
 		Debug.Assert(IsAtEnd() && _tokenOffsetToTriviaMap.Count == 0);
 
-		var diagnostics = _diagnostics;
-		_diagnostics = new();
+		var diagnostics = _diags;
+		_diags = new();
 
 		_tree.Root = root;
-		_tree.Diagnostics = diagnostics;
+		_tree.Diags = diagnostics;
 
 		return _tree;
 	}
@@ -252,7 +252,7 @@ internal class ParserImpl
 
 	private void ReportSkippedNode(SyntaxNode node)
 	{
-		_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"skipped unparsed tokens");
+		_diags.Add(node.Span, DiagLevel.Error, $"skipped unparsed tokens");
 	}
 
 	private List<SkippedToken> RecoverMain()
@@ -394,7 +394,7 @@ internal class ParserImpl
 		else
 		{
 			var token = SimpleToken.CreateMissing(_tree, tokenKind, GetProperSpanForMissingThingAtCurrent());
-			_diagnostics.Add(token.Span, DiagnosticLevel.Error, $"expected '{token}'");
+			_diags.Add(token.Span, DiagLevel.Error, $"expected '{token}'");
 			return token;
 		}
 	}
@@ -422,7 +422,7 @@ internal class ParserImpl
 		else
 		{
 			var token = SimpleToken.CreateMissing(_tree, contextualKeyword, GetProperSpanForMissingThingAtCurrent());
-			_diagnostics.Add(token.Span, DiagnosticLevel.Error, $"expected '{contextualKeyword}'");
+			_diags.Add(token.Span, DiagLevel.Error, $"expected '{contextualKeyword}'");
 			return token;
 		}
 	}
@@ -431,14 +431,14 @@ internal class ParserImpl
 	{
 		// TODO: Is the span shrinking here correct?
 		var node = new MissingTypeNode(_tree, attrs == null ? GetProperSpanForMissingThingAtCurrent() : attrs.Span.ShrinkToEnd(), attrs);
-		_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"expected type");
+		_diags.Add(node.Span, DiagLevel.Error, $"expected type");
 		return node;
 	}
 
 	private MissingExprNode CreateMissingExprNode()
 	{
 		var node = new MissingExprNode(_tree, GetProperSpanForMissingThingAtCurrent());
-		_diagnostics.Add(node.Span, DiagnosticLevel.Error, $"expected expression");
+		_diags.Add(node.Span, DiagLevel.Error, $"expected expression");
 		return node;
 	}
 
@@ -1452,7 +1452,7 @@ internal class ParserImpl
 		if (!CurrentIdentifierAllowedAsTypeName())
 		{
 			// TODO: This alone is not ideal. Would be better if we can also create an *error* identifier token to represent this.
-			_diagnostics.Add(_current.Span, DiagnosticLevel.Error, $"not allowed as type name");
+			_diags.Add(_current.Span, DiagLevel.Error, $"not allowed as type name");
 		}
 
 		return ParseOptionalIdentifier();
@@ -1466,7 +1466,7 @@ internal class ParserImpl
 	private IdentifierToken CreateMissingIdentifierToken()
 	{
 		var token = IdentifierToken.CreateMissing(_tree, GetProperSpanForMissingThingAtCurrent());
-		_diagnostics.Add(token.Span, DiagnosticLevel.Error, $"expected an identifier");
+		_diags.Add(token.Span, DiagLevel.Error, $"expected an identifier");
 		return token;
 	}
 

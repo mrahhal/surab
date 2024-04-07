@@ -759,12 +759,12 @@ public class ParserTests
 	}
 
 	[Fact]
-	public void WritesDiagnostics()
+	public void WritesDiags()
 	{
 		// Should write a diag for the missing equal.
 		var code = "const a /* = */ 2;";
 		var tree = Parser.ParseDecl(code);
-		tree.Diagnostics.Diagnostics.Should().HaveCount(1);
+		tree.Diags.Diags.Should().HaveCount(1);
 	}
 
 	[Fact]
@@ -777,7 +777,7 @@ public class ParserTests
 			}
 			""";
 		var tree = Parser.ParseFile(code);
-		tree.Diagnostics.Diagnostics.Should().NotBeEmpty();
+		tree.Diags.Diags.Should().NotBeEmpty();
 	}
 
 	[Fact]
@@ -799,7 +799,7 @@ public class ParserTests
 			}
 			""";
 		var tree = Parser.ParseFile(code);
-		tree.Diagnostics.Diagnostics.Should().BeNullOrEmpty();
+		tree.Diags.Diags.Should().BeNullOrEmpty();
 		var fFnDecl = ((FileNode)tree.Root).Decls.ElementAt(0).Should().BeOfType<FnDeclNode>().Subject;
 		var fStmts = fFnDecl.Body!.Stmts;
 		fStmts.Should().HaveCount(3);
@@ -848,11 +848,11 @@ public class ParserTests
 	{
 		if (hasDiags == false)
 		{
-			tree.Diagnostics.Diagnostics.Should().BeEmpty();
+			tree.Diags.Diags.Should().BeEmpty();
 		}
 		else if (hasDiags == true)
 		{
-			tree.Diagnostics.Diagnostics.Should().NotBeEmpty();
+			tree.Diags.Diags.Should().NotBeEmpty();
 		}
 	}
 
