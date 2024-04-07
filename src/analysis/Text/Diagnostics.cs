@@ -17,7 +17,7 @@ public class Diagnostic(TextSpan span, DiagnosticLevel level, string message)
 
 	public string Message { get; } = message;
 
-	public string Visualize(string src)
+	public string Visualize(string text)
 	{
 		var start = Span.File.Start;
 		var end = Span.File.End;
@@ -27,7 +27,7 @@ public class Diagnostic(TextSpan span, DiagnosticLevel level, string message)
 		var lineNumber = Span.Line.Start.Line + 1;
 
 		var leading = $"{lineNumber}: ";
-		var v = leading + src[windowStart..windowEnd] + Environment.NewLine;
+		var v = leading + text[windowStart..windowEnd] + Environment.NewLine;
 		v += string.Concat(v[..(leading.Length + start - windowStart)].Select(ch =>
 		{
 			if (char.IsWhiteSpace(ch))
@@ -41,7 +41,7 @@ public class Diagnostic(TextSpan span, DiagnosticLevel level, string message)
 
 		int BTill(int p)
 		{
-			while (p > 0 && src[p - 1] != '\n')
+			while (p > 0 && text[p - 1] != '\n')
 			{
 				p--;
 			}
@@ -49,7 +49,7 @@ public class Diagnostic(TextSpan span, DiagnosticLevel level, string message)
 		}
 		int FTill(int p)
 		{
-			while (p < src.Length - 1 && src[p] != '\r' && src[p] != '\n')
+			while (p < text.Length - 1 && text[p] != '\r' && text[p] != '\n')
 			{
 				p++;
 			}

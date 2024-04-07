@@ -5,12 +5,12 @@ namespace Surab.Analysis;
 
 internal static class Lexer
 {
-	public static IEnumerable<Token> Lex(string src)
+	public static IEnumerable<Token> Lex(string code)
 	{
-		return new LexerImpl(src);
+		return new LexerImpl(code);
 	}
 
-	public static IEnumerable<Token> LexSkipTrivia(string src) => Lex(src).SkipTrivia();
+	public static IEnumerable<Token> LexSkipTrivia(string code) => Lex(code).SkipTrivia();
 }
 
 internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
@@ -25,16 +25,16 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 	}
 
 
-	private readonly ReadOnlyMemory<char> _src;
+	private readonly ReadOnlyMemory<char> _code;
 	private ReadOnlyMemory<char> _window;
 	private Position _pos;
 	private Position _posIterStart;
 	private Token? _current;
 	private char _prev;
 
-	public LexerImpl(string src)
+	public LexerImpl(string code)
 	{
-		_src = src.AsMemory();
+		_code = code.AsMemory();
 		Reset();
 	}
 
@@ -102,7 +102,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 
 	public void Reset()
 	{
-		_window = _src;
+		_window = _code;
 		_pos = new();
 		_posIterStart = new();
 		_current = null;
@@ -372,7 +372,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 
 	private ReadOnlySpan<char> SliceConsumed()
 	{
-		return _src.Span[ConsumedFileSpan().GetRange()];
+		return _code.Span[ConsumedFileSpan().GetRange()];
 	}
 
 	private FileSpan ConsumedFileSpan() => new()
