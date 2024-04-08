@@ -846,11 +846,11 @@ public class ParserTests
 
 	private static void ValidateDiags(SyntaxTree tree, bool? hasDiags)
 	{
-		if (hasDiags == false)
+		if (hasDiags == false && tree.Diags.Diags.Count > 0)
 		{
-			tree.Diags.Diags.Should().BeEmpty();
+			AnalysisAssert.Diags(tree.File.Text, [], tree.Diags.Diags);
 		}
-		else if (hasDiags == true)
+		else if (hasDiags == true && tree.Diags.Diags.Count == 0)
 		{
 			tree.Diags.Diags.Should().NotBeEmpty();
 		}

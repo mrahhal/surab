@@ -25,6 +25,19 @@ public class Diag(string? id, TextSpan span, DiagLevel level, string message)
 	}
 }
 
+// Used in tests.
+internal class ExpectedDiag(string? id, FileSpan fileSpan)
+{
+	public string? Id { get; } = id;
+
+	public FileSpan FileSpan { get; } = fileSpan;
+
+	public string Visualize(string text)
+	{
+		return DiagHelper.Visualize(text, FileSpan, null, Id, null, null);
+	}
+}
+
 public interface IDiagsProvider
 {
 	IEnumerable<Diag> GetDiags();
