@@ -6,6 +6,24 @@ namespace Surab;
 
 public static class IntegrationRunner
 {
+	/// <summary>
+	/// Tests the code against an expected output.
+	/// Parses the expected output from annotations (each annotation is treated as a line).
+	/// </summary>
+	public static void TestAnnotatedOutput(string annotatedCode)
+	{
+		var result = AnnotatedCodeUtil.Parse(annotatedCode, treatAnnotatedContentAsCode: false);
+		var expectedOutput = string.Join(Environment.NewLine, result.Annotations.Select(a => a.Content)).NL();
+
+		Test(result.Code, expectedOutput);
+	}
+
+	public static void Test(string code, string expectedOutput)
+	{
+		var output = Run(code);
+		output.Should().Be(expectedOutput.ReplaceLineEndings());
+	}
+
 	public static string Run(string code, bool fails = false)
 	{
 		var project = SurabProject.CreateSimple(code);
