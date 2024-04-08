@@ -336,7 +336,7 @@ public sealed class FnSymbol : InFileSymbol, ISymbolHasType, ISymbolHasAccessorA
 		: base(SymbolKind.Fn, reasoner, node.Parent)
 	{
 		_node = node;
-		Identifier = _node.Identifier;
+		Identifier = _node.Name.Identifier;
 	}
 
 	public new FnSigNode DeclaringNode => _node;
@@ -1081,8 +1081,8 @@ public abstract class NamedTypeSymbol : TypeSymbol, ISymbolHasAccessorAttrs
 		_node = node;
 		Identifier = _node switch
 		{
-			ClassDeclNode classDecl => classDecl.Identifier,
-			StructDeclNode structDecl => structDecl.Identifier,
+			ClassDeclNode classDecl => classDecl.Name.Identifier,
+			StructDeclNode structDecl => structDecl.Name.Identifier,
 			_ => null,
 		};
 	}
@@ -1153,7 +1153,7 @@ public class AliasTypeSymbol : TypeSymbol
 		: base(SymbolKind.AliasType, reasoner, node)
 	{
 		_node = node;
-		Identifier = _node.AsIdentifier.Identifier;
+		Identifier = _node.AsIdentifier.Name.Identifier;
 	}
 
 	internal new Scope Scope => base.Scope!;

@@ -135,7 +135,7 @@ public class Reasoner
 	{
 		return node switch
 		{
-			IdentifierExprNode n => LookupSymbol(n),
+			NameExprNode n => LookupSymbol(n),
 			ThisExprNode n => LookupSymbol(n),
 			PtrTypeNode n => LookupSymbol(n),
 			ExprTypeNode n => LookupSymbol(n.Expr),
@@ -160,15 +160,15 @@ public class Reasoner
 		};
 	}
 
-	public Symbol? LookupSymbol(IdentifierExprNode node)
+	public Symbol? LookupSymbol(NameExprNode node)
 	{
-		if (TryResolveIdentifierExprSymbolInCreationExpr(node, out var symbol))
+		if (TryResolveNameExprSymbolInCreationExpr(node, out var symbol))
 		{
 			return symbol;
 		}
 		else
 		{
-			return LookupSymbol(node.Identifier, node);
+			return LookupSymbol(node.Name.Identifier, node);
 		}
 	}
 
@@ -208,7 +208,7 @@ public class Reasoner
 		// REVIEW: PtrTypeSymbol's GetMember already does pass through, so this isn't really needed?
 		targetType = targetType.UnwrapPointers();
 
-		return targetType?.GetMember(node.Identifier);
+		return targetType?.GetMember(node.Name.Identifier);
 	}
 
 	private Symbol? LookupSymbol(ModuleAccessExprNode node)
@@ -219,7 +219,7 @@ public class Reasoner
 			return null;
 		}
 
-		return module.GetExportedSymbol(node.Identifier);
+		return module.GetExportedSymbol(node.Name.Identifier);
 	}
 
 	// TODO: What does "exported" mean in this context? (right now it means a public symbol in a module)
@@ -283,7 +283,7 @@ public class Reasoner
 			AccessExprNode n => LookupType(n),
 			ModuleAccessExprNode n => LookupType(n),
 			LiteralExprNode n => LookupType(n),
-			IdentifierExprNode n => LookupType(n),
+			NameExprNode n => LookupType(n),
 			ThisExprNode n => LookupType(n),
 			TypeCreationExprNode n => LookupType(n),
 
@@ -387,7 +387,7 @@ public class Reasoner
 		}
 	}
 
-	private TypeSymbol LookupType(IdentifierExprNode node)
+	private TypeSymbol LookupType(NameExprNode node)
 	{
 		return LookupSymbol(node) switch
 		{
@@ -408,7 +408,7 @@ public class Reasoner
 		var targetTypeSymbol = node.TypeExpr switch
 		{
 			// A { ... }
-			IdentifierExprNode identifierExpr => LookupSymbol(identifierExpr.Identifier, node),
+			NameExprNode nameExpr => LookupSymbol(nameExpr.Name.Identifier, node),
 			// A.B { ... }
 			AccessExprNode accessExpr => LookupSymbol(accessExpr),
 			// a::B { ... }
@@ -433,16 +433,16 @@ public class Reasoner
 	{
 		return node switch
 		{
-			IdentifierExprNode n => LookupModule(n),
+			NameExprNode n => LookupModule(n),
 			AccessExprNode n => LookupModule(n),
 
 			_ => null,
 		};
 	}
 
-	private ModuleSymbol? LookupModule(IdentifierExprNode identifierExpr)
+	private ModuleSymbol? LookupModule(NameExprNode nameExpr)
 	{
-		return GetFileScope().LookupImportedModule(identifierExpr.Identifier.Value);
+		return GetFileScope().LookupImportedModule(nameExpr.Name.Identifier.Value);
 	}
 
 	private ModuleSymbol? LookupModule(AccessExprNode accessExpr)
@@ -456,18 +456,18 @@ public class Reasoner
 	/// If the identifier expr is a part of setting a symbol in a creation expr, this method returns true and tries to resolve that symbol.
 	/// Otherwise false is returned.
 	/// </summary>
-	private bool TryResolveIdentifierExprSymbolInCreationExpr(IdentifierExprNode identifierExpr, out Symbol? symbol)
+	private bool TryResolveNameExprSymbolInCreationExpr(NameExprNode nameExpr, out Symbol? symbol)
 	{
 		symbol = null;
 		// The identifier inside a creation expr: `S1 { a = 42 }`
-		if (identifierExpr.Parent is AssignmentExprNode assignmentExpr &&
-			assignmentExpr.Lhs == identifierExpr &&
+		if (nameExpr.Parent is AssignmentExprNode assignmentExpr &&
+			assignmentExpr.Lhs == nameExpr &&
 			assignmentExpr.Parent is MapInitializerItemNode mapInitializerItem &&
 			mapInitializerItem.Parent is MapInitializerNode mapInitializer &&
 			mapInitializer.Parent is TypeCreationExprNode typeCreationExpr)
 		{
 			var type = LookupType(typeCreationExpr);
-			symbol = type?.GetCreationMemberSymbol(identifierExpr.Identifier)?.Symbol;
+			symbol = type?.GetCreationMemberSymbol(nameExpr.Name.Identifier)?.Symbol;
 			return true;
 		}
 		return false;
@@ -599,7 +599,7 @@ public class Reasoner
 
 		if (import.AsIdentifier != null)
 		{
-			var alias = import.AsIdentifier.Identifier.Value;
+			var alias = import.AsIdentifier.Name.Identifier.Value;
 			targetModule = new AliasModuleSymbol(alias, targetModule);
 		}
 
@@ -616,14 +616,14 @@ public class Reasoner
 		var current = expr;
 		while (true)
 		{
-			if (current is IdentifierExprNode identifierExpr)
+			if (current is NameExprNode nameExpr)
 			{
-				reversePaths.Add(identifierExpr.Identifier.Value);
+				reversePaths.Add(nameExpr.Name.Identifier.Value);
 				break;
 			}
 			else if (current is AccessExprNode accessExpr)
 			{
-				reversePaths.Add(accessExpr.Identifier.Value);
+				reversePaths.Add(accessExpr.Name.Identifier.Value);
 				current = accessExpr.Target;
 			}
 			else

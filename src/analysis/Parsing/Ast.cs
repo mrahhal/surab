@@ -77,8 +77,14 @@ public abstract class SyntaxToken : SyntaxEntity
 
 	public SyntaxTokenKind Kind { get; }
 
+	/// <summary>
+	/// The leading trivia.
+	/// </summary>
 	public IEnumerable<SyntaxTrivia> LeadingTrivia => _leadingTrivia;
 
+	/// <summary>
+	/// The trailing trivia. Usually empty except for the last token in a file.
+	/// </summary>
 	public IEnumerable<SyntaxTrivia> TrailingTrivia => _trailingTrivia;
 }
 
@@ -137,6 +143,8 @@ public enum SimpleTokenKind
 	ClosedParen,
 	OpenBrace,
 	ClosedBrace,
+	OpenChevron,
+	ClosedChevron,
 	Comma,
 	Dot,
 	ColonColon,
@@ -208,6 +216,8 @@ public sealed class SimpleToken : SyntaxToken
 				TokenKind.ClosedParen => SimpleTokenKind.ClosedParen,
 				TokenKind.OpenBrace => SimpleTokenKind.OpenBrace,
 				TokenKind.ClosedBrace => SimpleTokenKind.ClosedBrace,
+				TokenKind.Less => SimpleTokenKind.OpenChevron,
+				TokenKind.Greater => SimpleTokenKind.ClosedChevron,
 				TokenKind.Comma => SimpleTokenKind.Comma,
 				TokenKind.Dot => SimpleTokenKind.Dot,
 				TokenKind.ColonColon => SimpleTokenKind.ColonColon,
@@ -266,6 +276,8 @@ public sealed class SimpleToken : SyntaxToken
 			SimpleTokenKind.ClosedParen => ")",
 			SimpleTokenKind.OpenBrace => "{",
 			SimpleTokenKind.ClosedBrace => "}",
+			SimpleTokenKind.OpenChevron => "<",
+			SimpleTokenKind.ClosedChevron => ">",
 			SimpleTokenKind.Comma => ",",
 			SimpleTokenKind.Dot => ".",
 			SimpleTokenKind.ColonColon => "::",
@@ -892,12 +904,12 @@ public partial class MethodDeclNode
 	/// <summary>
 	/// Gets whether the method is the special initializer method `() { }`.
 	/// </summary>
-	public bool IsInitializer => !Sig.Identifier.IsMissing && Sig.Identifier.Value == string.Empty;
+	public bool IsInitializer => !Sig.Name.Identifier.IsMissing && Sig.Name.Identifier.Value == string.Empty;
 
 	/// <summary>
 	/// Gets whether the method is an implementation of an operator.
 	/// </summary>
-	public bool IsMethodOp => TokenHelper.TryGetMethodOp(Sig.Identifier.Value, out _);
+	public bool IsMethodOp => TokenHelper.TryGetMethodOp(Sig.Name.Identifier.Value, out _);
 }
 
 public partial class BareExprStmtNode

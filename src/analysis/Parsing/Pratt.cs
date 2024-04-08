@@ -72,7 +72,7 @@ public static class Pratt
 		{ TokenKind.ColonColon, InfixRule.RightAssociative(Precedence.Call) },
 		{ TokenKind.OpenParen, InfixRule.LeftAssociative(Precedence.Call) },
 		// The predicate avoids a situation where `{ 2 } { ... }` is regarded as creation.
-		{ TokenKind.OpenBrace, InfixRule.LeftAssociative(Precedence.Call, leftExpr => leftExpr is IdentifierExprNode or AccessExprNode or ModuleAccessExprNode) },
+		{ TokenKind.OpenBrace, InfixRule.LeftAssociative(Precedence.Call, leftExpr => leftExpr is NameExprNode or AccessExprNode or ModuleAccessExprNode) },
 	};
 
 	public static bool IsPrefixRule(TokenKind tokenKind) => tokenKind is

@@ -55,7 +55,7 @@ internal class Lowerer
 			AccessExprNode n => Lower(n),
 			ModuleAccessExprNode n => Lower(n),
 			LiteralExprNode n => Lower(n),
-			IdentifierExprNode n => Lower(n),
+			NameExprNode n => Lower(n),
 			ThisExprNode n => Lower(n),
 			TypeCreationExprNode n => Lower(n),
 
@@ -468,7 +468,7 @@ internal class Lowerer
 			node.Literal);
 	}
 
-	private LoweredNode Lower(IdentifierExprNode node)
+	private LoweredNode Lower(NameExprNode node)
 	{
 		// Should only be here if we're loading a variable?
 		var symbol = _reasoner.LookupSymbol(node);

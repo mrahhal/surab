@@ -203,8 +203,8 @@
 					"Type": "SimpleToken"
 				},
 				{
-					"Name": "identifier",
-					"Type": "IdentifierToken"
+					"Name": "name",
+					"Type": "NameNode"
 				}
 			]
 		},
@@ -222,8 +222,8 @@
 					"Type": "SimpleToken"
 				},
 				{
-					"Name": "identifier",
-					"Type": "IdentifierToken"
+					"Name": "name",
+					"Type": "NameNode"
 				},
 				{
 					"Name": "openBraceToken",
@@ -253,8 +253,8 @@
 					"Type": "SimpleToken"
 				},
 				{
-					"Name": "identifier",
-					"Type": "IdentifierToken"
+					"Name": "name",
+					"Type": "NameNode"
 				},
 				{
 					"Name": "openBraceToken",
@@ -502,8 +502,8 @@
 					"Type": "SimpleToken"
 				},
 				{
-					"Name": "identifier",
-					"Type": "IdentifierToken"
+					"Name": "name",
+					"Type": "NameNode"
 				}
 			]
 		},
@@ -521,8 +521,8 @@
 					"Type": "SimpleToken"
 				},
 				{
-					"Name": "identifier",
-					"Type": "IdentifierToken"
+					"Name": "name",
+					"Type": "NameNode"
 				}
 			]
 		},
@@ -537,12 +537,12 @@
 			]
 		},
 		{
-			"Name": "IdentifierExpr",
+			"Name": "NameExpr",
 			"Base": "ExprNode",
 			"Members": [
 				{
-					"Name": "identifier",
-					"Type": "IdentifierToken"
+					"Name": "name",
+					"Type": "NameNode"
 				}
 			]
 		},
@@ -724,6 +724,52 @@
 			]
 		},
 		{
+			"Name": "Name",
+			"Members": [
+				{
+					"Name": "identifier",
+					"Type": "IdentifierToken"
+				},
+				{
+					"Name": "genericParamTypesList",
+					"Type": "GenericParamTypesListNode",
+					"Optional": true
+				}
+			]
+		},
+		{
+			"Name": "GenericParamTypesList",
+			"Members": [
+				{
+					"Name": "openChevronToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "genericParamTypes",
+					"Type": "GenericParamTypeNode",
+					"List": true
+				},
+				{
+					"Name": "closedChevronToken",
+					"Type": "SimpleToken"
+				}
+			]
+		},
+		{
+			"Name": "GenericParamType",
+			"Members": [
+				{
+					"Name": "type",
+					"Type": "TypeNode"
+				},
+				{
+					"Name": "commaToken",
+					"Type": "SimpleToken",
+					"Optional": true
+				}
+			]
+		},
+		{
 			"Name": "ColonType",
 			"Members": [
 				{
@@ -733,6 +779,22 @@
 				{
 					"Name": "type",
 					"Type": "TypeNode"
+				}
+			]
+		},
+		{
+			"Name": "ExprType",
+			"Base": "TypeNode",
+			"Members": [
+				{
+					"Name": "attrs",
+					"Type": "AttrsListNode",
+					"Optional": true
+				},
+				{
+					"Name": "expr",
+					"Type": "ExprNode",
+					"Comment": "Well formed: NameExpr or AccessExpr or ModuleAccessExpr"
 				}
 			]
 		},
@@ -753,22 +815,6 @@
 					"Name": "innerType",
 					"Type": "TypeNode",
 					"Optional": true
-				}
-			]
-		},
-		{
-			"Name": "ExprType",
-			"Base": "TypeNode",
-			"Members": [
-				{
-					"Name": "attrs",
-					"Type": "AttrsListNode",
-					"Optional": true
-				},
-				{
-					"Name": "expr",
-					"Type": "ExprNode",
-					"Comment": "Well formed: IdentifierExpr or AccessExpr or ModuleAccessExpr"
 				}
 			]
 		},
@@ -814,8 +860,8 @@
 			"Name": "FnSig",
 			"Members": [
 				{
-					"Name": "identifier",
-					"Type": "IdentifierToken"
+					"Name": "name",
+					"Type": "NameNode"
 				},
 				{
 					"Name": "paramsList",

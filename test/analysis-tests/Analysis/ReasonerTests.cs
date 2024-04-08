@@ -651,7 +651,7 @@ public class ReasonerTests
 		var sSymbol = reasoner.GetDeclaredSymbol(sDecl)!;
 		sSymbol.Children.Should().HaveCount(1);
 
-		var fDecl = tree.Root.DescendantNodes().OfType<FnDeclNode>().Single(x => x.Sig.Identifier.Value == "f");
+		var fDecl = tree.Root.DescendantNodes().OfType<FnDeclNode>().Single(x => x.Sig.Name.Identifier.Value == "f");
 		var fSymbol = reasoner.GetDeclaredSymbol(fDecl)!;
 		fSymbol.Children.Should().HaveCount(0);
 	}

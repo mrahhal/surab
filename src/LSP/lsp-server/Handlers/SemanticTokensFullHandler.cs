@@ -145,9 +145,9 @@ public class SemanticTokensFullHandler(
 
 			case IdentifierToken identifierToken:
 				{
-					if (identifierToken.Parent is IdentifierExprNode identifierExpr)
+					if (identifierToken.Parent is NameExprNode nameExpr)
 					{
-						var symbol = reasoner.LookupSymbol(identifierExpr);
+						var symbol = reasoner.LookupSymbol(nameExpr);
 						builder.SetType(GetTokenType(symbol));
 					}
 					else if (identifierToken.Parent is ExprTypeNode exprType)

@@ -24,7 +24,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 
 	public override void VisitImport(ImportNode node)
 	{
-		if (node.Target is not IdentifierExprNode and not AccessExprNode)
+		if (node.Target is not NameExprNode and not AccessExprNode)
 		{
 			_diags.Add(CoreDiags.S0100, node.Target.Span);
 		}
@@ -203,7 +203,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		{
 			//case AccessExprNode accessExprNode:
 			//    break;
-			case IdentifierExprNode identifierExprNode:
+			case NameExprNode identifierExprNode:
 				break;
 
 			default:
@@ -384,7 +384,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		var targetSymbol = _reasoner.LookupSymbol(node.Target);
 		if (targetSymbol is ModuleSymbol)
 		{
-			_diags.Add(node.Identifier.Span, DiagLevel.Error, $"invalid access on a module, did you mean to use :: instead?");
+			_diags.Add(node.Name.Identifier.Span, DiagLevel.Error, $"invalid access on a module, did you mean to use :: instead?");
 			return;
 		}
 
@@ -402,16 +402,16 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		//}
 
 		// TODO: Store and use a lookup table for this?
-		var member = targetType.GetMember(node.Identifier.Value);
+		var member = targetType.GetMember(node.Name.Identifier.Value);
 		if (member == null)
 		{
-			_diags.Add(node.Identifier.Span, DiagLevel.Error, $"unknown member access");
+			_diags.Add(node.Name.Identifier.Span, DiagLevel.Error, $"unknown member access");
 		}
 		if (member is FnSymbol && _reasoner.IsInstanceAccess(node))
 		{
 			if (node.Parent is not CallExprNode)
 			{
-				_diags.Add(node.Identifier.Span, DiagLevel.Error, $"taking a value of a method is not allowed, call it with `()`");
+				_diags.Add(node.Name.Identifier.Span, DiagLevel.Error, $"taking a value of a method is not allowed, call it with `()`");
 			}
 		}
 
@@ -427,10 +427,10 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 			return;
 		}
 
-		var result = module.GetExportedSymbol(node.Identifier);
+		var result = module.GetExportedSymbol(node.Name.Identifier);
 		if (result == null)
 		{
-			_diags.Add(node.Identifier.Span, DiagLevel.Error, $"can't find exported symbol");
+			_diags.Add(node.Name.Identifier.Span, DiagLevel.Error, $"can't find exported symbol");
 			return;
 		}
 
@@ -535,12 +535,12 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		base.VisitFnSig(node);
 	}
 
-	public override void VisitIdentifierExpr(IdentifierExprNode node)
+	public override void VisitNameExpr(NameExprNode node)
 	{
 		var symbol = _reasoner.LookupSymbol(node);
-		AnalyzeLookedUpIdentifier(node.Identifier, symbol);
+		AnalyzeLookedUpIdentifier(node.Name.Identifier, symbol);
 
-		base.VisitIdentifierExpr(node);
+		base.VisitNameExpr(node);
 	}
 
 	private void AnalyzeLookedUpIdentifier(IdentifierToken identifier, Symbol? symbol)

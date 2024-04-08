@@ -53,10 +53,10 @@ public class CompilationTestContext
 
 	private void Fill()
 	{
-		var struct1Node = Reasoner.Tree.Root.DescendantNodes().OfType<StructDeclNode>().First(x => x.Identifier.Value == "Struct1");
+		var struct1Node = Reasoner.Tree.Root.DescendantNodes().OfType<StructDeclNode>().First(x => x.Name.Identifier.Value == "Struct1");
 		Struct1 = (StructTypeSymbol)Reasoner.GetDeclaredSymbol(struct1Node)!;
 
-		var struct2Node = Reasoner.Tree.Root.DescendantNodes().OfType<StructDeclNode>().First(x => x.Identifier.Value == "Struct2");
+		var struct2Node = Reasoner.Tree.Root.DescendantNodes().OfType<StructDeclNode>().First(x => x.Name.Identifier.Value == "Struct2");
 		Struct2 = (StructTypeSymbol)Reasoner.GetDeclaredSymbol(struct2Node)!;
 	}
 }
