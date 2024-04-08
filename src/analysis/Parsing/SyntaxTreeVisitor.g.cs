@@ -207,17 +207,32 @@ public abstract partial class SyntaxTreeVisitor
 		Walk(node);
 	}
 
+	public virtual void VisitNameDef(NameDefNode node)
+	{
+		Walk(node);
+	}
+
 	public virtual void VisitName(NameNode node)
 	{
 		Walk(node);
 	}
 
-	public virtual void VisitGenericParamTypesList(GenericParamTypesListNode node)
+	public virtual void VisitGenericParamsList(GenericParamsListNode node)
 	{
 		Walk(node);
 	}
 
-	public virtual void VisitGenericParamType(GenericParamTypeNode node)
+	public virtual void VisitGenericParam(GenericParamNode node)
+	{
+		Walk(node);
+	}
+
+	public virtual void VisitGenericArgsList(GenericArgsListNode node)
+	{
+		Walk(node);
+	}
+
+	public virtual void VisitGenericArg(GenericArgNode node)
 	{
 		Walk(node);
 	}

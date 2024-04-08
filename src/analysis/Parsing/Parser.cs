@@ -662,7 +662,7 @@ internal class ParserImpl
 	private DeclNode ParseStructDecl(AttrsListNode? attrs)
 	{
 		var structToken = EatAssertedSimpleToken(TokenKind.Struct);
-		var name = ParseTypeDeclName();
+		var name = ParseNameDef(isTypeDecl: true);
 		var openBraceToken = EatExpectedSimpleToken(TokenKind.OpenBrace);
 		var members = ParseDeclMembers();
 		var closedBraceToken = EatExpectedSimpleToken(TokenKind.ClosedBrace);
@@ -676,7 +676,7 @@ internal class ParserImpl
 	private DeclNode ParseClassDecl(AttrsListNode? attrs)
 	{
 		var classToken = EatAssertedSimpleToken(TokenKind.Class);
-		var name = ParseTypeDeclName();
+		var name = ParseNameDef(isTypeDecl: true);
 		var openBraceToken = EatExpectedSimpleToken(TokenKind.OpenBrace);
 		var members = ParseDeclMembers();
 		var closedBraceToken = EatExpectedSimpleToken(TokenKind.ClosedBrace);
@@ -713,7 +713,8 @@ internal class ParserImpl
 	private AsIdentifierNode ParseAsIdentifier()
 	{
 		var asToken = EatExpectedContextualKeywordToken(ContextualKeyword.As);
-		var name = ParseTypeDeclName();
+		var name = ParseNameDef(isTypeDecl: true);
+
 		return new AsIdentifierNode(_tree, asToken, name);
 	}
 
@@ -725,7 +726,8 @@ internal class ParserImpl
 		}
 
 		var asToken = EatAssertedContextualKeywordToken(ContextualKeyword.As);
-		var name = ParseTypeDeclName();
+		var name = ParseNameDef(isTypeDecl: true);
+
 		return new AsIdentifierNode(_tree, asToken, name);
 	}
 
@@ -1413,56 +1415,111 @@ internal class ParserImpl
 	}
 
 	/// <summary>
-	/// Parses `<Type, Type>`.
+	/// Parses `<T1, T2>`.
 	///
-	/// This part of parsing is whitespace sensitive in regards to the leading trivia of the open chevron token.
-	/// This is not final, but it's the easiest way to produce non ambiguous parsing for now.
-	/// Having any whitespace before the open chevron will produce a no match (will usually be parsed as a bin op instead).
-	///
-	/// Examples:
-	/// - ` <...` => ✖
-	/// - `a<...` => ✔
-	/// - `/**/<...` => ✖
+	/// This part of parsing is whitespace sensitive. Refer to `CanStartGenericList` for more info.
 	///
 	/// Requirements: current is Less.
 	/// </summary>
-	private GenericParamTypesListNode? ParseOptionalGenericParamTypesList()
+	private GenericParamsListNode? ParseOptionalGenericParamsList()
 	{
-		if (!CheckToken(TokenKind.Less) || CurrentHasLeadingTrivia())
+		if (!CanStartGenericList())
 		{
 			return null;
 		}
 
 		var openChevronToken = EatAssertedSimpleToken(TokenKind.Less);
 
-		var paramTypes = new List<GenericParamTypeNode>();
+		var genericParams = new List<GenericParamNode>();
 
 		while (true)
 		{
-			VerifyLoopIsNotPossiblyInfinite(paramTypes);
+			VerifyLoopIsNotPossiblyInfinite(genericParams);
 
-			if (IsAtEnd() || CheckToken(TokenKind.Greater) || (!_current.Kind.CanStartType() && !CheckToken(TokenKind.Comma)))
+			if (IsAtEnd() || CheckToken(TokenKind.Greater) || (_current.Kind is not TokenKind.Identifier && !CheckToken(TokenKind.Comma)))
 				break;
 
-			paramTypes.Add(ParseGenericParamType());
+			genericParams.Add(ParseGenericParamType());
 		}
 
 		var closedChevronToken = EatExpectedSimpleToken(TokenKind.Greater);
 
-		return new GenericParamTypesListNode(_tree, openChevronToken, paramTypes, closedChevronToken);
+		return new GenericParamsListNode(_tree, openChevronToken, genericParams, closedChevronToken);
+	}
+
+	/// <summary>
+	/// Parses `T,`
+	/// </summary>
+	private GenericParamNode ParseGenericParamType()
+	{
+		Debug.Assert(!IsAtEnd() && (_current.Kind is TokenKind.Identifier || CheckToken(TokenKind.Comma)));
+
+		var type = ParseIdentifier();
+		var commaToken = TryEatSimpleToken(TokenKind.Comma);
+
+		return new GenericParamNode(_tree, type, commaToken);
+	}
+
+	/// <summary>
+	/// Parses `<Type1, Type2>`.
+	///
+	/// This part of parsing is whitespace sensitive. Refer to `CanStartGenericList` for more info.
+	///
+	/// Requirements: current is Less.
+	/// </summary>
+	private GenericArgsListNode? ParseOptionalGenericArgsList()
+	{
+		if (!CanStartGenericList())
+		{
+			return null;
+		}
+
+		var openChevronToken = EatAssertedSimpleToken(TokenKind.Less);
+
+		var genericArgs = new List<GenericArgNode>();
+
+		while (true)
+		{
+			VerifyLoopIsNotPossiblyInfinite(genericArgs);
+
+			if (IsAtEnd() || CheckToken(TokenKind.Greater) || (!_current.Kind.CanStartType() && !CheckToken(TokenKind.Comma)))
+				break;
+
+			genericArgs.Add(ParseGenericArgType());
+		}
+
+		var closedChevronToken = EatExpectedSimpleToken(TokenKind.Greater);
+
+		return new GenericArgsListNode(_tree, openChevronToken, genericArgs, closedChevronToken);
 	}
 
 	/// <summary>
 	/// Parses `Type,`
 	/// </summary>
-	private GenericParamTypeNode ParseGenericParamType()
+	private GenericArgNode ParseGenericArgType()
 	{
 		Debug.Assert(!IsAtEnd() && (_current.Kind.CanStartType() || CheckToken(TokenKind.Comma)));
 
 		var type = ParseType();
 		var commaToken = TryEatSimpleToken(TokenKind.Comma);
 
-		return new GenericParamTypeNode(_tree, type, commaToken);
+		return new GenericArgNode(_tree, type, commaToken);
+	}
+
+	/// <summary>
+	/// This part of parsing is whitespace sensitive in regards to the leading trivia of the open chevron token.
+	/// This is not final, but it's the easiest way to produce non ambiguous parsing for now.
+	///
+	/// Having any whitespace before the open chevron will produce a no match (will usually be parsed as a bin op instead).
+	///
+	/// Examples:
+	/// - ` <...` => ✖
+	/// - `a<...` => ✔
+	/// - `/**/<...` => ✖
+	/// </summary>
+	private bool CanStartGenericList()
+	{
+		return CheckToken(TokenKind.Less) && !CurrentHasLeadingTrivia();
 	}
 
 	/// <summary>
@@ -1478,8 +1535,8 @@ internal class ParserImpl
 	{
 		var identifier = mode switch
 		{
-			FnSigParseMode.Fn => ParseName(),
-			FnSigParseMode.Method => ParseMethodIdentifier(),
+			FnSigParseMode.Fn => ParseNameDef(isTypeDecl: false),
+			FnSigParseMode.Method => ParseMethodNameDef(),
 			_ => throw new UnreachableException(),
 		};
 		var @params = ParseParamsList();
@@ -1487,7 +1544,7 @@ internal class ParserImpl
 
 		return new FnSigNode(_tree, identifier, @params, returnType);
 
-		NameNode ParseMethodIdentifier()
+		NameDefNode ParseMethodNameDef()
 		{
 			// Check ParseMemberDecl to see what tokens are expected here.
 
@@ -1498,57 +1555,59 @@ internal class ParserImpl
 				var (leading, trailing) = ConsumeTrivia(token);
 				var lexeme = GetLexeme(token);
 				var identifier = IdentifierToken.Create(_tree, leading, trailing, token.Span, lexeme.ToString());
-				return ParseNameWithIdentifier(identifier);
+				return ParseNameDefWithIdentifier(identifier);
 			}
 			else if (_current?.Kind is TokenKind.OpenParen)
 			{
 				// Empty identifier (initializer method)
 				var identifier = IdentifierToken.Create(_tree, [], [], GetProperSpanForMissingThingAtCurrent(), string.Empty);
-				return ParseNameWithIdentifier(identifier);
+				return ParseNameDefWithIdentifier(identifier);
 			}
 			else
 			{
-				return ParseName();
+				return ParseNameDef(isTypeDecl: false);
 			}
 		}
+	}
+
+	/// <summary>
+	/// Parses name definitions in declarations.
+	///
+	/// Can also ensure the used identifier is allowed if this is a type decl. If not allowed, an error diag is added.
+	/// </summary>
+	private NameDefNode ParseNameDef(bool isTypeDecl)
+	{
+		var identifier = isTypeDecl ? ParseTypeIdentifier() : ParseIdentifier();
+		var genericParamsList = ParseOptionalGenericParamsList();
+
+		return new NameDefNode(_tree, identifier, genericParamsList);
+	}
+
+	private NameDefNode ParseNameDefWithIdentifier(IdentifierToken identifier)
+	{
+		var genericParamsList = ParseOptionalGenericParamsList();
+
+		return new NameDefNode(_tree, identifier, genericParamsList);
 	}
 
 	private NameNode ParseAssertedName()
 	{
 		var identifier = ParseAssertedIdentifier();
-		var genericParamTypesList = ParseOptionalGenericParamTypesList();
+		var genericArgsList = ParseOptionalGenericArgsList();
 
-		return new NameNode(_tree, identifier, genericParamTypesList);
+		return new NameNode(_tree, identifier, genericArgsList);
 	}
 
 	private NameNode ParseName()
 	{
 		var identifier = ParseIdentifier();
-		var genericParamTypesList = ParseOptionalGenericParamTypesList();
+		var genericArgsList = ParseOptionalGenericArgsList();
 
-		return new NameNode(_tree, identifier, genericParamTypesList);
-	}
-
-	private NameNode ParseNameWithIdentifier(IdentifierToken identifier)
-	{
-		var genericParamTypesList = ParseOptionalGenericParamTypesList();
-
-		return new NameNode(_tree, identifier, genericParamTypesList);
+		return new NameNode(_tree, identifier, genericArgsList);
 	}
 
 	/// <summary>
-	/// Similar to ParseName, but also ensures the identifier is allowed. If not, a diag is added.
-	/// </summary>
-	private NameNode ParseTypeDeclName()
-	{
-		var identifier = ParseTypeIdentifier();
-		var genericParamTypesList = ParseOptionalGenericParamTypesList();
-
-		return new NameNode(_tree, identifier, genericParamTypesList);
-	}
-
-	/// <summary>
-	/// Similar to ParseIdentifier, but also ensures the identifier is allowed. If not, a diag is added.
+	/// Similar to ParseIdentifier, but also ensures the identifier is allowed. If not allowed, an error diag is added.
 	/// </summary>
 	private IdentifierToken ParseTypeIdentifier()
 	{

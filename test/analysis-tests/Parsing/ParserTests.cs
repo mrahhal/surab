@@ -714,12 +714,12 @@ public class ParserTests
 	}
 
 	[Fact]
-	public void GenericParamTypes_NoGenericTypes()
+	public void Generics_NoGenericParams()
 	{
 		var code = "struct S { }";
 		var node = ParseDecl(code).Should().BeOfType<StructDeclNode>().Subject;
 		node.Name.Identifier.Value.Should().Be("S");
-		node.Name.GenericParamTypesList.Should().BeNull();
+		node.Name.GenericParamsList.Should().BeNull();
 	}
 
 	[Fact]
@@ -728,10 +728,9 @@ public class ParserTests
 		var code = "struct S<T> { }";
 		var node = ParseDecl(code).Should().BeOfType<StructDeclNode>().Subject;
 		node.Name.Identifier.Value.Should().Be("S");
-		node.Name.GenericParamTypesList.Should().NotBeNull();
-		node.Name.GenericParamTypesList!.GenericParamTypes.Should().HaveCount(1);
-		var exprType = node.Name.GenericParamTypesList!.GenericParamTypes.ElementAt(0).Type.Should().BeOfType<ExprTypeNode>().Subject;
-		exprType.Expr.Should().BeOfType<NameExprNode>().Subject.Name.Identifier.Value.Should().Be("T");
+		node.Name.GenericParamsList.Should().NotBeNull();
+		node.Name.GenericParamsList!.GenericParams.Should().HaveCount(1);
+		node.Name.GenericParamsList!.GenericParams.ElementAt(0).Identifier.Value.Should().Be("T");
 	}
 
 	[Fact]
@@ -739,8 +738,8 @@ public class ParserTests
 	{
 		var code = "struct S<T, T2> { }";
 		var node = ParseDecl(code).Should().BeOfType<StructDeclNode>().Subject;
-		node.Name.GenericParamTypesList.Should().NotBeNull();
-		node.Name.GenericParamTypesList!.GenericParamTypes.Should().HaveCount(2);
+		node.Name.GenericParamsList.Should().NotBeNull();
+		node.Name.GenericParamsList!.GenericParams.Should().HaveCount(2);
 	}
 
 	[Fact]
@@ -751,8 +750,11 @@ public class ParserTests
 		var accessExpr = node.Initializer!.Expr.Should().BeOfType<AccessExprNode>().Subject;
 		var nameExpr = accessExpr.Target.Should().BeOfType<NameExprNode>().Subject;
 		nameExpr.Name.Identifier.Value.Should().Be("S");
-		nameExpr.Name.GenericParamTypesList.Should().NotBeNull();
-		nameExpr.Name.GenericParamTypesList!.GenericParamTypes.Should().HaveCount(2);
+		nameExpr.Name.GenericArgsList.Should().NotBeNull();
+		nameExpr.Name.GenericArgsList!.GenericArgs.Should().HaveCount(2);
+		nameExpr.Name.GenericArgsList!.GenericArgs.ElementAt(0).Type.Should().BeOfType<ExprTypeNode>().Subject
+			.Expr.Should().BeOfType<NameExprNode>().Subject
+			.Name.Identifier.Value.Should().Be("T");
 	}
 
 	[Fact]

@@ -863,7 +863,7 @@ public abstract class SyntaxNode : SyntaxEntity
 	/// </summary>
 	public bool DeclaresSymbol()
 	{
-		return this is DeclNode or DeclStmtNode or ParamNode;
+		return this is DeclNode or DeclStmtNode or ParamNode or GenericParamNode;
 	}
 }
 

@@ -204,7 +204,7 @@
 				},
 				{
 					"Name": "name",
-					"Type": "NameNode"
+					"Type": "NameDefNode"
 				}
 			]
 		},
@@ -223,7 +223,7 @@
 				},
 				{
 					"Name": "name",
-					"Type": "NameNode"
+					"Type": "NameDefNode"
 				},
 				{
 					"Name": "openBraceToken",
@@ -254,7 +254,7 @@
 				},
 				{
 					"Name": "name",
-					"Type": "NameNode"
+					"Type": "NameDefNode"
 				},
 				{
 					"Name": "openBraceToken",
@@ -724,29 +724,45 @@
 			]
 		},
 		{
-			"Name": "Name",
+			"Name": "NameDef",
+			"Comment": "A name definition used in declarations.",
 			"Members": [
 				{
 					"Name": "identifier",
 					"Type": "IdentifierToken"
 				},
 				{
-					"Name": "genericParamTypesList",
-					"Type": "GenericParamTypesListNode",
+					"Name": "genericParamsList",
+					"Type": "GenericParamsListNode",
 					"Optional": true
 				}
 			]
 		},
 		{
-			"Name": "GenericParamTypesList",
+			"Name": "Name",
+			"Comment": "A name reference.",
+			"Members": [
+				{
+					"Name": "identifier",
+					"Type": "IdentifierToken"
+				},
+				{
+					"Name": "genericArgsList",
+					"Type": "GenericArgsListNode",
+					"Optional": true
+				}
+			]
+		},
+		{
+			"Name": "GenericParamsList",
 			"Members": [
 				{
 					"Name": "openChevronToken",
 					"Type": "SimpleToken"
 				},
 				{
-					"Name": "genericParamTypes",
-					"Type": "GenericParamTypeNode",
+					"Name": "genericParams",
+					"Type": "GenericParamNode",
 					"List": true
 				},
 				{
@@ -756,7 +772,39 @@
 			]
 		},
 		{
-			"Name": "GenericParamType",
+			"Name": "GenericParam",
+			"Members": [
+				{
+					"Name": "identifier",
+					"Type": "IdentifierToken"
+				},
+				{
+					"Name": "commaToken",
+					"Type": "SimpleToken",
+					"Optional": true
+				}
+			]
+		},
+		{
+			"Name": "GenericArgsList",
+			"Members": [
+				{
+					"Name": "openChevronToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "genericArgs",
+					"Type": "GenericArgNode",
+					"List": true
+				},
+				{
+					"Name": "closedChevronToken",
+					"Type": "SimpleToken"
+				}
+			]
+		},
+		{
+			"Name": "GenericArg",
 			"Members": [
 				{
 					"Name": "type",
@@ -861,7 +909,7 @@
 			"Members": [
 				{
 					"Name": "name",
-					"Type": "NameNode"
+					"Type": "NameDefNode"
 				},
 				{
 					"Name": "paramsList",
