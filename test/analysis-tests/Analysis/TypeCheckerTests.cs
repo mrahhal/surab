@@ -1,6 +1,4 @@
-﻿using System.Text;
-
-namespace Surab.Analysis;
+﻿namespace Surab.Analysis;
 
 public class TypeCheckerTests
 {
@@ -44,101 +42,13 @@ public class TypeCheckerTests
 
 public static class AnalyzerTestUtils
 {
-	public static void Test(string markup)
+	public static void Test(string annotatedCode)
 	{
-		var codeAndDiags = Parse(markup);
-		var (_, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(codeAndDiags.Code);
+		var result = AnnotatedCodeUtil.Parse(annotatedCode, treatAnnotatedContentAsCode: true);
+		var (_, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(result.Code);
 		var actualDiags = reasoner.GetAllDiags().ToList();
+		var expectedDiags = result.Annotations.Select(a => new ExpectedDiag(a.Hint, a.FileSpan));
 
-		AnalysisAssert.Diags(codeAndDiags.Code, codeAndDiags.ExpectedDiags, actualDiags);
-	}
-
-	private static CodeAndDiags Parse(string markup)
-	{
-		var codeSB = new StringBuilder();
-		var expectedDiags = new List<ExpectedDiag>();
-
-		var offset = 0;
-		while (offset < markup.Length)
-		{
-			if (Check("[|"))
-			{
-				offset += 2;
-
-				var innerMarkupStart = offset;
-				var diagStart = codeSB.Length;
-				while (!Check("|]"))
-				{
-					if (offset >= markup.Length)
-					{
-						throw new Exception("Could not found closing markup '|]'.");
-					}
-
-					offset++;
-				}
-
-				var slice = markup[innerMarkupStart..offset];
-				offset += 2;
-				codeSB.Append(slice);
-				var diagEnd = codeSB.Length;
-				expectedDiags.Add(new ExpectedDiag(null, new FileSpan(diagStart, diagEnd)));
-			}
-
-			if (Check("{|"))
-			{
-				offset += 2;
-
-				var innerMarkupStart = offset;
-				var diagStart = codeSB.Length;
-				while (!Check(":"))
-				{
-					if (offset >= markup.Length)
-					{
-						throw new Exception("Could not found markup ':'.");
-					}
-
-					offset++;
-				}
-				var id = markup[innerMarkupStart..offset];
-				offset += 1;
-
-				innerMarkupStart = offset;
-				while (!Check("|}"))
-				{
-					if (offset >= markup.Length)
-					{
-						throw new Exception("Could not found closing markup '|}'.");
-					}
-
-					offset++;
-				}
-				var slice = markup[innerMarkupStart..offset];
-				offset += 2;
-				codeSB.Append(slice);
-				var diagEnd = codeSB.Length;
-				expectedDiags.Add(new ExpectedDiag(id, new FileSpan(diagStart, diagEnd)));
-			}
-
-			codeSB.Append(markup[offset]);
-			offset++;
-		}
-
-		return new CodeAndDiags { Code = codeSB.ToString(), ExpectedDiags = expectedDiags };
-
-		bool Check(string part)
-		{
-			if (markup[offset..].StartsWith(part))
-			{
-				return true;
-			}
-			return false;
-		}
-	}
-
-	private class CodeAndDiags
-	{
-		public required string Code { get; set; }
-
-		public required List<ExpectedDiag> ExpectedDiags { get; set; }
+		AnalysisAssert.Diags(result.Code, expectedDiags, actualDiags);
 	}
 }
