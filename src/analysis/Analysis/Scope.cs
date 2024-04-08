@@ -165,6 +165,9 @@ internal abstract class Scope
 	}
 }
 
+/// <summary>
+/// A scope that makes available the module's constiuent files and the project. (TBC)
+/// </summary>
 internal sealed class ModuleScope(SurabProject project, IEnumerable<ProjectFile> files) : Scope
 {
 	// TODO: This is not good.
@@ -173,6 +176,9 @@ internal sealed class ModuleScope(SurabProject project, IEnumerable<ProjectFile>
 	public ImmutableArray<ProjectFile> Files { get; } = files.ToImmutableArray();
 }
 
+/// <summary>
+/// A scope that exposes file declarations, symbols in the current module, and imported symbols.
+/// </summary>
 internal sealed class FileScope(FileNode file, Reasoner fileReasoner, Reasoner? preludeReasoner) : Scope
 {
 	private ImmutableArray<Symbol> _decls;
@@ -262,7 +268,7 @@ internal sealed class FileScope(FileNode file, Reasoner fileReasoner, Reasoner? 
 }
 
 /// <summary>
-/// A scope that exposes declarations local in the type.
+/// A scope that exposes local declarations in the type, and `this`.
 /// </summary>
 internal sealed class NamedTypeDeclScope(
 	DeclNode decl,
@@ -326,6 +332,9 @@ internal sealed class NamedTypeDeclScope(
 	}
 }
 
+/// <summary>
+/// A scope that exposes a function's params.
+/// </summary>
 internal sealed class FnScope(
 	FnSigNode fnSig,
 	FnSymbol fnSymbol) : Scope
