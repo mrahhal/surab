@@ -458,9 +458,13 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 			_diags.Add(node.TypeExpr.Span, DiagLevel.Error, $"unknown type to create");
 			return;
 		}
+		if (symbol is TypeSymbol typeSymbol)
+		{
+			symbol = typeSymbol.UnwrapTypeAliases();
+		}
 		if (symbol is not NamedTypeSymbol namedTypeSymbol)
 		{
-			// If type symbol is null, skip analyzing lhs for each initializer item as we won't be able to resolve them anyway.
+			// If not a type that can be created, skip analyzing lhs for each initializer item as we won't be able to resolve them anyway.
 			// Do analyze rhs.
 			foreach (var initializerExpr in node.MapInitializer.Items.Select(x => x.Expr as AssignmentExprNode))
 			{
