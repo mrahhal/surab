@@ -295,7 +295,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 	{
 		var llvmType = LLVMTarget.LowerType(node.Type);
 
-		Debug.Assert(node.Type is StructTypeSymbol); // temp
+		Debug.Assert(node.Type is NamedTypeSymbol); // temp
 
 		var ptr = LLVM.Builder.BuildAlloca(llvmType);
 		var unit = LLVMUnit.Wrapped(llvmType, ptr);
@@ -521,7 +521,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 		// is necessary for sret to be compiled properly.
 		// Is this logic here good enough?
 		// NOTE: This doesn't mean we'll memcpy the struct data for an actual struct ptr. An actual struct ptr will not have matched StructTypeSymbol. (it'll be a ptr symbol)
-		if (leftType is StructTypeSymbol && rightType is StructTypeSymbol && rhsUnit.IsWrapped)
+		if (leftType is NamedTypeSymbol && rightType is NamedTypeSymbol && rhsUnit.IsWrapped)
 		{
 			var (_, rhs) = rhsUnit;
 			var size = Target.GetAbiSize(node.Expr.Type);
@@ -541,7 +541,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 		var enclosingType = node.Field.EnclosingType;
 		var llvmEnclosingType = LLVMTarget.LowerType(enclosingType);
 
-		var structLayout = Target.GetStructLayout((StructTypeSymbol)node.Field.Parent!);
+		var structLayout = Target.GetStructLayout((NamedTypeSymbol)node.Field.Parent!);
 		var fieldSection = structLayout.Sections.First(s => s.FieldIndex == node.Field.FieldIndex);
 
 		var ptrToField = LLVM.Builder.BuildStructGEP2(llvmEnclosingType, targetPtr, (uint)fieldSection.SectionIndex);
@@ -559,7 +559,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 		Visit(node.Expr);
 		var rhsUnit = _stack.Pop();
 
-		var structLayout = Target.GetStructLayout((StructTypeSymbol)node.Field.Parent!);
+		var structLayout = Target.GetStructLayout((NamedTypeSymbol)node.Field.Parent!);
 		var fieldSection = structLayout.Sections.First(s => s.FieldIndex == node.Field.FieldIndex);
 		var fieldLLVMType = LLVMTarget.LowerType(node.Field.Type);
 
@@ -569,7 +569,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 		var rightType = node.Expr.Type;
 
 		// Same as in VisitVariableStoreExpr.
-		if (leftType is StructTypeSymbol && rightType is StructTypeSymbol && rhsUnit.IsWrapped)
+		if (leftType is NamedTypeSymbol && rightType is NamedTypeSymbol && rhsUnit.IsWrapped)
 		{
 			var (_, rhs) = rhsUnit;
 			var size = Target.GetAbiSize(node.Expr.Type);
@@ -673,7 +673,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 	private LLVMUnit CreateLocalUnit(LocalSymbol localSymbol)
 	{
 		var typeRef = LLVMTarget.LowerType(localSymbol.Type);
-		var ptr = LLVM.Builder.BuildAlloca(typeRef, localSymbol.Identifier?.Value ?? string.Empty);
+		var ptr = LLVM.Builder.BuildAlloca(typeRef, localSymbol.Name ?? string.Empty);
 		var unit = LLVMUnit.Wrapped(typeRef, ptr);
 		_context.SymbolToLLVMUnit[localSymbol] = unit;
 		return unit;
@@ -824,7 +824,7 @@ internal abstract class LLVMTarget
 		if (tag is KnownTypeTag.f64)
 			return LLVMTypeRef.Double;
 
-		if (type is StructTypeSymbol structType)
+		if (type is NamedTypeSymbol structType)
 		{
 			var fields = structType.Members.Fields().ToList();
 			var structLayout = Target.GetStructLayout(structType);
@@ -992,7 +992,7 @@ internal abstract class x86_64WindowsLLVMTarget(CompilationContext context) : LL
 	// Logic sync'd with LowerFnReturnTypeCore above.
 	protected override void CompileFnReturnStmtCore(TypeSymbol returnType, LLVMUnit exprUnit, LLVMValueRef? sretOpt)
 	{
-		Debug.Assert(!returnType.IsUnknown && !Target.GetAbiSize(returnType).IsZeroSized);
+		Debug.Assert(!returnType.IsUnknown() && !Target.GetAbiSize(returnType).IsZeroSized);
 
 		var classification = Target.Classify(returnType);
 

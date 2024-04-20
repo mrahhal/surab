@@ -12,7 +12,7 @@ public class ReasonerTests
 
 		var decl = tree.Root.DescendantNodes().OfType<ConstDeclNode>().Single();
 		reasoner.TryGetDeclaredSymbol(decl, out var symbol).Should().BeTrue();
-		symbol.Should().BeOfType<ConstSymbol>();
+		symbol.Should().BeAssignableTo<ConstSymbol>();
 	}
 
 	[Fact]
@@ -96,7 +96,7 @@ public class ReasonerTests
 
 		var creationExprType = reasoner.LookupType(creationExpr);
 
-		creationExprType.Should().BeOfType<StructTypeSymbol>().Subject.Name.Should().Be("SNested");
+		creationExprType.Should().BeAssignableTo<NamedTypeSymbol>().Subject.Name.Should().Be("SNested");
 	}
 
 	[Fact]
@@ -148,7 +148,7 @@ public class ReasonerTests
 		var creationExpr = tree.Root.DescendantNodes().OfType<TypeCreationExprNode>().Single();
 		var assignmentExpr = creationExpr.MapInitializer.DescendantNodes().OfType<AssignmentExprNode>().Single();
 		var symbol = reasoner.LookupSymbol(assignmentExpr.Lhs);
-		symbol.Should().BeOfType<ParamSymbol>().Subject.
+		symbol.Should().BeAssignableTo<ParamSymbol>().Subject.
 			Type.KnownTypeTag.Should().Be(KnownTypeTag.i32);
 	}
 
@@ -199,7 +199,7 @@ public class ReasonerTests
 
 		var aliasDecl = tree.Root.DescendantNodes().OfType<AliasDeclNode>().Single();
 		reasoner.TryGetDeclaredSymbol(aliasDecl, out var symbol).Should().BeTrue();
-		symbol.Should().BeOfType<AliasTypeSymbol>();
+		symbol.Should().BeAssignableTo<AliasTypeSymbol>();
 	}
 
 	[Fact]
@@ -212,7 +212,7 @@ public class ReasonerTests
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(code);
 
 		var anotherIntegerAliasDecl = tree.Root.DescendantNodes().OfType<AliasDeclNode>().ElementAt(1);
-		var symbol = (AliasTypeSymbol)reasoner.GetDeclaredSymbol(anotherIntegerAliasDecl)!;
+		var symbol = reasoner.GetDeclaredSymbol(anotherIntegerAliasDecl)!;
 		symbol.UnwrapTypeAliases().KnownTypeTag.Should().Be(KnownTypeTag.i32);
 	}
 
@@ -226,7 +226,7 @@ public class ReasonerTests
 		var (project, tree, reasoner) = AnalysisTestUtils.CreateProjectAndTreeAndReasoner(code);
 
 		var anotherIntegerAliasDecl = tree.Root.DescendantNodes().OfType<AliasDeclNode>().ElementAt(1);
-		var symbol = (AliasTypeSymbol)reasoner.GetDeclaredSymbol(anotherIntegerAliasDecl)!;
+		var symbol = reasoner.GetDeclaredSymbol(anotherIntegerAliasDecl)!;
 		symbol.IsAssignableFrom(project.ResolveKnownTypeSymbol(KnownTypeTag.i32));
 		project.ResolveKnownTypeSymbol(KnownTypeTag.i32).IsAssignableFrom(symbol);
 	}
@@ -242,9 +242,199 @@ public class ReasonerTests
 
 		var aliasDecl1 = tree.Root.DescendantNodes().OfType<AliasDeclNode>().ElementAt(0);
 		var aliasDecl2 = tree.Root.DescendantNodes().OfType<AliasDeclNode>().ElementAt(1);
-		var symbol1 = (AliasTypeSymbol)reasoner.GetDeclaredSymbol(aliasDecl1)!;
-		var symbol2 = (AliasTypeSymbol)reasoner.GetDeclaredSymbol(aliasDecl2)!;
+		var symbol1 = reasoner.GetDeclaredSymbol(aliasDecl1)!;
+		var symbol2 = reasoner.GetDeclaredSymbol(aliasDecl2)!;
 		symbol1.IsAssignableFrom(symbol2);
+	}
+
+	[Fact]
+	public void Generics()
+	{
+		var code = """
+			struct S<T1> {
+				struct N<T2> { b: T2; m: M<i32, i64>; struct NN<T3> { } }
+				struct M<T3, T4> { c1: T3; c2: T4; }
+				struct O { o1: T1; o2: i32; }
+
+				a: T1;
+				n: N<f64>;
+				nn: N<f64>.NN<i32>;
+				m: M<f64, T1>;
+				o: O;
+			}
+
+			fn f() {
+				var s = S<i32> { a = 42 };
+				var a = s.a;
+				var n = s.n;
+				var nn = s.nn;
+				var m = s.m;
+				var o = s.o;
+
+				var x = S<i32>.N<i64> { b: 43i64 };
+			}
+			""";
+
+		var (project, tree, reasoner) = AnalysisTestUtils.CreateProjectAndTreeAndReasoner(code);
+
+		var SDecl = tree.Root.DescendantNodes().OfType<StructDeclNode>().ElementAt(0);
+		var SSymbol = reasoner.GetDeclaredSymbol(SDecl);
+		SSymbol.GenericParams.Should().HaveCount(1);
+		var NSymbol = (NamedTypeSymbol)SSymbol.GetMember("N")!;
+		NSymbol.GenericParams.Should().HaveCount(1);
+		var NNSymbol = NSymbol.GetMember("NN");
+		var MSymbol = (NamedTypeSymbol)SSymbol.GetMember("M")!;
+		MSymbol.GenericParams.Should().HaveCount(2);
+		var OSymbol = (NamedTypeSymbol)SSymbol.GetMember("O")!;
+
+		var aFieldSymbol = (FieldSymbol)SSymbol.GetMember("a")!;
+		aFieldSymbol.Type.Should().Be(SSymbol.GenericParams[0]);
+		var nFieldSymbol = (FieldSymbol)SSymbol.GetMember("n")!;
+		nFieldSymbol.Type.OriginalDef.Should().Be(NSymbol);
+		nFieldSymbol.Type.FullName.Should().Be("main::S<T1>.N<f64>");
+		var nnFieldSymbol = (FieldSymbol)SSymbol.GetMember("nn")!;
+		nnFieldSymbol.Type.OriginalDef.Should().Be(NNSymbol);
+		nnFieldSymbol.Type.FullName.Should().Be("main::S<T1>.N<f64>.NN<i32>");
+		var mFieldSymbol = (FieldSymbol)SSymbol.GetMember("m")!;
+		mFieldSymbol.Type.OriginalDef.Should().Be(MSymbol);
+		mFieldSymbol.Type.FullName.Should().Be("main::S<T1>.M<f64, T1>");
+		var oFieldSymbol = (FieldSymbol)SSymbol.GetMember("o")!;
+		oFieldSymbol.Type.OriginalDef.Should().Be(OSymbol);
+		oFieldSymbol.Type.FullName.Should().Be("main::S<T1>.O");
+
+		var expectedS1ClosedType = reasoner.CloseGeneric(SSymbol, [project.ResolveKnownTypeSymbol(KnownTypeTag.i32)]);
+
+		var sVarDecl = tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(0);
+		var sLocalSymbol = reasoner.GetDeclaredSymbol(sVarDecl);
+		sLocalSymbol.Type.Should().Be(expectedS1ClosedType);
+		var s_aFieldSymbol = (FieldSymbol)sLocalSymbol.Type.GetMember("a")!;
+		s_aFieldSymbol.Type.FullName.Should().Be("_prelude_::i32");
+		var s_nFieldSymbol = (FieldSymbol)sLocalSymbol.Type.GetMember("n")!;
+		s_nFieldSymbol.Type.Should().BeAssignableTo<SubstitutedNamedTypeSymbol>().Subject.OriginalDef.Should().Be(NSymbol);
+		s_nFieldSymbol.Type.FullName.Should().Be("main::S<i32>.N<f64>");
+		var s_nnFieldSymbol = (FieldSymbol)sLocalSymbol.Type.GetMember("nn")!;
+		s_nnFieldSymbol.Type.Should().BeAssignableTo<SubstitutedNamedTypeSymbol>().Subject.OriginalDef.Should().Be(NNSymbol);
+		s_nnFieldSymbol.Type.FullName.Should().Be("main::S<i32>.N<f64>.NN<i32>");
+		var s_mFieldSymbol = (FieldSymbol)sLocalSymbol.Type.GetMember("m")!;
+		s_mFieldSymbol.Type.Should().BeAssignableTo<SubstitutedNamedTypeSymbol>().Subject.OriginalDef.Should().Be(MSymbol);
+		s_mFieldSymbol.Type.FullName.Should().Be("main::S<i32>.M<f64, i32>");
+
+		var sTypeCreationExpr = sVarDecl.Initializer!.Expr.Should().BeOfType<TypeCreationExprNode>().Subject;
+		var sTypeSymbol = reasoner.LookupSymbol(sTypeCreationExpr.TypeExpr).Should().BeAssignableTo<NamedTypeSymbol>().Subject;
+		var sTypeSymbolSub = sTypeSymbol.Should().BeAssignableTo<SubstitutedNamedTypeSymbol>().Subject;
+		sTypeSymbolSub.OriginalDef.Should().Be(SSymbol);
+		sTypeSymbol.GenericArgs.Should().HaveCount(1);
+		sTypeSymbol.GenericArgs[0].Should().Be(project.ResolveKnownTypeSymbol(KnownTypeTag.i32));
+
+		var aVarDecl = tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(1);
+		var aLocalSymbol = reasoner.GetDeclaredSymbol(aVarDecl);
+		aLocalSymbol.Type.Should().Be(project.ResolveKnownTypeSymbol(KnownTypeTag.i32));
+
+		var nVarDecl = tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(2);
+		var nLocalSymbol = reasoner.GetDeclaredSymbol(nVarDecl);
+		var nLocalType = nLocalSymbol.Type.Should().BeAssignableTo<SubstitutedNamedTypeSymbol>().Subject;
+		nLocalType.GenericArgs.Should().HaveCount(1);
+		nLocalType.GenericArgs[0].Should().Be(project.ResolveKnownTypeSymbol(KnownTypeTag.f64));
+		nLocalType.OriginalDef.Should().Be(NSymbol);
+		nLocalType.Parent.Should().Be(sLocalSymbol.Type);
+		nLocalType.FullName.Should().Be("main::S<i32>.N<f64>");
+
+		var nnVarDecl = tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(3);
+		var nnLocalSymbol = reasoner.GetDeclaredSymbol(nnVarDecl);
+		var nnLocalType = nnLocalSymbol.Type.Should().BeAssignableTo<SubstitutedNamedTypeSymbol>().Subject;
+		nnLocalType.FullName.Should().Be("main::S<i32>.N<f64>.NN<i32>");
+
+		var oVarDecl = tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(5);
+		var oLocalSymbol = reasoner.GetDeclaredSymbol(oVarDecl);
+		var oLocalType = oLocalSymbol.Type.Should().BeAssignableTo<SubstitutedNamedTypeSymbol>().Subject;
+		oLocalType.FullName.Should().Be("main::S<i32>.O");
+	}
+
+	[Fact]
+	public void Generics_Fns()
+	{
+		var code = """
+			fn foo<T1>() { }
+			struct S<T1> { a: T1; fn bar<T2> { } }
+			fn f() {
+				var s = S { a = 42 };
+				var a = s.a;
+			}
+			""";
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(code);
+
+		var fFnDecl = tree.Root.DescendantNodes().OfType<FnDeclNode>().Single(x => x.Sig.Name.Identifier.Value == "f");
+		var sVarDecl = fFnDecl.DescendantNodes().OfType<VarDeclNode>().ElementAt(0);
+	}
+
+	[Fact]
+	public void Generics_Alias()
+	{
+		var code = """
+			struct S<T1> { a: T1; }
+			alias S<i32> as SAlias;
+			alias S<T> as SAlias2<T>;
+			fn f() {
+				var s1 = S<i32> { a = 42 };
+				var s2 = SAlias { a = 42 };
+				var s3 = SAlias2<i32> { a = 42 };
+			}
+			""";
+		var (project, tree, reasoner) = AnalysisTestUtils.CreateProjectAndTreeAndReasoner(code);
+
+		var SAliasDecl = tree.Root.DescendantNodes().OfType<AliasDeclNode>().ElementAt(0);
+		var SAliasSymbol = reasoner.GetDeclaredSymbol(SAliasDecl);
+		SAliasSymbol.TargetType.FullName.Should().Be("main::S<i32>");
+		var SAlias2Decl = tree.Root.DescendantNodes().OfType<AliasDeclNode>().ElementAt(1);
+		var SAlias2Symbol = reasoner.GetDeclaredSymbol(SAlias2Decl);
+		SAlias2Symbol.FullName.Should().Be("main::SAlias2<T>");
+		SAlias2Symbol.TargetType.FullName.Should().Be("main::S<T>");
+		SAlias2Symbol.TargetType.Should().BeAssignableTo<NamedTypeSymbol>().Subject.GenericArgs.ElementAt(0).Should()
+			.Be(SAlias2Symbol.GenericParams.ElementAt(0));
+
+		var SAlias2ClosedSymbol = (AliasTypeSymbol)reasoner.CloseGeneric(SAlias2Symbol, [project.ResolveKnownTypeSymbol(KnownTypeTag.i32)]);
+		SAlias2ClosedSymbol.FullName.Should().Be("main::SAlias2<i32>");
+		SAlias2ClosedSymbol.TargetType.FullName.Should().Be("main::S<i32>");
+		SAlias2ClosedSymbol.TargetType.Should().Be(SAliasSymbol.TargetType);
+
+		var fFnDecl = tree.Root.DescendantNodes().OfType<FnDeclNode>().ElementAt(0);
+		var s1VarDecl = fFnDecl.DescendantNodes().OfType<VarDeclNode>().ElementAt(0);
+		var s1LocalSymbol = reasoner.GetDeclaredSymbol(s1VarDecl);
+		var s2VarDecl = fFnDecl.DescendantNodes().OfType<VarDeclNode>().ElementAt(1);
+		var s2LocalSymbol = reasoner.GetDeclaredSymbol(s2VarDecl);
+		var s3VarDecl = fFnDecl.DescendantNodes().OfType<VarDeclNode>().ElementAt(2);
+		var s3LocalSymbol = reasoner.GetDeclaredSymbol(s3VarDecl);
+		var s3LocalSymbolType = s3LocalSymbol.Type.Should().BeAssignableTo<AliasTypeSymbol>().Subject;
+		s3LocalSymbolType.FullName.Should().Be("main::SAlias2<i32>");
+		s3LocalSymbolType.OriginalDef.FullName.Should().Be("main::SAlias2<T>");
+
+		s1LocalSymbol.Type.UnwrapTypeAliases().Should().Be(s2LocalSymbol.Type.UnwrapTypeAliases());
+		s2LocalSymbol.Type.UnwrapTypeAliases().Should().Be(s3LocalSymbol.Type.UnwrapTypeAliases());
+	}
+
+	[Fact(Skip = "Not implemented yet")]
+	public void Generics_Inference()
+	{
+		var code = """
+			struct S<T1> { a: T1; }
+			fn foo<T>(value: T) T { value }
+			fn foo() {
+				var s = S { a = 42 };
+				var a = s.a;
+
+				print_i32(foo<i32>(42));
+				print_f64(foo<f64>(4.2));
+			}
+			""";
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(code);
+
+		var fooFnDecl = tree.Root.DescendantNodes().OfType<FnDeclNode>().ElementAt(0);
+		var sVarDecl = fooFnDecl.DescendantNodes().OfType<VarDeclNode>().ElementAt(0);
+		var sLocalSymbol = reasoner.GetDeclaredSymbol(sVarDecl);
+		sLocalSymbol.Type.FullName.Should().Be("main::S<i32>");
+		var aVarDecl = fooFnDecl.DescendantNodes().OfType<VarDeclNode>().ElementAt(1);
+		var aLocalSymbol = reasoner.GetDeclaredSymbol(aVarDecl);
+		aLocalSymbol.Type.KnownTypeTag.Should().Be(KnownTypeTag.i32);
 	}
 
 	[Fact]
@@ -324,12 +514,12 @@ public class ReasonerTests
 			""";
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(code);
 
-		var aType = ((LocalSymbol)reasoner.GetDeclaredSymbol(tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(0))!).Type;
-		var bType = ((LocalSymbol)reasoner.GetDeclaredSymbol(tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(1))!).Type;
-		var cType = ((LocalSymbol)reasoner.GetDeclaredSymbol(tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(2))!).Type;
+		var aType = reasoner.GetDeclaredSymbol(tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(0))!.Type;
+		var bType = reasoner.GetDeclaredSymbol(tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(1))!.Type;
+		var cType = reasoner.GetDeclaredSymbol(tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(2))!.Type;
 
 		aType.KnownTypeTag.Should().Be(KnownTypeTag.i32);
-		bType.Should().BeOfType<PtrTypeSymbol>().Subject.InnerType!.KnownTypeTag.Should().Be(KnownTypeTag.i32);
+		bType.Should().BeAssignableTo<PtrTypeSymbol>().Subject.InnerType!.KnownTypeTag.Should().Be(KnownTypeTag.i32);
 		cType.KnownTypeTag.Should().Be(KnownTypeTag.i32);
 	}
 
@@ -351,8 +541,8 @@ public class ReasonerTests
 			""";
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(code);
 
-		var aType = ((LocalSymbol)reasoner.GetDeclaredSymbol(tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(1))!).Type;
-		var bType = ((LocalSymbol)reasoner.GetDeclaredSymbol(tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(3))!).Type;
+		var aType = reasoner.GetDeclaredSymbol(tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(1))!.Type;
+		var bType = reasoner.GetDeclaredSymbol(tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(3))!.Type;
 
 		aType.KnownTypeTag.Should().Be(KnownTypeTag.i32);
 		bType.KnownTypeTag.Should().Be(KnownTypeTag.i32);
@@ -371,7 +561,7 @@ public class ReasonerTests
 		var varDecl = tree.Root.DescendantNodes().OfType<VarDeclNode>().Single();
 		reasoner.TryGetDeclaredSymbol(varDecl, out var symbol).Should().BeTrue();
 		var localSymbol = (LocalSymbol)symbol!;
-		localSymbol.Type.Should().BeOfType<UnknownTypeSymbol>();
+		localSymbol.Type.Should().BeAssignableTo<UnknownTypeSymbol>();
 		localSymbol.IsTypeInferred.Should().BeFalse();
 	}
 
@@ -409,7 +599,7 @@ public class ReasonerTests
 
 		var varDecl = tree.Root.DescendantNodes().OfType<VarDeclNode>().Single();
 		reasoner.TryGetDeclaredSymbol(varDecl, out var symbol).Should().BeTrue();
-		var localSymbol = symbol.Should().BeOfType<LocalSymbol>().Subject;
+		var localSymbol = symbol.Should().BeAssignableTo<LocalSymbol>().Subject;
 		localSymbol.Type.KnownTypeTag.Should().Be(expectedTypeTag);
 		localSymbol.IsTypeInferred.Should().BeTrue();
 	}
@@ -441,7 +631,7 @@ public class ReasonerTests
 
 		var fnDecl = tree.Root.DescendantNodes().OfType<FnDeclNode>().Single();
 		reasoner.TryGetDeclaredSymbol(fnDecl, out var symbol).Should().BeTrue();
-		var fnSymbol = symbol.Should().BeOfType<FnSymbol>().Subject;
+		var fnSymbol = symbol.Should().BeAssignableTo<FnSymbol>().Subject;
 		fnSymbol.ReturnType.KnownTypeTag.Should().Be(KnownTypeTag.None);
 	}
 
@@ -477,7 +667,7 @@ public class ReasonerTests
 		TypeSymbol GetTypeAt(int index)
 		{
 			var a1Node = tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(index);
-			return ((LocalSymbol)reasoner.GetDeclaredSymbol(a1Node)!).Type;
+			return reasoner.GetDeclaredSymbol(a1Node)!.Type;
 		}
 	}
 
@@ -492,11 +682,11 @@ public class ReasonerTests
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(code);
 
 		var f1Node = tree.Root.DescendantNodes().OfType<FnDeclNode>().ElementAt(0);
-		var f1Symbol = (FnSymbol)reasoner.GetDeclaredSymbol(f1Node)!;
+		var f1Symbol = reasoner.GetDeclaredSymbol(f1Node)!;
 		var f2Node = tree.Root.DescendantNodes().OfType<FnDeclNode>().ElementAt(1);
-		var f2Symbol = (FnSymbol)reasoner.GetDeclaredSymbol(f2Node)!;
+		var f2Symbol = reasoner.GetDeclaredSymbol(f2Node)!;
 		var f3Node = tree.Root.DescendantNodes().OfType<FnDeclNode>().ElementAt(2);
-		var f3Symbol = (FnSymbol)reasoner.GetDeclaredSymbol(f3Node)!;
+		var f3Symbol = reasoner.GetDeclaredSymbol(f3Node)!;
 
 		f1Symbol.Type.Equals(f2Symbol.Type).Should().BeTrue();
 		f1Symbol.Type.Equals(f3Symbol.Type).Should().BeFalse();
@@ -513,11 +703,11 @@ public class ReasonerTests
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(code);
 
 		var f1Node = tree.Root.DescendantNodes().OfType<FnDeclNode>().ElementAt(0);
-		var f1Symbol = (FnSymbol)reasoner.GetDeclaredSymbol(f1Node)!;
+		var f1Symbol = reasoner.GetDeclaredSymbol(f1Node)!;
 		var f2Node = tree.Root.DescendantNodes().OfType<FnDeclNode>().ElementAt(1);
-		var f2Symbol = (FnSymbol)reasoner.GetDeclaredSymbol(f2Node)!;
+		var f2Symbol = reasoner.GetDeclaredSymbol(f2Node)!;
 		var f3Node = tree.Root.DescendantNodes().OfType<FnDeclNode>().ElementAt(2);
-		var f3Symbol = (FnSymbol)reasoner.GetDeclaredSymbol(f3Node)!;
+		var f3Symbol = reasoner.GetDeclaredSymbol(f3Node)!;
 
 		f1Symbol.Type.Equals(f2Symbol.Type).Should().BeTrue();
 		f1Symbol.Type.Equals(f3Symbol.Type).Should().BeFalse();
@@ -536,13 +726,13 @@ public class ReasonerTests
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(code);
 
 		var f1Node = tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(0);
-		var f1Symbol = (LocalSymbol)reasoner.GetDeclaredSymbol(f1Node)!;
+		var f1Symbol = reasoner.GetDeclaredSymbol(f1Node)!;
 		var f2Node = tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(1);
-		var f2Symbol = (LocalSymbol)reasoner.GetDeclaredSymbol(f2Node)!;
+		var f2Symbol = reasoner.GetDeclaredSymbol(f2Node)!;
 		var f3Node = tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(2);
-		var f3Symbol = (LocalSymbol)reasoner.GetDeclaredSymbol(f3Node)!;
+		var f3Symbol = reasoner.GetDeclaredSymbol(f3Node)!;
 
-		f1Symbol.Type.Should().BeOfType<FnTypeSymbol>();
+		f1Symbol.Type.Should().BeAssignableTo<FnTypeSymbol>();
 		f1Symbol.Type.Equals(f2Symbol.Type).Should().BeTrue();
 		f1Symbol.Type.Equals(f3Symbol.Type).Should().BeFalse();
 	}
@@ -563,9 +753,9 @@ public class ReasonerTests
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(code);
 
 		var f1Node = tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(0);
-		var f1Symbol = (LocalSymbol)reasoner.GetDeclaredSymbol(f1Node)!;
+		var f1Symbol = reasoner.GetDeclaredSymbol(f1Node)!;
 		var f2Node = tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(1);
-		var f2Symbol = (LocalSymbol)reasoner.GetDeclaredSymbol(f2Node)!;
+		var f2Symbol = reasoner.GetDeclaredSymbol(f2Node)!;
 
 		f1Symbol.Type.IsAssignableFrom(f2Symbol.Type).Should().BeTrue();
 		f2Symbol.Type.IsAssignableFrom(f1Symbol.Type).Should().BeTrue();
@@ -581,9 +771,9 @@ public class ReasonerTests
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(code);
 
 		var fnDeclNode1 = tree.Root.DescendantNodes().OfType<FnDeclNode>().ElementAt(0);
-		var fnSymbol1 = (FnSymbol)reasoner.GetDeclaredSymbol(fnDeclNode1)!;
+		var fnSymbol1 = reasoner.GetDeclaredSymbol(fnDeclNode1)!;
 		var fnDeclNode2 = tree.Root.DescendantNodes().OfType<FnDeclNode>().ElementAt(1);
-		var fnSymbol2 = (FnSymbol)reasoner.GetDeclaredSymbol(fnDeclNode2)!;
+		var fnSymbol2 = reasoner.GetDeclaredSymbol(fnDeclNode2)!;
 
 		fnSymbol1.Type.IsAssignableFrom(fnSymbol2.Type).Should().BeFalse();
 	}
@@ -598,7 +788,7 @@ public class ReasonerTests
 
 		var fnDecl = tree.Root.DescendantNodes().OfType<FnDeclNode>().Single();
 		reasoner.TryGetDeclaredSymbol(fnDecl, out var symbol).Should().BeTrue();
-		var fnSymbol = symbol.Should().BeOfType<FnSymbol>().Subject;
+		var fnSymbol = symbol.Should().BeAssignableTo<FnSymbol>().Subject;
 		fnSymbol.IsExtern.Should().BeTrue();
 	}
 
@@ -613,7 +803,7 @@ public class ReasonerTests
 
 		var fnDecl = tree.Root.DescendantNodes().OfType<FnDeclNode>().Single();
 		reasoner.TryGetDeclaredSymbol(fnDecl, out var symbol).Should().BeTrue();
-		var fnSymbol = symbol.Should().BeOfType<FnSymbol>().Subject;
+		var fnSymbol = symbol.Should().BeAssignableTo<FnSymbol>().Subject;
 		fnSymbol.IsOuterFn.Should().BeTrue();
 	}
 
@@ -627,7 +817,7 @@ public class ReasonerTests
 
 		var methodDecl = tree.Root.DescendantNodes().OfType<MethodDeclNode>().Single();
 		reasoner.TryGetDeclaredSymbol(methodDecl, out var symbol).Should().BeTrue();
-		var fnSymbol = symbol.Should().BeOfType<FnSymbol>().Subject;
+		var fnSymbol = symbol.Should().BeAssignableTo<FnSymbol>().Subject;
 		fnSymbol.Type.ParamTypes.Should().HaveCount(1); // reciever
 		fnSymbol.TypeWithoutReceiver.ParamTypes.Should().HaveCount(0); // no receiver
 	}
@@ -648,11 +838,11 @@ public class ReasonerTests
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(code);
 
 		var sDecl = tree.Root.DescendantNodes().OfType<StructDeclNode>().Single();
-		var sSymbol = reasoner.GetDeclaredSymbol(sDecl)!;
-		sSymbol.Children.Should().HaveCount(1);
+		var sSymbol = reasoner.GetDeclaredSymbol(sDecl);
+		sSymbol.Members.Should().HaveCount(1);
 
 		var fDecl = tree.Root.DescendantNodes().OfType<FnDeclNode>().Single(x => x.Sig.Name.Identifier.Value == "f");
-		var fSymbol = reasoner.GetDeclaredSymbol(fDecl)!;
-		fSymbol.Children.Should().HaveCount(0);
+		var fSymbol = reasoner.GetDeclaredSymbol(fDecl);
+		fSymbol.Params.Should().HaveCount(0);
 	}
 }

@@ -57,9 +57,9 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 		if (tag is KnownTypeTag.f64)
 			return new(8.AsBytes(), 8.AsBytes());
 
-		if (type is StructTypeSymbol structType)
+		if (type is NamedTypeSymbol namedType)
 		{
-			return GetStructLayout(structType).Layout;
+			return GetStructLayout(namedType).Layout;
 		}
 
 		// if ptr return ptr bit width
@@ -76,7 +76,7 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 	}
 
 	// Should this be in Abi?
-	public StructLayout GetStructLayout(StructTypeSymbol structType)
+	public StructLayout GetStructLayout(NamedTypeSymbol structType)
 	{
 		ArgumentNullException.ThrowIfNull(structType);
 

@@ -30,7 +30,6 @@ public class CompilationTestContext
 				c: char;
 			}
 			""";
-		//var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
 		var (project, sourceFile) = AnalysisTestUtils.CreateProject(src);
 		var reasoner = project.GetReasoner(sourceFile);
 
@@ -47,16 +46,16 @@ public class CompilationTestContext
 
 	public Reasoner Reasoner { get; }
 
-	public StructTypeSymbol Struct1 { get; private set; } = null!;
+	public NamedTypeSymbol Struct1 { get; private set; } = null!;
 
-	public StructTypeSymbol Struct2 { get; private set; } = null!;
+	public NamedTypeSymbol Struct2 { get; private set; } = null!;
 
 	private void Fill()
 	{
 		var struct1Node = Reasoner.Tree.Root.DescendantNodes().OfType<StructDeclNode>().First(x => x.Name.Identifier.Value == "Struct1");
-		Struct1 = (StructTypeSymbol)Reasoner.GetDeclaredSymbol(struct1Node)!;
+		Struct1 = Reasoner.GetDeclaredSymbol(struct1Node);
 
 		var struct2Node = Reasoner.Tree.Root.DescendantNodes().OfType<StructDeclNode>().First(x => x.Name.Identifier.Value == "Struct2");
-		Struct2 = (StructTypeSymbol)Reasoner.GetDeclaredSymbol(struct2Node)!;
+		Struct2 = Reasoner.GetDeclaredSymbol(struct2Node);
 	}
 }

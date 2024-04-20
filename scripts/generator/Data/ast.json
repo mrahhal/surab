@@ -182,7 +182,7 @@
 					"Type": "SimpleToken"
 				},
 				{
-					"Name": "type",
+					"Name": "targetType",
 					"Type": "TypeNode"
 				},
 				{

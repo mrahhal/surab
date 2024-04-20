@@ -34,6 +34,27 @@ public class VFSTests
 	}
 
 	[Fact]
+	public void Folders2()
+	{
+		var vfs = VFS.Create();
+
+		vfs.AddCodeFile("/math/add.surab", "");
+		vfs.AddCodeFile("/math/sub.surab", "");
+
+		vfs.AddCodeFile("/calc.surab", "");
+		vfs.AddCodeFile("/main.surab", "");
+
+		var rootFolder = vfs.GetRootFolder();
+		rootFolder.Path.Should().Be((NormalizedPath)"");
+		rootFolder.ParentFolder.Should().BeNull();
+		rootFolder.Files.Should().HaveCount(2);
+		rootFolder.SubFolders.Should().HaveCount(1);
+		rootFolder.SubFolders[0].Path.Should().Be((NormalizedPath)"/math");
+		rootFolder.SubFolders[0].SubFolders.Should().BeEmpty();
+		rootFolder.SubFolders[0].Files.Should().HaveCount(2);
+	}
+
+	[Fact]
 	public void GetFile()
 	{
 		var result = CreateDefaultVFS();

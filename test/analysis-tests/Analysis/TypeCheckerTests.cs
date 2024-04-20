@@ -37,6 +37,30 @@ public class TypeCheckerTests
 			""");
 	}
 
+	[Fact]
+	public void GenericClosing_NonGeneric()
+	{
+		Test("""
+			struct S { }
+			fn f() {
+				var s1 = [|S<i32>|] { };
+				var s2: [|S<i32>|];
+			}
+			""");
+	}
+
+	[Fact]
+	public void GenericClosing_WrongNumOfParams()
+	{
+		Test("""
+			struct S<T1> { }
+			fn f() {
+				var s1 = [|S<i32, i32>|] { };
+				var s2: [|S<i32, i32>|];
+			}
+			""");
+	}
+
 	private void Test(string markup) => AnalyzerTestUtils.Test(markup);
 }
 

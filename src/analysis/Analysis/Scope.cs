@@ -87,7 +87,7 @@ internal abstract class Scope
 	protected static T? LookupIdentifierIn<T>(T symbol, string identifier)
 		where T : Symbol
 	{
-		if (symbol.Identifier?.Value == identifier)
+		if (symbol.IdentifierMatches(identifier))
 		{
 			return symbol;
 		}
@@ -101,7 +101,7 @@ internal abstract class Scope
 		for (var i = array.Length - 1; i >= 0; i--)
 		{
 			var item = array[i];
-			if (item.Identifier?.Value == identifier)
+			if (item.IdentifierMatches(identifier))
 			{
 				return item;
 			}
@@ -122,7 +122,7 @@ internal abstract class Scope
 		else
 		{
 			var boundType = Reasoner.InferTypeOfDeclaringNode(node);
-			return ResolvedType.Inferred(boundType ?? UnknownTypeSymbol.Create(Reasoner));
+			return ResolvedType.Inferred(boundType ?? UnknownTypeSymbol.Create());
 		}
 	}
 
@@ -144,10 +144,10 @@ internal abstract class Scope
 			PtrTypeNode ptrTypeNode => Reasoner.LookupSymbol(ptrTypeNode),
 			ExprTypeNode exprTypeNode => Reasoner.LookupSymbol(exprTypeNode),
 			FnTypeNode fnTypeNode => Reasoner.LookupSymbol(fnTypeNode),
-			MissingTypeNode => UnknownTypeSymbol.Create(Reasoner),
+			MissingTypeNode => UnknownTypeSymbol.Create(),
 			_ => throw new UnreachableException(),
 		};
-		return ResolvedType.Typed(resolvedType as TypeSymbol ?? UnknownTypeSymbol.Create(Reasoner));
+		return ResolvedType.Typed(resolvedType.AsTypeSymbolOrUnknown());
 	}
 
 	/// <summary>
@@ -163,17 +163,6 @@ internal abstract class Scope
 	{
 		return true;
 	}
-}
-
-/// <summary>
-/// A scope that makes available the module's constiuent files and the project. (TBC)
-/// </summary>
-internal sealed class ModuleScope(SurabProject project, IEnumerable<ProjectFile> files) : Scope
-{
-	// TODO: This is not good.
-	public SurabProject Project => project;
-
-	public ImmutableArray<ProjectFile> Files { get; } = files.ToImmutableArray();
 }
 
 /// <summary>
@@ -223,7 +212,7 @@ internal sealed class FileScope(FileNode file, Reasoner fileReasoner, Reasoner? 
 		{
 			var import = imports[i];
 			var resolvedModule = _fileReasoner.ResolveImport(import);
-			var result = resolvedModule.ExposedSymbols.FirstOrDefault(s => s.Name == identifier);
+			var result = resolvedModule.ExposedSymbols.FirstOrDefault(s => s.IdentifierMatches(identifier));
 
 			if (result != null)
 			{
@@ -240,7 +229,7 @@ internal sealed class FileScope(FileNode file, Reasoner fileReasoner, Reasoner? 
 		foreach (var import in _file.Imports)
 		{
 			var resolvedModule = _fileReasoner.ResolveImport(import);
-			if (!resolvedModule.IsFailed && resolvedModule.Module.Name == identifier)
+			if (!resolvedModule.IsFailed && resolvedModule.Module.IdentifierMatches(identifier))
 			{
 				return resolvedModule.Module;
 			}
@@ -268,17 +257,13 @@ internal sealed class FileScope(FileNode file, Reasoner fileReasoner, Reasoner? 
 }
 
 /// <summary>
-/// A scope that exposes local declarations in the type, and `this`.
+/// A scope that exposes local declarations in the type, `this`, and generic params.
 /// </summary>
-internal sealed class NamedTypeDeclScope(
-	DeclNode decl,
-	NamedTypeSymbol symbol) : Scope
+internal sealed class NamedTypeDeclScope(NamedTypeSymbol symbol) : Scope
 {
 	private readonly NamedTypeSymbol _symbol = symbol;
 
 	private ImmutableArray<Symbol> _localDecls;
-
-	public DeclNode DeclNode { get; } = decl;
 
 	public ImmutableArray<Symbol> LocalDecls
 	{
@@ -298,7 +283,16 @@ internal sealed class NamedTypeDeclScope(
 		// Type members (fields and methods) are accessed through `this`, so they're not visible from the scope.
 		// Local decls don't use `this`, so here we only need to lookup using LocalDecls.
 
-		return LookupIdentifierIn(LocalDecls, identifier);
+		return
+			LookupIdentifierIn(LocalDecls, identifier) ??
+			LookupIdentifierInGenericParams(identifier);
+	}
+
+	private Symbol? LookupIdentifierInGenericParams(string identifier)
+	{
+		if (!_symbol.TryGetGenericParams(out var genericParams))
+			return null;
+		return LookupIdentifierIn(genericParams, identifier);
 	}
 
 	public override TypeSymbol? LookupThisHere()
@@ -313,38 +307,55 @@ internal sealed class NamedTypeDeclScope(
 
 	private ImmutableArray<Symbol> BuildLocalDecls()
 	{
-		var nestedDecls = DeclNode switch
-		{
-			StructDeclNode structDeclNode => structDeclNode.DeclsList.Decls,
-			ClassDeclNode classDeclNode => classDeclNode.DeclsList.Decls,
-			_ => throw new UnreachableException(),
-		};
-
-		var builder = ImmutableArray.CreateBuilder<Symbol>();
-		foreach (var localDecl in nestedDecls.Where(x => x is StructDeclNode or ClassDeclNode or FnDeclNode))
-		{
-			if (Reasoner.TryGetDeclaredSymbol(localDecl, out var symbol))
-			{
-				builder.Add(symbol);
-			}
-		}
-		return builder.ToImmutable();
+		// Need to filter out fields for example, because files are not in scope without `this`?
+		return _symbol.Members.Where(x => x.Kind is SymbolKind.Type or SymbolKind.Fn).ToImmutableArray();
 	}
 }
 
 /// <summary>
-/// A scope that exposes a function's params.
+/// A scope that exposes the generic params in the alias type.
 /// </summary>
-internal sealed class FnScope(
-	FnSigNode fnSig,
-	FnSymbol fnSymbol) : Scope
+internal sealed class AliasTypeDeclScope(AliasTypeSymbol symbol) : Scope
 {
-	private readonly FnSigNode _fnSig = fnSig;
-	private readonly FnSymbol _fnSymbol = fnSymbol;
+	private readonly AliasTypeSymbol _symbol = symbol;
 
 	public override Symbol? LookupIdentifierHere(string identifier)
 	{
-		return LookupIdentifierIn(_fnSymbol.Params, identifier);
+		return LookupIdentifierInGenericParams(identifier);
+	}
+
+	private Symbol? LookupIdentifierInGenericParams(string identifier)
+	{
+		if (!_symbol.TryGetGenericParams(out var genericParams))
+			return null;
+		return LookupIdentifierIn(genericParams, identifier);
+	}
+
+	public override TypeSymbol? LookupTypeDeclHere()
+	{
+		return _symbol;
+	}
+}
+
+/// <summary>
+/// A scope that exposes a function's params and generic params.
+/// </summary>
+internal sealed class FnScope(FnSymbol symbol) : Scope
+{
+	private readonly FnSymbol _symbol = symbol;
+
+	public override Symbol? LookupIdentifierHere(string identifier)
+	{
+		return
+			LookupIdentifierIn(_symbol.Params, identifier) ??
+			LookupIdentifierInGenericParams(identifier);
+	}
+
+	private Symbol? LookupIdentifierInGenericParams(string identifier)
+	{
+		if (!_symbol.TryGetGenericParams(out var genericParams))
+			return null;
+		return LookupIdentifierIn(genericParams, identifier);
 	}
 }
 

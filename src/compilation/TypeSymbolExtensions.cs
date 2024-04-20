@@ -35,7 +35,7 @@ public static class TypeSymbolExtensions
 		if (tag == KnownTypeTag.@string || type is PtrTypeSymbol) return RuntimeTypeKind.Ptr;
 		if (type.IsNumeric()) return RuntimeTypeKind.Numeric;
 		if (tag == KnownTypeTag.@bool) return RuntimeTypeKind.Bool;
-		if (type is StructTypeSymbol) return RuntimeTypeKind.Struct;
+		if (type is NamedTypeSymbol namedType && namedType.TypeKind is TypeSymbolKind.Struct) return RuntimeTypeKind.Struct;
 		if (type is FnTypeSymbol) return RuntimeTypeKind.Ptr;
 
 		throw new UnreachableException();

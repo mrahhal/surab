@@ -75,7 +75,7 @@ internal class Lowerer
 
 	private LoweredNode Lower(VarDeclNode node)
 	{
-		var symbol = _reasoner.GetDeclaredSymbol(node) as LocalSymbol;
+		var symbol = _reasoner.GetDeclaredSymbol(node);
 		Debug.Assert(symbol != null);
 
 		var variableStmt = new LoweredVariableDeclareStmt(
@@ -98,7 +98,7 @@ internal class Lowerer
 	{
 		return HoistLocalDecls((node) =>
 		{
-			var fnSymbol = _reasoner.GetDeclaredSymbol(node) as FnSymbol;
+			var fnSymbol = _reasoner.GetDeclaredSymbol(node);
 			Debug.Assert(fnSymbol != null);
 			var body = node.Body == null ? null : LowerFnBlock(node.Body);
 
@@ -128,11 +128,10 @@ internal class Lowerer
 	{
 		return HoistLocalDecls((node) =>
 		{
-			var structTypeSymbol = _reasoner.GetDeclaredSymbol(node) as StructTypeSymbol;
-			Debug.Assert(structTypeSymbol != null);
+			var namedTypeSymbol = _reasoner.GetDeclaredSymbol(node);
 
-			var fieldDecls = structTypeSymbol.Members.OfType<FieldSymbol>();
-			var nonFieldDecls = structTypeSymbol.Members.Where(x => x.Kind is not SymbolKind.Field).Cast<InFileSymbol>();
+			var fieldDecls = namedTypeSymbol.Members.OfType<FieldSymbol>();
+			var nonFieldDecls = namedTypeSymbol.Members.Where(x => x.Kind is not SymbolKind.Field);
 
 			foreach (var nonFieldDecl in nonFieldDecls)
 			{
@@ -144,7 +143,7 @@ internal class Lowerer
 
 			return new LoweredTypeDecl(
 				node,
-				structTypeSymbol,
+				namedTypeSymbol,
 				fieldDecls);
 		}, node);
 	}
@@ -502,16 +501,16 @@ internal class Lowerer
 
 		var stmts = new List<LoweredStmt>();
 
-		var structType = (StructTypeSymbol)_reasoner.LookupType(node).UnwrapTypeAliases();
-		var structTempSymbol = new TempSymbol(_reasoner, structType);
+		var namedType = (NamedTypeSymbol)_reasoner.LookupType(node).UnwrapTypeAliases();
+		var structTempSymbol = new TempSymbol(namedType);
 
-		var structLoadExpr = new LoweredSymbolLoadExpr(node, structType, structTempSymbol);
+		var structLoadExpr = new LoweredSymbolLoadExpr(node, namedType, structTempSymbol);
 
 		// Object alloc
 
 		var allocStmt = new LoweredObjectAllocStmt(
 			node,
-			structType,
+			namedType,
 			structTempSymbol);
 		stmts.Add(allocStmt);
 
@@ -526,7 +525,7 @@ internal class Lowerer
 
 		// Field stores
 
-		foreach (var fieldSymbol in structType.Members.Fields())
+		foreach (var fieldSymbol in namedType.Members.Fields())
 		{
 			var value = initFieldItems.FirstOrDefault(initF => initF.targetSymbol == fieldSymbol).rhs;
 			value ??= LowerWithCast(fieldSymbol.InitializerExprNode!);
@@ -535,9 +534,9 @@ internal class Lowerer
 
 		// Call init
 
-		if (structType.InitializerMethodDecl != null)
+		if (namedType.InitializerMethod != null)
 		{
-			var initializerFnSymbol = (FnSymbol)_reasoner.GetDeclaredSymbol(structType.InitializerMethodDecl)!;
+			var initializerFnSymbol = namedType.InitializerMethod;
 			IEnumerable<LoweredExpr> argsSet = initializerFnSymbol.Params.Select(p =>
 			{
 				var arg = initParamItems.FirstOrDefault(initP => initP.targetSymbol == p).rhs;
@@ -562,21 +561,21 @@ internal class Lowerer
 			structLoadExpr);
 	}
 
-	private LoweredDecl LowerWithCast(DeclNode node) => (LoweredDecl)Lower((SyntaxNode)node);
+	private LoweredDecl LowerWithCast(DeclNode node) => (LoweredDecl)Lower(node);
 
 	private IEnumerable<LoweredDecl> LowerWithCast(IEnumerable<DeclNode> nodes)
 	{
 		return nodes.Select(LowerWithCast);
 	}
 
-	private LoweredStmt LowerWithCast(StmtNode node) => (LoweredStmt)Lower((SyntaxNode)node);
+	private LoweredStmt LowerWithCast(StmtNode node) => (LoweredStmt)Lower(node);
 
 	private IEnumerable<LoweredStmt> LowerWithCast(IEnumerable<StmtNode> nodes)
 	{
 		return nodes.Select(LowerWithCast);
 	}
 
-	private LoweredExpr LowerWithCast(ExprNode node) => (LoweredExpr)Lower((SyntaxNode)node);
+	private LoweredExpr LowerWithCast(ExprNode node) => (LoweredExpr)Lower(node);
 
 	private IEnumerable<LoweredExpr> LowerWithCast(IEnumerable<ExprNode> nodes)
 	{

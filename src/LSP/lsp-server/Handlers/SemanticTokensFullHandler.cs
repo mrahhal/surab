@@ -210,10 +210,10 @@ public class SemanticTokensFullHandler(
 
 	private static SemanticTokenType? GetTokenType(TypeSymbol typeSymbol)
 	{
-		if (typeSymbol.IsUnknown) return null;
+		if (typeSymbol.IsUnknown()) return null;
 		return typeSymbol switch
 		{
-			StructTypeSymbol => (SemanticTokenType?)SemanticTokenType.Struct,
+			NamedTypeSymbol namedType when namedType.TypeKind is TypeSymbolKind.Struct => (SemanticTokenType?)SemanticTokenType.Struct,
 			FnTypeSymbol => SemanticTokenType.Function,
 			_ => null,
 		};

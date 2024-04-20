@@ -236,11 +236,11 @@ public partial class MethodDeclNode : DeclNode
 
 public partial class AliasDeclNode : DeclNode
 {
-	public AliasDeclNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken aliasToken, TypeNode type, AsIdentifierNode asIdentifier, SimpleToken semicolonToken)
+	public AliasDeclNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken aliasToken, TypeNode targetType, AsIdentifierNode asIdentifier, SimpleToken semicolonToken)
 		: base(tree, SyntaxNodeKind.AliasDecl)
 	{
 		_childTokens = new() { aliasToken, semicolonToken, };
-		_childNodes = new() { attrs, type, asIdentifier, };
+		_childNodes = new() { attrs, targetType, asIdentifier, };
 
 		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
@@ -248,7 +248,7 @@ public partial class AliasDeclNode : DeclNode
 
 	public AttrsListNode? Attrs => (AttrsListNode?)_childNodes[0]!;
 	public SimpleToken AliasToken => (SimpleToken)_childTokens[0]!;
-	public TypeNode Type => (TypeNode)_childNodes[1]!;
+	public TypeNode TargetType => (TypeNode)_childNodes[1]!;
 	public AsIdentifierNode AsIdentifier => (AsIdentifierNode)_childNodes[2]!;
 	public SimpleToken SemicolonToken => (SimpleToken)_childTokens[1]!;
 

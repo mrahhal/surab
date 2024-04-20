@@ -106,6 +106,7 @@ public class ProjectFile
 /// <summary>
 /// A folder in the project.
 /// </summary>
+[DebuggerDisplay("{ToString(),nq}")]
 public class ProjectFolder
 {
 	public static readonly ProjectFolder GenericRootFolder = new() { Path = string.Empty, Name = string.Empty, IsRoot = true };
@@ -139,6 +140,11 @@ public class ProjectFolder
 	internal void RemoveFile(ProjectFile file)
 	{
 		_files.Remove(file);
+	}
+
+	public override string ToString()
+	{
+		return $"Name=\"{Name}\" Path=\"{Path.Value}\"";
 	}
 }
 
@@ -314,14 +320,14 @@ public class VFS
 		{
 			folder = new ProjectFolder { Name = folderInfo.Name, Path = folderInfo.Path, IsRoot = false };
 			_folderKeyToFolderMap[folderInfo.Key] = folder;
-		}
 
-		// Recurse to fill any missing in between folders and set Parent/SubFolders.
-		var dirName = Path.GetDirectoryName(filePath.Value);
-		if (!string.IsNullOrEmpty(dirName))
-		{
-			var parentFolder = GetOrAddFolder(dirName);
-			folder.SetParent(parentFolder);
+			// Recurse to fill any missing in between folders and set Parent/SubFolders.
+			var dirName = Path.GetDirectoryName(filePath.Value);
+			if (!string.IsNullOrEmpty(dirName))
+			{
+				var parentFolder = GetOrAddFolder(dirName);
+				folder.SetParent(parentFolder);
+			}
 		}
 
 		return folder;

@@ -99,12 +99,12 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		}
 
 		var fnSymbol = _reasoner.GetDeclaredSymbol(node) as FnSymbol;
-		var enclosingType = fnSymbol?.Parent as TypeSymbol;
+		var enclosingType = fnSymbol?.EnclosingType as NamedTypeSymbol;
 		Debug.Assert(enclosingType != null);
 
 		if (node.IsInitializer)
 		{
-			if (enclosingType.InitializerMethodDecl == node)
+			if (enclosingType.InitializerMethod == fnSymbol)
 			{
 				// Report conflicting initializer param if it conflicts with a field.
 				var conflictingParams = enclosingType.CreationMemberSymbols.Where(x => x.IsConflicting);
@@ -146,7 +146,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		};
 
 		var noneType = _reasoner.Project.ResolveKnownTypeSymbol(KnownTypeTag.None);
-		var fnReturnType = returnTypeNode == null ? noneType : _reasoner.LookupSymbol(returnTypeNode).AsTypeSymbolOrUnknown(_reasoner);
+		var fnReturnType = returnTypeNode == null ? noneType : _reasoner.LookupSymbol(returnTypeNode).AsTypeSymbolOrUnknown();
 		var returnType = node.Expr == null ? noneType : _reasoner.LookupType(node.Expr);
 
 		if (!fnReturnType.IsAssignableFrom(returnType))
@@ -233,7 +233,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		{
 			_diags.Add(node.Span, DiagLevel.Error, $"A module cannot be used as an r-value.");
 		}
-		else if (lhsType.IsUnknown || rhsType.IsUnknown)
+		else if (lhsType.IsUnknown() || rhsType.IsUnknown())
 		{
 			// Reported somewhere else?
 		}
@@ -279,7 +279,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		var leftType = _reasoner.LookupType(node.Left);
 		var rightType = _reasoner.LookupType(node.Right);
 
-		if (leftType.IsUnknown || rightType.IsUnknown)
+		if (leftType.IsUnknown() || rightType.IsUnknown())
 		{
 			// Shouldn't report. Will be reported elsewhere.
 		}
@@ -340,7 +340,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 
 		// Ensure callee is a function and validate args.
 
-		if (calleeType.IsUnknown)
+		if (calleeType.IsUnknown())
 		{
 			// Reported somewhere else.
 		}
@@ -364,7 +364,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 					var arg = args[i];
 					var paramType = paramTypes[i];
 					var argType = _reasoner.LookupType(arg);
-					if (paramType.IsUnknown || argType.IsUnknown)
+					if (paramType.IsUnknown() || argType.IsUnknown())
 					{
 						// Reported somewhere else.
 					}
@@ -389,7 +389,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		}
 
 		var targetType = _reasoner.LookupType(node.Target);
-		if (targetType.IsUnknown)
+		if (targetType.IsUnknown())
 		{
 			// Reported somewhere else.
 			return;
@@ -402,7 +402,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		//}
 
 		// TODO: Store and use a lookup table for this?
-		var member = targetType.GetMember(node.Name.Identifier.Value);
+		var member = targetType.GetMember(node.Name.Identifier);
 		if (member == null)
 		{
 			_diags.Add(node.Name.Identifier.Span, DiagLevel.Error, $"unknown member access");
@@ -458,7 +458,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 			_diags.Add(node.TypeExpr.Span, DiagLevel.Error, $"unknown type to create");
 			return;
 		}
-		if (symbol is not TypeSymbol typeSymbol)
+		if (symbol is not NamedTypeSymbol namedTypeSymbol)
 		{
 			// If type symbol is null, skip analyzing lhs for each initializer item as we won't be able to resolve them anyway.
 			// Do analyze rhs.
@@ -482,8 +482,8 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 			.Where(x => x.Symbol != null)
 			.ToList();
 		var setSymbolsMap = setSymbols.ToDictionary(x => x.Symbol!, x => x.Assignment);
-		var creationSymbols = typeSymbol.CreationMemberSymbols.Select(x => x.Symbol).ToList();
-		var requiredSymbols = typeSymbol.CreationMemberSymbols.Where(x => !x.IsOptional && !x.IsConflicting).Select(x => x.Symbol);
+		var creationSymbols = namedTypeSymbol.CreationMemberSymbols.Select(x => x.Symbol).ToList();
+		var requiredSymbols = namedTypeSymbol.CreationMemberSymbols.Where(x => !x.IsOptional && !x.IsConflicting).Select(x => x.Symbol);
 		var unsetSymbols = requiredSymbols.Where(requiredSymbol => !setSymbolsMap.ContainsKey(requiredSymbol)).ToList();
 		if (unsetSymbols.Count != 0)
 		{
@@ -539,6 +539,29 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 	{
 		var symbol = _reasoner.LookupSymbol(node);
 		AnalyzeLookedUpIdentifier(node.Name.Identifier, symbol);
+		if (symbol is IGenericSymbol genericSymbol)
+		{
+			if (!genericSymbol.GenericParams.Any() &&
+				genericSymbol.GenericArgs.Any())
+			{
+				_diags.Add(node.Span, DiagLevel.Error, "Generic args cannot be used with non-generic types.");
+			}
+			else if (genericSymbol.GenericParams.Length != genericSymbol.GenericArgs.Length)
+			{
+				_diags.Add(node.Span, DiagLevel.Error, "Generic args do not match number of generic params.");
+			}
+		}
+		else if (symbol is UnknownTypeSymbol)
+		{
+			if (symbol is InvalidClosedGenericUnknownTypeSymbol)
+			{
+				_diags.Add(node.Span, DiagLevel.Error, "Cannot be used used with type args.");
+			}
+			else
+			{
+				_diags.Add(node.Span, DiagLevel.Error, "Unknown type.");
+			}
+		}
 
 		base.VisitNameExpr(node);
 	}

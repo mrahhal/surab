@@ -229,7 +229,7 @@ public class LowererTests
 			var fieldLoadExpr = callExpr1.Args[0].Should().BeOfType<LoweredFieldLoadExpr>().Subject;
 			var deref1 = fieldLoadExpr.Target.Should().BeOfType<LoweredUnaryExpr>().Subject;
 			deref1.Op.Should().Be(UnaryOperatorTokenKind.Deref);
-			deref1.Type.Should().BeOfType<StructTypeSymbol>();
+			deref1.Type.Should().BeAssignableTo<NamedTypeSymbol>();
 			deref1.Expr.Should().BeOfType<LoweredVariableLoadExpr>();
 		}
 		var callExpr2 = body.OfType<LoweredExprStmt>().ElementAt(1).Expr.Should().BeOfType<LoweredCallExpr>().Subject;
@@ -237,7 +237,7 @@ public class LowererTests
 			var fieldLoadExpr = callExpr2.Args[0].Should().BeOfType<LoweredFieldLoadExpr>().Subject;
 			var deref1 = fieldLoadExpr.Target.Should().BeOfType<LoweredUnaryExpr>().Subject;
 			deref1.Op.Should().Be(UnaryOperatorTokenKind.Deref);
-			deref1.Type.Should().BeOfType<StructTypeSymbol>();
+			deref1.Type.Should().BeAssignableTo<NamedTypeSymbol>();
 			var deref2 = deref1.Expr.Should().BeOfType<LoweredUnaryExpr>().Subject;
 			deref2.Op.Should().Be(UnaryOperatorTokenKind.Deref);
 			deref2.Type.Should().BeOfType<PtrTypeSymbol>();
