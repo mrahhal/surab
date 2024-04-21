@@ -105,7 +105,13 @@ internal sealed class LoweredFnDecl(
 		}
 	}
 
-	public override string ToString() => $"fn {FnSymbol.Name} (...){FnSymbol.ReturnType.Name}{(Body == null ? ";" : " { ... }")}";
+	public override string ToString()
+	{
+		var fnType = FnSymbol.Type;
+		var returnTypeText = fnType.ReturnType == null ? "" : "...";
+		var bodyText = Body == null ? ";" : " { ... }";
+		return $"fn {FnSymbol.Name} (...) {returnTypeText}{bodyText}";
+	}
 }
 
 internal sealed class LoweredTypeDecl(

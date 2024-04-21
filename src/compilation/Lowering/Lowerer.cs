@@ -3,6 +3,17 @@ using Surab.Analysis;
 
 namespace Surab.Compilation;
 
+internal class LoweredProject(IReadOnlyList<LoweredTree> trees)
+{
+	public IReadOnlyList<LoweredTree> Trees { get; } = trees;
+}
+
+/// <summary>
+/// Lowers from a <see cref="SyntaxTree"/> to a <see cref="LoweredTree"/>.
+///
+/// This process simplifies nodes, hoists nested declarations, makes implicit generic types explicit,
+/// desugars syntax, binds symbols and resolves types.
+/// </summary>
 internal class Lowerer
 {
 	private readonly Reasoner _reasoner;
@@ -14,6 +25,14 @@ internal class Lowerer
 	private Lowerer(Reasoner reasoner)
 	{
 		_reasoner = reasoner;
+	}
+
+	internal static LoweredProject LowerProject(SurabProject project)
+	{
+		var loweredTrees = project.GetAllReasoners()
+			.Select(Lower)
+			.ToList();
+		return new LoweredProject(loweredTrees);
 	}
 
 	internal static LoweredTree Lower(Reasoner reasoner)
@@ -113,7 +132,7 @@ internal class Lowerer
 	{
 		return HoistLocalDecls((node) =>
 		{
-			var fnSymbol = _reasoner.GetDeclaredSymbol(node) as FnSymbol;
+			var fnSymbol = _reasoner.GetDeclaredSymbol(node);
 			Debug.Assert(fnSymbol != null);
 			var body = node.Body == null ? null : LowerFnBlock(node.Body);
 

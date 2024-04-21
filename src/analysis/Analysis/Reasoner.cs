@@ -85,6 +85,11 @@ public class Reasoner
 		return (FnSymbol)GetDeclaredSymbol((SyntaxNode)node)!;
 	}
 
+	public FnSymbol GetDeclaredSymbol(MethodDeclNode node)
+	{
+		return (FnSymbol)GetDeclaredSymbol((SyntaxNode)node)!;
+	}
+
 	public GenericParamTypeSymbol GetDeclaredSymbol(GenericParamNode node)
 	{
 		return (GenericParamTypeSymbol)GetDeclaredSymbol((SyntaxNode)node)!;

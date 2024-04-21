@@ -26,7 +26,6 @@ public abstract class Symbol
 {
 	private Reasoner? _reasoner;
 	private Symbol? _parent;
-	private readonly List<Symbol> _children = [];
 	private string? _fullName;
 
 	protected Symbol(SymbolKind kind)
@@ -60,6 +59,22 @@ public abstract class Symbol
 	/// For top level modules, this will be null.
 	/// </summary>
 	public Symbol? Parent => _parent;
+
+	/// <summary>
+	/// The non module parent enclosing this symbol.
+	/// Meaning, if the parent is a module, this will be null.
+	/// </summary>
+	public Symbol? NonModuleParent
+	{
+		get
+		{
+			if (Parent is not ModuleSymbol)
+			{
+				return Parent;
+			}
+			return null;
+		}
+	}
 
 	/// <summary>
 	/// The child symbols under this symbol. Will only be defined for non substituted symbols.
@@ -307,9 +322,7 @@ public abstract class Symbol
 
 	internal Symbol Substitute(SubstitutionMap smap)
 	{
-		//var parent = Parent;
 		var subd = SubstituteCore(smap);
-		//subd.SetParent(parent);
 		return subd;
 	}
 
@@ -336,7 +349,8 @@ public abstract class Symbol
 		var parent = Parent;
 		while (parent != null)
 		{
-			sb.Insert(0, parent is ModuleSymbol && current is not ModuleSymbol ? "::" : ".");
+			var delim = parent.Kind is SymbolKind.Module && current.Kind is not SymbolKind.Module ? "::" : ".";
+			sb.Insert(0, delim);
 			sb.Insert(0, parent.Name);
 			current = parent;
 			parent = parent.Parent;
@@ -348,20 +362,6 @@ public abstract class Symbol
 
 	public override string ToString() => Name ?? string.Empty;
 }
-
-///////// <summary>
-///////// A symbol originating in a file, with a reasoner and usually a declaring node associated with it.
-///////// </summary>
-//////public abstract class InFileSymbol : Symbol
-//////{
-//////	protected InFileSymbol(SymbolKind kind, Reasoner reasoner)
-//////		: base(kind)
-//////	{
-//////		Reasoner = reasoner;
-//////	}
-
-//////	public Reasoner Reasoner { get; }
-//////}
 
 /// <summary>
 /// Marks symbols that have a type.

@@ -58,9 +58,11 @@ public sealed class Compiler
 		var mainFile = mainSymbol.DeclaringFile;
 		Debug.Assert(mainFile != null);
 
-		foreach (var reasoner in _context.Project.GetAllReasoners())
+		var loweredProject = Lowerer.LowerProject(_context.Project);
+
+		foreach (var tree in loweredProject.Trees)
 		{
-			FileCompiler.Compile(_context, reasoner);
+			TreeCompiler.Compile(_context, tree);
 		}
 
 		if (VerificationEnabled)
@@ -82,21 +84,20 @@ public sealed class Compiler
 	}
 }
 
-internal sealed class FileCompiler(CompilationContext context, LoweredTree loweredTree) : LoweredTreeVisitor
+internal sealed class TreeCompiler(CompilationContext context, LoweredTree tree) : LoweredTreeVisitor
 {
 	private readonly CompilationContext _context = context;
-	private readonly LoweredTree _loweredTree = loweredTree;
+	private readonly LoweredTree _tree = tree;
 
-	public static void Compile(CompilationContext context, Reasoner reasoner)
+	public static void Compile(CompilationContext context, LoweredTree tree)
 	{
-		var loweredTree = Lowerer.Lower(reasoner);
-		var fileCompiler = new FileCompiler(context, loweredTree);
-		fileCompiler.CompileFile();
+		var treeCompiler = new TreeCompiler(context, tree);
+		treeCompiler.Compile();
 	}
 
-	private void CompileFile()
+	private void Compile()
 	{
-		Visit(_loweredTree.Root);
+		Visit(_tree.Root);
 	}
 
 	public override void VisitFnDecl(LoweredFnDecl node)
