@@ -12,13 +12,13 @@ public sealed class Compiler
 	internal static readonly bool VerificationEnabled = true;
 
 	private Compiler(
-		IEnumerable<Reasoner> reasoners,
+		SurabProject project,
 		Target target,
 		CompilationOptions options)
 	{
 		var llvm = LLVMCompilationContext.Create();
 
-		_context = new CompilationContext(reasoners.ToList(), target, llvm, options);
+		_context = new CompilationContext(project, target, llvm, options);
 	}
 
 	/// <summary>
@@ -32,7 +32,7 @@ public sealed class Compiler
 		string targetTriple,
 		CompilationOptions? options = null)
 	{
-		// Note: We're not taking any locks (particular read) as the compilation doesn't run in an asynchronous environment right now.
+		// Note: We're not taking any locks (particularly read) as the compilation doesn't run in an asynchronous environment right now.
 
 		project.EnsureAnalyzedAsync().GetAwaiter().GetResult();
 		var diags = project.GetProjectDiags();
@@ -42,14 +42,23 @@ public sealed class Compiler
 		}
 
 		var target = ParseTargetTriple(targetTriple);
-		var reasoners = project.GetAllReasoners();
-		var compiler = new Compiler(reasoners, target, options ?? CompilationOptions.CreateDefault());
+		var compiler = new Compiler(project, target, options ?? CompilationOptions.CreateDefault());
 		return compiler.Compile();
 	}
 
 	private string Compile()
 	{
-		foreach (var reasoner in _context.Reasoners)
+		var rootModule = _context.Project.RootModule;
+		var mainSymbol = rootModule.GetExportedSymbol("main");
+		if (mainSymbol == null || mainSymbol is not FnSymbol)
+		{
+			throw new Exception("A main function is required in the root module.");
+		}
+
+		var mainFile = mainSymbol.DeclaringFile;
+		Debug.Assert(mainFile != null);
+
+		foreach (var reasoner in _context.Project.GetAllReasoners())
 		{
 			FileCompiler.Compile(_context, reasoner);
 		}

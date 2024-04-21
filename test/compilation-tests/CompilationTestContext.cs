@@ -34,10 +34,9 @@ public class CompilationTestContext
 		var reasoner = project.GetReasoner(sourceFile);
 
 		var llvm = LLVMCompilationContext.Create();
-		var reasoners = project.GetAllReasoners().ToList();
 
 		var target = new x86_64WindowsMSVCTarget();
-		var context = new CompilationContext(reasoners, target, llvm, CompilationOptions.CreateDefault());
+		var context = new CompilationContext(project, target, llvm, CompilationOptions.CreateDefault());
 
 		return new CompilationTestContext(context, reasoner);
 	}

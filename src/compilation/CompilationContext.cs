@@ -7,12 +7,12 @@ namespace Surab.Compilation;
 public sealed class CompilationContext
 {
 	internal CompilationContext(
-		List<Reasoner> reasoners,
+		SurabProject project,
 		Target target,
 		LLVMCompilationContext llvmCompilationContext,
 		CompilationOptions options)
 	{
-		Reasoners = reasoners;
+		Project = project;
 		Target = target;
 		LLVM = llvmCompilationContext;
 		Options = options;
@@ -20,7 +20,7 @@ public sealed class CompilationContext
 		LLVMTarget = LLVMTarget.Create(this);
 	}
 
-	public List<Reasoner> Reasoners { get; }
+	public SurabProject Project { get; }
 
 	public Target Target { get; }
 
