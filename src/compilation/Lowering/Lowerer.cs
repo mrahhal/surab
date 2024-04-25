@@ -480,10 +480,11 @@ internal class Lowerer
 	private LoweredNode Lower(LiteralExprNode node)
 	{
 		var type = _reasoner.LookupType(node);
+		var data = LiteralData.FromLiteralToken(node.Literal);
 		return new LoweredLiteralExpr(
 			node,
 			type,
-			node.Literal);
+			data);
 	}
 
 	private LoweredNode Lower(NameExprNode node)

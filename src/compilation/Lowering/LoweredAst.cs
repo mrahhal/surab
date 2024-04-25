@@ -357,13 +357,149 @@ internal sealed class LoweredCallExpr(
 internal sealed class LoweredLiteralExpr(
 	SyntaxNode parsedNode,
 	TypeSymbol type,
-	LiteralToken literal) : LoweredExpr(parsedNode, type)
+	LiteralData data) : LoweredExpr(parsedNode, type)
 {
-	public LiteralToken Literal { get; } = literal;
+	public LiteralData Data { get; } = data;
 
 	public override IEnumerable<LoweredNode> EnumerateChildren() => [];
 
-	public override string ToString() => $"{Literal}";
+	public override string ToString() => "lit";
+}
+
+public enum LiteralDataKind
+{
+	NumericInteger,
+	NumericFloat,
+	Char,
+	String,
+	Bool,
+}
+
+internal sealed class LiteralData
+{
+	private LiteralData(LiteralDataKind kind, object? data)
+	{
+		Kind = kind;
+		Data = data;
+	}
+
+	public LiteralDataKind Kind { get; init; }
+
+	public object? Data { get; init; }
+
+	public static LiteralData CreateNumericInteger(ulong data)
+	{
+		return new LiteralData(LiteralDataKind.NumericInteger, data);
+	}
+
+	public static LiteralData CreateNumericFloat(double data)
+	{
+		return new LiteralData(LiteralDataKind.NumericFloat, data);
+	}
+
+	public static LiteralData CreateChar(char data)
+	{
+		return new LiteralData(LiteralDataKind.Char, data);
+	}
+
+	public static LiteralData CreateString(string data)
+	{
+		return new LiteralData(LiteralDataKind.String, data);
+	}
+
+	public static LiteralData CreateBool(bool data)
+	{
+		return new LiteralData(LiteralDataKind.Bool, data);
+	}
+
+	public static LiteralData FromLiteralToken(LiteralToken token)
+	{
+		var kind = token.LiteralTokenKind switch
+		{
+			LiteralTokenKind.NumericInteger => LiteralDataKind.NumericInteger,
+			LiteralTokenKind.NumericFloat => LiteralDataKind.NumericFloat,
+			LiteralTokenKind.Char => LiteralDataKind.Char,
+			LiteralTokenKind.String => LiteralDataKind.String,
+			LiteralTokenKind.Bool => LiteralDataKind.Bool,
+			_ => throw new UnreachableException(),
+		};
+		var data = token.Data;
+		return new LiteralData(kind, data);
+	}
+
+	public ulong GetNumericValueAsInteger()
+	{
+		return Kind switch
+		{
+			LiteralDataKind.NumericInteger => (ulong)Data!,
+			_ => throw new InvalidOperationException(),
+		};
+	}
+
+	public double GetNumericValueAsFloat()
+	{
+		return Kind switch
+		{
+			LiteralDataKind.NumericInteger => (ulong)Data!,
+			LiteralDataKind.NumericFloat => (double)Data!,
+			_ => throw new InvalidOperationException(),
+		};
+	}
+
+	public bool TryGetNumericIntegerValue(out ulong value)
+	{
+		value = default!;
+		if (Kind != LiteralDataKind.NumericInteger)
+		{
+			return false;
+		}
+		value = (ulong)Data!;
+		return true;
+	}
+
+	public bool TryGetNumericFloatValue(out double value)
+	{
+		value = default!;
+		if (Kind != LiteralDataKind.NumericFloat)
+		{
+			return false;
+		}
+		value = (double)Data!;
+		return true;
+	}
+
+	public bool TryGetCharValue(out char? value)
+	{
+		value = default;
+		if (Kind != LiteralDataKind.Char)
+		{
+			return false;
+		}
+		value = (char?)Data;
+		return true;
+	}
+
+	public bool TryGetStringValue(out string? value)
+	{
+		value = default;
+		if (Kind != LiteralDataKind.String)
+		{
+			return false;
+		}
+		value = (string?)Data;
+		return true;
+	}
+
+	public bool TryGetBoolValue(out bool value)
+	{
+		value = default;
+		if (Kind != LiteralDataKind.Bool)
+		{
+			return false;
+		}
+		value = (bool)Data!;
+		return true;
+	}
 }
 
 internal sealed class LoweredSymbolLoadExpr(

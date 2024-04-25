@@ -607,14 +607,14 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 
 	public override void VisitLiteralExpr(LoweredLiteralExpr node)
 	{
-		switch (node.Literal.LiteralTokenKind)
+		switch (node.Data.Kind)
 		{
-			case LiteralTokenKind.NumericInteger:
-			case LiteralTokenKind.NumericFloat:
+			case LiteralDataKind.NumericInteger:
+			case LiteralDataKind.NumericFloat:
 				{
 					if (node.Type.IsNumericInteger())
 					{
-						var v = node.Literal.GetNumericValueAsInteger();
+						var v = node.Data.GetNumericValueAsInteger();
 						var llvmType = LLVMTarget.LowerType(node.Type);
 						// TODO: Do sign and zero extension more properly?
 						var signExtend = Target.GetIntegerSign(node.Type) == IntegerSign.Signed;
@@ -623,7 +623,7 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 					}
 					else if (node.Type.IsNumericFloat())
 					{
-						var v = node.Literal.GetNumericValueAsFloat();
+						var v = node.Data.GetNumericValueAsFloat();
 						var llvmType = LLVMTarget.LowerType(node.Type);
 						var llvmValue = LLVMValueRef.CreateConstReal(llvmType, v);
 						_stack.Push(LLVMUnit.Unwrapped(llvmType, llvmValue));
@@ -635,18 +635,18 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 				}
 				break;
 
-			case LiteralTokenKind.Bool:
+			case LiteralDataKind.Bool:
 				{
-					Debug.Assert(node.Literal.TryGetBoolValue(out var v));
+					Debug.Assert(node.Data.TryGetBoolValue(out var v));
 					var llvmType = LLVMTypeRef.Int1;
 					var llvmValue = LLVMValueRef.CreateConstInt(llvmType, v ? (ulong)1 : 0);
 					_stack.Push(LLVMUnit.Unwrapped(llvmType, llvmValue));
 				}
 				break;
 
-			case LiteralTokenKind.String:
+			case LiteralDataKind.String:
 				{
-					Debug.Assert(node.Literal.TryGetStringValue(out var v));
+					Debug.Assert(node.Data.TryGetStringValue(out var v));
 					var llvmType = LLVMTypeRef.CreatePointer(LLVMTypeRef.Void, 0);
 					var llvmValue = LLVM.Builder.BuildGlobalStringPtr(v!);
 					_stack.Push(LLVMUnit.Unwrapped(llvmType, llvmValue));
