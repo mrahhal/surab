@@ -247,30 +247,30 @@ internal sealed class LoweredStmtListEndingWithExpr(
 	public override string ToString() => $"{Stmts.Length} stmts followed by ending expr: {EndingExpr}";
 }
 
-internal sealed class LoweredVariableLoadExpr(
+internal sealed class LoweredValueLoadExpr(
 	SyntaxNode parsedNode,
 	TypeSymbol type,
-	Symbol variable) : LoweredExpr(parsedNode, type)
+	Symbol value) : LoweredExpr(parsedNode, type)
 {
-	public Symbol Variable { get; } = variable;
+	public Symbol Value { get; } = value;
 
 	public override IEnumerable<LoweredNode> EnumerateChildren() => [];
 
-	public override string ToString() => $"{Variable.Name}";
+	public override string ToString() => $"{Value.Name}";
 }
 
-internal sealed class LoweredVariableStoreStmt(
+internal sealed class LoweredValueStoreStmt(
 	SyntaxNode parsedNode,
-	Symbol variable,
+	Symbol value,
 	LoweredExpr expr) : LoweredStmt(parsedNode)
 {
-	public Symbol Variable { get; } = variable;
+	public Symbol Value { get; } = value;
 
 	public LoweredExpr Expr { get; } = expr;
 
 	public override IEnumerable<LoweredNode> EnumerateChildren() => [Expr];
 
-	public override string ToString() => $"{Variable.Name} = {Expr};";
+	public override string ToString() => $"{Value.Name} = {Expr};";
 }
 
 internal sealed class LoweredFieldLoadExpr(
@@ -512,16 +512,6 @@ internal sealed class LiteralData
 		value = (bool)Data!;
 		return true;
 	}
-}
-
-internal sealed class LoweredSymbolLoadExpr(
-	SyntaxNode node,
-	TypeSymbol type,
-	Symbol symbol) : LoweredExpr(node, type)
-{
-	public Symbol Symbol { get; } = symbol;
-
-	public override IEnumerable<LoweredNode> EnumerateChildren() => [];
 }
 
 internal static class LoweredNodeExtensions

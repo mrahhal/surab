@@ -28,8 +28,8 @@ internal abstract partial class LoweredTreeVisitor
 			case LoweredExprStmt n: VisitExprStmt(n); break;
 			case LoweredObjectAllocStmt n: VisitObjectAllocStmt(n); break;
 			case LoweredStmtList n: VisitStmtList(n); break;
-			case LoweredVariableLoadExpr n: VisitVariableLoadExpr(n); break;
-			case LoweredVariableStoreStmt n: VisitVariableStoreExpr(n); break;
+			case LoweredValueLoadExpr n: VisitValueLoadExpr(n); break;
+			case LoweredValueStoreStmt n: VisitValueStoreExpr(n); break;
 			case LoweredFieldLoadExpr n: VisitFieldLoadExpr(n); break;
 			case LoweredFieldStoreStmt n: VisitFieldStoreExpr(n); break;
 			case LoweredThisLoadExpr n: VisitThisLoadExpr(n); break;
@@ -38,7 +38,6 @@ internal abstract partial class LoweredTreeVisitor
 			case LoweredCallExpr n: VisitCallExpr(n); break;
 			case LoweredLiteralExpr n: VisitLiteralExpr(n); break;
 			case LoweredStmtListEndingWithExpr n: VisitStmtListEndingWithExpr(n); break;
-			case LoweredSymbolLoadExpr n: VisitSymbolLoadExpr(n); break;
 
 			default:
 				break;
@@ -90,12 +89,12 @@ internal abstract partial class LoweredTreeVisitor
 		Walk(node);
 	}
 
-	public virtual void VisitVariableLoadExpr(LoweredVariableLoadExpr node)
+	public virtual void VisitValueLoadExpr(LoweredValueLoadExpr node)
 	{
 		Walk(node);
 	}
 
-	public virtual void VisitVariableStoreExpr(LoweredVariableStoreStmt node)
+	public virtual void VisitValueStoreExpr(LoweredValueStoreStmt node)
 	{
 		Walk(node);
 	}
@@ -136,11 +135,6 @@ internal abstract partial class LoweredTreeVisitor
 	}
 
 	public virtual void VisitStmtListEndingWithExpr(LoweredStmtListEndingWithExpr node)
-	{
-		Walk(node);
-	}
-
-	public virtual void VisitSymbolLoadExpr(LoweredSymbolLoadExpr node)
 	{
 		Walk(node);
 	}

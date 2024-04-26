@@ -110,7 +110,7 @@ internal class Lowerer
 			return LoweredElidedStmt.Instance;
 		}
 
-		return new LoweredVariableStoreStmt(
+		return new LoweredValueStoreStmt(
 			node,
 			symbol,
 			LowerWithCast(node.Initializer.Expr));
@@ -340,12 +340,12 @@ internal class Lowerer
 		var symbol = _reasoner.LookupSymbol(node.Lhs);
 		if (symbol is LocalSymbol or ParamSymbol)
 		{
-			var storeStmt = new LoweredVariableStoreStmt(
+			var storeStmt = new LoweredValueStoreStmt(
 				node,
 				symbol,
 				LowerWithCast(node.Rhs));
 
-			var loadExpr = new LoweredVariableLoadExpr(
+			var loadExpr = new LoweredValueLoadExpr(
 				node,
 				((ISymbolHasType)symbol).Type,
 				symbol);
@@ -401,7 +401,7 @@ internal class Lowerer
 			case FnSymbol fn:
 				{
 					// The reason this doesn't require a bespoke lowered node is because, unlike fields, methods become simple symbols untied to any struct.
-					return new LoweredSymbolLoadExpr(
+					return new LoweredValueLoadExpr(
 						node,
 						fn.Type,
 						fn);
@@ -417,7 +417,7 @@ internal class Lowerer
 		var symbol = _reasoner.LookupSymbol(node);
 		// Should only be here if we're loading a symbol with a type.
 		Debug.Assert(symbol is ISymbolHasType);
-		return new LoweredSymbolLoadExpr(
+		return new LoweredValueLoadExpr(
 			node,
 			((ISymbolHasType)symbol).Type,
 			symbol);
@@ -548,11 +548,11 @@ internal class Lowerer
 
 	private LoweredNode Lower(NameExprNode node)
 	{
-		// Should only be here if we're loading a variable?
+		// Should only be here if we're loading a value?
 		var symbol = _reasoner.LookupSymbol(node);
 		Debug.Assert(symbol is ISymbolHasType);
 		var symbolHasType = (ISymbolHasType)symbol;
-		return new LoweredVariableLoadExpr(
+		return new LoweredValueLoadExpr(
 			node,
 			symbolHasType.Type,
 			symbol);
@@ -583,7 +583,7 @@ internal class Lowerer
 		var namedType = (NamedTypeSymbol)_reasoner.LookupType(node).UnwrapTypeAliases();
 		var structTempSymbol = new TempSymbol(namedType);
 
-		var structLoadExpr = new LoweredSymbolLoadExpr(node, namedType, structTempSymbol);
+		var structLoadExpr = new LoweredValueLoadExpr(node, namedType, structTempSymbol);
 
 		var genericArgs = GetAllGenericArgs(namedType);
 
@@ -630,8 +630,8 @@ internal class Lowerer
 			var callInitExpr = new LoweredCallExpr(
 				node,
 				initializerFnSymbol.Type,
-				new LoweredSymbolLoadExpr(node, initializerFnSymbol.Type, initializerFnSymbol),
 				genericArgs, // Inits will always have the same generic types as the enclosing type.
+				new LoweredValueLoadExpr(node, initializerFnSymbol.Type, initializerFnSymbol),
 				[receiver, .. argsSet]);
 			stmts.Add(new LoweredExprStmt(node, callInitExpr));
 		}

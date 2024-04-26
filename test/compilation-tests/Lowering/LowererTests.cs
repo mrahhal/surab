@@ -20,9 +20,9 @@ public class LowererTests
 		var i = 0;
 		body[i++].Should().BeOfType<LoweredVariableDeclareStmt>();
 		body[i++].Should().BeOfType<LoweredVariableDeclareStmt>();
-		body[i++].Should().BeOfType<LoweredVariableStoreStmt>();
+		body[i++].Should().BeOfType<LoweredValueStoreStmt>();
 		body[i++].Should().BeOfType<LoweredExprStmt>().Subject.Expr.Should().BeOfType<LoweredCallExpr>();
-		body[i++].Should().BeOfType<LoweredVariableStoreStmt>();
+		body[i++].Should().BeOfType<LoweredValueStoreStmt>();
 	}
 
 	[Fact]
@@ -79,7 +79,7 @@ public class LowererTests
 		var f2Stmts = file.GetFnBody("f2");
 		f2Stmts.Should().BeEmpty();
 		fStmts[0].Should().BeOfType<LoweredVariableDeclareStmt>();
-		fStmts[1].Should().BeOfType<LoweredVariableStoreStmt>();
+		fStmts[1].Should().BeOfType<LoweredValueStoreStmt>();
 	}
 
 	[Fact]
@@ -137,14 +137,14 @@ public class LowererTests
 		var body = file.GetFnBody("f");
 		body.Should().HaveCount(2);
 		body[0].Should().BeOfType<LoweredVariableDeclareStmt>();
-		var storeStmt = body[1].Should().BeOfType<LoweredVariableStoreStmt>().Subject;
+		var storeStmt = body[1].Should().BeOfType<LoweredValueStoreStmt>().Subject;
 		var storeExprNodes = storeStmt.Expr.UnwrapContainers().ToList();
 
 		storeExprNodes[0].Should().BeOfType<LoweredObjectAllocStmt>();
 		storeExprNodes[1].Should().BeOfType<LoweredFieldStoreStmt>();
 		storeExprNodes[2].Should().BeOfType<LoweredExprStmt>().Subject
 			.Expr.Should().BeOfType<LoweredCallExpr>();
-		storeExprNodes[3].Should().BeOfType<LoweredSymbolLoadExpr>();
+		storeExprNodes[3].Should().BeOfType<LoweredValueLoadExpr>();
 	}
 
 	[Fact]
@@ -160,7 +160,7 @@ public class LowererTests
 		var file = LowerFile(src);
 		var body = file.GetFnBody("f");
 		body.Should().HaveCount(4);
-		var variableStore = body.OfType<LoweredVariableStoreStmt>().Last();
+		var variableStore = body.OfType<LoweredValueStoreStmt>().Last();
 		var fieldStore = variableStore.Expr.Should().BeOfType<LoweredFieldLoadExpr>().Subject;
 		fieldStore.Field.Name.Should().Be("a");
 	}
@@ -199,7 +199,7 @@ public class LowererTests
 		var body = f.GetFnBody();
 		body.Should().HaveCount(3);
 		body[2].Should().BeOfType<LoweredExprStmt>().Subject
-			.Expr.Should().BeOfType<LoweredVariableLoadExpr>(); // Deref(Address) disappears
+			.Expr.Should().BeOfType<LoweredValueLoadExpr>(); // Deref(Address) disappears
 	}
 
 	[Fact]
@@ -230,7 +230,7 @@ public class LowererTests
 			var deref1 = fieldLoadExpr.Target.Should().BeOfType<LoweredUnaryExpr>().Subject;
 			deref1.Op.Should().Be(UnaryOperatorTokenKind.Deref);
 			deref1.Type.Should().BeAssignableTo<NamedTypeSymbol>();
-			deref1.Expr.Should().BeOfType<LoweredVariableLoadExpr>();
+			deref1.Expr.Should().BeOfType<LoweredValueLoadExpr>();
 		}
 		var callExpr2 = body.OfType<LoweredExprStmt>().ElementAt(1).Expr.Should().BeOfType<LoweredCallExpr>().Subject;
 		{
@@ -241,11 +241,11 @@ public class LowererTests
 			var deref2 = deref1.Expr.Should().BeOfType<LoweredUnaryExpr>().Subject;
 			deref2.Op.Should().Be(UnaryOperatorTokenKind.Deref);
 			deref2.Type.Should().BeOfType<PtrTypeSymbol>();
-			deref2.Expr.Should().BeOfType<LoweredVariableLoadExpr>();
+			deref2.Expr.Should().BeOfType<LoweredValueLoadExpr>();
 		}
 		var callExpr3 = body.OfType<LoweredExprStmt>().ElementAt(2).Expr.Should().BeOfType<LoweredCallExpr>().Subject;
 		{
-			callExpr3.Args[0].Should().BeOfType<LoweredVariableLoadExpr>();
+			callExpr3.Args[0].Should().BeOfType<LoweredValueLoadExpr>();
 		}
 	}
 
@@ -263,7 +263,7 @@ public class LowererTests
 		var body = file.GetFnBody("f");
 		var callExpr = body.OfType<LoweredExprStmt>().Single().Expr.Should().BeOfType<LoweredCallExpr>().Subject;
 		var fieldLoadExpr = callExpr.Args[0].Should().BeOfType<LoweredFieldLoadExpr>().Subject;
-		fieldLoadExpr.Target.Should().BeOfType<LoweredVariableLoadExpr>();
+		fieldLoadExpr.Target.Should().BeOfType<LoweredValueLoadExpr>();
 	}
 
 	[Fact]

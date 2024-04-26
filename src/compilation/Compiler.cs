@@ -508,22 +508,22 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 		}
 	}
 
-	public override void VisitVariableLoadExpr(LoweredVariableLoadExpr node)
+	public override void VisitValueLoadExpr(LoweredValueLoadExpr node)
 	{
-		// Units tied to a variable are always wrapped.
-		var unit = GetUnit(node.Variable);
+		// Units tied to a value are always wrapped.
+		var unit = GetUnit(node.Value);
 		// We don't load it, but give that option to the consumer of this unit.
 		// Some consumers will want to simply load it and deal with the value, but others will need access to the ptr.
 		_stack.Push(unit);
 	}
 
-	public override void VisitVariableStoreExpr(LoweredVariableStoreStmt node)
+	public override void VisitValueStoreExpr(LoweredValueStoreStmt node)
 	{
-		var (_, value) = GetUnit(node.Variable);
+		var (_, value) = GetUnit(node.Value);
 		Visit(node.Expr);
 		var rhsUnit = _stack.Pop();
 
-		var leftType = ((ISymbolHasType)node.Variable).Type;
+		var leftType = ((ISymbolHasType)node.Value).Type;
 		var rightType = node.Expr.Type;
 
 		// REVIEW: We want to call memcpy instead of store when it's a struct and rhs is wrapped.
@@ -596,13 +596,6 @@ internal sealed class FnCompiler : LoweredTreeVisitor
 	{
 		Debug.Assert(_llvmReceiverUnit != null);
 		_stack.Push(_llvmReceiverUnit);
-	}
-
-	public override void VisitSymbolLoadExpr(LoweredSymbolLoadExpr node)
-	{
-		// TODO: Merge with VariableLoad?
-		var unit = GetUnit(node.Symbol);
-		_stack.Push(unit);
 	}
 
 	public override void VisitLiteralExpr(LoweredLiteralExpr node)
