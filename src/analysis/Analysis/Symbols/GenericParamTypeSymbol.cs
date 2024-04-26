@@ -13,7 +13,7 @@ public abstract class GenericParamTypeSymbol : TypeSymbol
 	{
 		// This is kind of the *base* case in the substitution.
 		// For other symbols, we return a specialized substituted symbol impl, whereas here we directly replace this type.
-		return (TypeSymbol)smap.Replace(this);
+		return smap.ReplaceGenericType(this);
 	}
 }
 

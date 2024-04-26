@@ -193,7 +193,7 @@ internal class SubstitutionMap
 	}
 
 	// Fully resolves transitive substitutions.
-	private TypeSymbol ReplaceGenericType(TypeSymbol genericParam)
+	public TypeSymbol ReplaceGenericType(TypeSymbol genericParam)
 	{
 		Debug.Assert(genericParam.TypeKind is TypeSymbolKind.GenericParam);
 		var current = genericParam;
