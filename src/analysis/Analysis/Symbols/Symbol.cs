@@ -174,6 +174,73 @@ public abstract class Symbol
 
 	internal SymbolCache SymbolCache { get; set; } = null!;
 
+	/// <summary>
+	/// Returns a symbol's hierarchy as a list, starting from the top level symbol down to this symbol.
+	/// S<T>.M<i64>.N<f64> -> [S<T>, M<i64>, N<f64>]
+	/// </summary>
+	internal List<Symbol> GetHierarchy()
+	{
+		// TODO: Consider caching this.
+		var list = new List<Symbol>();
+		var current = this;
+		while (current != null && current is not ModuleSymbol)
+		{
+			list.Add(current);
+			current = current.Parent;
+		}
+		list.Reverse();
+		return list;
+	}
+
+	// TODO: This is only here temporarily. To be replaced by lowering to a new value/type.
+	/// <summary>
+	/// Gets all generic params, both explicit (on the symbol itself) and implicit (inherited from
+	/// a parent symbol).
+	///
+	/// This is used so that if we have an fn such as: `struct S<T1> { f<T2>() { } }`, then
+	/// [T1, T2] will be extracted.
+	/// </summary>
+	internal List<GenericParamTypeSymbol> GetAllGenericParams()
+	{
+		var hierarchy = GetHierarchy();
+		var list = new List<GenericParamTypeSymbol>();
+
+		foreach (var symbol in hierarchy)
+		{
+			if (symbol is IPossiblyGenericSymbol genericSymbol)
+			{
+				list.AddRange(genericSymbol.GenericParams);
+			}
+		}
+
+		return list;
+	}
+
+	// TODO: This is only here temporarily. To be replaced by lowering to a new value/type.
+	/// <summary>
+	/// Gets all generic args, both explicit (on the symbol itself) and implicit(inherited
+	/// from a parent symbol).
+	///
+	/// This is used so that if we have a call expr such as: `S<i32>.f<f64>()`, then
+	/// [i32, f64] will be extracted, which would correspond to the GenericParams of that
+	/// lowered fn in the same order.
+	/// </summary>
+	internal List<TypeSymbol> GetAllGenericArgs()
+	{
+		var hierarchy = GetHierarchy();
+		var list = new List<TypeSymbol>();
+
+		foreach (var symbol in hierarchy)
+		{
+			if (symbol is IPossiblyGenericSymbol genericSymbol)
+			{
+				list.AddRange(genericSymbol.GenericArgs);
+			}
+		}
+
+		return list;
+	}
+
 	internal bool TryGetGenericParams([NotNullWhen(true)] out ImmutableArray<GenericParamTypeSymbol> genericParams)
 	{
 		genericParams = default;
@@ -240,7 +307,7 @@ public abstract class Symbol
 				throw new UnreachableException();
 		}
 
-		var hierarchy = GetHierarchy(symbol);
+		var hierarchy = symbol.GetHierarchy();
 		// Start from left, close and get next member, call sub on it to replace possible generics, until we reach the right.
 		var prev = default(Symbol?);
 		foreach (var current in hierarchy)
@@ -291,21 +358,6 @@ public abstract class Symbol
 			return symbolCache.CloseGeneric(
 				symbol,
 				smapSub);
-		}
-
-		// Returns a symbol's hierarchy as a list, starting from the top level symbol.
-		// S<T>.M<i64>.N<f64> -> [S<T>, M<i64>, N<f64>]
-		static List<Symbol> GetHierarchy(Symbol symbol)
-		{
-			var list = new List<Symbol>();
-			var current = symbol;
-			while (current != null && current is not ModuleSymbol)
-			{
-				list.Add(current);
-				current = current.Parent;
-			}
-			list.Reverse();
-			return list;
 		}
 	}
 
