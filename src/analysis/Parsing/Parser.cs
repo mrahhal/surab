@@ -574,8 +574,8 @@ internal class ParserImpl
 			// `identifier: Type = 2;` or `identifier = 2;`
 			TokenKind.Identifier when P1()?.Kind is TokenKind.Colon or TokenKind.Equal => ParseFieldDecl(attrs),
 
-			// `identifier(`
-			TokenKind.Identifier when P1()?.Kind is TokenKind.OpenParen => ParseMethodDecl(attrs),
+			// `identifier(` or `identifier<`
+			TokenKind.Identifier when P1()?.Kind is TokenKind.OpenParen or TokenKind.Less => ParseMethodDecl(attrs),
 			// `(` (initializer)
 			TokenKind.OpenParen => ParseMethodDecl(attrs),
 			// `+(`

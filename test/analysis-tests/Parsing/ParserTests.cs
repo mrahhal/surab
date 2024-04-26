@@ -758,6 +758,27 @@ public class ParserTests
 	}
 
 	[Fact]
+	public void GenericMethod_1()
+	{
+		var code = """
+			struct S<T1> {
+				f<T2, T3>() { }
+			}
+			""";
+		var node = ParseDecl(code).Should().BeOfType<StructDeclNode>().Subject;
+		node.Name.Identifier.Value.Should().Be("S");
+		node.Name.GenericParamsList.Should().NotBeNull();
+		node.Name.GenericParamsList!.GenericParams.Should().HaveCount(1);
+		node.Name.GenericParamsList!.GenericParams.ElementAt(0).Identifier.Value.Should().Be("T1");
+		node.Members.Should().HaveCount(1);
+		var fMethodNode = node.Members.ElementAt(0).Should().BeOfType<MethodDeclNode>().Subject;
+		fMethodNode.Sig.Name.GenericParamsList.Should().NotBeNull();
+		fMethodNode.Sig.Name.GenericParamsList!.GenericParams.Should().HaveCount(2);
+		fMethodNode.Sig.Name.GenericParamsList!.GenericParams.ElementAt(0).Identifier.Value.Should().Be("T2");
+		fMethodNode.Sig.Name.GenericParamsList!.GenericParams.ElementAt(1).Identifier.Value.Should().Be("T3");
+	}
+
+	[Fact]
 	public void LessThan()
 	{
 		var code = "var a = S < T;";
