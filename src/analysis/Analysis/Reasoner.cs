@@ -682,7 +682,7 @@ public class Reasoner
 	{
 		return symbol switch
 		{
-			IGenericSymbol genericSymbol when genericArgs.Any() => SymbolCache.CloseGeneric(symbol, genericSymbol.GenericParams, genericArgs),
+			IPossiblyGenericSymbol genericSymbol when genericArgs.Any() => SymbolCache.CloseGeneric(symbol, genericSymbol.GenericParams, genericArgs),
 			_ when genericArgs.Any() => CloseInvalidSymbol(symbol),
 			_ => symbol,
 		};

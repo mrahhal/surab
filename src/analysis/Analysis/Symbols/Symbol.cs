@@ -177,7 +177,7 @@ public abstract class Symbol
 	internal bool TryGetGenericParams([NotNullWhen(true)] out ImmutableArray<GenericParamTypeSymbol> genericParams)
 	{
 		genericParams = default;
-		if (this is IGenericSymbol genericSymbol && genericSymbol.GenericParams.Any())
+		if (this is IPossiblyGenericSymbol genericSymbol && genericSymbol.GenericParams.Any())
 		{
 			genericParams = genericSymbol.GenericParams;
 			return true;
@@ -193,7 +193,7 @@ public abstract class Symbol
 	internal bool TryGetGenericArgs([NotNullWhen(true)] out ImmutableArray<TypeSymbol>? genericArgs)
 	{
 		genericArgs = null;
-		if (this is IGenericSymbol genericSymbol && genericSymbol.GenericArgs.Any())
+		if (this is IPossiblyGenericSymbol genericSymbol && genericSymbol.GenericArgs.Any())
 		{
 			genericArgs = genericSymbol.GenericArgs;
 			return true;
@@ -271,7 +271,7 @@ public abstract class Symbol
 				// Either pure non generic (i32, string), or it'll be already subd if inside a generic (S<T>.M).
 				// Either way, return as is.
 				return symbol;
-			var genericSymbol = (IGenericSymbol)symbol;
+			var genericSymbol = (IPossiblyGenericSymbol)symbol;
 
 			if (symbol == og)
 			{
@@ -281,7 +281,7 @@ public abstract class Symbol
 			}
 
 			Debug.Assert(og.HasGenericArgs());
-			var ogGenericSymbol = (IGenericSymbol)og;
+			var ogGenericSymbol = (IPossiblyGenericSymbol)og;
 			Debug.Assert(genericSymbol.GenericParams.Length == ogGenericSymbol.GenericArgs.Length);
 
 			var smapSub = smap.CreateSub();

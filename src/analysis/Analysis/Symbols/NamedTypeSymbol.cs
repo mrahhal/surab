@@ -6,7 +6,7 @@ namespace Surab.Analysis;
 /// <summary>
 /// A named type. Can be any of: struct.
 /// </summary>
-public abstract class NamedTypeSymbol : TypeSymbol, ISymbolHasExternAttr, IGenericSymbol
+public abstract class NamedTypeSymbol : TypeSymbol, ISymbolHasExternAttr, IPossiblyGenericSymbol
 {
 	private InitializerMethodWrapper? _initializerMethodWrapper = default;
 	private ImmutableArray<TypeCreationMemberSymbol> _creationMemberSymbols;
@@ -108,7 +108,7 @@ public abstract class NamedTypeSymbol : TypeSymbol, ISymbolHasExternAttr, IGener
 		return new SubstitutedNamedTypeSymbol(this, [], smap);
 	}
 
-	Symbol IGenericSymbol.SubstituteConstructedGeneric(SubstitutionMap smap, IReadOnlyList<TypeSymbol> genericArgs)
+	Symbol IPossiblyGenericSymbol.SubstituteConstructedGeneric(SubstitutionMap smap, IReadOnlyList<TypeSymbol> genericArgs)
 	{
 		return new SubstitutedNamedTypeSymbol(this, genericArgs, smap);
 	}

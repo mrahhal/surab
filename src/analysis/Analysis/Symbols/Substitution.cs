@@ -5,8 +5,10 @@ namespace Surab.Analysis;
 
 /// <summary>
 /// Represents a possibly generic symbol.
+/// A generic symbol is one that has generic params defined on it. (`struct S<T> { }`)
+/// A possibly generic symbol is one that by definition could have generic params defined on it, but might not have them. (structs and fns)
 /// </summary>
-public interface IGenericSymbol
+public interface IPossiblyGenericSymbol
 {
 	/// <summary>
 	/// A symbol's generic type params.
@@ -27,7 +29,7 @@ public static class GenericSymbolExtensions
 	/// <summary>
 	/// Returns the effective generic types. Generic params if this is a definition, generic args if this is closed.
 	/// </summary>
-	public static IEnumerable<TypeSymbol> GetGenericTypes(this IGenericSymbol genericSymbol)
+	public static IEnumerable<TypeSymbol> GetGenericTypes(this IPossiblyGenericSymbol genericSymbol)
 	{
 		if (genericSymbol.GenericArgs.Any())
 		{
@@ -42,7 +44,7 @@ public static class GenericSymbolExtensions
 
 internal static class GenericHelper
 {
-	public static string CreateName(IGenericSymbol genericSymbol, string identifier)
+	public static string CreateName(IPossiblyGenericSymbol genericSymbol, string identifier)
 	{
 		if (genericSymbol.GenericParams.Any())
 		{

@@ -2,7 +2,7 @@
 
 namespace Surab.Analysis;
 
-public abstract class AliasTypeSymbol : TypeSymbol, IGenericSymbol
+public abstract class AliasTypeSymbol : TypeSymbol, IPossiblyGenericSymbol
 {
 	private string? _name;
 
@@ -38,7 +38,7 @@ public abstract class AliasTypeSymbol : TypeSymbol, IGenericSymbol
 		return new SubstitutedAliasTypeSymbol(this, [], smap);
 	}
 
-	Symbol IGenericSymbol.SubstituteConstructedGeneric(SubstitutionMap smap, IReadOnlyList<TypeSymbol> genericArgs)
+	Symbol IPossiblyGenericSymbol.SubstituteConstructedGeneric(SubstitutionMap smap, IReadOnlyList<TypeSymbol> genericArgs)
 	{
 		return new SubstitutedAliasTypeSymbol(this, genericArgs, smap);
 	}

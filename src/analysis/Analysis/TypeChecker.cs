@@ -52,7 +52,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 			return;
 		}
 
-		var lhsSymbol = (LocalSymbol)_reasoner.GetDeclaredSymbol(node)!;
+		var lhsSymbol = _reasoner.GetDeclaredSymbol(node)!;
 		var lhsType = lhsSymbol.Type;
 
 		if (node.Initializer != null)
@@ -98,7 +98,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 			_diags.Add(node.Span, DiagLevel.Error, $"a method decl is not allowed in this context");
 		}
 
-		var fnSymbol = _reasoner.GetDeclaredSymbol(node) as FnSymbol;
+		var fnSymbol = _reasoner.GetDeclaredSymbol(node);
 		var enclosingType = fnSymbol?.EnclosingType as NamedTypeSymbol;
 		Debug.Assert(enclosingType != null);
 
@@ -543,7 +543,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 	{
 		var symbol = _reasoner.LookupSymbol(node);
 		AnalyzeLookedUpIdentifier(node.Name.Identifier, symbol);
-		if (symbol is IGenericSymbol genericSymbol)
+		if (symbol is IPossiblyGenericSymbol genericSymbol)
 		{
 			if (!genericSymbol.GenericParams.Any() &&
 				genericSymbol.GenericArgs.Any())

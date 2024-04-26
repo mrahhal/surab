@@ -38,7 +38,7 @@ internal class SymbolCache
 		IReadOnlyList<TypeSymbol> genericParams,
 		IReadOnlyList<TypeSymbol> genericArgs)
 	{
-		if (symbol is not IGenericSymbol genericSymbol)
+		if (symbol is not IPossiblyGenericSymbol genericSymbol)
 			throw new Exception("Expected a generic symbol.");
 
 		//Debug.Assert(genericSymbol.GenericArgs.Length == 0 && genericParams.Count == genericArgs.Count);
@@ -59,7 +59,7 @@ internal class SymbolCache
 		Symbol symbol,
 		SubstitutionMap smap)
 	{
-		if (symbol is not IGenericSymbol genericSymbol)
+		if (symbol is not IPossiblyGenericSymbol genericSymbol)
 			throw new Exception("Expected a generic symbol.");
 
 		Debug.Assert(genericSymbol.GenericParams.Length > 0 && genericSymbol.GenericArgs.Length == 0);

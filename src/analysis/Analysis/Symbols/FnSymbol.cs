@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 namespace Surab.Analysis;
 
-public abstract class FnSymbol : Symbol, ISymbolHasType, ISymbolHasExternAttr, IGenericSymbol
+public abstract class FnSymbol : Symbol, ISymbolHasType, ISymbolHasExternAttr, IPossiblyGenericSymbol
 {
 	private TypeSymbol? _methodReceiverType;
 	private FnTypeSymbol? _typeWithoutReceiver;
@@ -130,7 +130,7 @@ public abstract class FnSymbol : Symbol, ISymbolHasType, ISymbolHasExternAttr, I
 		return new SubstitutedFnSymbol(this, [], smap);
 	}
 
-	Symbol IGenericSymbol.SubstituteConstructedGeneric(SubstitutionMap smap, IReadOnlyList<TypeSymbol> genericArgs)
+	Symbol IPossiblyGenericSymbol.SubstituteConstructedGeneric(SubstitutionMap smap, IReadOnlyList<TypeSymbol> genericArgs)
 	{
 		return new SubstitutedFnSymbol(this, genericArgs, smap);
 	}
