@@ -91,9 +91,12 @@ internal sealed class LoweredDeclList(
 internal sealed class LoweredFnDecl(
 	SyntaxNode parsedNode,
 	FnSymbol fnSymbol,
+	IEnumerable<GenericParamTypeSymbol> genericParams,
 	LoweredStmtList? body) : LoweredDecl(parsedNode)
 {
 	public FnSymbol FnSymbol { get; } = fnSymbol;
+
+	public ImmutableArray<GenericParamTypeSymbol> GenericParams { get; } = genericParams.ToImmutableArray();
 
 	public LoweredStmtList? Body { get; } = body;
 
@@ -117,9 +120,12 @@ internal sealed class LoweredFnDecl(
 internal sealed class LoweredTypeDecl(
 	SyntaxNode parsedNode,
 	TypeSymbol typeSymbol,
+	IEnumerable<GenericParamTypeSymbol> genericParams,
 	IEnumerable<FieldSymbol> fields) : LoweredDecl(parsedNode)
 {
 	public TypeSymbol TypeSymbol { get; } = typeSymbol;
+
+	public ImmutableArray<GenericParamTypeSymbol> GenericParams { get; } = genericParams.ToImmutableArray();
 
 	// Only includes data members. Behavior (methods) will be their own lowered functions (hoisted).
 	public ImmutableArray<FieldSymbol> Fields { get; } = fields.ToImmutableArray();
@@ -200,11 +206,14 @@ internal sealed class LoweredExprStmt(
 internal sealed class LoweredObjectAllocStmt(
 	SyntaxNode parsedNode,
 	TypeSymbol type,
-	TempSymbol tempSymbol) : LoweredStmt(parsedNode)
+	TempSymbol tempSymbol,
+	IEnumerable<TypeSymbol> genericArgs) : LoweredStmt(parsedNode)
 {
 	public TypeSymbol Type { get; } = type;
 
 	public TempSymbol TempSymbol { get; } = tempSymbol;
+
+	public ImmutableArray<TypeSymbol> GenericArgs { get; } = genericArgs.ToImmutableArray();
 
 	public override IEnumerable<LoweredNode> EnumerateChildren() => [];
 
@@ -341,11 +350,14 @@ internal sealed class LoweredCallExpr(
 	SyntaxNode parsedNode,
 	FnTypeSymbol fnType,
 	LoweredExpr callee,
+	IEnumerable<TypeSymbol> genericArgs,
 	IEnumerable<LoweredExpr> args) : LoweredExpr(parsedNode, fnType.ReturnType)
 {
+	public FnTypeSymbol FnType { get; set; } = fnType;
+
 	public LoweredExpr Callee { get; set; } = callee;
 
-	public FnTypeSymbol FnType { get; set; } = fnType;
+	public ImmutableArray<TypeSymbol> GenericArgs { get; } = genericArgs.ToImmutableArray();
 
 	public ImmutableArray<LoweredExpr> Args { get; } = args.ToImmutableArray();
 

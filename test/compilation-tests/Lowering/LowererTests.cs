@@ -266,6 +266,37 @@ public class LowererTests
 		fieldLoadExpr.Target.Should().BeOfType<LoweredVariableLoadExpr>();
 	}
 
+	[Fact]
+	public void GenericTypes()
+	{
+		var src = """
+			struct S<T1> { a: T1; struct M<T2> { b: T2; do<T3>() { } } }
+			fn f() {
+				var m = S<i32>.M<f64> { b = 4.2 };
+				m.do<i64>();
+			}
+			""";
+		var file = LowerFile(src);
+		var declM = (LoweredTypeDecl)file.DescendantNodes().Single(d => d is LoweredTypeDecl loweredType && loweredType.TypeSymbol.IdentifierMatches("M"));
+		var declDo = (LoweredFnDecl)file.DescendantNodes().Single(d => d is LoweredFnDecl loweredFn && loweredFn.FnSymbol.IdentifierMatches("do"));
+		declDo.GenericParams.Should().HaveCount(3);
+		declDo.GenericParams[0].Identifier.Should().Be("T1");
+		declDo.GenericParams[1].Identifier.Should().Be("T2");
+		declDo.GenericParams[2].Identifier.Should().Be("T3");
+
+		var body = file.GetFnBody("f");
+		var allocStmt = body.SelectMany(x => x.DescendantNodes()).OfType<LoweredObjectAllocStmt>().Single();
+		allocStmt.GenericArgs.Should().HaveCount(2);
+		allocStmt.GenericArgs[1].KnownTypeTag.Should().Be(KnownTypeTag.f64);
+		allocStmt.GenericArgs[0].KnownTypeTag.Should().Be(KnownTypeTag.i32);
+
+		var callExpr = body.SelectMany(x => x.DescendantNodes()).OfType<LoweredCallExpr>().Single();
+		callExpr.GenericArgs.Should().HaveCount(3);
+		callExpr.GenericArgs[0].KnownTypeTag.Should().Be(KnownTypeTag.i32);
+		callExpr.GenericArgs[1].KnownTypeTag.Should().Be(KnownTypeTag.f64);
+		callExpr.GenericArgs[2].KnownTypeTag.Should().Be(KnownTypeTag.i64);
+	}
+
 	private static LoweredFnDecl LowerFn(string src)
 	{
 		var file = LowerFile(src);
@@ -281,19 +312,20 @@ public class LowererTests
 	private static LoweredTree Lower(string src)
 	{
 		var (_, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(src);
+		reasoner.GetAllDiags().Where(d => d.Level is DiagLevel.Error).Should().HaveCount(0);
 		return Lowerer.Lower(reasoner);
 	}
 }
 
 internal static class LowererTestsExtensions
 {
-	public static List<LoweredStmt> GetFnBody(this LoweredNode node, string? name = null)
+	public static List<LoweredStmt> GetFnBody(this LoweredNode node, string? identifier = null)
 	{
 		LoweredFnDecl fnDecl;
 
 		if (node is LoweredFnDecl selfFnDecl)
 		{
-			if (name != null)
+			if (identifier != null)
 			{
 				throw new Exception("Function name was specified but the given node is itself a function.");
 			}
@@ -302,16 +334,16 @@ internal static class LowererTestsExtensions
 		else
 		{
 			var fns = node.DescendantNodes().OfType<LoweredFnDecl>().ToList();
-			if (fns.Count > 1 && name == null)
+			if (fns.Count > 1 && identifier == null)
 				throw new Exception("Specifying a name is required when there are more than one function.");
 
-			if (name == null)
+			if (identifier == null)
 			{
 				fnDecl = fns.Single();
 			}
 			else
 			{
-				fnDecl = fns.Single(x => x.FnSymbol.Name == name);
+				fnDecl = fns.Single(x => x.FnSymbol.IdentifierMatches(identifier));
 			}
 		}
 

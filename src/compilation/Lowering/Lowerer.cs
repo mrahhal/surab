@@ -3,9 +3,9 @@ using Surab.Analysis;
 
 namespace Surab.Compilation;
 
-internal class LoweredProject(IReadOnlyList<LoweredTree> trees)
+internal class LoweredProject
 {
-	public IReadOnlyList<LoweredTree> Trees { get; } = trees;
+	public required IReadOnlyList<LoweredTree> Trees { get; init; }
 }
 
 /// <summary>
@@ -32,7 +32,10 @@ internal class Lowerer
 		var loweredTrees = project.GetAllReasoners()
 			.Select(Lower)
 			.ToList();
-		return new LoweredProject(loweredTrees);
+		return new LoweredProject
+		{
+			Trees = loweredTrees,
+		};
 	}
 
 	internal static LoweredTree Lower(Reasoner reasoner)
@@ -120,10 +123,12 @@ internal class Lowerer
 			var fnSymbol = _reasoner.GetDeclaredSymbol(node);
 			Debug.Assert(fnSymbol != null);
 			var body = node.Body == null ? null : LowerFnBlock(node.Body);
+			var genericParams = GetAllGenericParams(fnSymbol);
 
 			return new LoweredFnDecl(
 				node,
 				fnSymbol,
+				genericParams,
 				body);
 		}, node);
 	}
@@ -135,10 +140,12 @@ internal class Lowerer
 			var fnSymbol = _reasoner.GetDeclaredSymbol(node);
 			Debug.Assert(fnSymbol != null);
 			var body = node.Body == null ? null : LowerFnBlock(node.Body);
+			var genericParams = GetAllGenericParams(fnSymbol);
 
 			return new LoweredFnDecl(
 				node,
 				fnSymbol,
+				genericParams,
 				body);
 		}, node);
 	}
@@ -148,7 +155,7 @@ internal class Lowerer
 		return HoistLocalDecls((node) =>
 		{
 			var namedTypeSymbol = _reasoner.GetDeclaredSymbol(node);
-
+			var genericParams = GetAllGenericParams(namedTypeSymbol);
 			var fieldDecls = namedTypeSymbol.Members.OfType<FieldSymbol>();
 			var nonFieldDecls = namedTypeSymbol.Members.Where(x => x.Kind is not SymbolKind.Field);
 
@@ -163,8 +170,56 @@ internal class Lowerer
 			return new LoweredTypeDecl(
 				node,
 				namedTypeSymbol,
+				genericParams,
 				fieldDecls);
 		}, node);
+	}
+
+	/// <summary>
+	/// Gets all generic params, both explicit (on the symbol itself) and implicit (inherited from
+	/// a parent symbol).
+	///
+	/// This is used so that if we have an fn such as: `struct S<T1> { f<T2>() { } }`, then
+	/// [T1, T2] will be extracted.
+	/// </summary>
+	private List<GenericParamTypeSymbol> GetAllGenericParams(Symbol symbol)
+	{
+		var list = new List<GenericParamTypeSymbol>();
+		var current = symbol;
+		while (current != null)
+		{
+			if (current is IGenericSymbol genericSymbol)
+			{
+				list.AddRange(genericSymbol.GenericParams);
+			}
+			current = current.NonModuleParent;
+		}
+		list.Reverse();
+		return list;
+	}
+
+	/// <summary>
+	/// Gets all generic args, both explicit (on the symbol itself) and implicit(inherited
+	/// from a parent symbol).
+	///
+	/// This is used so that if we have a call expr such as: `S<i32>.f<f64>()`, then
+	/// [i32, f64] will be extracted, which would correspond to the GenericParams of that
+	/// lowered fn in the same order.
+	/// </summary>
+	private List<TypeSymbol> GetAllGenericArgs(Symbol symbol)
+	{
+		var list = new List<TypeSymbol>();
+		var current = symbol;
+		while (current != null)
+		{
+			if (current is IGenericSymbol genericSymbol)
+			{
+				list.AddRange(genericSymbol.GenericArgs);
+			}
+			current = current.NonModuleParent;
+		}
+		list.Reverse();
+		return list;
 	}
 
 	private LoweredNode Lower(ReturnStmtNode node)
@@ -401,11 +456,14 @@ internal class Lowerer
 
 		// symbol will be ParamSymbol for fn ptrs in params for example.
 		var symbol = _reasoner.LookupSymbol(node.Callee);
+		Debug.Assert(symbol != null);
 
 		// Note: LookupType will give as an FnType that doesn't include the receiver param for non static methods accessed through an instance.
 		// (see `FnSymbol.TypeWithoutReceiver`)
 		// For this reason, we get back the normal type back in these cases below.
 		var fnType = (FnTypeSymbol)_reasoner.LookupType(node.Callee).UnwrapTypeAliases();
+
+		var genericArgs = GetAllGenericArgs(symbol);
 
 		var receiverArgs = Enumerable.Empty<LoweredExpr>();
 		if (symbol is FnSymbol fnSymbol && node.Callee is AccessExprNode accessExpr && _reasoner.IsInstanceAccess(accessExpr))
@@ -425,6 +483,7 @@ internal class Lowerer
 			node,
 			fnType,
 			calleeExpr,
+			genericArgs,
 			// No auto deref for args. Might be better this way. (If we want it changes will be required in IsAssignableFrom/TypeChecker)
 			[.. receiverArgs, .. LowerWithCast(node.Args.Select(arg => arg.Expr))]);
 	}
@@ -526,12 +585,15 @@ internal class Lowerer
 
 		var structLoadExpr = new LoweredSymbolLoadExpr(node, namedType, structTempSymbol);
 
+		var genericArgs = GetAllGenericArgs(namedType);
+
 		// Object alloc
 
 		var allocStmt = new LoweredObjectAllocStmt(
 			node,
 			namedType,
-			structTempSymbol);
+			structTempSymbol,
+			genericArgs);
 		stmts.Add(allocStmt);
 
 		var initializerItems = node.MapInitializer.WellFormedExprs.Select(expr =>
@@ -569,6 +631,7 @@ internal class Lowerer
 				node,
 				initializerFnSymbol.Type,
 				new LoweredSymbolLoadExpr(node, initializerFnSymbol.Type, initializerFnSymbol),
+				genericArgs, // Inits will always have the same generic types as the enclosing type.
 				[receiver, .. argsSet]);
 			stmts.Add(new LoweredExprStmt(node, callInitExpr));
 		}
