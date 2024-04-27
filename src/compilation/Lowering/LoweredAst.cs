@@ -361,7 +361,7 @@ internal sealed class LoweredCallExpr(
 
 	public ImmutableArray<LoweredExpr> Args { get; } = args.ToImmutableArray();
 
-	public override IEnumerable<LoweredNode> EnumerateChildren() => [.. Args];
+	public override IEnumerable<LoweredNode> EnumerateChildren() => [Callee, .. Args];
 
 	public override string ToString() => $"{Callee}(...)";
 }
