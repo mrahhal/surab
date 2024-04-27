@@ -217,7 +217,7 @@ public class ReasonerTests
 	}
 
 	[Fact]
-	public void Symbol_IsAssignableFrom()
+	public void Symbol_Alias_IsAssignableFrom()
 	{
 		var code = """
 			alias i32 as Integer;
@@ -232,7 +232,7 @@ public class ReasonerTests
 	}
 
 	[Fact]
-	public void Symbol_IsAssignableFrom2()
+	public void Symbol_Alias_IsAssignableFrom2()
 	{
 		var code = """
 			alias fn (i32) f64 as Delegate1;

@@ -583,7 +583,8 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		var symbol = _reasoner.LookupSymbol(node);
 		if (symbol == null)
 		{
-			_diags.Add(node.Span, DiagLevel.Error, $"unknown type");
+			// Reported somewhere else?
+			//_diags.Add(node.Span, DiagLevel.Error, $"unknown type");
 		}
 		else if (symbol is not TypeSymbol)
 		{

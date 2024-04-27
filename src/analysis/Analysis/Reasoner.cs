@@ -550,7 +550,9 @@ public class Reasoner
 			mapInitializerItem.Parent is MapInitializerNode mapInitializer &&
 			mapInitializer.Parent is TypeCreationExprNode typeCreationExpr)
 		{
-			var type = LookupType(typeCreationExpr);
+			var type = LookupType(typeCreationExpr).UnwrapTypeAliases();
+			// TODO: Need to report this as a semantic diag instead of this assertion, as this is a valid state.
+			// e.g. `alias *i32 as PtrToInt; PtrToInt { a = ... }`
 			Debug.Assert(type is NamedTypeSymbol);
 			symbol = ((NamedTypeSymbol)type).GetCreationMemberSymbol(nameExpr.Name.Identifier)?.Symbol;
 			return true;
