@@ -131,7 +131,7 @@ internal readonly struct SubstitutedGenericSymbolKey : IEquatable<SubstitutedGen
 
 internal class SubstitutionMap
 {
-	private readonly Dictionary<Symbol, Symbol> _map = [];
+	private readonly Dictionary<TypeSymbol, TypeSymbol> _map = [];
 
 	private SubstitutionMap(SubstitutionMap? parent)
 	{
@@ -161,59 +161,69 @@ internal class SubstitutionMap
 	}
 
 	public void AddGenericSubstitutions(
-		IReadOnlyList<TypeSymbol> genericParams,
+		IReadOnlyList<GenericParamTypeSymbol> genericParams,
 		IReadOnlyList<TypeSymbol> genericArgs)
 	{
 		// Go up to the min of the two. Different lengths are possible in case of syntax errors.
 		for (var i = 0; i < Math.Min(genericParams.Count, genericArgs.Count); i++)
 		{
-			AddSubstitution(genericParams[i], genericArgs[i]);
+			AddGenericSubstitution(genericParams[i], genericArgs[i]);
 		}
 	}
 
-	private void AddSubstitution(Symbol from, Symbol to)
+	private void AddGenericSubstitution(
+		GenericParamTypeSymbol from,
+		TypeSymbol to)
 	{
 		_map.Add(from.OriginalDef, to);
 	}
 
-	public bool Contains(Symbol symbol)
-	{
-		return
-			_map.ContainsKey(symbol.OriginalDef) ||
-			(Parent?.Contains(symbol) ?? false);
-	}
-
-	public List<TypeSymbol> ReplaceGenericTypes(IEnumerable<TypeSymbol> genericParams)
+	public List<TypeSymbol> ReplaceGenericTypes(IEnumerable<GenericParamTypeSymbol> genericParams)
 	{
 		ArgumentNullException.ThrowIfNull(genericParams);
 		return genericParams
-			.Select(ReplaceGenericType)
-			.Cast<TypeSymbol>()
+			.Select(Replace)
 			.ToList();
 	}
 
-	// Fully resolves transitive substitutions.
-	public TypeSymbol ReplaceGenericType(TypeSymbol genericParam)
+	// ReplaceOnce doesn't resolve transitive substitutions whereas Replace does.
+	//
+	// If we have T2 -> T1 -> i32, then:
+	// ReplaceOnce(T2) => T1
+	// Replace(T2) => i32
+	//
+	// Note that full resolve could still return a generic param if this smap doesn't represent
+	// a fully closed generic symbol.
+
+	public TypeSymbol Replace(TypeSymbol symbol)
 	{
-		Debug.Assert(genericParam.TypeKind is TypeSymbolKind.GenericParam);
-		var current = genericParam;
-		while (current.TypeKind is TypeSymbolKind.GenericParam && Contains(current))
+		var prev = symbol;
+		var current = symbol;
+		while (current.TypeKind is TypeSymbolKind.GenericParam)
 		{
-			current = (TypeSymbol)Replace(current);
+			// REVIEW: Opt: We could in theory continue from the last parent we checked
+			// as substitutions always flow from child smap to parent smap?
+			current = ReplaceOnce(current);
+			if (prev == current)
+			{
+				// ReplaceOnce returned same symbol, this means the sub chain ends with this
+				// generic param (partial resolve) so return it.
+				return current;
+			}
+			prev = current;
 		}
 		return current;
 	}
 
-	public Symbol Replace(Symbol symbol)
+	private TypeSymbol ReplaceOnce(TypeSymbol symbol)
 	{
-		ArgumentNullException.ThrowIfNull(symbol);
 		if (_map.TryGetValue(symbol.OriginalDef, out var subd))
 		{
 			return subd;
 		}
 		if (Parent != null)
 		{
-			return Parent.Replace(symbol.OriginalDef);
+			return Parent.ReplaceOnce(symbol.OriginalDef);
 		}
 		return symbol;
 	}

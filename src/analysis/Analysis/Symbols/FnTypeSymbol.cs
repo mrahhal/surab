@@ -99,7 +99,7 @@ public class FnTypeSymbol : TypeSymbol
 
 	public override TypeSymbolKind TypeKind => TypeSymbolKind.Fn;
 
-	public override Symbol OriginalDef => this;
+	public override FnTypeSymbol OriginalDef => this;
 
 	public override SyntaxNode? DeclaringNode => null;
 

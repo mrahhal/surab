@@ -44,6 +44,8 @@ public abstract class TypeSymbol : Symbol
 
 	public abstract TypeSymbolKind TypeKind { get; }
 
+	public override abstract TypeSymbol OriginalDef { get; }
+
 	public KnownTypeTag? KnownTypeTag { get; internal set; }
 
 	/// <summary>

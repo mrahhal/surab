@@ -20,6 +20,8 @@ public abstract class NamedTypeSymbol : TypeSymbol, ISymbolHasExternAttr, IPossi
 		}
 	}
 
+	public override abstract NamedTypeSymbol OriginalDef { get; }
+
 	public abstract bool IsExtern { get; }
 
 	public abstract ImmutableArray<GenericParamTypeSymbol> GenericParams { get; }
@@ -146,7 +148,7 @@ public class SrcNamedTypeSymbol : NamedTypeSymbol
 
 	internal override IdentifierToken? IdentifierToken { get; }
 
-	public override Symbol OriginalDef => this;
+	public override NamedTypeSymbol OriginalDef => this;
 
 	private AttrsListNode? Attrs => _node switch
 	{
@@ -237,7 +239,7 @@ internal class SubstitutedNamedTypeSymbol : NamedTypeSymbol
 		_smap = smap.CreateSub();
 	}
 
-	public override Symbol OriginalDef => _original.OriginalDef;
+	public override NamedTypeSymbol OriginalDef => _original.OriginalDef;
 
 	public override IEnumerable<Symbol> Children => [.. Members];
 

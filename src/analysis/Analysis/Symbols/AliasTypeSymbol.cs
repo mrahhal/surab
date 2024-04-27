@@ -8,7 +8,7 @@ public abstract class AliasTypeSymbol : TypeSymbol, IPossiblyGenericSymbol
 
 	public override TypeSymbolKind TypeKind => TypeSymbolKind.Alias;
 
-	public override Symbol OriginalDef => this;
+	public override abstract AliasTypeSymbol OriginalDef { get; }
 
 	public override string Name
 	{
@@ -54,6 +54,8 @@ public class SrcAliasTypeSymbol : AliasTypeSymbol
 	{
 		_node = node;
 	}
+
+	public override AliasTypeSymbol OriginalDef => this;
 
 	public override AliasDeclNode DeclaringNode => _node;
 
@@ -110,7 +112,7 @@ internal class SubstitutedAliasTypeSymbol : AliasTypeSymbol
 		_smap = smap.CreateSub();
 	}
 
-	public override Symbol OriginalDef => _original.OriginalDef;
+	public override AliasTypeSymbol OriginalDef => _original.OriginalDef;
 
 	public override TypeSymbolKind TypeKind => _original.TypeKind;
 

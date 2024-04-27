@@ -35,13 +35,11 @@ internal class SymbolCache
 	/// </summary>
 	public Symbol CloseGeneric(
 		Symbol symbol,
-		IReadOnlyList<TypeSymbol> genericParams,
+		IReadOnlyList<GenericParamTypeSymbol> genericParams,
 		IReadOnlyList<TypeSymbol> genericArgs)
 	{
 		if (symbol is not IPossiblyGenericSymbol genericSymbol)
-			throw new Exception("Expected a generic symbol.");
-
-		//Debug.Assert(genericSymbol.GenericArgs.Length == 0 && genericParams.Count == genericArgs.Count);
+			throw new Exception("Expected a possibly generic symbol.");
 
 		var smap = SubstitutionMap.Create();
 		smap.AddGenericSubstitutions(genericParams, genericArgs);
@@ -60,7 +58,7 @@ internal class SymbolCache
 		SubstitutionMap smap)
 	{
 		if (symbol is not IPossiblyGenericSymbol genericSymbol)
-			throw new Exception("Expected a generic symbol.");
+			throw new Exception("Expected a possibly generic symbol.");
 
 		Debug.Assert(genericSymbol.GenericParams.Length > 0 && genericSymbol.GenericArgs.Length == 0);
 

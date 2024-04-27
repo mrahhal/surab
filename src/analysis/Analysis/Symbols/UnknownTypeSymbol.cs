@@ -13,7 +13,7 @@ public abstract class UnknownTypeSymbol : TypeSymbol
 
 	public override TypeSymbolKind TypeKind => TypeSymbolKind.Unknown;
 
-	public override Symbol OriginalDef => this;
+	public override TypeSymbol OriginalDef => this;
 
 	public override string Name => "_?_";
 

@@ -13,7 +13,7 @@ public abstract class GenericParamTypeSymbol : TypeSymbol
 	{
 		// This is kind of the *base* case in the substitution.
 		// For other symbols, we return a specialized substituted symbol impl, whereas here we directly replace this type.
-		return smap.ReplaceGenericType(this);
+		return smap.Replace(this);
 	}
 }
 
@@ -27,7 +27,7 @@ public sealed class SrcGenericParamTypeSymbol : GenericParamTypeSymbol
 		Index = index;
 	}
 
-	public override Symbol OriginalDef => this;
+	public override TypeSymbol OriginalDef => this;
 
 	public override GenericParamNode DeclaringNode => _node;
 
