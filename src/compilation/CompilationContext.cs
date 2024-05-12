@@ -33,7 +33,7 @@ public sealed class CompilationContext
 	// TODO: Some of these might need to be moved to a reasoner context so that we can bust them as we rebuild reasoners on changes.
 	// Also, some of these should not be here in the first place as they're tied to LLVM.
 
-	internal Dictionary<Symbol, LLVMUnit> SymbolToLLVMUnit { get; } = [];
+	internal Dictionary<HirValue, LLVMUnit> ValueToLLVMUnit { get; } = [];
 
-	internal Dictionary<TypeSymbol, LLVMTypeRef> TypeSymbolToLLVMType { get; } = [];
+	internal Dictionary<HirType, LLVMTypeRef> TypeToLLVMType { get; } = [];
 }

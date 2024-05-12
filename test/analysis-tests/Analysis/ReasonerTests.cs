@@ -248,6 +248,24 @@ public class ReasonerTests
 	}
 
 	[Fact]
+	public void Symbol_Alias_TypeCreationMemberSymbol()
+	{
+		var code = """
+			struct S { v: i32; }
+			alias S as SAlias;
+
+			fn fn() {
+				var s = SAlias { v = 42 };
+			}
+			""";
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(code);
+
+		var assignmentInsideTypeCreation = tree.Root.DescendantNodes().OfType<AssignmentExprNode>().First();
+		var result = reasoner.LookupSymbol(assignmentInsideTypeCreation.Lhs);
+		result.Should().BeAssignableTo<FieldSymbol>();
+	}
+
+	[Fact]
 	public void Generics()
 	{
 		var code = """
@@ -271,7 +289,9 @@ public class ReasonerTests
 				var m = s.m;
 				var o = s.o;
 
-				var x = S<i32>.N<i64> { b: 43i64 };
+				var x = S<i32>.N<i64> { b = 43i64 };
+
+				var b = S<i32>.M<bool, bool> { c1 = false, c2 = true };
 			}
 			""";
 
@@ -348,6 +368,11 @@ public class ReasonerTests
 		var oLocalSymbol = reasoner.GetDeclaredSymbol(oVarDecl);
 		var oLocalType = oLocalSymbol.Type.Should().BeAssignableTo<SubstitutedNamedTypeSymbol>().Subject;
 		oLocalType.FullName.Should().Be("main::S<i32>.O");
+
+		var bVarDecl = tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(7);
+		var bLocalSymbol = reasoner.GetDeclaredSymbol(bVarDecl);
+		var bLocalType = bLocalSymbol.Type.Should().BeAssignableTo<SubstitutedNamedTypeSymbol>().Subject;
+		bLocalType.FullName.Should().Be("main::S<i32>.M<bool, bool>");
 	}
 
 	[Fact]

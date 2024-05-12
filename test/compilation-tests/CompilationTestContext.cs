@@ -3,12 +3,13 @@ using Surab.Compilation.LLVM;
 
 namespace Surab.Compilation;
 
-public class CompilationTestContext
+internal class CompilationTestContext
 {
-	public CompilationTestContext(CompilationContext context, Reasoner reasoner)
+	public CompilationTestContext(CompilationContext context, Reasoner reasoner, HirTree loweredTree)
 	{
 		Context = context;
 		Reasoner = reasoner;
+		LoweredTree = loweredTree;
 		Fill();
 	}
 
@@ -32,29 +33,34 @@ public class CompilationTestContext
 			""";
 		var (project, sourceFile) = AnalysisTestUtils.CreateProject(src);
 		var reasoner = project.GetReasoner(sourceFile);
+		var interner = new LoweringInterner();
+		var loweredProject = HirLowerer.LowerProject(project, interner);
+		var loweredTree = loweredProject.Trees.Single(x => x.SyntaxTree == reasoner.Tree);
 
 		var llvm = LLVMCompilationContext.Create();
 
 		var target = new x86_64WindowsMSVCTarget();
 		var context = new CompilationContext(project, target, llvm, CompilationOptions.CreateDefault());
 
-		return new CompilationTestContext(context, reasoner);
+		return new CompilationTestContext(context, reasoner, loweredTree);
 	}
 
 	public CompilationContext Context { get; }
 
 	public Reasoner Reasoner { get; }
 
-	public NamedTypeSymbol Struct1 { get; private set; } = null!;
+	public HirTree LoweredTree { get; }
 
-	public NamedTypeSymbol Struct2 { get; private set; } = null!;
+	public HirStructType Struct1 { get; private set; } = null!;
+
+	public HirStructType Struct2 { get; private set; } = null!;
 
 	private void Fill()
 	{
-		var struct1Node = Reasoner.Tree.Root.DescendantNodes().OfType<StructDeclNode>().First(x => x.Name.Identifier.Value == "Struct1");
-		Struct1 = Reasoner.GetDeclaredSymbol(struct1Node);
+		var struct1Node = LoweredTree.Root.DescendantNodes().OfType<HirStructDecl>().First(x => x.Type.Identifier == "Struct1");
+		Struct1 = struct1Node.Type;
 
-		var struct2Node = Reasoner.Tree.Root.DescendantNodes().OfType<StructDeclNode>().First(x => x.Name.Identifier.Value == "Struct2");
-		Struct2 = Reasoner.GetDeclaredSymbol(struct2Node);
+		var struct2Node = LoweredTree.Root.DescendantNodes().OfType<HirStructDecl>().First(x => x.Type.Identifier == "Struct2");
+		Struct2 = struct2Node.Type;
 	}
 }

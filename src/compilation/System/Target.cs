@@ -35,18 +35,18 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 	public BitSize PtrWidth { get; protected set; }
 
 	// Should this be in Abi?
-	public Layout GetLayout(TypeSymbol type)
+	public Layout GetLayout(HirType type)
 	{
+		Debug.Assert(type.Kind is not HirTypeKind.GenericParam);
 		ArgumentNullException.ThrowIfNull(type);
 
-		type = type.UnwrapTypeAliases();
 		var tag = type.KnownTypeTag;
 
 		if (tag is KnownTypeTag.None)
 			return new(0.AsBytes(), 0.AsBytes());
 		if (tag is KnownTypeTag.@char or KnownTypeTag.@bool)
 			return new(1.AsBytes(), 1.AsBytes());
-		if (tag is KnownTypeTag.@string || type is PtrTypeSymbol)
+		if (tag is KnownTypeTag.@string || type.Kind is HirTypeKind.Ptr or HirTypeKind.Fn)
 			return new(PtrWidth, PtrWidth);
 		if (tag is KnownTypeTag.i32 or KnownTypeTag.u32)
 			return new(4.AsBytes(), 4.AsBytes());
@@ -57,30 +57,21 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 		if (tag is KnownTypeTag.f64)
 			return new(8.AsBytes(), 8.AsBytes());
 
-		if (type is NamedTypeSymbol namedType)
+		if (type is HirStructType structType)
 		{
-			return GetStructLayout(namedType).Layout;
+			return GetStructLayout(structType).Layout;
 		}
-
-		// if ptr return ptr bit width
-
-		if (type is FnTypeSymbol)
-		{
-			return new(PtrWidth, PtrWidth);
-		}
-
-		//if (type == BuiltInTypeSystem.String)
-		//    return target.PtrWidth;
 
 		throw new UnreachableException();
 	}
 
 	// Should this be in Abi?
-	public StructLayout GetStructLayout(NamedTypeSymbol structType)
+	public StructLayout GetStructLayout(HirStructType structType)
 	{
 		ArgumentNullException.ThrowIfNull(structType);
+		Debug.Assert(structType is not HirGenericStructType);
 
-		if (structType.IsBuiltin())
+		if (structType.KnownTypeTag.IsBuiltin())
 		{
 			return new StructLayout(GetLayout(structType), []);
 		}
@@ -91,9 +82,9 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 		var sections = new List<StructLayoutSection>();
 
 		var fieldIndex = 0;
-		foreach (var m in structType.Members.Fields())
+		foreach (var f in structType.Fields)
 		{
-			var fieldLayout = GetLayout(m.Type);
+			var fieldLayout = GetLayout(f.Type);
 			AddPaddingIfNecessary(fieldLayout.Alignment);
 			structAlignment = Math.Max(structAlignment.Bytes, fieldLayout.Alignment.Bytes).AsBytes();
 			sections.Add(StructLayoutSection.Data(offset, fieldLayout.Size, fieldIndex, sectionIndex: sections.Count));
@@ -120,13 +111,12 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 		}
 	}
 
-	public BitSize GetAbiSize(TypeSymbol type) => GetLayout(type).Size;
+	public BitSize GetAbiSize(HirType type) => GetLayout(type).Size;
 
-	public BitSize GetAbiAlignment(TypeSymbol type) => GetLayout(type).Alignment;
+	public BitSize GetAbiAlignment(HirType type) => GetLayout(type).Alignment;
 
-	public IntegerSign GetIntegerSign(TypeSymbol type)
+	public IntegerSign GetIntegerSign(HirType type)
 	{
-		type = type.UnwrapTypeAliases();
 		var tag = type.KnownTypeTag;
 
 		if (tag is KnownTypeTag.i32 or KnownTypeTag.i64)
@@ -144,7 +134,7 @@ internal abstract class x86_64WindowsTarget : Target
 	{
 	}
 
-	public Classification Classify(TypeSymbol type)
+	public Classification Classify(HirType type)
 	{
 		return Abi.x86_64.ClassifyTypeForWindows(type, this);
 	}

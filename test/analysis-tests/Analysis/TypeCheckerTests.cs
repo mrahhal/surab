@@ -38,6 +38,27 @@ public class TypeCheckerTests
 	}
 
 	[Fact]
+	public void Generic()
+	{
+		Test("""
+			struct S<T> { v: T; }
+			struct C<T1, T2> {
+				v1: T1;
+				v2: T2;
+			}
+			struct E<T> { c: C<T, i32>; }
+
+			fn f() {
+				var s = S<i32> { v = 42 };
+				var s = S<bool> { v = false };
+				var c = C<f64, i32> { v1 = 4.2, v2 = 42 };
+				var e = E<f64> { c = C<f64, i32> { v1 = 4.2, v2 = 42 } };
+				var e = E<bool> { c = C<bool, i32> { v1 = false, v2 = 42 } };
+			}
+			""");
+	}
+
+	[Fact]
 	public void GenericClosing_NonGeneric()
 	{
 		Test("""

@@ -181,6 +181,7 @@ public abstract class Symbol
 	internal List<Symbol> GetHierarchy()
 	{
 		// TODO: Consider caching this.
+		// REVIEW: Should this support modules too?
 		var list = new List<Symbol>();
 		var current = this;
 		while (current != null && current is not ModuleSymbol)
@@ -351,10 +352,16 @@ public abstract class Symbol
 			var ogGenericSymbol = (IPossiblyGenericSymbol)og;
 			Debug.Assert(genericSymbol.GenericParams.Length == ogGenericSymbol.GenericArgs.Length);
 
+			// This is important in cases such as `B2<B3<T>>`, we need to ensure the inner `B3<T>`
+			// is properly subd before we try closing `B2<...>`.
+			var ogGenericArgs = ogGenericSymbol.GenericArgs
+				.Select(x => (TypeSymbol)x.SubstituteWithHierarchyPatching(smap))
+				.ToList();
+
 			var smapSub = smap.CreateSub();
 			smapSub.AddGenericSubstitutions(
 				genericSymbol.GenericParams,
-				ogGenericSymbol.GenericArgs);
+				ogGenericArgs);
 			return symbolCache.CloseGeneric(
 				symbol,
 				smapSub);
@@ -396,6 +403,15 @@ public abstract class Symbol
 		if (Name == null)
 			return string.Empty;
 
+		var prefix = BuildFullPrefix();
+		return prefix + Name;
+	}
+
+	internal string BuildFullPrefix()
+	{
+		if (Name == null)
+			return string.Empty;
+
 		var sb = new StringBuilder();
 		var current = this;
 		var parent = Parent;
@@ -408,7 +424,6 @@ public abstract class Symbol
 			parent = parent.Parent;
 		}
 
-		sb.Append(Name);
 		return sb.ToString();
 	}
 
@@ -434,32 +449,6 @@ public interface ISymbolHasType
 public interface ISymbolHasExternAttr
 {
 	public bool IsExtern { get; }
-}
-
-/// <summary>
-/// Represents a temporary symbol that gets created in the lowering phase to be used in subsequent lowered nodes. (e.g. struct creation)
-/// </summary>
-public sealed class TempSymbol : Symbol, ISymbolHasType
-{
-	internal TempSymbol(TypeSymbol type) : base(SymbolKind.Temp)
-	{
-		Type = type;
-	}
-
-	public override Symbol OriginalDef => this;
-
-	public override SyntaxNode? DeclaringNode => null;
-
-	internal override IdentifierToken? IdentifierToken => null;
-
-	public TypeSymbol Type { get; }
-
-	public bool IsTypeInferred => false;
-
-	internal override Symbol SubstituteCore(SubstitutionMap substitution)
-	{
-		return this;
-	}
 }
 
 public static class SymbolExtensions
