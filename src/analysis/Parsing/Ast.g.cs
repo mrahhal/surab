@@ -35,7 +35,7 @@ public enum SyntaxNodeKind
 	AccessExpr,
 	ModuleAccessExpr,
 	LiteralExpr,
-	IdentifierExpr,
+	NameExpr,
 	ThisExpr,
 	TypeCreationExpr,
 	MissingExpr,
@@ -47,9 +47,15 @@ public enum SyntaxNodeKind
 	ParamType,
 	ArgsList,
 	Arg,
+	NameDef,
+	Name,
+	GenericParamsList,
+	GenericParam,
+	GenericArgsList,
+	GenericArg,
 	ColonType,
-	PtrType,
 	ExprType,
+	PtrType,
 	FnType,
 	MissingType,
 	FnSig,
@@ -230,11 +236,11 @@ public partial class MethodDeclNode : DeclNode
 
 public partial class AliasDeclNode : DeclNode
 {
-	public AliasDeclNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken aliasToken, TypeNode type, AsIdentifierNode asIdentifier, SimpleToken semicolonToken)
+	public AliasDeclNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken aliasToken, TypeNode targetType, AsIdentifierNode asIdentifier, SimpleToken semicolonToken)
 		: base(tree, SyntaxNodeKind.AliasDecl)
 	{
 		_childTokens = new() { aliasToken, semicolonToken, };
-		_childNodes = new() { attrs, type, asIdentifier, };
+		_childNodes = new() { attrs, targetType, asIdentifier, };
 
 		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
@@ -242,7 +248,7 @@ public partial class AliasDeclNode : DeclNode
 
 	public AttrsListNode? Attrs => (AttrsListNode?)_childNodes[0]!;
 	public SimpleToken AliasToken => (SimpleToken)_childTokens[0]!;
-	public TypeNode Type => (TypeNode)_childNodes[1]!;
+	public TypeNode TargetType => (TypeNode)_childNodes[1]!;
 	public AsIdentifierNode AsIdentifier => (AsIdentifierNode)_childNodes[2]!;
 	public SimpleToken SemicolonToken => (SimpleToken)_childTokens[1]!;
 
@@ -252,20 +258,20 @@ public partial class AliasDeclNode : DeclNode
 	}
 }
 
-public partial class AsIdentifierNode : SyntaxNode, ISyntaxNodeHasMainIdentifier
+public partial class AsIdentifierNode : SyntaxNode
 {
-	public AsIdentifierNode(SyntaxTree tree, SimpleToken asToken, IdentifierToken identifier)
+	public AsIdentifierNode(SyntaxTree tree, SimpleToken asToken, NameDefNode name)
 		: base(tree, SyntaxNodeKind.AsIdentifier)
 	{
-		_childTokens = new() { asToken, identifier, };
-		_childNodes = new();
+		_childTokens = new() { asToken, };
+		_childNodes = new() { name, };
 
 		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
 	public SimpleToken AsToken => (SimpleToken)_childTokens[0]!;
-	public IdentifierToken Identifier => (IdentifierToken)_childTokens[1]!;
+	public NameDefNode Name => (NameDefNode)_childNodes[0]!;
 
 	public override void Accept(SyntaxTreeVisitor visitor)
 	{
@@ -273,13 +279,13 @@ public partial class AsIdentifierNode : SyntaxNode, ISyntaxNodeHasMainIdentifier
 	}
 }
 
-public partial class StructDeclNode : DeclNode, ISyntaxNodeHasMainIdentifier
+public partial class StructDeclNode : DeclNode
 {
-	public StructDeclNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken structToken, IdentifierToken identifier, SimpleToken openBraceToken, DeclsListNode declsList, SimpleToken closedBraceToken)
+	public StructDeclNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken structToken, NameDefNode name, SimpleToken openBraceToken, DeclsListNode declsList, SimpleToken closedBraceToken)
 		: base(tree, SyntaxNodeKind.StructDecl)
 	{
-		_childTokens = new() { structToken, identifier, openBraceToken, closedBraceToken, };
-		_childNodes = new() { attrs, declsList, };
+		_childTokens = new() { structToken, openBraceToken, closedBraceToken, };
+		_childNodes = new() { attrs, name, declsList, };
 
 		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
@@ -287,10 +293,10 @@ public partial class StructDeclNode : DeclNode, ISyntaxNodeHasMainIdentifier
 
 	public AttrsListNode? Attrs => (AttrsListNode?)_childNodes[0]!;
 	public SimpleToken StructToken => (SimpleToken)_childTokens[0]!;
-	public IdentifierToken Identifier => (IdentifierToken)_childTokens[1]!;
-	public SimpleToken OpenBraceToken => (SimpleToken)_childTokens[2]!;
-	public DeclsListNode DeclsList => (DeclsListNode)_childNodes[1]!;
-	public SimpleToken ClosedBraceToken => (SimpleToken)_childTokens[3]!;
+	public NameDefNode Name => (NameDefNode)_childNodes[1]!;
+	public SimpleToken OpenBraceToken => (SimpleToken)_childTokens[1]!;
+	public DeclsListNode DeclsList => (DeclsListNode)_childNodes[2]!;
+	public SimpleToken ClosedBraceToken => (SimpleToken)_childTokens[2]!;
 
 	public override void Accept(SyntaxTreeVisitor visitor)
 	{
@@ -298,13 +304,13 @@ public partial class StructDeclNode : DeclNode, ISyntaxNodeHasMainIdentifier
 	}
 }
 
-public partial class ClassDeclNode : DeclNode, ISyntaxNodeHasMainIdentifier
+public partial class ClassDeclNode : DeclNode
 {
-	public ClassDeclNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken classToken, IdentifierToken identifier, SimpleToken openBraceToken, DeclsListNode declsList, SimpleToken closedBraceToken)
+	public ClassDeclNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken classToken, NameDefNode name, SimpleToken openBraceToken, DeclsListNode declsList, SimpleToken closedBraceToken)
 		: base(tree, SyntaxNodeKind.ClassDecl)
 	{
-		_childTokens = new() { classToken, identifier, openBraceToken, closedBraceToken, };
-		_childNodes = new() { attrs, declsList, };
+		_childTokens = new() { classToken, openBraceToken, closedBraceToken, };
+		_childNodes = new() { attrs, name, declsList, };
 
 		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
@@ -312,10 +318,10 @@ public partial class ClassDeclNode : DeclNode, ISyntaxNodeHasMainIdentifier
 
 	public AttrsListNode? Attrs => (AttrsListNode?)_childNodes[0]!;
 	public SimpleToken ClassToken => (SimpleToken)_childTokens[0]!;
-	public IdentifierToken Identifier => (IdentifierToken)_childTokens[1]!;
-	public SimpleToken OpenBraceToken => (SimpleToken)_childTokens[2]!;
-	public DeclsListNode DeclsList => (DeclsListNode)_childNodes[1]!;
-	public SimpleToken ClosedBraceToken => (SimpleToken)_childTokens[3]!;
+	public NameDefNode Name => (NameDefNode)_childNodes[1]!;
+	public SimpleToken OpenBraceToken => (SimpleToken)_childTokens[1]!;
+	public DeclsListNode DeclsList => (DeclsListNode)_childNodes[2]!;
+	public SimpleToken ClosedBraceToken => (SimpleToken)_childTokens[2]!;
 
 	public override void Accept(SyntaxTreeVisitor visitor)
 	{
@@ -632,13 +638,13 @@ public partial class CallExprNode : ExprNode
 /// <summary>
 /// A member access (`target.identifier`).
 /// </summary>
-public partial class AccessExprNode : ExprNode, ISyntaxNodeHasMainIdentifier
+public partial class AccessExprNode : ExprNode
 {
-	public AccessExprNode(SyntaxTree tree, ExprNode target, SimpleToken dotToken, IdentifierToken identifier)
+	public AccessExprNode(SyntaxTree tree, ExprNode target, SimpleToken dotToken, NameNode name)
 		: base(tree, SyntaxNodeKind.AccessExpr)
 	{
-		_childTokens = new() { dotToken, identifier, };
-		_childNodes = new() { target, };
+		_childTokens = new() { dotToken, };
+		_childNodes = new() { target, name, };
 
 		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
@@ -646,7 +652,7 @@ public partial class AccessExprNode : ExprNode, ISyntaxNodeHasMainIdentifier
 
 	public ExprNode Target => (ExprNode)_childNodes[0]!;
 	public SimpleToken DotToken => (SimpleToken)_childTokens[0]!;
-	public IdentifierToken Identifier => (IdentifierToken)_childTokens[1]!;
+	public NameNode Name => (NameNode)_childNodes[1]!;
 
 	public override void Accept(SyntaxTreeVisitor visitor)
 	{
@@ -657,13 +663,13 @@ public partial class AccessExprNode : ExprNode, ISyntaxNodeHasMainIdentifier
 /// <summary>
 /// A module access (`target::identifier`).
 /// </summary>
-public partial class ModuleAccessExprNode : ExprNode, ISyntaxNodeHasMainIdentifier
+public partial class ModuleAccessExprNode : ExprNode
 {
-	public ModuleAccessExprNode(SyntaxTree tree, ExprNode target, SimpleToken colonColonToken, IdentifierToken identifier)
+	public ModuleAccessExprNode(SyntaxTree tree, ExprNode target, SimpleToken colonColonToken, NameNode name)
 		: base(tree, SyntaxNodeKind.ModuleAccessExpr)
 	{
-		_childTokens = new() { colonColonToken, identifier, };
-		_childNodes = new() { target, };
+		_childTokens = new() { colonColonToken, };
+		_childNodes = new() { target, name, };
 
 		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
@@ -671,7 +677,7 @@ public partial class ModuleAccessExprNode : ExprNode, ISyntaxNodeHasMainIdentifi
 
 	public ExprNode Target => (ExprNode)_childNodes[0]!;
 	public SimpleToken ColonColonToken => (SimpleToken)_childTokens[0]!;
-	public IdentifierToken Identifier => (IdentifierToken)_childTokens[1]!;
+	public NameNode Name => (NameNode)_childNodes[1]!;
 
 	public override void Accept(SyntaxTreeVisitor visitor)
 	{
@@ -699,23 +705,23 @@ public partial class LiteralExprNode : ExprNode
 	}
 }
 
-public partial class IdentifierExprNode : ExprNode, ISyntaxNodeHasMainIdentifier
+public partial class NameExprNode : ExprNode
 {
-	public IdentifierExprNode(SyntaxTree tree, IdentifierToken identifier)
-		: base(tree, SyntaxNodeKind.IdentifierExpr)
+	public NameExprNode(SyntaxTree tree, NameNode name)
+		: base(tree, SyntaxNodeKind.NameExpr)
 	{
-		_childTokens = new() { identifier, };
-		_childNodes = new();
+		_childTokens = new();
+		_childNodes = new() { name, };
 
 		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
-	public IdentifierToken Identifier => (IdentifierToken)_childTokens[0]!;
+	public NameNode Name => (NameNode)_childNodes[0]!;
 
 	public override void Accept(SyntaxTreeVisitor visitor)
 	{
-		visitor.VisitIdentifierExpr(this);
+		visitor.VisitNameExpr(this);
 	}
 }
 
@@ -966,6 +972,140 @@ public partial class ArgNode : SyntaxNode
 	}
 }
 
+/// <summary>
+/// A name definition used in declarations.
+/// </summary>
+public partial class NameDefNode : SyntaxNode, ISyntaxNodeHasMainIdentifier
+{
+	public NameDefNode(SyntaxTree tree, IdentifierToken identifier, GenericParamsListNode? genericParamsList)
+		: base(tree, SyntaxNodeKind.NameDef)
+	{
+		_childTokens = new() { identifier, };
+		_childNodes = new() { genericParamsList, };
+
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		SetChildrenParent();
+	}
+
+	public IdentifierToken Identifier => (IdentifierToken)_childTokens[0]!;
+	public GenericParamsListNode? GenericParamsList => (GenericParamsListNode?)_childNodes[0]!;
+
+	public override void Accept(SyntaxTreeVisitor visitor)
+	{
+		visitor.VisitNameDef(this);
+	}
+}
+
+/// <summary>
+/// A name reference.
+/// </summary>
+public partial class NameNode : SyntaxNode, ISyntaxNodeHasMainIdentifier
+{
+	public NameNode(SyntaxTree tree, IdentifierToken identifier, GenericArgsListNode? genericArgsList)
+		: base(tree, SyntaxNodeKind.Name)
+	{
+		_childTokens = new() { identifier, };
+		_childNodes = new() { genericArgsList, };
+
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		SetChildrenParent();
+	}
+
+	public IdentifierToken Identifier => (IdentifierToken)_childTokens[0]!;
+	public GenericArgsListNode? GenericArgsList => (GenericArgsListNode?)_childNodes[0]!;
+
+	public override void Accept(SyntaxTreeVisitor visitor)
+	{
+		visitor.VisitName(this);
+	}
+}
+
+public partial class GenericParamsListNode : SyntaxNode
+{
+	public GenericParamsListNode(SyntaxTree tree, SimpleToken openChevronToken, IEnumerable<GenericParamNode> genericParams, SimpleToken closedChevronToken)
+		: base(tree, SyntaxNodeKind.GenericParamsList)
+	{
+		_childTokens = new() { openChevronToken, closedChevronToken, };
+		_childNodes = genericParams.Cast<SyntaxNode?>().ToList();
+
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		SetChildrenParent();
+	}
+
+	public SimpleToken OpenChevronToken => (SimpleToken)_childTokens[0]!;
+	public IEnumerable<GenericParamNode> GenericParams => _childNodes.Cast<GenericParamNode>();
+	public SimpleToken ClosedChevronToken => (SimpleToken)_childTokens[1]!;
+
+	public override void Accept(SyntaxTreeVisitor visitor)
+	{
+		visitor.VisitGenericParamsList(this);
+	}
+}
+
+public partial class GenericParamNode : SyntaxNode, ISyntaxNodeHasMainIdentifier
+{
+	public GenericParamNode(SyntaxTree tree, IdentifierToken identifier, SimpleToken? commaToken)
+		: base(tree, SyntaxNodeKind.GenericParam)
+	{
+		_childTokens = new() { identifier, commaToken, };
+		_childNodes = new();
+
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		SetChildrenParent();
+	}
+
+	public IdentifierToken Identifier => (IdentifierToken)_childTokens[0]!;
+	public SimpleToken? CommaToken => (SimpleToken?)_childTokens[1]!;
+
+	public override void Accept(SyntaxTreeVisitor visitor)
+	{
+		visitor.VisitGenericParam(this);
+	}
+}
+
+public partial class GenericArgsListNode : SyntaxNode
+{
+	public GenericArgsListNode(SyntaxTree tree, SimpleToken openChevronToken, IEnumerable<GenericArgNode> genericArgs, SimpleToken closedChevronToken)
+		: base(tree, SyntaxNodeKind.GenericArgsList)
+	{
+		_childTokens = new() { openChevronToken, closedChevronToken, };
+		_childNodes = genericArgs.Cast<SyntaxNode?>().ToList();
+
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		SetChildrenParent();
+	}
+
+	public SimpleToken OpenChevronToken => (SimpleToken)_childTokens[0]!;
+	public IEnumerable<GenericArgNode> GenericArgs => _childNodes.Cast<GenericArgNode>();
+	public SimpleToken ClosedChevronToken => (SimpleToken)_childTokens[1]!;
+
+	public override void Accept(SyntaxTreeVisitor visitor)
+	{
+		visitor.VisitGenericArgsList(this);
+	}
+}
+
+public partial class GenericArgNode : SyntaxNode
+{
+	public GenericArgNode(SyntaxTree tree, TypeNode type, SimpleToken? commaToken)
+		: base(tree, SyntaxNodeKind.GenericArg)
+	{
+		_childTokens = new() { commaToken, };
+		_childNodes = new() { type, };
+
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		SetChildrenParent();
+	}
+
+	public TypeNode Type => (TypeNode)_childNodes[0]!;
+	public SimpleToken? CommaToken => (SimpleToken?)_childTokens[0]!;
+
+	public override void Accept(SyntaxTreeVisitor visitor)
+	{
+		visitor.VisitGenericArg(this);
+	}
+}
+
 public partial class ColonTypeNode : SyntaxNode
 {
 	public ColonTypeNode(SyntaxTree tree, SimpleToken colonToken, TypeNode type)
@@ -984,6 +1124,30 @@ public partial class ColonTypeNode : SyntaxNode
 	public override void Accept(SyntaxTreeVisitor visitor)
 	{
 		visitor.VisitColonType(this);
+	}
+}
+
+public partial class ExprTypeNode : TypeNode
+{
+	public ExprTypeNode(SyntaxTree tree, AttrsListNode? attrs, ExprNode expr)
+		: base(tree, SyntaxNodeKind.ExprType)
+	{
+		_childTokens = new();
+		_childNodes = new() { attrs, expr, };
+
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		SetChildrenParent();
+	}
+
+	public AttrsListNode? Attrs => (AttrsListNode?)_childNodes[0]!;
+	/// <summary>
+	/// Well formed: NameExpr or AccessExpr or ModuleAccessExpr
+	/// </summary>
+	public ExprNode Expr => (ExprNode)_childNodes[1]!;
+
+	public override void Accept(SyntaxTreeVisitor visitor)
+	{
+		visitor.VisitExprType(this);
 	}
 }
 
@@ -1006,30 +1170,6 @@ public partial class PtrTypeNode : TypeNode
 	public override void Accept(SyntaxTreeVisitor visitor)
 	{
 		visitor.VisitPtrType(this);
-	}
-}
-
-public partial class ExprTypeNode : TypeNode
-{
-	public ExprTypeNode(SyntaxTree tree, AttrsListNode? attrs, ExprNode expr)
-		: base(tree, SyntaxNodeKind.ExprType)
-	{
-		_childTokens = new();
-		_childNodes = new() { attrs, expr, };
-
-		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
-		SetChildrenParent();
-	}
-
-	public AttrsListNode? Attrs => (AttrsListNode?)_childNodes[0]!;
-	/// <summary>
-	/// Well formed: IdentifierExpr or AccessExpr or ModuleAccessExpr
-	/// </summary>
-	public ExprNode Expr => (ExprNode)_childNodes[1]!;
-
-	public override void Accept(SyntaxTreeVisitor visitor)
-	{
-		visitor.VisitExprType(this);
 	}
 }
 
@@ -1076,21 +1216,21 @@ public partial class MissingTypeNode : TypeNode
 	}
 }
 
-public partial class FnSigNode : SyntaxNode, ISyntaxNodeHasMainIdentifier
+public partial class FnSigNode : SyntaxNode
 {
-	public FnSigNode(SyntaxTree tree, IdentifierToken identifier, ParamsListNode paramsList, TypeNode? returnType)
+	public FnSigNode(SyntaxTree tree, NameDefNode name, ParamsListNode paramsList, TypeNode? returnType)
 		: base(tree, SyntaxNodeKind.FnSig)
 	{
-		_childTokens = new() { identifier, };
-		_childNodes = new() { paramsList, returnType, };
+		_childTokens = new();
+		_childNodes = new() { name, paramsList, returnType, };
 
 		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
-	public IdentifierToken Identifier => (IdentifierToken)_childTokens[0]!;
-	public ParamsListNode ParamsList => (ParamsListNode)_childNodes[0]!;
-	public TypeNode? ReturnType => (TypeNode?)_childNodes[1]!;
+	public NameDefNode Name => (NameDefNode)_childNodes[0]!;
+	public ParamsListNode ParamsList => (ParamsListNode)_childNodes[1]!;
+	public TypeNode? ReturnType => (TypeNode?)_childNodes[2]!;
 
 	public override void Accept(SyntaxTreeVisitor visitor)
 	{

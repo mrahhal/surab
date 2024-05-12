@@ -26,7 +26,7 @@ public class DocumentSymbolHandler(
 			if (firstLevelSymbols == null)
 				return null;
 
-			List<SymbolInformationOrDocumentSymbol> documentSymbols = [.. Cleanup(firstLevelSymbols.Cast<InFileSymbol>().Select(Convert))];
+			List<SymbolInformationOrDocumentSymbol> documentSymbols = [.. Cleanup(firstLevelSymbols.Select(Convert))];
 			return new SymbolInformationOrDocumentSymbolContainer(documentSymbols);
 		});
 	}
@@ -50,7 +50,7 @@ public class DocumentSymbolHandler(
 		return symbols.Where(s => s != null).Select(s => s!);
 	}
 
-	private DocumentSymbol? Convert(InFileSymbol symbol)
+	private DocumentSymbol? Convert(Symbol symbol)
 	{
 		var kind = GetSymbolKind(symbol);
 		if (kind == null)
@@ -58,7 +58,7 @@ public class DocumentSymbolHandler(
 
 		return new DocumentSymbol
 		{
-			Children = new([.. Cleanup(symbol.Children.Cast<InFileSymbol>().Select(Convert))]),
+			Children = new([.. Cleanup(symbol.Children.Select(Convert))]),
 			Name = string.IsNullOrEmpty(symbol.Name) ? FillEmptyName(symbol) : symbol.Name,
 			Kind = kind.Value,
 			Range = ConversionHelper.FromTo(symbol.Span),
@@ -73,8 +73,9 @@ public class DocumentSymbolHandler(
 		if (symbol is FnSymbol fn && fn.IsInitializerMethod)
 		{
 			// Return the param list as the span instead.
-			return fn.FnSigNode.ParamsList.Span.Line;
+			return fn.SigNode.ParamsList.Span.Line;
 		}
+		// TODO: For module symbols, the selection should be the import node.
 		return symbol.SelectionSpan.Line;
 	}
 
@@ -82,7 +83,7 @@ public class DocumentSymbolHandler(
 	{
 		return symbol switch
 		{
-			FnSymbol fn => SyntaxTreeUtils.GetSigStringWithoutIdentifier(fn.FnSigNode),
+			FnSymbol fn => SyntaxTreeUtils.GetSigStringWithoutIdentifier(fn.SigNode),
 			ISymbolHasType hasType => hasType.Type.Name,
 			_ => null,
 		};
@@ -105,9 +106,13 @@ public class DocumentSymbolHandler(
 			FnSymbol fn => fn.IsMethod ? LSPSymbolKind.Method : LSPSymbolKind.Function,
 			FieldSymbol => LSPSymbolKind.Field,
 			LocalSymbol => null,
-			StructTypeSymbol => LSPSymbolKind.Struct,
-			ClassTypeSymbol => LSPSymbolKind.Class,
-			AliasTypeSymbol => LSPSymbolKind.Null, // ?
+			NamedTypeSymbol namedType => namedType.TypeKind switch
+			{
+				TypeSymbolKind.Struct => LSPSymbolKind.Struct,
+				_ => LSPSymbolKind.Null, // TODO
+			},
+			//ClassTypeSymbol => LSPSymbolKind.Class,
+			AliasTypeSymbol => LSPSymbolKind.Null, // TODO
 			_ => null,
 		};
 	}

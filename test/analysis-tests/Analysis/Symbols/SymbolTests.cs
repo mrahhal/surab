@@ -22,7 +22,7 @@ public class SymbolTests
 		fooSymbol.FullName.Should().Be("main::Foo");
 
 		var tree2 = project.GetSyntaxTree(file2);
-		var barStructDecl = tree2.Root.DescendantNodes().OfType<StructDeclNode>().Where(x => x.Identifier.Value == "Bar").Single();
+		var barStructDecl = tree2.Root.DescendantNodes().OfType<StructDeclNode>().Where(x => x.Name.Identifier.Value == "Bar").Single();
 		var reasoner2 = project.GetReasoner(file2);
 		var barSymbol = reasoner2.GetDeclaredSymbol(barStructDecl)!;
 		barSymbol.Module.Should().Be(mod2Module);

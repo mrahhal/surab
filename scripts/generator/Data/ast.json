@@ -182,7 +182,7 @@
 					"Type": "SimpleToken"
 				},
 				{
-					"Name": "type",
+					"Name": "targetType",
 					"Type": "TypeNode"
 				},
 				{
@@ -203,8 +203,8 @@
 					"Type": "SimpleToken"
 				},
 				{
-					"Name": "identifier",
-					"Type": "IdentifierToken"
+					"Name": "name",
+					"Type": "NameDefNode"
 				}
 			]
 		},
@@ -222,8 +222,8 @@
 					"Type": "SimpleToken"
 				},
 				{
-					"Name": "identifier",
-					"Type": "IdentifierToken"
+					"Name": "name",
+					"Type": "NameDefNode"
 				},
 				{
 					"Name": "openBraceToken",
@@ -253,8 +253,8 @@
 					"Type": "SimpleToken"
 				},
 				{
-					"Name": "identifier",
-					"Type": "IdentifierToken"
+					"Name": "name",
+					"Type": "NameDefNode"
 				},
 				{
 					"Name": "openBraceToken",
@@ -502,8 +502,8 @@
 					"Type": "SimpleToken"
 				},
 				{
-					"Name": "identifier",
-					"Type": "IdentifierToken"
+					"Name": "name",
+					"Type": "NameNode"
 				}
 			]
 		},
@@ -521,8 +521,8 @@
 					"Type": "SimpleToken"
 				},
 				{
-					"Name": "identifier",
-					"Type": "IdentifierToken"
+					"Name": "name",
+					"Type": "NameNode"
 				}
 			]
 		},
@@ -537,12 +537,12 @@
 			]
 		},
 		{
-			"Name": "IdentifierExpr",
+			"Name": "NameExpr",
 			"Base": "ExprNode",
 			"Members": [
 				{
-					"Name": "identifier",
-					"Type": "IdentifierToken"
+					"Name": "name",
+					"Type": "NameNode"
 				}
 			]
 		},
@@ -724,6 +724,100 @@
 			]
 		},
 		{
+			"Name": "NameDef",
+			"Comment": "A name definition used in declarations.",
+			"Members": [
+				{
+					"Name": "identifier",
+					"Type": "IdentifierToken"
+				},
+				{
+					"Name": "genericParamsList",
+					"Type": "GenericParamsListNode",
+					"Optional": true
+				}
+			]
+		},
+		{
+			"Name": "Name",
+			"Comment": "A name reference.",
+			"Members": [
+				{
+					"Name": "identifier",
+					"Type": "IdentifierToken"
+				},
+				{
+					"Name": "genericArgsList",
+					"Type": "GenericArgsListNode",
+					"Optional": true
+				}
+			]
+		},
+		{
+			"Name": "GenericParamsList",
+			"Members": [
+				{
+					"Name": "openChevronToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "genericParams",
+					"Type": "GenericParamNode",
+					"List": true
+				},
+				{
+					"Name": "closedChevronToken",
+					"Type": "SimpleToken"
+				}
+			]
+		},
+		{
+			"Name": "GenericParam",
+			"Members": [
+				{
+					"Name": "identifier",
+					"Type": "IdentifierToken"
+				},
+				{
+					"Name": "commaToken",
+					"Type": "SimpleToken",
+					"Optional": true
+				}
+			]
+		},
+		{
+			"Name": "GenericArgsList",
+			"Members": [
+				{
+					"Name": "openChevronToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "genericArgs",
+					"Type": "GenericArgNode",
+					"List": true
+				},
+				{
+					"Name": "closedChevronToken",
+					"Type": "SimpleToken"
+				}
+			]
+		},
+		{
+			"Name": "GenericArg",
+			"Members": [
+				{
+					"Name": "type",
+					"Type": "TypeNode"
+				},
+				{
+					"Name": "commaToken",
+					"Type": "SimpleToken",
+					"Optional": true
+				}
+			]
+		},
+		{
 			"Name": "ColonType",
 			"Members": [
 				{
@@ -733,6 +827,22 @@
 				{
 					"Name": "type",
 					"Type": "TypeNode"
+				}
+			]
+		},
+		{
+			"Name": "ExprType",
+			"Base": "TypeNode",
+			"Members": [
+				{
+					"Name": "attrs",
+					"Type": "AttrsListNode",
+					"Optional": true
+				},
+				{
+					"Name": "expr",
+					"Type": "ExprNode",
+					"Comment": "Well formed: NameExpr or AccessExpr or ModuleAccessExpr"
 				}
 			]
 		},
@@ -753,22 +863,6 @@
 					"Name": "innerType",
 					"Type": "TypeNode",
 					"Optional": true
-				}
-			]
-		},
-		{
-			"Name": "ExprType",
-			"Base": "TypeNode",
-			"Members": [
-				{
-					"Name": "attrs",
-					"Type": "AttrsListNode",
-					"Optional": true
-				},
-				{
-					"Name": "expr",
-					"Type": "ExprNode",
-					"Comment": "Well formed: IdentifierExpr or AccessExpr or ModuleAccessExpr"
 				}
 			]
 		},
@@ -814,8 +908,8 @@
 			"Name": "FnSig",
 			"Members": [
 				{
-					"Name": "identifier",
-					"Type": "IdentifierToken"
+					"Name": "name",
+					"Type": "NameDefNode"
 				},
 				{
 					"Name": "paramsList",

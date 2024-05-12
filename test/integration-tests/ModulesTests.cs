@@ -37,6 +37,7 @@ public class ModulesTests
 			""");
 
 		var project = SurabProject.Create(vfs);
+		project.RootModule.Should().NotBeNull();
 		var output = IntegrationRunner.Run(project);
 
 		var expectedOutput =

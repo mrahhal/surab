@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using Surab.Analysis;
 
 namespace Surab.Compilation;
 
@@ -20,7 +19,7 @@ internal static class Abi
 	public static class x86_64
 	{
 		// https://learn.microsoft.com/en-us/cpp/build/x64-software-conventions
-		public static Classification ClassifyTypeForWindows(TypeSymbol type, Target target)
+		public static Classification ClassifyTypeForWindows(HirType type, Target target)
 		{
 			var size = target.GetLayout(type).Size;
 			Debug.Assert(!size.IsZeroSized, "Classify shouldn't be called with zero sized types.");

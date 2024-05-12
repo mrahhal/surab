@@ -115,12 +115,12 @@ public class SurabSolver(
 		if (token == null)
 			return null;
 		var symbol = reasoner.LookupSymbol(node);
-		if (symbol != null && symbol is InFileSymbol inFileSymbol)
+		if (symbol != null)
 		{
-			var span = inFileSymbol.DeclaringNode?.GetMainIdentifierToken()?.Span ?? inFileSymbol.DeclaringNode?.Span ?? new();
+			var span = symbol.DeclaringNode?.GetMainIdentifierToken()?.Span ?? symbol.DeclaringNode?.Span ?? new();
 			var locations = new LocationOrLocationLinks(new LocationOrLocationLink(new Location
 			{
-				Uri = DocumentUri.FromFileSystemPath(inFileSymbol.DeclaringFile!.Path.Value!),
+				Uri = DocumentUri.FromFileSystemPath(symbol.DeclaringFile!.Path.Value!),
 				Range = ConversionHelper.FromTo(span),
 			}));
 			return locations;

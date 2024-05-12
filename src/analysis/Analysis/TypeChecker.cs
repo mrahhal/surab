@@ -24,7 +24,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 
 	public override void VisitImport(ImportNode node)
 	{
-		if (node.Target is not IdentifierExprNode and not AccessExprNode)
+		if (node.Target is not NameExprNode and not AccessExprNode)
 		{
 			_diags.Add(CoreDiags.S0100, node.Target.Span);
 		}
@@ -52,7 +52,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 			return;
 		}
 
-		var lhsSymbol = (LocalSymbol)_reasoner.GetDeclaredSymbol(node)!;
+		var lhsSymbol = _reasoner.GetDeclaredSymbol(node)!;
 		var lhsType = lhsSymbol.Type;
 
 		if (node.Initializer != null)
@@ -98,13 +98,13 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 			_diags.Add(node.Span, DiagLevel.Error, $"a method decl is not allowed in this context");
 		}
 
-		var fnSymbol = _reasoner.GetDeclaredSymbol(node) as FnSymbol;
-		var enclosingType = fnSymbol?.Parent as TypeSymbol;
+		var fnSymbol = _reasoner.GetDeclaredSymbol(node);
+		var enclosingType = fnSymbol?.EnclosingType as NamedTypeSymbol;
 		Debug.Assert(enclosingType != null);
 
 		if (node.IsInitializer)
 		{
-			if (enclosingType.InitializerMethodDecl == node)
+			if (enclosingType.InitializerMethod == fnSymbol)
 			{
 				// Report conflicting initializer param if it conflicts with a field.
 				var conflictingParams = enclosingType.CreationMemberSymbols.Where(x => x.IsConflicting);
@@ -146,7 +146,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		};
 
 		var noneType = _reasoner.Project.ResolveKnownTypeSymbol(KnownTypeTag.None);
-		var fnReturnType = returnTypeNode == null ? noneType : _reasoner.LookupSymbol(returnTypeNode).AsTypeSymbolOrUnknown(_reasoner);
+		var fnReturnType = returnTypeNode == null ? noneType : _reasoner.LookupSymbol(returnTypeNode).AsTypeSymbolOrUnknown();
 		var returnType = node.Expr == null ? noneType : _reasoner.LookupType(node.Expr);
 
 		if (!fnReturnType.IsAssignableFrom(returnType))
@@ -203,7 +203,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		{
 			//case AccessExprNode accessExprNode:
 			//    break;
-			case IdentifierExprNode identifierExprNode:
+			case NameExprNode identifierExprNode:
 				break;
 
 			default:
@@ -233,7 +233,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		{
 			_diags.Add(node.Span, DiagLevel.Error, $"A module cannot be used as an r-value.");
 		}
-		else if (lhsType.IsUnknown || rhsType.IsUnknown)
+		else if (lhsType.IsUnknown() || rhsType.IsUnknown())
 		{
 			// Reported somewhere else?
 		}
@@ -279,7 +279,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		var leftType = _reasoner.LookupType(node.Left);
 		var rightType = _reasoner.LookupType(node.Right);
 
-		if (leftType.IsUnknown || rightType.IsUnknown)
+		if (leftType.IsUnknown() || rightType.IsUnknown())
 		{
 			// Shouldn't report. Will be reported elsewhere.
 		}
@@ -340,7 +340,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 
 		// Ensure callee is a function and validate args.
 
-		if (calleeType.IsUnknown)
+		if (calleeType.IsUnknown())
 		{
 			// Reported somewhere else.
 		}
@@ -364,7 +364,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 					var arg = args[i];
 					var paramType = paramTypes[i];
 					var argType = _reasoner.LookupType(arg);
-					if (paramType.IsUnknown || argType.IsUnknown)
+					if (paramType.IsUnknown() || argType.IsUnknown())
 					{
 						// Reported somewhere else.
 					}
@@ -384,12 +384,12 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		var targetSymbol = _reasoner.LookupSymbol(node.Target);
 		if (targetSymbol is ModuleSymbol)
 		{
-			_diags.Add(node.Identifier.Span, DiagLevel.Error, $"invalid access on a module, did you mean to use :: instead?");
+			_diags.Add(node.Name.Identifier.Span, DiagLevel.Error, $"invalid access on a module, did you mean to use :: instead?");
 			return;
 		}
 
 		var targetType = _reasoner.LookupType(node.Target);
-		if (targetType.IsUnknown)
+		if (targetType.IsUnknown())
 		{
 			// Reported somewhere else.
 			return;
@@ -402,16 +402,16 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		//}
 
 		// TODO: Store and use a lookup table for this?
-		var member = targetType.GetMember(node.Identifier.Value);
+		var member = targetType.GetMember(node.Name.Identifier);
 		if (member == null)
 		{
-			_diags.Add(node.Identifier.Span, DiagLevel.Error, $"unknown member access");
+			_diags.Add(node.Name.Identifier.Span, DiagLevel.Error, $"unknown member access");
 		}
 		if (member is FnSymbol && _reasoner.IsInstanceAccess(node))
 		{
 			if (node.Parent is not CallExprNode)
 			{
-				_diags.Add(node.Identifier.Span, DiagLevel.Error, $"taking a value of a method is not allowed, call it with `()`");
+				_diags.Add(node.Name.Identifier.Span, DiagLevel.Error, $"taking a value of a method is not allowed, call it with `()`");
 			}
 		}
 
@@ -427,10 +427,10 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 			return;
 		}
 
-		var result = module.GetExportedSymbol(node.Identifier);
+		var result = module.GetExportedSymbol(node.Name.Identifier);
 		if (result == null)
 		{
-			_diags.Add(node.Identifier.Span, DiagLevel.Error, $"can't find exported symbol");
+			_diags.Add(node.Name.Identifier.Span, DiagLevel.Error, $"can't find exported symbol");
 			return;
 		}
 
@@ -458,9 +458,13 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 			_diags.Add(node.TypeExpr.Span, DiagLevel.Error, $"unknown type to create");
 			return;
 		}
-		if (symbol is not TypeSymbol typeSymbol)
+		if (symbol is TypeSymbol typeSymbol)
 		{
-			// If type symbol is null, skip analyzing lhs for each initializer item as we won't be able to resolve them anyway.
+			symbol = typeSymbol.UnwrapTypeAliases();
+		}
+		if (symbol is not NamedTypeSymbol namedTypeSymbol)
+		{
+			// If not a type that can be created, skip analyzing lhs for each initializer item as we won't be able to resolve them anyway.
 			// Do analyze rhs.
 			foreach (var initializerExpr in node.MapInitializer.Items.Select(x => x.Expr as AssignmentExprNode))
 			{
@@ -482,8 +486,8 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 			.Where(x => x.Symbol != null)
 			.ToList();
 		var setSymbolsMap = setSymbols.ToDictionary(x => x.Symbol!, x => x.Assignment);
-		var creationSymbols = typeSymbol.CreationMemberSymbols.Select(x => x.Symbol).ToList();
-		var requiredSymbols = typeSymbol.CreationMemberSymbols.Where(x => !x.IsOptional && !x.IsConflicting).Select(x => x.Symbol);
+		var creationSymbols = namedTypeSymbol.CreationMemberSymbols.Select(x => x.Symbol).ToList();
+		var requiredSymbols = namedTypeSymbol.CreationMemberSymbols.Where(x => !x.IsOptional && !x.IsConflicting).Select(x => x.Symbol);
 		var unsetSymbols = requiredSymbols.Where(requiredSymbol => !setSymbolsMap.ContainsKey(requiredSymbol)).ToList();
 		if (unsetSymbols.Count != 0)
 		{
@@ -535,12 +539,35 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		base.VisitFnSig(node);
 	}
 
-	public override void VisitIdentifierExpr(IdentifierExprNode node)
+	public override void VisitNameExpr(NameExprNode node)
 	{
 		var symbol = _reasoner.LookupSymbol(node);
-		AnalyzeLookedUpIdentifier(node.Identifier, symbol);
+		AnalyzeLookedUpIdentifier(node.Name.Identifier, symbol);
+		if (symbol is IPossiblyGenericSymbol genericSymbol)
+		{
+			if (!genericSymbol.GenericParams.Any() &&
+				genericSymbol.GenericArgs.Any())
+			{
+				_diags.Add(node.Span, DiagLevel.Error, "Generic args cannot be used with non-generic types.");
+			}
+			else if (genericSymbol.GenericParams.Length != genericSymbol.GenericArgs.Length)
+			{
+				_diags.Add(node.Span, DiagLevel.Error, "Generic args do not match number of generic params.");
+			}
+		}
+		else if (symbol is UnknownTypeSymbol)
+		{
+			if (symbol is InvalidClosedGenericUnknownTypeSymbol)
+			{
+				_diags.Add(node.Span, DiagLevel.Error, "Cannot be used used with type args.");
+			}
+			else
+			{
+				_diags.Add(node.Span, DiagLevel.Error, "Unknown type.");
+			}
+		}
 
-		base.VisitIdentifierExpr(node);
+		base.VisitNameExpr(node);
 	}
 
 	private void AnalyzeLookedUpIdentifier(IdentifierToken identifier, Symbol? symbol)
@@ -556,7 +583,8 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		var symbol = _reasoner.LookupSymbol(node);
 		if (symbol == null)
 		{
-			_diags.Add(node.Span, DiagLevel.Error, $"unknown type");
+			// Reported somewhere else?
+			//_diags.Add(node.Span, DiagLevel.Error, $"unknown type");
 		}
 		else if (symbol is not TypeSymbol)
 		{

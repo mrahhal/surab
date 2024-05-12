@@ -16,7 +16,8 @@ public class SurabProject
 	private readonly List<Action<IEnumerable<FileDiags>>> _fullDiagsReadyActions = [];
 	private readonly Dictionary<ProjectFile, CodeFileState> _codeFileToStateMap = [];
 
-	private readonly ReasoningContext _reasoningContext = new();
+	private readonly SymbolCache _symbolCache = new();
+	private readonly List<VFSChange> _vfsChanges = [];
 
 	// This cancellation token will fire when a new change is being requested and just before a write lock is taken.
 	private CancellationTokenSource _ctsOnChange = null!;
@@ -28,8 +29,8 @@ public class SurabProject
 		VFS = vfs;
 
 		LoadPrelude();
-		Initialize();
 		CreateRootModule();
+		Initialize();
 	}
 
 	// We start by loading a default config since there's always a possibility a config file doesn't exist.
@@ -40,7 +41,7 @@ public class SurabProject
 
 	public NormalizedPath ProjectPath => VFS.ProjectPath;
 
-	internal ReasoningContext ReasoningContext => _reasoningContext;
+	internal SymbolCache SymbolCache => _symbolCache;
 
 	internal Reasoner PreludeReasoner => _preludeReasoner;
 
@@ -128,6 +129,7 @@ public class SurabProject
 		{
 			action(VFS);
 			ResetAfterWrite();
+			ProcessVFSChanges();
 		}
 		finally
 		{
@@ -154,9 +156,7 @@ public class SurabProject
 	private ModuleSymbol CreateModule(ProjectFolder folder, string? name = null)
 	{
 		var moduleName = name ?? folder.Name;
-		var module = new ImplModuleSymbol(moduleName, [folder]);
-		var moduleScope = new ModuleScope(this, folder.Files.Where(f => f.Kind is ProjectFileKind.Code));
-		module.SetScope(moduleScope);
+		var module = new SrcModuleSymbol(moduleName, [folder], this);
 
 		foreach (var subFolder in folder.SubFolders)
 		{
@@ -228,15 +228,20 @@ public class SurabProject
 	public ModuleSymbol RootModule => _rootModule!;
 
 	/// <summary>
-	/// Resolves module of the reasoner file.
+	/// Resolves module of the file.
 	/// </summary>
-	public ModuleSymbol ResolveModule(Reasoner reasoner)
+	public ModuleSymbol ResolveModule(ProjectFile file)
 	{
-		var folder = VFS.GetFolder(reasoner.File);
+		var folder = VFS.GetFolder(file);
 		var module = FindModule(m => m.Folders.Contains(folder));
 		Debug.Assert(module != null);
 		return module;
 	}
+
+	/// <summary>
+	/// Resolves module of the reasoner file.
+	/// </summary>
+	public ModuleSymbol ResolveModule(Reasoner reasoner) => ResolveModule(reasoner.File);
 
 	/// <summary>
 	/// Resolves the target module relative to the reasoner file.
@@ -249,7 +254,7 @@ public class SurabProject
 		var found = true;
 		foreach (var targetName in path)
 		{
-			var targetModule = current.Children.FirstOrDefault(m => m.Name == targetName);
+			var targetModule = current.Children.FirstOrDefault(m => m.IdentifierMatches(targetName));
 			if (targetModule == null)
 			{
 				found = false;
@@ -295,8 +300,9 @@ public class SurabProject
 
 	internal (SyntaxTree, Reasoner) CreateNewTreeAndReasoner(ProjectFile file)
 	{
+		var module = ResolveModule(file);
 		var tree = Parser.ParseFile(file);
-		var reasoner = Reasoner.Create(this, tree);
+		var reasoner = Reasoner.Create(this, module, tree);
 		return (tree, reasoner);
 	}
 
@@ -357,8 +363,10 @@ public class SurabProject
 		var preludeSourceFile = ProjectFile.CreateCode(preludeContent);
 		var tree = Parser.ParseFile(preludeSourceFile);
 
+		// TODO: Prelude module?
+		var module = new SrcModuleSymbol("_prelude_", [], this);
 		// Need to assing it before getting diags as that process might use this _preludeReasoner ref to resolve known types.
-		_preludeReasoner = Reasoner.CreatePrelude(this, tree);
+		_preludeReasoner = Reasoner.CreatePrelude(this, module, tree);
 		var diags = _preludeReasoner.GetAllDiags();
 
 		if (diags.Any(x => x.Level >= DiagLevel.Error))
@@ -383,7 +391,7 @@ public class SurabProject
 
 	private void Initialize()
 	{
-		VFS.SubscribeToChanges(HandleVFSChange);
+		VFS.SubscribeToChanges(_vfsChanges.Add);
 
 		foreach (var file in VFS.EnumerateCodeFiles())
 		{
@@ -391,21 +399,24 @@ public class SurabProject
 		}
 	}
 
-	private void HandleVFSChange(VFSChange change)
+	private void ProcessVFSChanges()
 	{
-		foreach (var file in change.AddedFiles)
+		foreach (var change in _vfsChanges)
 		{
-			InitializeSourceFile(file);
-		}
+			foreach (var file in change.AddedFiles)
+			{
+				InitializeSourceFile(file);
+			}
 
-		foreach (var file in change.UpdatedFiles)
-		{
-			UpdateTreeAndReasoner(file);
-		}
+			foreach (var file in change.UpdatedFiles)
+			{
+				UpdateTreeAndReasoner(file);
+			}
 
-		foreach (var file in change.RemovedFiles)
-		{
-			_codeFileToStateMap.Remove(file);
+			foreach (var file in change.RemovedFiles)
+			{
+				_codeFileToStateMap.Remove(file);
+			}
 		}
 	}
 

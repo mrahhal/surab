@@ -145,9 +145,9 @@ public class SemanticTokensFullHandler(
 
 			case IdentifierToken identifierToken:
 				{
-					if (identifierToken.Parent is IdentifierExprNode identifierExpr)
+					if (identifierToken.Parent is NameExprNode nameExpr)
 					{
-						var symbol = reasoner.LookupSymbol(identifierExpr);
+						var symbol = reasoner.LookupSymbol(nameExpr);
 						builder.SetType(GetTokenType(symbol));
 					}
 					else if (identifierToken.Parent is ExprTypeNode exprType)
@@ -210,10 +210,10 @@ public class SemanticTokensFullHandler(
 
 	private static SemanticTokenType? GetTokenType(TypeSymbol typeSymbol)
 	{
-		if (typeSymbol.IsUnknown) return null;
+		if (typeSymbol.IsUnknown()) return null;
 		return typeSymbol switch
 		{
-			StructTypeSymbol => (SemanticTokenType?)SemanticTokenType.Struct,
+			NamedTypeSymbol namedType when namedType.TypeKind is TypeSymbolKind.Struct => (SemanticTokenType?)SemanticTokenType.Struct,
 			FnTypeSymbol => SemanticTokenType.Function,
 			_ => null,
 		};

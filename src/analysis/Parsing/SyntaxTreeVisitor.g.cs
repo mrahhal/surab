@@ -147,7 +147,7 @@ public abstract partial class SyntaxTreeVisitor
 		Walk(node);
 	}
 
-	public virtual void VisitIdentifierExpr(IdentifierExprNode node)
+	public virtual void VisitNameExpr(NameExprNode node)
 	{
 		Walk(node);
 	}
@@ -207,17 +207,47 @@ public abstract partial class SyntaxTreeVisitor
 		Walk(node);
 	}
 
+	public virtual void VisitNameDef(NameDefNode node)
+	{
+		Walk(node);
+	}
+
+	public virtual void VisitName(NameNode node)
+	{
+		Walk(node);
+	}
+
+	public virtual void VisitGenericParamsList(GenericParamsListNode node)
+	{
+		Walk(node);
+	}
+
+	public virtual void VisitGenericParam(GenericParamNode node)
+	{
+		Walk(node);
+	}
+
+	public virtual void VisitGenericArgsList(GenericArgsListNode node)
+	{
+		Walk(node);
+	}
+
+	public virtual void VisitGenericArg(GenericArgNode node)
+	{
+		Walk(node);
+	}
+
 	public virtual void VisitColonType(ColonTypeNode node)
 	{
 		Walk(node);
 	}
 
-	public virtual void VisitPtrType(PtrTypeNode node)
+	public virtual void VisitExprType(ExprTypeNode node)
 	{
 		Walk(node);
 	}
 
-	public virtual void VisitExprType(ExprTypeNode node)
+	public virtual void VisitPtrType(PtrTypeNode node)
 	{
 		Walk(node);
 	}
