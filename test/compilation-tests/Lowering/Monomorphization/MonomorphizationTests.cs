@@ -317,10 +317,10 @@ public class MonomorphizationTests
 
 	private static HirTree Monomorph(string src)
 	{
-		var (project, _, _) = AnalysisTestUtils.CreateProjectAndTreeAndReasoner(src, typeCheckAndAssertNoErrors: true);
+		var (project, tree, _) = AnalysisTestUtils.CreateProjectAndTreeAndReasoner(src, typeCheckAndAssertNoErrors: true);
 		var interner = new LoweringInterner();
 		var loweredProject = HirLowerer.LowerProject(project, interner);
 		var trees = Monomorphization.Monomorph(loweredProject, interner);
-		return trees[1]; // Skips prelude tree
+		return trees.First(x => x.SyntaxTree == tree);
 	}
 }

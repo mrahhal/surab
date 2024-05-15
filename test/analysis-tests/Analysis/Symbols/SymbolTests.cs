@@ -6,9 +6,9 @@ public class SymbolTests
 	public void SymbolModule()
 	{
 		var vfs = VFS.Create();
-		var file1 = vfs.AddCodeFile("/file1.surab", "struct Foo { a: i32; }");
-		var file2 = vfs.AddCodeFile("/mod1/mod2/file1.surab", "struct Baz { a: i32; struct Bar { a: i32; } }");
-		var project = SurabProject.Create(vfs);
+		var file1 = vfs.AddCodeFile("/file1.srb", "struct Foo { a: i32; }");
+		var file2 = vfs.AddCodeFile("/mod1/mod2/file1.srb", "struct Baz { a: i32; struct Bar { a: i32; } }");
+		var project = SurabWorkspace.CreateInMemoryProject(vfs);
 
 		var rootModule = project.RootModule;
 		var mod1Module = project.RootModule.Children.Single();

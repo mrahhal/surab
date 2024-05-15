@@ -4,7 +4,8 @@ using System.Diagnostics;
 namespace Surab.Analysis;
 
 /// <summary>
-/// Everything that makes up a Surab project.
+/// Represents a Surab project.
+/// Multiple projects will communicate with each other and cooperate when analyzing a workspace.
 /// </summary>
 /// <remarks>
 /// This isn't thread safe in general.
@@ -17,25 +18,30 @@ public class SurabProject
 	private readonly Dictionary<ProjectFile, CodeFileState> _codeFileToStateMap = [];
 
 	private readonly SymbolCache _symbolCache = new();
+	private readonly List<SurabProject> _projectDependencies = [];
 	private readonly List<VFSChange> _vfsChanges = [];
 
 	// This cancellation token will fire when a new change is being requested and just before a write lock is taken.
 	private CancellationTokenSource _ctsOnChange = null!;
-	private Reasoner _preludeReasoner = default!;
-	private ModuleSymbol? _rootModule;
+	private ModuleSymbol _rootModule = null!;
 
-	private SurabProject(VFS vfs)
+	private SurabProject(
+		SurabWorkspace workspace,
+		VFS vfs)
 	{
+		Workspace = workspace;
 		VFS = vfs;
-
-		LoadPrelude();
-		CreateRootModule();
-		Initialize();
 	}
 
 	// We start by loading a default config since there's always a possibility a config file doesn't exist.
 	// If it exists, this config file will be overriden as the project is initializing files.
 	public SurabProjectConfig Config { get; private set; } = SurabProjectConfig.CreateDefault();
+
+	public SurabWorkspace Workspace { get; set; }
+
+	// TODO: Transitive?
+
+	public IReadOnlyList<SurabProject> ProjectDependencies => _projectDependencies;
 
 	public VFS VFS { get; }
 
@@ -43,23 +49,15 @@ public class SurabProject
 
 	internal SymbolCache SymbolCache => _symbolCache;
 
-	internal Reasoner PreludeReasoner => _preludeReasoner;
+	internal ModuleSymbol PreludeModule => Workspace.PreludeModule;
 
-	/// <summary>
-	/// Creates a new Surab project.
-	/// </summary>
-	public static SurabProject Create(VFS vfs)
-	{
-		return new SurabProject(vfs);
-	}
+	public ModuleSymbol RootModule => _rootModule!;
 
-	/// <summary>
-	/// Creates a new Surab project from a single in memory code file. Mainly used in tests.
-	/// </summary>
-	public static SurabProject CreateSimple(string code)
+	internal static SurabProject Create(
+		SurabWorkspace workspace,
+		VFS vfs)
 	{
-		var vfs = VFS.CreateSimple(code);
-		return Create(vfs);
+		return new SurabProject(workspace, vfs);
 	}
 
 	public void SubscribeToFullDiagsReady(Action<IEnumerable<FileDiags>> action)
@@ -148,11 +146,6 @@ public class SurabProject
 		CreateRootModule();
 	}
 
-	private void CreateRootModule()
-	{
-		_rootModule = CreateModule(VFS.GetRootFolder(), Config.Name);
-	}
-
 	private ModuleSymbol CreateModule(ProjectFolder folder, string? name = null)
 	{
 		var moduleName = name ?? folder.Name;
@@ -189,99 +182,80 @@ public class SurabProject
 		return GetCodeFileState(file).Reasoner;
 	}
 
+	private IEnumerable<SurabProject> GetInvolvedProjects() => [.. ProjectDependencies, this];
+
+	public SurabProject? GetFileProject(NormalizedPath filePath)
+	{
+		foreach (var project in GetInvolvedProjects())
+		{
+			if (project.IsFileInProject(filePath))
+			{
+				return project;
+			}
+		}
+		return null;
+	}
+
+	public ProjectFile? GetFile(NormalizedPath filePath)
+	{
+		Debug.Assert(IsFileInProject(filePath));
+		return VFS.GetFile(filePath);
+	}
+
+	public bool IsFileInProject(NormalizedPath filePath)
+	{
+		return filePath.Value.StartsWith(ProjectPath.Value);
+	}
+
 	/// <summary>
-	/// Returns all <see cref="Reasoner"/>s in the project.
+	/// Returns all <see cref="Reasoner"/>s in this project and project dependencies.
 	/// </summary>
 	/// <remarks>
 	/// This method is a read operation.
 	/// </remarks>
 	public IEnumerable<Reasoner> GetAllReasoners()
 	{
-		yield return _preludeReasoner;
+		foreach (var project in GetInvolvedProjects())
+		{
+			foreach (var reasoner in project.GetProjectReasoners())
+			{
+				yield return reasoner;
+			}
+		}
+	}
 
+	public IEnumerable<Reasoner> GetProjectReasoners()
+	{
 		foreach (var sourceFile in VFS.EnumerateCodeFiles())
 		{
 			yield return GetCodeFileState(sourceFile).Reasoner;
 		}
 	}
 
-	/// <summary>
-	/// Resolves a known <see cref="TypeSymbol"/> from its given name.
-	/// </summary>
-	public TypeSymbol? ResolveKnownTypeSymbolFromName(string? name)
+	internal ModuleSymbol ResolveModule(ProjectFile file)
 	{
-		var tag = KnownTypes.GetTag(name);
-		if (tag == null)
-			return null;
-
-		return ResolveKnownTypeSymbol(tag.Value);
-	}
-
-	/// <summary>
-	/// Resolves a known <see cref="TypeSymbol"/> from its given <see cref="KnownTypeTag"/>.
-	/// </summary>
-	public TypeSymbol ResolveKnownTypeSymbol(KnownTypeTag tag)
-	{
-		return _preludeReasoner.ResolveKnownTypeSymbol(tag);
-	}
-
-	public ModuleSymbol RootModule => _rootModule!;
-
-	/// <summary>
-	/// Resolves module of the file.
-	/// </summary>
-	public ModuleSymbol ResolveModule(ProjectFile file)
-	{
+		Debug.Assert(IsFileInProject(file.Path));
 		var folder = VFS.GetFolder(file);
 		var module = FindModule(m => m.Folders.Contains(folder));
 		Debug.Assert(module != null);
 		return module;
 	}
 
-	/// <summary>
-	/// Resolves module of the reasoner file.
-	/// </summary>
-	public ModuleSymbol ResolveModule(Reasoner reasoner) => ResolveModule(reasoner.File);
-
-	/// <summary>
-	/// Resolves the target module relative to the reasoner file.
-	/// </summary>
-	public ModuleSymbol? ResolveModule(Reasoner reasoner, IEnumerable<string> path)
-	{
-		var module = ResolveModule(reasoner);
-		// TODO: Resolve from absolute, etc.
-		var current = module;
-		var found = true;
-		foreach (var targetName in path)
-		{
-			var targetModule = current.Children.FirstOrDefault(m => m.IdentifierMatches(targetName));
-			if (targetModule == null)
-			{
-				found = false;
-				break;
-			}
-			current = targetModule;
-		}
-		if (!found)
-		{
-			return null;
-		}
-		return current;
-	}
-
-	private ModuleSymbol? FindModule(Func<ModuleSymbol, bool> func)
+	internal ModuleSymbol? FindModule(Func<ModuleSymbol, bool> func)
 	{
 		Debug.Assert(_rootModule != null);
 		return FindModule(func, _rootModule);
 	}
 
-	private ModuleSymbol? FindModule(Func<ModuleSymbol, bool> func, ModuleSymbol module)
+	private static ModuleSymbol? FindModule(Func<ModuleSymbol, bool> func, ModuleSymbol module)
 	{
-		if (func(module)) return module;
+		if (func(module))
+			return module;
 		foreach (var childModule in module.Children)
 		{
 			var result = FindModule(func, childModule);
-			if (result != null) return result;
+			if (result != null)
+				return result;
 		}
 		return null;
 	}
@@ -356,25 +330,6 @@ public class SurabProject
 		state.FileDiags = new FileDiags(file.Path, diags, highestLevel);
 	}
 
-	private void LoadPrelude()
-	{
-		var preludeFilePath = Path.GetFullPath(Path.Combine(PathHelper.GetSrcFolderPath(), "lib/prelude.surab"));
-		var preludeContent = File.ReadAllText(preludeFilePath);
-		var preludeSourceFile = ProjectFile.CreateCode(preludeContent);
-		var tree = Parser.ParseFile(preludeSourceFile);
-
-		// TODO: Prelude module?
-		var module = new SrcModuleSymbol("_prelude_", [], this);
-		// Need to assing it before getting diags as that process might use this _preludeReasoner ref to resolve known types.
-		_preludeReasoner = Reasoner.CreatePrelude(this, module, tree);
-		var diags = _preludeReasoner.GetAllDiags();
-
-		if (diags.Any(x => x.Level >= DiagLevel.Error))
-		{
-			throw new Exception("Errors in prelude.");
-		}
-	}
-
 	private void UpdateTreeAndReasoner(ProjectFile file)
 	{
 		var (tree, reasoner) = CreateNewTreeAndReasoner(file);
@@ -389,14 +344,29 @@ public class SurabProject
 		state.Reasoner = reasoner;
 	}
 
-	private void Initialize()
+	internal void Initialize()
 	{
-		VFS.SubscribeToChanges(_vfsChanges.Add);
+		PrepProjectDependencies();
+		CreateRootModule();
 
+		VFS.SubscribeToChanges(_vfsChanges.Add);
 		foreach (var file in VFS.EnumerateCodeFiles())
 		{
 			InitializeSourceFile(file);
 		}
+	}
+
+	private void PrepProjectDependencies()
+	{
+		if (this != Workspace.StdProject)
+		{
+			_projectDependencies.Add(Workspace.StdProject);
+		}
+	}
+
+	private void CreateRootModule()
+	{
+		_rootModule = CreateModule(VFS.GetRootFolder(), Config.Name);
 	}
 
 	private void ProcessVFSChanges()

@@ -10,7 +10,8 @@ public class SamplesTests
 	public void SamplesSucceed(string sample)
 	{
 		var sampleFolderPath = Path.Combine(PathHelper.GetSamplesFolderPath(), sample);
-		var project = SurabProjectFSLoader.CreateProjectAt(sampleFolderPath);
+		var workspace = SurabWorkspace.Create(sampleFolderPath);
+		var project = workspace.Projects.Single(p => p != workspace.StdProject);
 		IntegrationRunner.Run(project);
 	}
 

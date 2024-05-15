@@ -6,7 +6,7 @@ public static class AnalysisTestUtils
 	{
 		var vfs = VFS.Create();
 		var file = vfs.AddCodeFile(code);
-		var project = SurabProject.Create(vfs);
+		var project = SurabWorkspace.CreateInMemoryProject(vfs);
 		if (typeCheckAndAssertNoErrors)
 		{
 			project.EnsureAnalyzedAsync().GetAwaiter().GetResult();

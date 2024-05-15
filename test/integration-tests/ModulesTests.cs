@@ -9,20 +9,20 @@ public class ModulesTests
 	{
 		var vfs = VFS.Create();
 
-		vfs.AddCodeFile("/math/add.surab", $$"""
+		vfs.AddCodeFile("/math/add.srb", $$"""
 			@public
 			fn add(x: i32, y: i32) i32 {
 				x + y
 			}
 			""");
-		vfs.AddCodeFile("/math/sub.surab", $$"""
+		vfs.AddCodeFile("/math/sub.srb", $$"""
 			@public
 			fn sub(x: i32, y: i32) i32 {
 				x - y
 			}
 			""");
 
-		vfs.AddCodeFile("/calc.surab", $$"""
+		vfs.AddCodeFile("/calc.srb", $$"""
 			import math;
 
 			fn calc_and_print() {
@@ -30,13 +30,13 @@ public class ModulesTests
 				print_i32(math::sub(4, 2));
 			}
 			""");
-		vfs.AddCodeFile("/main.surab", $$"""
+		vfs.AddCodeFile("/main.srb", $$"""
 			fn main() {
 				calc_and_print();
 			}
 			""");
 
-		var project = SurabProject.Create(vfs);
+		var project = SurabWorkspace.CreateInMemoryProject(vfs);
 		project.RootModule.Should().NotBeNull();
 		var output = IntegrationRunner.Run(project);
 
@@ -52,26 +52,26 @@ public class ModulesTests
 	{
 		var vfs = VFS.Create();
 
-		vfs.AddCodeFile("/mod1/foo.surab", $$"""
+		vfs.AddCodeFile("/mod1/foo.srb", $$"""
 			@public
 			struct Foo {
 				a: i32;
 			}
 			""");
-		vfs.AddCodeFile("/mod1/bar.surab", $$"""
+		vfs.AddCodeFile("/mod1/bar.srb", $$"""
 			@public
 			struct Bar {
 				a: i32;
 			}
 			""");
 
-		vfs.AddCodeFile("/baz.surab", $$"""
+		vfs.AddCodeFile("/baz.srb", $$"""
 			@public
 			struct Baz {
 				a: i32;
 			}
 			""");
-		vfs.AddCodeFile("/main.surab", $$"""
+		vfs.AddCodeFile("/main.srb", $$"""
 			import mod1;
 
 			fn main() {
@@ -85,7 +85,7 @@ public class ModulesTests
 			}
 			""");
 
-		var project = SurabProject.Create(vfs);
+		var project = SurabWorkspace.CreateInMemoryProject(vfs);
 		var output = IntegrationRunner.Run(project);
 
 		var expectedOutput =
@@ -101,14 +101,14 @@ public class ModulesTests
 	{
 		var vfs = VFS.Create();
 
-		vfs.AddCodeFile("/mod1/mod2/add.surab", $$"""
+		vfs.AddCodeFile("/mod1/mod2/add.srb", $$"""
 			@public
 			fn add(x: i32, y: i32) i32 {
 				x + y
 			}
 			""");
 
-		vfs.AddCodeFile("/main.surab", $$"""
+		vfs.AddCodeFile("/main.srb", $$"""
 			import mod1.mod2;
 
 			fn main() {
@@ -116,7 +116,7 @@ public class ModulesTests
 			}
 			""");
 
-		var project = SurabProject.Create(vfs);
+		var project = SurabWorkspace.CreateInMemoryProject(vfs);
 		var output = IntegrationRunner.Run(project);
 
 		var expectedOutput =
@@ -130,20 +130,20 @@ public class ModulesTests
 	{
 		var vfs = VFS.Create();
 
-		vfs.AddCodeFile("/mod1/mod2/add.surab", $$"""
+		vfs.AddCodeFile("/mod1/mod2/add.srb", $$"""
 			@public
 			fn add(x: i32, y: i32) i32 {
 				x + y
 			}
 			""");
-		vfs.AddCodeFile("/mod3/sub.surab", $$"""
+		vfs.AddCodeFile("/mod3/sub.srb", $$"""
 			@public
 			fn sub(x: i32, y: i32) i32 {
 				x - y
 			}
 			""");
 
-		vfs.AddCodeFile("/main.surab", $$"""
+		vfs.AddCodeFile("/main.srb", $$"""
 			import mod1.mod2 as another1;
 			import mod3 as another2;
 
@@ -153,7 +153,7 @@ public class ModulesTests
 			}
 			""");
 
-		var project = SurabProject.Create(vfs);
+		var project = SurabWorkspace.CreateInMemoryProject(vfs);
 		var output = IntegrationRunner.Run(project);
 
 		var expectedOutput =

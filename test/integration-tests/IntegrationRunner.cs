@@ -26,7 +26,7 @@ public static class IntegrationRunner
 
 	public static string Run(string code, bool fails = false)
 	{
-		var project = SurabProject.CreateSimple(code);
+		var project = SurabWorkspace.CreateInMemoryProject(code);
 		return Run(project, fails);
 	}
 

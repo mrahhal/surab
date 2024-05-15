@@ -1,0 +1,36 @@
+@public
+fn print_i32(value: i32) {
+	surabrt_print_i32(value);
+}
+
+@public
+fn print_f64(value: f64) {
+	surabrt_print_f64(value);
+}
+
+@public
+fn print_bool(value: bool) {
+	surabrt_print_bool(value);
+}
+
+@public
+fn print_string(value: string) {
+	surabrt_print_string(value);
+}
+
+// ---
+
+//@public(file)
+//@extern(...) { ... }
+
+@extern
+fn surabrt_print_i32(value: i32);
+
+@extern
+fn surabrt_print_f64(value: f64);
+
+@extern
+fn surabrt_print_bool(value: bool);
+
+@extern
+fn surabrt_print_string(value: string);
