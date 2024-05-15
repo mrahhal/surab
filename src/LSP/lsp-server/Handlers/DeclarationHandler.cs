@@ -14,7 +14,7 @@ public class DeclarationHandler(
 
 	public override async Task<LocationOrLocationLinks?> Handle(DeclarationParams request, CancellationToken cancellationToken)
 	{
-		return _solver.Project.LockForRead(() =>
+		return _solver.Workspace.LockForRead(() =>
 		{
 			return _solver.GetDefinitionRef(request.TextDocument, request.Position);
 		});

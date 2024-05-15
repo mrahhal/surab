@@ -770,7 +770,7 @@ public class Reasoner
 		private Scope? _parentScope;
 		private Symbol? _parentSymbol;
 		private TempTypeContext? _typeContext;
-		private readonly bool _isPrelude = project.PreludeModule == module;
+		private readonly bool _isPrelude = project.Workspace.PreludeModule == module;
 
 		public static Reasoner Build(SurabProject project, ModuleSymbol module, SyntaxTree tree)
 		{
@@ -947,7 +947,7 @@ public class Reasoner
 			IReadOnlyList<ResolvedImport> additionalImports = [];
 			if (!_isPrelude)
 			{
-				var preludeModule = project.PreludeModule;
+				var preludeModule = project.Workspace.PreludeModule;
 				var preludeModuleImport = ResolvedImport.Resolved(
 					preludeModule,
 					preludeModule.ExportedSymbols);

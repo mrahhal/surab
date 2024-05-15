@@ -13,7 +13,6 @@ namespace Surab.Analysis;
 /// </remarks>
 public class SurabProject
 {
-	private readonly ReaderWriterLockSlim _rwl = new();
 	private readonly List<Action<IEnumerable<FileDiags>>> _fullDiagsReadyActions = [];
 	private readonly Dictionary<ProjectFile, CodeFileState> _codeFileToStateMap = [];
 
@@ -21,8 +20,6 @@ public class SurabProject
 	private readonly List<SurabProject> _projectDependencies = [];
 	private readonly List<VFSChange> _vfsChanges = [];
 
-	// This cancellation token will fire when a new change is being requested and just before a write lock is taken.
-	private CancellationTokenSource _ctsOnChange = null!;
 	private ModuleSymbol _rootModule = null!;
 
 	private SurabProject(
@@ -49,8 +46,6 @@ public class SurabProject
 
 	internal SymbolCache SymbolCache => _symbolCache;
 
-	internal ModuleSymbol PreludeModule => Workspace.PreludeModule;
-
 	public ModuleSymbol RootModule => _rootModule!;
 
 	internal static SurabProject Create(
@@ -63,87 +58,6 @@ public class SurabProject
 	public void SubscribeToFullDiagsReady(Action<IEnumerable<FileDiags>> action)
 	{
 		_fullDiagsReadyActions.Add(action);
-	}
-
-	/// <summary>
-	/// Locks the project for read operations.
-	/// </summary>
-	/// <remarks>
-	/// For convenience, read/write methods won't throw if you use them without locking. It's the responsibility of
-	/// the consumer to make sure access is synchronized by locking for read or write when running in a possibly concurrent environment.
-	/// Methods will be marked in their doc if they need a read or write lock.
-	/// </remarks>
-	public void LockForRead(Action action)
-	{
-		LockForRead<object?>(() =>
-		{
-			action();
-			return null;
-		});
-	}
-
-	/// <summary>
-	/// Locks the project for read operations.
-	/// </summary>
-	/// <remarks>
-	/// For convenience, read/write methods won't throw if you use them without locking. It's the responsibility of
-	/// the consumer to make sure access is synchronized by locking for read or write when running in a possibly concurrent environment.
-	/// Methods will be marked in their doc if they need a read or write lock.
-	/// </remarks>
-	public T LockForRead<T>(Func<T> func)
-	{
-		_rwl.EnterReadLock();
-
-		try
-		{
-			return func();
-		}
-		finally
-		{
-			_rwl.ExitReadLock();
-		}
-	}
-
-	/// <summary>
-	/// Locks the project for write operations.
-	/// </summary>
-	/// <remarks>
-	/// For convenience, read/write methods won't throw if you use them without locking. It's the responsibility of
-	/// the consumer to make sure access is synchronized by locking for read or write when running in an asynchornous environment.
-	/// Methods will be marked in their doc if theyre a read or a write operation.
-	/// </remarks>
-	public void LockForWrite(Action<VFS> action)
-	{
-		// Cancel in-flight read operations as they will mostly be unneeded now that a write lock is being requested.
-		// If we don't cancel, acquiring a write lock will block until all current read operations finish running.
-		// Full re-analysis also takes a read lock and this operation can take time, so this is a way to cancel that too.
-		_ctsOnChange?.Cancel();
-		_ctsOnChange = new();
-		var ct = _ctsOnChange.Token;
-
-		_rwl.EnterWriteLock();
-
-		try
-		{
-			action(VFS);
-			ResetAfterWrite();
-			ProcessVFSChanges();
-		}
-		finally
-		{
-			_rwl.ExitWriteLock();
-		}
-
-		// We don't want to await anything here.
-		_ = EnsureAnalyzedAsync(ct);
-	}
-
-	private void ResetAfterWrite()
-	{
-		// Reset cached/computed proj state that is stale on writes, e.g. modules
-
-		// Or, just go ahead for now and create and set the root module (containing all the modules hierarchy).
-		CreateRootModule();
 	}
 
 	private ModuleSymbol CreateModule(ProjectFolder folder, string? name = null)
@@ -182,7 +96,7 @@ public class SurabProject
 		return GetCodeFileState(file).Reasoner;
 	}
 
-	private IEnumerable<SurabProject> GetInvolvedProjects() => [.. ProjectDependencies, this];
+	public IEnumerable<SurabProject> GetInvolvedProjects() => [.. ProjectDependencies, this];
 
 	public SurabProject? GetFileProject(NormalizedPath filePath)
 	{
@@ -288,24 +202,21 @@ public class SurabProject
 	{
 		return Task.Run(() =>
 		{
-			LockForRead(() =>
+			try
 			{
-				try
+				foreach (var file in VFS.EnumerateCodeFiles())
 				{
-					foreach (var file in VFS.EnumerateCodeFiles())
-					{
-						AnalyzeSourceFile(file, ct);
-					}
-
-					ct.ThrowIfCancellationRequested();
-
-					// REVIEW: Should this be here inside the lock?
-					RaiseFullDiagsReady();
+					AnalyzeSourceFile(file, ct);
 				}
-				catch (OperationCanceledException)
-				{
-				}
-			});
+
+				ct.ThrowIfCancellationRequested();
+
+				// REVIEW: Should this be here inside the lock?
+				RaiseFullDiagsReady();
+			}
+			catch (OperationCanceledException)
+			{
+			}
 		}, ct);
 	}
 
@@ -347,6 +258,7 @@ public class SurabProject
 	internal void Initialize()
 	{
 		PrepProjectDependencies();
+		InitializeProjectConfig();
 		CreateRootModule();
 
 		VFS.SubscribeToChanges(_vfsChanges.Add);
@@ -364,9 +276,37 @@ public class SurabProject
 		}
 	}
 
+	private void InitializeProjectConfig()
+	{
+		var projectConfigFile = VFS.GetProjectConfigFile();
+		if (projectConfigFile != null)
+		{
+			Config = SurabProjectConfigLoader.Load(projectConfigFile);
+		}
+	}
+
 	private void CreateRootModule()
 	{
 		_rootModule = CreateModule(VFS.GetRootFolder(), Config.Name);
+
+		if (this == Workspace.StdProject)
+		{
+			Workspace.SetPreludeModule(_rootModule.Children.First(x => x.Name == "_prelude"));
+		}
+	}
+
+	internal void RunWritingHook()
+	{
+		ResetAfterWrite();
+		ProcessVFSChanges();
+	}
+
+	private void ResetAfterWrite()
+	{
+		// Reset cached/computed proj state that is stale on writes, e.g. modules
+
+		// Or, just go ahead for now and create and set the root module (containing all the modules hierarchy).
+		CreateRootModule();
 	}
 
 	private void ProcessVFSChanges()
@@ -407,13 +347,7 @@ public class SurabProject
 				break;
 
 			case ProjectFileKind.ProjectConfig:
-				{
-					// Only load and set if the file is directly under the root folder.
-					if (file.Folder.IsRoot)
-					{
-						Config = SurabProjectConfigLoader.Load(file);
-					}
-				}
+				// Processed separately.
 				break;
 
 			default:

@@ -16,13 +16,14 @@ public class DocumentSymbolHandler(
 
 	public override async Task<SymbolInformationOrDocumentSymbolContainer?> Handle(DocumentSymbolParams request, CancellationToken cancellationToken)
 	{
-		return _solver.Project.LockForRead(() =>
+		return _solver.Workspace.LockForRead(() =>
 		{
 			var file = _solver.GetFile(request.TextDocument);
 			if (file == null)
 				return null;
 
-			var firstLevelSymbols = GetFirstLevelSymbols(file);
+			var project = _solver.Workspace.GetFileProject(file.Path);
+			var firstLevelSymbols = GetFirstLevelSymbols(project, file);
 			if (firstLevelSymbols == null)
 				return null;
 
@@ -31,9 +32,9 @@ public class DocumentSymbolHandler(
 		});
 	}
 
-	private List<Symbol>? GetFirstLevelSymbols(ProjectFile file)
+	private List<Symbol>? GetFirstLevelSymbols(SurabProject project, ProjectFile file)
 	{
-		var reasoner = _solver.Project.GetReasoner(file);
+		var reasoner = project.GetReasoner(file);
 		var root = reasoner.Tree.Root;
 		if (root is not FileNode fileNode)
 			return null;

@@ -16,6 +16,8 @@ public class SurabProjectConfig
 
 public static class SurabProjectConfigLoader
 {
+	private static readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web);
+
 	public static SurabProjectConfig Load(ProjectFile? projectConfigFile)
 	{
 		if (projectConfigFile == null)
@@ -27,7 +29,9 @@ public static class SurabProjectConfigLoader
 
 		try
 		{
-			var config = JsonSerializer.Deserialize<SurabProjectConfig>(projectConfigFile.Text);
+			var config = JsonSerializer.Deserialize<SurabProjectConfig>(
+				projectConfigFile.Text,
+				_jsonOptions);
 			return config ?? SurabProjectConfig.CreateDefault();
 		}
 		catch (Exception)

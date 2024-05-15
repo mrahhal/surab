@@ -17,27 +17,29 @@ public class SemanticTokensFullHandler(
 	{
 		_logger.LogInformation("[SemanticTokensParams]");
 
-		return _solver.Project.LockForRead(() =>
+		return _solver.Workspace.LockForRead(() =>
 		{
 			var sourceFile = _solver.GetFile(request.TextDocument.Uri);
 			if (sourceFile == null)
 				return null;
 
+			var project = _solver.Workspace.GetFileProject(sourceFile.Path);
 			var document = GetSemanticTokensDocument();
 			var builder = document.Create();
 
-			Tokenize(builder, sourceFile, cancellationToken);
+			Tokenize(project, builder, sourceFile, cancellationToken);
 			return builder.Commit().GetSemanticTokens();
 		});
 	}
 
 	private void Tokenize(
+		SurabProject project,
 		SemanticTokensBuilder builder,
 		ProjectFile file,
 		CancellationToken ct)
 	{
-		var tree = _solver.Project.GetSyntaxTree(file);
-		var reasoner = _solver.Project.GetReasoner(file);
+		var tree = project.GetSyntaxTree(file);
+		var reasoner = project.GetReasoner(file);
 
 		ct.ThrowIfCancellationRequested();
 

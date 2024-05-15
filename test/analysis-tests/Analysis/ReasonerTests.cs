@@ -328,7 +328,7 @@ public class ReasonerTests
 		var sLocalSymbol = reasoner.GetDeclaredSymbol(sVarDecl);
 		sLocalSymbol.Type.Should().Be(expectedS1ClosedType);
 		var s_aFieldSymbol = (FieldSymbol)sLocalSymbol.Type.GetMember("a")!;
-		s_aFieldSymbol.Type.FullName.Should().Be("_prelude_::i32");
+		s_aFieldSymbol.Type.FullName.Should().Be("std._prelude::i32");
 		var s_nFieldSymbol = (FieldSymbol)sLocalSymbol.Type.GetMember("n")!;
 		s_nFieldSymbol.Type.Should().BeAssignableTo<SubstitutedNamedTypeSymbol>().Subject.OriginalDef.Should().Be(NSymbol);
 		s_nFieldSymbol.Type.FullName.Should().Be("main::S<i32>.N<f64>");

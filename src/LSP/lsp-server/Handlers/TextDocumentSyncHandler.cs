@@ -26,16 +26,18 @@ public class TextDocumentSyncHandler(
 	{
 		_logger.LogInformation("[DidChangeTextDocumentParams]");
 
-		_solver.Project.LockForWrite(vfs =>
+		_solver.Workspace.LockForWrite(() =>
 		{
-			var file = vfs.GetFile(notification.TextDocument.Uri);
+			var path = (NormalizedPath)notification.TextDocument.Uri.GetFileSystemPath();
+			var project = _solver.Workspace.GetFileProject(path);
+			var file = project.GetFile(path);
 			if (file == null)
 			{
-				_logger.LogInformation("Didn't find SourceFile with path {FilePath}.", notification.TextDocument.Uri);
+				_logger.LogInformation("Did not find SourceFile with path {FilePath}.", notification.TextDocument.Uri);
 			}
 			else
 			{
-				vfs.UpdateFile(file, notification.ContentChanges.First().Text);
+				project.VFS.UpdateFile(file, notification.ContentChanges.First().Text);
 			}
 		});
 

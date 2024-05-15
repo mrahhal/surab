@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Nito.AsyncEx;
 
 namespace Surab.Analysis;
 
@@ -7,11 +8,14 @@ namespace Surab.Analysis;
 /// </summary>
 public class SurabWorkspace
 {
+	private readonly AsyncReaderWriterLock _rwl = new();
 	private SurabProject? _stdProject;
 	private List<SurabProject>? _projects;
+	private List<SurabProject>? _workspaceProjects;
 	private ModuleSymbol? _preludeModule;
-
 	private readonly Dictionary<KnownTypeTag, TypeSymbol> _knownTypeTagToTypeSymbolMap = [];
+	// This cancellation token will fire when a new change is being requested and just before a write lock is taken.
+	private CancellationTokenSource _ctsOnChange = null!;
 
 	private SurabWorkspace(string workspacePath)
 	{
@@ -31,9 +35,14 @@ public class SurabWorkspace
 	public ModuleSymbol PreludeModule => _preludeModule!;
 
 	/// <summary>
-	/// Gets all projects in the workspace, including std.
+	/// Gets workspace projects plus out of workspace project dependencies if any (e.g. std).
 	/// </summary>
 	public IReadOnlyList<SurabProject> Projects => _projects!;
+
+	/// <summary>
+	/// Gets workspace projects. Will not include out of workspace project dependencies.
+	/// </summary>
+	public IReadOnlyList<SurabProject> WorkspaceProjects => _workspaceProjects!;
 
 	public static SurabWorkspace Create(string workspacePath)
 	{
@@ -64,6 +73,82 @@ public class SurabWorkspace
 		return workspace.Projects.First(x => x.VFS == vfs);
 	}
 
+	/// <summary>
+	/// Locks the workspace for read operations.
+	/// </summary>
+	/// <remarks>
+	/// For convenience, read/write methods won't throw if you use them without locking. It's the responsibility of
+	/// the consumer to make sure access is synchronized by locking for read or write when running in a possibly concurrent environment.
+	/// Methods will be marked in their doc if they need a read or write lock.
+	/// </remarks>
+	public void LockForRead(Action action)
+	{
+		LockForRead<object?>(() =>
+		{
+			action();
+			return null;
+		});
+	}
+
+	/// <summary>
+	/// Locks the workspace for read operations.
+	/// </summary>
+	/// <remarks>
+	/// For convenience, read/write methods won't throw if you use them without locking. It's the responsibility of
+	/// the consumer to make sure access is synchronized by locking for read or write when running in a possibly concurrent environment.
+	/// Methods will be marked in their doc if they need a read or write lock.
+	/// </remarks>
+	public T LockForRead<T>(Func<T> func)
+	{
+		using (_rwl.ReaderLock())
+		{
+			return func();
+		}
+	}
+
+	public async Task LockForReadAsync(Func<Task> func)
+	{
+		using (await _rwl.ReaderLockAsync())
+		{
+			await func();
+		}
+	}
+
+	/// <summary>
+	/// Locks the workspace for write operations.
+	/// </summary>
+	/// <remarks>
+	/// For convenience, read/write methods won't throw if you use them without locking. It's the responsibility of
+	/// the consumer to make sure access is synchronized by locking for read or write when running in an asynchornous environment.
+	/// Methods will be marked in their doc if theyre a read or a write operation.
+	/// </remarks>
+	public void LockForWrite(Action action)
+	{
+		// Cancel in-flight read operations as they will mostly be unneeded now that a write lock is being requested.
+		// If we don't cancel, acquiring a write lock will block until all current read operations finish running.
+		// Full re-analysis also takes a read lock and this operation can take time, so this is a way to cancel that too.
+		_ctsOnChange?.Cancel();
+		_ctsOnChange = new();
+		var ct = _ctsOnChange.Token;
+
+		using (_rwl.WriterLock())
+		{
+			action();
+			RunWritingHooks();
+		}
+
+		// We don't want to await anything here.
+		_ = EnsureAnalyzedAsync(ct);
+	}
+
+	private void RunWritingHooks()
+	{
+		foreach (var project in Projects)
+		{
+			project.RunWritingHook();
+		}
+	}
+
 	public SurabProject GetFileProject(NormalizedPath filePath)
 	{
 		foreach (var project in Projects)
@@ -92,10 +177,13 @@ public class SurabWorkspace
 		throw new UnreachableException();
 	}
 
-	public Task EnsureAnalyzedAsync(CancellationToken ct = default)
+	public async Task EnsureAnalyzedAsync(CancellationToken ct = default)
 	{
-		var tasks = Projects.Select(p => p.EnsureAnalyzedAsync(ct));
-		return Task.WhenAll(tasks);
+		await LockForReadAsync(async () =>
+		{
+			var tasks = Projects.Select(p => p.EnsureAnalyzedAsync(ct));
+			await Task.WhenAll(tasks);
+		});
 	}
 
 	/// <summary>
@@ -175,9 +263,7 @@ public class SurabWorkspace
 
 		var projectPaths = FindProjects(WorkspacePath);
 		ValidateProjectPathsDoNotOverlap(projectPaths);
-		var stdPath = (NormalizedPath)GetStdPath();
 		var projects = projectPaths
-			.Where(path => path != stdPath)
 			.Select(path => CreateProjectAt(this, path))
 			.ToList();
 		InitializeProjects(projects);
@@ -189,7 +275,7 @@ public class SurabWorkspace
 		{
 			foreach (var p2 in projectPaths)
 			{
-				if (p1 != p2 && p1.Value.Contains(p2.Value) || p2.Value.Contains(p1.Value))
+				if (p1 != p2 && (p1.Value.Contains(p2.Value) || p2.Value.Contains(p1.Value)))
 				{
 					throw new Exception($"Invalid overlap of projects: '{p1.Value}' and '{p2.Value}'");
 				}
@@ -205,13 +291,35 @@ public class SurabWorkspace
 		InitializeProjects([project]);
 	}
 
-	private void InitializeProjects(List<SurabProject> projects)
+	private void InitializeProjects(List<SurabProject> workspaceProjects)
 	{
-		_stdProject = LoadStdProject();
-		Debug.Assert(!projects.Any(p => p.ProjectPath == _stdProject.ProjectPath));
-		_projects = [_stdProject, .. projects];
+		var projects = workspaceProjects;
+		var stdPath = (NormalizedPath)GetStdPath();
+		var stdProject = workspaceProjects.FirstOrDefault(p => p.ProjectPath == stdPath);
+		if (stdProject == null)
+		{
+			stdProject = LoadStdProject();
+			projects = [stdProject, .. workspaceProjects];
+		}
+		else
+		{
+			// Ensure std project is first.
+			workspaceProjects.Sort((x, y) => x == stdProject ? 1 : (y == stdProject ? -1 : 0));
+		}
 
-		_preludeModule = StdProject.RootModule.Children.First(x => x.Name == "_prelude");
+		_stdProject = stdProject;
+		_projects = projects;
+		_workspaceProjects = workspaceProjects;
+
+		foreach (var project in projects)
+		{
+			project.Initialize();
+		}
+	}
+
+	internal void SetPreludeModule(ModuleSymbol preludeModule)
+	{
+		_preludeModule = preludeModule;
 	}
 
 	private SurabProject LoadStdProject()

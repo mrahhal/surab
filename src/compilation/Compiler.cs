@@ -34,11 +34,18 @@ public sealed class Compiler
 	{
 		// Note: We're not taking any locks (particularly read) as the compilation doesn't run in an asynchronous environment right now.
 
-		project.EnsureAnalyzedAsync().GetAwaiter().GetResult();
-		var diags = project.GetProjectDiags();
-		if (diags.Any(fd => fd.HighestLevel is DiagLevel.Error))
+		// TODO: std project diags are not being reported right now
+		var involvedProjects = project.GetInvolvedProjects();
+		var tasks = involvedProjects.Select(p => p.EnsureAnalyzedAsync());
+		Task.WhenAll(tasks).GetAwaiter().GetResult();
+
+		foreach (var p in involvedProjects)
 		{
-			throw new InvalidOperationException("The project contains errors. You cannot call compile if there are errors.");
+			var diags = p.GetProjectDiags();
+			if (diags.Any(fd => fd.HighestLevel is DiagLevel.Error))
+			{
+				throw new InvalidOperationException("The project contains errors. You cannot call compile if there are errors.");
+			}
 		}
 
 		var target = ParseTargetTriple(targetTriple);

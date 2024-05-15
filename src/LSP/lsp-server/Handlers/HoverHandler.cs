@@ -14,7 +14,7 @@ public class HoverHandler(
 
 	public override async Task<Hover?> Handle(HoverParams request, CancellationToken cancellationToken)
 	{
-		return _solver.Project.LockForRead(() =>
+		return _solver.Workspace.LockForRead(() =>
 		{
 			var (symbol, type) = _solver.GetSymbolAndTypeOfPosition(request.TextDocument, request.Position);
 			if (symbol == null)

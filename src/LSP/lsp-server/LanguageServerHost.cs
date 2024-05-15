@@ -85,6 +85,7 @@ public class LanguageServerHost
 	{
 		var workspacePath = workspaceUri.GetFileSystemPath();
 		var workspace = SurabWorkspace.Create(workspacePath);
+		Workspace = workspace;
 
 		foreach (var project in workspace.Projects)
 		{
