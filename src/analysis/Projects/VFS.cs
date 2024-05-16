@@ -4,7 +4,7 @@ namespace Surab.Analysis;
 
 public enum ProjectFileKind
 {
-	Code, // *.surab
+	Code, // *.srb
 	ProjectConfig, // surab-project.json
 }
 
@@ -300,7 +300,6 @@ public class VFS
 		}
 
 		var folderKey = GetFolderInfo(filePath).Key;
-		Debug.Assert(_folderKeyToFolderMap.ContainsKey(folderKey));
 		return _folderKeyToFolderMap[folderKey];
 	}
 
@@ -345,7 +344,7 @@ public class VFS
 		var folderName = Path.GetFileName(folderPath);
 		if (string.IsNullOrEmpty(folderName))
 		{
-			// This can happen in tests mostly, when we have a "/file.surab" path given. Just treat it as a file in the root.
+			// This can happen in tests mostly, when we have a "/file.srb" path given. Just treat it as a file in the root.
 			return _rootFolderInfo;
 		}
 

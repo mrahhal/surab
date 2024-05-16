@@ -17,13 +17,13 @@ public class SurabSolver(
 
 	public LanguageServer Server => Host.Server;
 
-	public SurabProject Project => Host.Project;
+	public SurabWorkspace Workspace => Host.Workspace;
 
 	public ProjectFile? GetFile(TextDocumentIdentifier identifier) => GetFile(identifier.Uri);
 
 	public ProjectFile? GetFile(DocumentUri uri)
 	{
-		return Host.Project.VFS.GetFile(uri);
+		return Host.Workspace.GetFile(uri.GetFileSystemPath());
 	}
 
 	/// <summary>
@@ -31,7 +31,8 @@ public class SurabSolver(
 	/// </summary>
 	public SyntaxNode? GetNodeAt(ProjectFile file, LinePosition linePosition)
 	{
-		var tree = Project.GetSyntaxTree(file);
+		var project = Workspace.GetFileProject(file.Path);
+		var tree = project.GetSyntaxTree(file);
 		return GetNodeAtRecursive(tree.Root, linePosition);
 	}
 
@@ -69,7 +70,8 @@ public class SurabSolver(
 	public (Symbol? symbol, TypeSymbol? type) GetSymbolAndTypeOfPosition(TextDocumentIdentifier textDocument, Position position)
 	{
 		var sourceFile = GetFile(textDocument)!;
-		var reasoner = Project.GetReasoner(sourceFile);
+		var project = Workspace.GetFileProject(sourceFile.Path);
+		var reasoner = project.GetReasoner(sourceFile);
 		var linePosition = ConversionHelper.FromTo(position);
 		var node = GetNodeAt(sourceFile, linePosition);
 		if (node == null)
@@ -106,7 +108,8 @@ public class SurabSolver(
 	public LocationOrLocationLinks? GetDefinitionRef(TextDocumentIdentifier textDocument, Position position)
 	{
 		var sourceFile = GetFile(textDocument)!;
-		var reasoner = Project.GetReasoner(sourceFile);
+		var project = Workspace.GetFileProject(sourceFile.Path);
+		var reasoner = project.GetReasoner(sourceFile);
 		var linePosition = ConversionHelper.FromTo(position);
 		var node = GetNodeAt(sourceFile, linePosition);
 		if (node == null)

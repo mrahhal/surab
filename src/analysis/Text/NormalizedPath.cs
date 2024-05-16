@@ -10,7 +10,7 @@ namespace Surab;
 /// separator of the environment we're running in.
 /// </summary>
 [DebuggerDisplay("{ToString()}")]
-public readonly struct NormalizedPath
+public readonly record struct NormalizedPath
 {
 	public static readonly NormalizedPath Empty = new() { Value = string.Empty };
 

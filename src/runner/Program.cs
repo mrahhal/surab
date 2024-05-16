@@ -113,7 +113,7 @@ var code = """
 
 var vfs = VFS.Create();
 var codeFile = vfs.AddCodeFile(code);
-var project = SurabProject.Create(vfs);
+var project = SurabWorkspace.CreateInMemoryProject(vfs);
 var tree = project.GetSyntaxTree(codeFile);
 var reasoner = project.GetReasoner(codeFile);
 

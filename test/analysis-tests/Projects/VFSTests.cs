@@ -38,11 +38,11 @@ public class VFSTests
 	{
 		var vfs = VFS.Create();
 
-		vfs.AddCodeFile("/math/add.surab", "");
-		vfs.AddCodeFile("/math/sub.surab", "");
+		vfs.AddCodeFile("/math/add.srb", "");
+		vfs.AddCodeFile("/math/sub.srb", "");
 
-		vfs.AddCodeFile("/calc.surab", "");
-		vfs.AddCodeFile("/main.surab", "");
+		vfs.AddCodeFile("/calc.srb", "");
+		vfs.AddCodeFile("/main.srb", "");
 
 		var rootFolder = vfs.GetRootFolder();
 		rootFolder.Path.Should().Be((NormalizedPath)"");
@@ -60,27 +60,27 @@ public class VFSTests
 		var result = CreateDefaultVFS();
 		var vfs = result.VFS;
 
-		vfs.GetFile("/project/nonexistingfile.surab").Should().BeNull();
+		vfs.GetFile("/project/nonexistingfile.srb").Should().BeNull();
 
-		vfs.GetFile("/project/file1.surab").Should().Be(result.File1);
-		vfs.GetFile("/project/file2.surab").Should().Be(result.File2);
-		vfs.GetFile("/project/mod1/file3.surab").Should().Be(result.File3);
-		vfs.GetFile("/project/mod2/mod3/file4.surab").Should().Be(result.File4);
+		vfs.GetFile("/project/file1.srb").Should().Be(result.File1);
+		vfs.GetFile("/project/file2.srb").Should().Be(result.File2);
+		vfs.GetFile("/project/mod1/file3.srb").Should().Be(result.File3);
+		vfs.GetFile("/project/mod2/mod3/file4.srb").Should().Be(result.File4);
 	}
 
 	[Fact]
 	public void EmptyProjectPath()
 	{
 		var vfs = VFS.Create();
-		var file1 = vfs.AddCodeFile("/file1.surab", "");
-		var file2 = vfs.AddCodeFile("/mod1/file2.surab", "");
+		var file1 = vfs.AddCodeFile("/file1.srb", "");
+		var file2 = vfs.AddCodeFile("/mod1/file2.srb", "");
 
 		file1.Folder.Should().NotBeNull();
 		file1.Folder.Name.Should().BeEmpty();
-		vfs.GetFile("/file1.surab").Should().Be(file1);
+		vfs.GetFile("/file1.srb").Should().Be(file1);
 		file2.Folder.Should().NotBeNull();
 		file2.Folder.Name.Should().Be("mod1");
-		vfs.GetFile("/mod1/file2.surab").Should().Be(file2);
+		vfs.GetFile("/mod1/file2.srb").Should().Be(file2);
 	}
 
 	[Fact]
@@ -89,18 +89,18 @@ public class VFSTests
 		var vfs = VFS.Create("/project");
 		Assert.ThrowsAny<Exception>(() =>
 		{
-			vfs.AddCodeFile("/project/file1.surab", "");
-			vfs.AddCodeFile("/out/file2.surab", "");
+			vfs.AddCodeFile("/project/file1.srb", "");
+			vfs.AddCodeFile("/out/file2.srb", "");
 		});
 	}
 
 	private static Result CreateDefaultVFS()
 	{
 		var vfs = VFS.Create("/project");
-		var file1 = vfs.AddCodeFile("/project/file1.surab", "");
-		var file2 = vfs.AddCodeFile("/project/file2.surab", "");
-		var file3 = vfs.AddCodeFile("/project/mod1/file3.surab", "");
-		var file4 = vfs.AddCodeFile("/project/mod2/mod3/file4.surab", "");
+		var file1 = vfs.AddCodeFile("/project/file1.srb", "");
+		var file2 = vfs.AddCodeFile("/project/file2.srb", "");
+		var file3 = vfs.AddCodeFile("/project/mod1/file3.srb", "");
+		var file4 = vfs.AddCodeFile("/project/mod2/mod3/file4.srb", "");
 
 		return new Result
 		{

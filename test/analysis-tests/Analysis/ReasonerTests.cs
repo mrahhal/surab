@@ -227,8 +227,8 @@ public class ReasonerTests
 
 		var anotherIntegerAliasDecl = tree.Root.DescendantNodes().OfType<AliasDeclNode>().ElementAt(1);
 		var symbol = reasoner.GetDeclaredSymbol(anotherIntegerAliasDecl)!;
-		symbol.IsAssignableFrom(project.ResolveKnownTypeSymbol(KnownTypeTag.i32));
-		project.ResolveKnownTypeSymbol(KnownTypeTag.i32).IsAssignableFrom(symbol);
+		symbol.IsAssignableFrom(project.Workspace.ResolveKnownTypeSymbol(KnownTypeTag.i32));
+		project.Workspace.ResolveKnownTypeSymbol(KnownTypeTag.i32).IsAssignableFrom(symbol);
 	}
 
 	[Fact]
@@ -322,13 +322,13 @@ public class ReasonerTests
 		oFieldSymbol.Type.OriginalDef.Should().Be(OSymbol);
 		oFieldSymbol.Type.FullName.Should().Be("main::S<T1>.O");
 
-		var expectedS1ClosedType = reasoner.CloseGeneric(SSymbol, [project.ResolveKnownTypeSymbol(KnownTypeTag.i32)]);
+		var expectedS1ClosedType = reasoner.CloseGeneric(SSymbol, [project.Workspace.ResolveKnownTypeSymbol(KnownTypeTag.i32)]);
 
 		var sVarDecl = tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(0);
 		var sLocalSymbol = reasoner.GetDeclaredSymbol(sVarDecl);
 		sLocalSymbol.Type.Should().Be(expectedS1ClosedType);
 		var s_aFieldSymbol = (FieldSymbol)sLocalSymbol.Type.GetMember("a")!;
-		s_aFieldSymbol.Type.FullName.Should().Be("_prelude_::i32");
+		s_aFieldSymbol.Type.FullName.Should().Be("std._prelude::i32");
 		var s_nFieldSymbol = (FieldSymbol)sLocalSymbol.Type.GetMember("n")!;
 		s_nFieldSymbol.Type.Should().BeAssignableTo<SubstitutedNamedTypeSymbol>().Subject.OriginalDef.Should().Be(NSymbol);
 		s_nFieldSymbol.Type.FullName.Should().Be("main::S<i32>.N<f64>");
@@ -344,17 +344,17 @@ public class ReasonerTests
 		var sTypeSymbolSub = sTypeSymbol.Should().BeAssignableTo<SubstitutedNamedTypeSymbol>().Subject;
 		sTypeSymbolSub.OriginalDef.Should().Be(SSymbol);
 		sTypeSymbol.GenericArgs.Should().HaveCount(1);
-		sTypeSymbol.GenericArgs[0].Should().Be(project.ResolveKnownTypeSymbol(KnownTypeTag.i32));
+		sTypeSymbol.GenericArgs[0].Should().Be(project.Workspace.ResolveKnownTypeSymbol(KnownTypeTag.i32));
 
 		var aVarDecl = tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(1);
 		var aLocalSymbol = reasoner.GetDeclaredSymbol(aVarDecl);
-		aLocalSymbol.Type.Should().Be(project.ResolveKnownTypeSymbol(KnownTypeTag.i32));
+		aLocalSymbol.Type.Should().Be(project.Workspace.ResolveKnownTypeSymbol(KnownTypeTag.i32));
 
 		var nVarDecl = tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(2);
 		var nLocalSymbol = reasoner.GetDeclaredSymbol(nVarDecl);
 		var nLocalType = nLocalSymbol.Type.Should().BeAssignableTo<SubstitutedNamedTypeSymbol>().Subject;
 		nLocalType.GenericArgs.Should().HaveCount(1);
-		nLocalType.GenericArgs[0].Should().Be(project.ResolveKnownTypeSymbol(KnownTypeTag.f64));
+		nLocalType.GenericArgs[0].Should().Be(project.Workspace.ResolveKnownTypeSymbol(KnownTypeTag.f64));
 		nLocalType.OriginalDef.Should().Be(NSymbol);
 		nLocalType.Parent.Should().Be(sLocalSymbol.Type);
 		nLocalType.FullName.Should().Be("main::S<i32>.N<f64>");
@@ -417,7 +417,7 @@ public class ReasonerTests
 		SAlias2Symbol.TargetType.Should().BeAssignableTo<NamedTypeSymbol>().Subject.GenericArgs.ElementAt(0).Should()
 			.Be(SAlias2Symbol.GenericParams.ElementAt(0));
 
-		var SAlias2ClosedSymbol = (AliasTypeSymbol)reasoner.CloseGeneric(SAlias2Symbol, [project.ResolveKnownTypeSymbol(KnownTypeTag.i32)]);
+		var SAlias2ClosedSymbol = (AliasTypeSymbol)reasoner.CloseGeneric(SAlias2Symbol, [project.Workspace.ResolveKnownTypeSymbol(KnownTypeTag.i32)]);
 		SAlias2ClosedSymbol.FullName.Should().Be("main::SAlias2<i32>");
 		SAlias2ClosedSymbol.TargetType.FullName.Should().Be("main::S<i32>");
 		SAlias2ClosedSymbol.TargetType.Should().Be(SAliasSymbol.TargetType);

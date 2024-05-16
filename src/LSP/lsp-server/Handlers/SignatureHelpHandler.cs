@@ -15,7 +15,7 @@ public class SignatureHelpHandler(
 
 	public override async Task<SignatureHelp?> Handle(SignatureHelpParams request, CancellationToken cancellationToken)
 	{
-		return _solver.Project.LockForRead(() =>
+		return _solver.Workspace.LockForRead(() =>
 		{
 			var sourceFile = _solver.GetFile(request.TextDocument);
 			if (sourceFile == null)
@@ -62,7 +62,8 @@ public class SignatureHelpHandler(
 				return null;
 			}
 
-			var reasoner = _solver.Project.GetReasoner(sourceFile);
+			var project = _solver.Workspace.GetFileProject(sourceFile.Path);
+			var reasoner = project.GetReasoner(sourceFile);
 			var (fn, fnType) = reasoner.LookupFnSymbolOrType(callExpr);
 			if (fnType == null)
 				return null;

@@ -31,7 +31,7 @@
 			{
 				"id": "surab",
 				"extensions": [
-					".surab"
+					".srb"
 				],
 				"configuration": "./language-configuration.json"
 			},

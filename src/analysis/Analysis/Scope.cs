@@ -168,14 +168,13 @@ internal abstract class Scope
 /// <summary>
 /// A scope that exposes file declarations, symbols in the current module, and imported symbols.
 /// </summary>
-internal sealed class FileScope(FileNode file, Reasoner fileReasoner, Reasoner? preludeReasoner) : Scope
+internal sealed class FileScope(FileNode file, Reasoner fileReasoner, SurabProject project, IReadOnlyList<ResolvedImport>? additionalImports) : Scope
 {
 	private ImmutableArray<Symbol> _decls;
 
 	private readonly FileNode _file = file;
 	private readonly Reasoner _fileReasoner = fileReasoner;
-
-	private readonly Reasoner? _preludeReasoner = preludeReasoner;
+	private readonly SurabProject _project = project;
 
 	public ImmutableArray<Symbol> Decls
 	{
@@ -195,7 +194,8 @@ internal sealed class FileScope(FileNode file, Reasoner fileReasoner, Reasoner? 
 		return
 			LookupIdentifierIn(Decls, identifier) ??
 			LookupInCurrentModule(identifier) ??
-			LookupInImports(identifier);
+			LookupInImports(identifier) ??
+			LookupInAdditionalImports(identifier);
 	}
 
 	private Symbol? LookupInCurrentModule(string identifier)
@@ -211,17 +211,31 @@ internal sealed class FileScope(FileNode file, Reasoner fileReasoner, Reasoner? 
 		for (var i = imports.Count - 1; i >= 0; i--)
 		{
 			var import = imports[i];
-			var resolvedModule = _fileReasoner.ResolveImport(import);
-			var result = resolvedModule.ExposedSymbols.FirstOrDefault(s => s.IdentifierMatches(identifier));
+			var resolvedImport = _fileReasoner.ResolveImport(import);
+			var result = LookupInResolvedModule(resolvedImport, identifier);
 
 			if (result != null)
-			{
 				return result;
-			}
 		}
 
-		// If nothing else works, try resolve from the prelude.
-		return _preludeReasoner?.LookupExportedSymbolByName(identifier);
+		return null;
+	}
+
+	private Symbol? LookupInAdditionalImports(string identifier)
+	{
+		foreach (var additionalImport in additionalImports ?? [])
+		{
+			var result = LookupInResolvedModule(additionalImport, identifier);
+			if (result != null)
+				return result;
+		}
+
+		return null;
+	}
+
+	private Symbol? LookupInResolvedModule(ResolvedImport resolvedImport, string identifier)
+	{
+		return resolvedImport.ExposedSymbols.FirstOrDefault(s => s.IdentifierMatches(identifier));
 	}
 
 	internal ModuleSymbol? LookupImportedModule(string identifier)

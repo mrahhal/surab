@@ -145,7 +145,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 			_ => throw new UnreachableException(),
 		};
 
-		var noneType = _reasoner.Project.ResolveKnownTypeSymbol(KnownTypeTag.None);
+		var noneType = _reasoner.Workspace.ResolveKnownTypeSymbol(KnownTypeTag.None);
 		var fnReturnType = returnTypeNode == null ? noneType : _reasoner.LookupSymbol(returnTypeNode).AsTypeSymbolOrUnknown();
 		var returnType = node.Expr == null ? noneType : _reasoner.LookupType(node.Expr);
 

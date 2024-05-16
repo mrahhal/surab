@@ -22,7 +22,7 @@ public class LanguageServerHost
 
 	public LanguageServer Server { get; private set; } = null!;
 
-	public SurabProject Project { get; private set; } = null!;
+	public SurabWorkspace Workspace { get; private set; } = null!;
 
 	public static LanguageServerHost Create(Serilog.Core.Logger logger)
 	{
@@ -63,7 +63,7 @@ public class LanguageServerHost
 				// The project in this state is already ready to handle change requests.
 
 				// Shouldn't pass the cancellation token from OnInitialized as that will cancel the analysis right away.
-				_ = Project.EnsureAnalyzedAsync(CancellationToken.None);
+				_ = Workspace.EnsureAnalyzedAsync(CancellationToken.None);
 				return Task.CompletedTask;
 			})
 			.WithHandler<TextDocumentSyncHandler>()
@@ -84,19 +84,13 @@ public class LanguageServerHost
 	private Task InitializeProjectAsync(DocumentUri workspaceUri)
 	{
 		var workspacePath = workspaceUri.GetFileSystemPath();
-		var projectPaths = SurabProjectFSLoader.FindProjects(workspacePath).ToList();
-		// TODO: Report this to the client properly, and have the ability to reload.
-		if (projectPaths.Count == 0)
+		var workspace = SurabWorkspace.Create(workspacePath);
+		Workspace = workspace;
+
+		foreach (var project in workspace.Projects)
 		{
-			throw new Exception("No Surab projects.");
+			project.SubscribeToFullDiagsReady(HandleFullDiagsReady);
 		}
-		if (projectPaths.Count > 1)
-		{
-			throw new Exception("More than one Surab project is not supported.");
-		}
-		var projectPath = projectPaths.Single();
-		Project = SurabProjectFSLoader.CreateProjectAt(projectPath);
-		Project.SubscribeToFullDiagsReady(HandleFullDiagsReady);
 
 		// TODO:
 		//Project.SubscribeToAnalysis...?

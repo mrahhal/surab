@@ -1,0 +1,2 @@
+//! The prelude module for Surab contains all primitives and builtins.
+//! All symbols in this module are implicitly imported in all Surab code so they can be used without an explicit import.
