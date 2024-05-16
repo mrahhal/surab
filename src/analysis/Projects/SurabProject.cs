@@ -48,6 +48,8 @@ public class SurabProject
 
 	public ModuleSymbol RootModule => _rootModule!;
 
+	public bool IsStdProject => this == Workspace.StdProject;
+
 	internal static SurabProject Create(
 		SurabWorkspace workspace,
 		VFS vfs)
@@ -289,7 +291,7 @@ public class SurabProject
 	{
 		_rootModule = CreateModule(VFS.GetRootFolder(), Config.Name);
 
-		if (this == Workspace.StdProject)
+		if (IsStdProject)
 		{
 			Workspace.SetPreludeModule(_rootModule.Children.First(x => x.Name == "_prelude"));
 		}
