@@ -163,7 +163,7 @@ public sealed class SrcFnSymbol : FnSymbol
 
 	public override bool IsInitializerMethod => IsMethod && ((MethodDeclNode)_node.Parent!).IsInitializer;
 
-	public override bool IsStatic => _node.Attrs.HasAttr(KnownAttrs.Static);
+	public override bool IsStatic => _node.Parent is FnDeclNode;
 
 	public override bool IsExtern => _node.Attrs.HasAttr(KnownAttrs.Extern);
 
