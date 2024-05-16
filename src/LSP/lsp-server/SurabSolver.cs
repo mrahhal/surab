@@ -26,45 +26,11 @@ public class SurabSolver(
 		return Host.Workspace.GetFile(uri.GetFileSystemPath());
 	}
 
-	/// <summary>
-	/// Gets the deepest node at the given position.
-	/// </summary>
 	public SyntaxNode? GetNodeAt(ProjectFile file, LinePosition linePosition)
 	{
 		var project = Workspace.GetFileProject(file.Path);
 		var tree = project.GetSyntaxTree(file);
-		return GetNodeAtRecursive(tree.Root, linePosition);
-	}
-
-	/// <summary>
-	/// Gets the token at the position without taking into account trivia.
-	/// </summary>
-	public SyntaxToken? GetTokenAt(SyntaxNode node, LinePosition linePosition)
-	{
-		foreach (var token in node.ChildTokens)
-		{
-			if (token.Span.Line.Contains(linePosition))
-			{
-				return token;
-			}
-			else if (token.Span.Line.Start > linePosition)
-			{
-				break;
-			}
-		}
-		return null;
-	}
-
-	private SyntaxNode? GetNodeAtRecursive(SyntaxNode node, LinePosition linePosition)
-	{
-		foreach (var childNode in node.ChildNodes)
-		{
-			if (childNode.SpanWithTrivia.Line.Contains(linePosition))
-			{
-				return GetNodeAtRecursive(childNode, linePosition);
-			}
-		}
-		return node;
+		return tree.GetNodeAt(linePosition);
 	}
 
 	public (Symbol? symbol, TypeSymbol? type) GetSymbolAndTypeOfPosition(TextDocumentIdentifier textDocument, Position position)
@@ -76,7 +42,7 @@ public class SurabSolver(
 		var node = GetNodeAt(sourceFile, linePosition);
 		if (node == null)
 			return (null, null);
-		var token = GetTokenAt(node, linePosition);
+		var token = node.GetTokenAt(linePosition);
 		if (token == null)
 			return (null, null);
 		var type = default(TypeSymbol?);
@@ -114,7 +80,7 @@ public class SurabSolver(
 		var node = GetNodeAt(sourceFile, linePosition);
 		if (node == null)
 			return null;
-		var token = GetTokenAt(node, linePosition);
+		var token = node.GetTokenAt(linePosition);
 		if (token == null)
 			return null;
 		var symbol = reasoner.LookupSymbol(node);

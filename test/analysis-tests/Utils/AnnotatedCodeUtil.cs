@@ -12,7 +12,7 @@ public static class AnnotatedCodeUtil
 	///
 	/// Supported syntax:
 	/// - [|text|]
-	/// - {|hint:text|}
+	/// - {|name:text|}
 	/// </summary>
 	/// <param name="annotatedCode">The annotated code.</param>
 	/// <param name="treatAnnotatedContentAsCode">If true, the annotation content will be treated as part of the code.</param>
@@ -65,7 +65,7 @@ public static class AnnotatedCodeUtil
 
 					offset++;
 				}
-				var hint = annotatedCode[innerAnnotationStart..offset];
+				var name = annotatedCode[innerAnnotationStart..offset];
 				offset += 1;
 
 				innerAnnotationStart = offset;
@@ -85,10 +85,14 @@ public static class AnnotatedCodeUtil
 					codeSB.Append(slice);
 				}
 				var diagEnd = codeSB.Length;
-				annotations.Add(new Annotation(hint, slice, new FileSpan(diagStart, diagEnd)));
+				annotations.Add(new Annotation(name, slice, new FileSpan(diagStart, diagEnd)));
 			}
 
-			codeSB.Append(annotatedCode[offset]);
+			if (offset < annotatedCode.Length)
+			{
+				// Might happen if the string ends with |} for example.
+				codeSB.Append(annotatedCode[offset]);
+			}
 			offset++;
 		}
 
@@ -111,5 +115,5 @@ public static class AnnotatedCodeUtil
 		public required IReadOnlyList<Annotation> Annotations { get; init; }
 	}
 
-	public record Annotation(string? Hint, string Content, FileSpan FileSpan);
+	public record Annotation(string? Name, string Content, FileSpan FileSpan);
 }

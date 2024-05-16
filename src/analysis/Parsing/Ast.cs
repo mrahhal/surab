@@ -18,6 +18,22 @@ public class SyntaxTree
 
 	// Set during parsing.
 	public DiagBag Diags { get; internal set; } = default!;
+
+	/// <summary>
+	/// Gets the deepest node at the given position.
+	/// </summary>
+	public SyntaxNode? GetNodeAt(LinePosition linePosition)
+	{
+		return Root.GetNodeAt(linePosition);
+	}
+
+	/// <summary>
+	/// Gets the deepest node at the given position.
+	/// </summary>
+	public SyntaxNode? GetNodeAt(int filePosition)
+	{
+		return Root.GetNodeAt(filePosition);
+	}
 }
 
 public abstract class SyntaxEntity : ISyntaxTreeVisitable
@@ -838,6 +854,84 @@ public abstract class SyntaxNode : SyntaxEntity
 				}
 			}
 		}
+	}
+
+	/// <summary>
+	/// Gets the deepest node at the given position.
+	/// </summary>
+	public SyntaxNode? GetNodeAt(LinePosition linePosition)
+	{
+		return GetNodeAtRecursive(this, linePosition);
+	}
+
+	/// <summary>
+	/// Gets the deepest node at the given position.
+	/// </summary>
+	public SyntaxNode? GetNodeAt(int filePosition)
+	{
+		return GetNodeAtRecursive(this, filePosition);
+	}
+
+	private static SyntaxNode? GetNodeAtRecursive(SyntaxNode node, LinePosition linePosition)
+	{
+		foreach (var childNode in node.ChildNodes)
+		{
+			if (childNode.SpanWithTrivia.Line.Contains(linePosition))
+			{
+				return GetNodeAtRecursive(childNode, linePosition);
+			}
+		}
+		return node;
+	}
+
+	private static SyntaxNode? GetNodeAtRecursive(SyntaxNode node, int filePosition)
+	{
+		foreach (var childNode in node.ChildNodes)
+		{
+			if (childNode.SpanWithTrivia.File.Contains(filePosition))
+			{
+				return GetNodeAtRecursive(childNode, filePosition);
+			}
+		}
+		return node;
+	}
+
+	/// <summary>
+	/// Gets the token at the position without taking into account trivia.
+	/// </summary>
+	public SyntaxToken? GetTokenAt(LinePosition linePosition)
+	{
+		foreach (var token in ChildTokens)
+		{
+			if (token.Span.Line.Contains(linePosition))
+			{
+				return token;
+			}
+			else if (token.Span.Line.Start > linePosition)
+			{
+				break;
+			}
+		}
+		return null;
+	}
+
+	/// <summary>
+	/// Gets the token at the position without taking into account trivia.
+	/// </summary>
+	public SyntaxToken? GetTokenAt(int filePosition)
+	{
+		foreach (var token in ChildTokens)
+		{
+			if (token.Span.File.Contains(filePosition))
+			{
+				return token;
+			}
+			else if (token.Span.File.Start > filePosition)
+			{
+				break;
+			}
+		}
+		return null;
 	}
 
 	/// <summary>

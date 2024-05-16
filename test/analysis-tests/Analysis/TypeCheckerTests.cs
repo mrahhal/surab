@@ -92,7 +92,7 @@ public static class AnalyzerTestUtils
 		var result = AnnotatedCodeUtil.Parse(annotatedCode, treatAnnotatedContentAsCode: true);
 		var (_, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(result.Code);
 		var actualDiags = reasoner.GetAllDiags().ToList();
-		var expectedDiags = result.Annotations.Select(a => new ExpectedDiag(a.Hint, a.FileSpan));
+		var expectedDiags = result.Annotations.Select(a => new ExpectedDiag(a.Name, a.FileSpan));
 
 		AnalysisAssert.Diags(result.Code, expectedDiags, actualDiags);
 	}

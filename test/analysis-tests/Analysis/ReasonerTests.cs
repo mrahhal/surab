@@ -30,14 +30,14 @@ public class ReasonerTests
 	[Fact]
 	public void LookupSymbol()
 	{
-		var code = """
-			const a = 2;
-			const b = a;
-			""";
-		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(code);
+		var result = AnalysisTestUtils.CreateFromNodeAnnotatedCode("""
+			{|a:|}const a = 2;
+			{|b:|}const b = a;
+			""");
+		var reasoner = result.Reasoner;
 
-		var decl1 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().First();
-		var decl2 = tree.Root.DescendantNodes().OfType<ConstDeclNode>().Skip(1).Single();
+		var decl1 = result.GetNode<ConstDeclNode>("a");
+		var decl2 = result.GetNode<ConstDeclNode>("b");
 		var valueSymbol = reasoner.LookupSymbol(decl2.Initializer!.Expr);
 		reasoner.TryGetDeclaredSymbol(decl1, out var symbol).Should().BeTrue();
 
