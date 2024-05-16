@@ -64,10 +64,12 @@ public readonly record struct FileSpan(
 	public bool IsEmpty => Length == 0;
 
 	public bool Contains(int position) =>
-		(position - Start) < Length;
+		position >= Start && position < End;
 
 	public bool Contains(FileSpan other) =>
-		other.Start >= Start && other.End <= End;
+		other.Start >= Start && other.End <= End &&
+		// [1,3) does not contain [3,3) but it contains [2,3).
+		!(other.Start == other.End && other.End == End);
 
 	public int CompareTo(FileSpan other)
 	{
