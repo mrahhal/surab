@@ -28,6 +28,11 @@ public readonly record struct NormalizedPath
 			return Empty;
 		}
 
+		if (OperatingSystem.IsWindows() && Path.IsPathRooted(path))
+		{
+			// Normalize drive letters as it can sometimes be lowercase and other times uppercase.
+			path = char.ToUpper(path[0]) + path[1..];
+		}
 		path = path.Replace('/', Path.DirectorySeparatorChar).Trim();
 		return new NormalizedPath
 		{
