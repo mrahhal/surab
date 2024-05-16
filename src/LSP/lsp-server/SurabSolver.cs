@@ -87,6 +87,14 @@ public class SurabSolver(
 		if (token == null)
 			return null;
 		var symbol = reasoner.LookupSymbol(node);
+		if (symbol is ThisSymbol thisSymbol)
+		{
+			symbol = thisSymbol.Type;
+		}
+		if (symbol is TypeSymbol typeSymbol)
+		{
+			symbol = typeSymbol.UnwrapPointers();
+		}
 		if (symbol != null)
 		{
 			var span = symbol.DeclaringNode?.GetMainIdentifierToken()?.Span ?? symbol.DeclaringNode?.Span ?? new();

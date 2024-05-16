@@ -162,7 +162,7 @@ public class SurabWorkspace
 		throw new UnreachableException();
 	}
 
-	public ProjectFile GetFile(NormalizedPath filePath)
+	public ProjectFile? GetFile(NormalizedPath filePath)
 	{
 		foreach (var project in Projects)
 		{
