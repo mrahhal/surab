@@ -197,19 +197,33 @@ public class Reasoner
 		}
 		else
 		{
-			return LookupSymbol(node.Name);
+			return LookupOnlyName(node.Name);
 		}
 	}
 
 	public Symbol? LookupSymbol(NameNode node)
 	{
+		// Ensures we're looking up the right thing. This can happen
+		// when the lsp is trying to get the symbols at the caret position.
+		// Make sure the following includes all possible parents of NameNode.
 		if (node.Parent is AccessExprNode accessExpr)
 		{
-			// Ensures we're looking up the right thing. This particular case can happen
-			// when the lsp is trying to get the symbols at the caret position.
 			return LookupSymbol(accessExpr);
 		}
+		else if (node.Parent is ModuleAccessExprNode moduleAccessExpr)
+		{
+			return LookupSymbol(moduleAccessExpr);
+		}
+		else if (node.Parent is NameExprNode nameExpr)
+		{
+			return LookupSymbol(nameExpr);
+		}
 
+		return LookupOnlyName(node);
+	}
+
+	public Symbol? LookupOnlyName(NameNode node)
+	{
 		var symbol = LookupSymbol(node.Identifier, node);
 		return ResolveSymbolWithName(symbol, node);
 	}

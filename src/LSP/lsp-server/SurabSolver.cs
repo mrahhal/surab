@@ -77,6 +77,9 @@ public class SurabSolver(
 		var project = Workspace.GetFileProject(sourceFile.Path);
 		var reasoner = project.GetReasoner(sourceFile);
 		var linePosition = ConversionHelper.FromTo(position);
+		// TODO: Might need another method just for Go to definition like queries becase if the caret
+		// is on the last index of the identifier it won't be treated as a "contain", but here
+		// we actually want to treat it as a hit.
 		var node = GetNodeAt(sourceFile, linePosition);
 		if (node == null)
 			return null;
