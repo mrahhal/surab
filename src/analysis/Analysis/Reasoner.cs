@@ -203,6 +203,13 @@ public class Reasoner
 
 	public Symbol? LookupSymbol(NameNode node)
 	{
+		if (node.Parent is AccessExprNode accessExpr)
+		{
+			// Ensures we're looking up the right thing. This particular case can happen
+			// when the lsp is trying to get the symbols at the caret position.
+			return LookupSymbol(accessExpr);
+		}
+
 		var symbol = LookupSymbol(node.Identifier, node);
 		return ResolveSymbolWithName(symbol, node);
 	}

@@ -47,17 +47,20 @@ public class ReasonerTests
 	[Fact]
 	public void LookupSymbol_Field()
 	{
-		var code = """
+		var result = AnalysisTestUtils.CreateFromNodeAnnotatedCode("""
 			struct S1 { a: i32 = 42; }
-			fn f() { var s = S1 { }; var a = s.a; }
-			""";
-		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(code);
+			fn f() { {|var_s:|}var s = S1 { }; {|var_a:|}var a = s.a; }
+			""");
+		var reasoner = result.Reasoner;
 
-		var varDecl = tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(1);
-		var accessExpr = varDecl.Initializer!.Expr;
+		var var_a = result.GetNode<VarDeclNode>("var_a");
+		var accessExpr = (AccessExprNode)var_a.Initializer!.Expr;
 		var fieldSymbol = reasoner.LookupSymbol(accessExpr);
+		// Also ensure lookup on name works the same.
+		var fieldSymbol2 = reasoner.LookupSymbol(accessExpr.Name);
 
 		fieldSymbol.Should().NotBeNull().And.BeAssignableTo<FieldSymbol>();
+		fieldSymbol.Should().Be(fieldSymbol2);
 	}
 
 	[Fact]
