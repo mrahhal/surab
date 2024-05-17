@@ -168,7 +168,7 @@ internal abstract class Scope
 /// <summary>
 /// A scope that exposes file declarations, symbols in the current module, and imported symbols.
 /// </summary>
-internal sealed class FileScope(FileNode file, Reasoner fileReasoner, SurabProject project, IReadOnlyList<ResolvedImport>? additionalImports) : Scope
+internal sealed class FileScope(FileNode file, Reasoner fileReasoner, SurabProject project) : Scope
 {
 	private ImmutableArray<Symbol> _decls;
 
@@ -195,7 +195,7 @@ internal sealed class FileScope(FileNode file, Reasoner fileReasoner, SurabProje
 			LookupIdentifierIn(Decls, identifier) ??
 			LookupInCurrentModule(identifier) ??
 			LookupInImports(identifier) ??
-			LookupInAdditionalImports(identifier);
+			LookupInPrelude(identifier);
 	}
 
 	private Symbol? LookupInCurrentModule(string identifier)
@@ -221,16 +221,18 @@ internal sealed class FileScope(FileNode file, Reasoner fileReasoner, SurabProje
 		return null;
 	}
 
-	private Symbol? LookupInAdditionalImports(string identifier)
+	private Symbol? LookupInPrelude(string identifier)
 	{
-		foreach (var additionalImport in additionalImports ?? [])
+		var preludeModule = _project.Workspace.PreludeModule;
+		if (_fileReasoner.Module == preludeModule)
 		{
-			var result = LookupInResolvedModule(additionalImport, identifier);
-			if (result != null)
-				return result;
+			// We're in the prelude already.
+			return null;
 		}
-
-		return null;
+		var preludeImport = ResolvedImport.Resolved(
+			preludeModule,
+			preludeModule.ExportedSymbols);
+		return LookupInResolvedModule(preludeImport, identifier);
 	}
 
 	private Symbol? LookupInResolvedModule(ResolvedImport resolvedImport, string identifier)

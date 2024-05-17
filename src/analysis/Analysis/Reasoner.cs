@@ -23,6 +23,9 @@ public class Reasoner
 
 	public SurabWorkspace Workspace => Project.Workspace;
 
+	/// <summary>
+	/// Gets the module of this reasoner's file.
+	/// </summary>
 	public ModuleSymbol Module { get; }
 
 	public SyntaxTree Tree { get; }
@@ -965,16 +968,7 @@ public class Reasoner
 
 		private FileScope CreateFileScope(FileNode node)
 		{
-			IReadOnlyList<ResolvedImport> additionalImports = [];
-			if (!_isPrelude)
-			{
-				var preludeModule = project.Workspace.PreludeModule;
-				var preludeModuleImport = ResolvedImport.Resolved(
-					preludeModule,
-					preludeModule.ExportedSymbols);
-				additionalImports = [preludeModuleImport];
-			}
-			return new FileScope(node, _reasoner, project, additionalImports);
+			return new FileScope(node, _reasoner, project);
 		}
 
 		private static TempTypeContext? CreateTypeContext(SyntaxNode node)
