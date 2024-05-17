@@ -279,7 +279,8 @@ public class Reasoner
 			return null;
 		}
 
-		return module.GetExportedSymbol(node.Name.Identifier.Value);
+		var member = module.GetExportedSymbol(node.Name.Identifier.Value);
+		return ResolveSymbolWithName(member, node.Name);
 	}
 
 	// TODO: What does "exported" mean in this context? (right now it means a public symbol in a module)
