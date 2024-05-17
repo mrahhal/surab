@@ -11,23 +11,32 @@ internal class SymbolInterner
 
 	private readonly ConcurrentDictionary<ThisSymbolKey, ThisSymbol> ThisSymbolMap = [];
 
-	public readonly ConcurrentDictionary<SubstitutedGenericSymbolKey, Symbol> SubstitutedSymbolMap = [];
+	private readonly ConcurrentDictionary<SubstitutedGenericSymbolKey, Symbol> SubstitutedSymbolMap = [];
+
+	public readonly ConcurrentDictionary<AttrsListNode, AttrsList> AttrsMap = [];
+
+	private T SetInterner<T>(T s)
+		where T: Symbol
+	{
+		s.SymbolInterner = this;
+		return s;
+	}
 
 	public PtrTypeSymbol GetPtrType(TypeSymbol? innerType)
 	{
 		var key = new PtrTypeKey(innerType);
-		return PtrTypeMap.GetOrAdd(key, key => new PtrTypeSymbol(key));
+		return PtrTypeMap.GetOrAdd(key, key => SetInterner(new PtrTypeSymbol(key)));
 	}
 
 	public ThisSymbol GetThis(TypeSymbol type)
 	{
 		var key = new ThisSymbolKey(type);
-		return ThisSymbolMap.GetOrAdd(key, key => new ThisSymbol(key));
+		return ThisSymbolMap.GetOrAdd(key, key => SetInterner(new ThisSymbol(key)));
 	}
 
 	public FnTypeSymbol GetFnType(FnTypeKey key)
 	{
-		return UnnamedFnTypeMap.GetOrAdd(key, key => new FnTypeSymbol(key, this));
+		return UnnamedFnTypeMap.GetOrAdd(key, key => SetInterner(new FnTypeSymbol(key, this)));
 	}
 
 	/// <summary>
