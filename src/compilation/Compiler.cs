@@ -133,9 +133,9 @@ internal sealed class FnCompiler : HirTreeVisitor
 	private readonly LLVMUnit _llvmFnUnit;
 	private readonly LLVMFn _llvmFn;
 
-	private LLVMUnit? _llvmReceiverUnit;
 	private readonly Stack<LLVMUnit> _stack = new();
 	private bool _returnSeen = false;
+	private readonly List<LLVMUnit> _paramUnits = [];
 
 	private FnCompiler(
 		CompilationContext context,
@@ -189,18 +189,24 @@ internal sealed class FnCompiler : HirTreeVisitor
 		if (_fnDecl.Body != null)
 		{
 			Visit(_fnDecl.Body);
-		}
 
-		if (!_returnSeen)
+			if (!_returnSeen)
+			{
+				if (FnValue.IsMain && FnValue.ReturnType.KnownTypeTag == KnownTypeTag.None)
+				{
+					LLVM.Builder.BuildRet(LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, 0));
+				}
+				else
+				{
+					LLVM.Builder.BuildRetVoid();
+				}
+			}
+		}
+		else
 		{
-			if (FnValue.IsMain && FnValue.ReturnType.KnownTypeTag == KnownTypeTag.None)
-			{
-				LLVM.Builder.BuildRet(LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, 0));
-			}
-			else
-			{
-				LLVM.Builder.BuildRetVoid();
-			}
+			Debug.Assert(
+				FnValue.AttrsList.TryGetIntrinsic(out var intrinsicAttr));
+			GenerateIntrinsic(intrinsicAttr.Name);
 		}
 
 		if (!_llvmFnUnit.Value.VerifyFunction(LLVMVerifierFailureAction.LLVMPrintMessageAction))
@@ -213,13 +219,38 @@ internal sealed class FnCompiler : HirTreeVisitor
 		//LLVM.PassManager.RunFunctionPassManager(_llvmFnUnit.Value);
 	}
 
+	private void GenerateIntrinsic(string name)
+	{
+		switch (name)
+		{
+			case "memory_ptr_add_offset":
+				GenerateIntrinsic_memory_ptr_add_offset();
+				break;
+			default:
+				throw new UnreachableException();
+		}
+	}
+
+	private void GenerateIntrinsic_memory_ptr_add_offset()
+	{
+		var ptrUnit = _paramUnits[0];
+		var offsetUnit = _paramUnits[1];
+
+		var gep = LLVM.Builder.BuildInBoundsGEP2(
+			ptrUnit.Type,
+			ptrUnit.Value,
+			[LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, 0), offsetUnit.Value]);
+
+		LLVM.Builder.BuildRet(gep);
+	}
+
 	private void SetupParams()
 	{
 		// REVIEW:
 		// FnSymbol.Params doesn't include receivers, FnSymbol.Type.ParamTypes includes receivers.
 		// Document this or is there a better way?
 
-		IEnumerable<(HirType Type, HirValue? Value)> normalParams = [.. FnValue.Params.Select(x => (x.Type, x))];
+		IEnumerable<(HirType Type, HirValue Value)> normalParams = [.. FnValue.Params.Select(x => (x.Type, x))];
 		var overallParams = normalParams;
 
 		var llvmParamOffset = 0;
@@ -233,7 +264,7 @@ internal sealed class FnCompiler : HirTreeVisitor
 		{
 			var paramValue = _llvmFnUnit.Value.GetParam((uint)llvmParamOffset);
 			var paramType = t.Type;
-			var paramName = (t.Value == null ? "this" : t.Value.Name) ?? string.Empty;
+			var paramName = t.Value.Name ?? string.Empty;
 			var llvmType = LLVMTarget.LowerType(paramType);
 
 			// Adaptations of params inside fn body
@@ -679,18 +710,10 @@ internal sealed class FnCompiler : HirTreeVisitor
 		return unit;
 	}
 
-	// paramSymbol is null for the receiver param.
-	private LLVMUnit CreateParamUnit(HirValue? paramValue, LLVMUnit unit)
+	private void CreateParamUnit(HirValue paramValue, LLVMUnit unit)
 	{
-		if (paramValue != null)
-		{
-			_context.ValueToLLVMUnit[paramValue] = unit;
-		}
-		else
-		{
-			_llvmReceiverUnit = unit;
-		}
-		return unit;
+		_paramUnits.Add(unit);
+		_context.ValueToLLVMUnit[paramValue] = unit;
 	}
 
 	private LLVMUnit CreateFnUnit(HirFnValue fnValue)
