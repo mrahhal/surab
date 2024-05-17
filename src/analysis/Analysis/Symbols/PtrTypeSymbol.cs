@@ -74,7 +74,7 @@ public class PtrTypeSymbol : TypeSymbol
 	{
 		if (InnerType != null)
 		{
-			return SymbolCache.GetPtrType((TypeSymbol)InnerType.SubstituteWithHierarchyPatching(smap));
+			return SymbolInterner.GetPtrType((TypeSymbol)InnerType.SubstituteWithHierarchyPatching(smap));
 		}
 		return this;
 	}

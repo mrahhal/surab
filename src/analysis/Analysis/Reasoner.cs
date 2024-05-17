@@ -29,7 +29,7 @@ public class Reasoner
 
 	public ProjectFile File => Tree.File;
 
-	internal SymbolCache SymbolCache => Project.SymbolCache;
+	internal SymbolInterner SymbolInterner => Project.SymbolInterner;
 
 	internal static Reasoner Create(SurabProject project, ModuleSymbol module, SyntaxTree tree)
 	{
@@ -595,20 +595,20 @@ public class Reasoner
 
 		var type = GetEnclosingScope(node)?.LookupThis() ?? UnknownTypeSymbol.Create();
 		// TODO: Account for @receiver_by_val.
-		type = SymbolCache.GetPtrType(type);
+		type = SymbolInterner.GetPtrType(type);
 		//if (type is StructTypeSymbol) { create ptr }
-		return SymbolCache.GetThis(type);
+		return SymbolInterner.GetThis(type);
 	}
 
 	internal PtrTypeSymbol GetPtrType(PtrTypeNode node)
 	{
 		var type = node.InnerType == null ? null : LookupSymbol(node.InnerType).AsTypeSymbolOrUnknown();
-		return SymbolCache.GetPtrType(type);
+		return SymbolInterner.GetPtrType(type);
 	}
 
 	internal PtrTypeSymbol GetPtrType(TypeSymbol type)
 	{
-		return SymbolCache.GetPtrType(type);
+		return SymbolInterner.GetPtrType(type);
 	}
 
 	// Supported:
@@ -634,13 +634,13 @@ public class Reasoner
 	private FnTypeSymbol GetUnnamedFnTypeSymbol(FnSigNode sig)
 	{
 		var key = CreateFnTypeKey(sig);
-		return SymbolCache.GetFnType(key);
+		return SymbolInterner.GetFnType(key);
 	}
 
 	private FnTypeSymbol GetUnnamedFnTypeSymbol(FnTypeNode fnType)
 	{
 		var key = CreateFnTypeKey(fnType);
-		return SymbolCache.GetFnType(key);
+		return SymbolInterner.GetFnType(key);
 	}
 
 	private FnTypeSymbol GetNamedFnTypeSymbol(AliasDeclNode aliasDecl)
@@ -699,7 +699,7 @@ public class Reasoner
 	{
 		return symbol switch
 		{
-			IPossiblyGenericSymbol genericSymbol when genericArgs.Any() => SymbolCache.CloseGeneric(symbol, genericSymbol.GenericParams, genericArgs),
+			IPossiblyGenericSymbol genericSymbol when genericArgs.Any() => SymbolInterner.CloseGeneric(symbol, genericSymbol.GenericParams, genericArgs),
 			_ when genericArgs.Any() => CloseInvalidSymbol(symbol),
 			_ => symbol,
 		};
@@ -921,7 +921,7 @@ public class Reasoner
 			{
 				_reasoner._nodeToSymbolMap[node] = symbol;
 				symbol.Reasoner = _reasoner;
-				symbol.SymbolCache = _reasoner.SymbolCache;
+				symbol.SymbolInterner = _reasoner.SymbolInterner;
 			}
 
 			return symbol;

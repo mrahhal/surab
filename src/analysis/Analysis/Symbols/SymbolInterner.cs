@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 namespace Surab.Analysis;
 
-internal class SymbolCache
+internal class SymbolInterner
 {
 	private readonly ConcurrentDictionary<FnTypeKey, FnTypeSymbol> UnnamedFnTypeMap = [];
 

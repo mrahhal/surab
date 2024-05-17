@@ -76,7 +76,7 @@ public abstract class FnSymbol : Symbol, ISymbolHasType, ISymbolHasExternAttr, I
 				normalType.IsExtern,
 				normalType.ReturnType,
 				[.. normalType.ParamTypes[1..]]);
-			return _typeWithoutReceiver = SymbolCache.GetFnType(key);
+			return _typeWithoutReceiver = SymbolInterner.GetFnType(key);
 		}
 	}
 
@@ -103,7 +103,7 @@ public abstract class FnSymbol : Symbol, ISymbolHasType, ISymbolHasExternAttr, I
 				return null;
 
 			// TODO: Account for planned @receiver_by_val.
-			return _methodReceiverType ??= SymbolCache.GetPtrType(EnclosingType ?? UnknownTypeSymbol.Create());
+			return _methodReceiverType ??= SymbolInterner.GetPtrType(EnclosingType ?? UnknownTypeSymbol.Create());
 		}
 	}
 
@@ -243,7 +243,7 @@ internal sealed class SubstitutedFnSymbol : FnSymbol
 		GenericArgs = genericArgs.ToImmutableArray();
 		_smap = smap;
 
-		SymbolCache = original.OriginalDef.SymbolCache;
+		SymbolInterner = original.OriginalDef.SymbolInterner;
 	}
 
 	public override Symbol OriginalDef => _original.OriginalDef;

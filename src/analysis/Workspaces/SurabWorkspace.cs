@@ -9,6 +9,7 @@ namespace Surab.Analysis;
 public class SurabWorkspace
 {
 	private readonly AsyncReaderWriterLock _rwl = new();
+	private readonly SymbolInterner _symbolInterner = new();
 	private SurabProject? _stdProject;
 	private List<SurabProject>? _projects;
 	private List<SurabProject>? _workspaceProjects;
@@ -26,6 +27,8 @@ public class SurabWorkspace
 	/// Gets the workspace path. Can be an empty string for in memory workspaces.
 	/// </summary>
 	public NormalizedPath WorkspacePath { get; }
+
+	internal SymbolInterner SymbolInterner => _symbolInterner;
 
 	/// <summary>
 	/// Gets the std project. This project is always loaded and available whether it's a part of the workspace or not.

@@ -16,7 +16,6 @@ public class SurabProject
 	private readonly List<Action<IEnumerable<FileDiags>>> _fullDiagsReadyActions = [];
 	private readonly Dictionary<ProjectFile, CodeFileState> _codeFileToStateMap = [];
 
-	private readonly SymbolCache _symbolCache = new();
 	private readonly List<SurabProject> _projectDependencies = [];
 	private readonly List<VFSChange> _vfsChanges = [];
 
@@ -44,7 +43,7 @@ public class SurabProject
 
 	public NormalizedPath ProjectPath => VFS.ProjectPath;
 
-	internal SymbolCache SymbolCache => _symbolCache;
+	internal SymbolInterner SymbolInterner => Workspace.SymbolInterner;
 
 	public ModuleSymbol RootModule => _rootModule!;
 
@@ -252,6 +251,8 @@ public class SurabProject
 			// TODO: LogWarning
 			return;
 		}
+
+		// TODO: SymbolInterner.CleanReasoner(state.Reasoner)
 
 		state.Tree = tree;
 		state.Reasoner = reasoner;

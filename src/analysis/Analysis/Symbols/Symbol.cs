@@ -172,7 +172,7 @@ public abstract class Symbol
 		}
 	}
 
-	internal SymbolCache SymbolCache { get; set; } = null!;
+	internal SymbolInterner SymbolInterner { get; set; } = null!;
 
 	/// <summary>
 	/// Returns a symbol's hierarchy as a list, starting from the top level symbol down to this symbol.
@@ -281,11 +281,11 @@ public abstract class Symbol
 	internal Symbol SubstituteWithHierarchyPatching(SubstitutionMap smap)
 	{
 		Debug.Assert(Kind is SymbolKind.Type, "Hierarchy patching should only be called on type symbols.");
-		return SubstituteWithHierarchyPatching(OriginalDef.SymbolCache, smap, (TypeSymbol)this);
+		return SubstituteWithHierarchyPatching(OriginalDef.SymbolInterner, smap, (TypeSymbol)this);
 	}
 
 	private static Symbol SubstituteWithHierarchyPatching(
-		SymbolCache symbolCache,
+		SymbolInterner symbolCache,
 		SubstitutionMap smap,
 		TypeSymbol symbol)
 	{

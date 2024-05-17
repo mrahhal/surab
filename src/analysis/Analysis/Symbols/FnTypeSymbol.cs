@@ -89,10 +89,10 @@ public class FnTypeSymbol : TypeSymbol
 	//private readonly DeclNode? _node;
 
 	// node will be null for untyped fn types (fns and methods).
-	internal FnTypeSymbol(FnTypeKey key, SymbolCache symbolCache)
+	internal FnTypeSymbol(FnTypeKey key, SymbolInterner symbolCache)
 	{
 		Key = key;
-		SymbolCache = symbolCache;
+		SymbolInterner = symbolCache;
 	}
 
 	internal FnTypeKey Key { get; }
@@ -132,7 +132,7 @@ public class FnTypeSymbol : TypeSymbol
 			Key.IsExtern,
 			(TypeSymbol)smap.Replace(Key.ReturnType),
 			Key.ParamTypes.Select(x => (TypeSymbol)smap.Replace(x)));
-		return SymbolCache.GetFnType(key);
+		return SymbolInterner.GetFnType(key);
 	}
 
 	public override string ToString()
