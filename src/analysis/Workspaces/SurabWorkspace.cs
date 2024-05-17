@@ -238,18 +238,25 @@ public class SurabWorkspace
 	public ModuleSymbol? ResolveModule(Reasoner reasoner, IEnumerable<string> path)
 	{
 		var module = ResolveModule(reasoner);
-		// TODO: Resolve from absolute, etc.
 		var current = module;
 		var found = true;
+		var pathIndex = 0;
 		foreach (var targetName in path)
 		{
+			// Resolve relative.
 			var targetModule = current.Children.FirstOrDefault(m => m.IdentifierMatches(targetName));
+			if (targetModule == null && pathIndex == 0)
+			{
+				// Resolve absolute from project dependencies.
+				targetModule = reasoner.Project.ProjectDependencies.Select(p => p.RootModule).FirstOrDefault(m => m.IdentifierMatches(targetName));
+			}
 			if (targetModule == null)
 			{
 				found = false;
 				break;
 			}
 			current = targetModule;
+			pathIndex++;
 		}
 		if (!found)
 		{
