@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using Surab.Analysis;
 
 namespace Surab.Compilation;
 
@@ -145,7 +146,9 @@ public abstract class HirFnValue : HirValue
 
 	public abstract bool IsMain { get; }
 
-	public abstract bool IsExtern { get; }
+	public abstract AttrsList AttrsList { get; }
+
+	public bool IsExtern => AttrsList.HasExtern;
 }
 
 public sealed class HirNonGenericFnValue : HirFnValue
@@ -158,13 +161,13 @@ public sealed class HirNonGenericFnValue : HirFnValue
 		IReadOnlyList<HirValue> @params,
 		HirType returnType,
 		bool isMain,
-		bool isExtern)
+		AttrsList attrsList)
 		: base(identifier, name, fullName, type)
 	{
 		Params = @params;
 		ReturnType = returnType;
 		IsMain = isMain;
-		IsExtern = isExtern;
+		AttrsList = attrsList;
 	}
 
 	public override IReadOnlyList<HirValue> Params { get; }
@@ -173,7 +176,7 @@ public sealed class HirNonGenericFnValue : HirFnValue
 
 	public override bool IsMain { get; }
 
-	public override bool IsExtern { get; }
+	public override AttrsList AttrsList { get; }
 }
 
 public sealed class HirGenericFnValue : HirFnValue
@@ -187,14 +190,14 @@ public sealed class HirGenericFnValue : HirFnValue
 		IReadOnlyList<HirGenericParamType> genericParams,
 		IReadOnlyList<HirValue> @params,
 		HirType returnType,
-		bool isExtern)
+		AttrsList attrsList)
 		: base(identifier, name, fullName, type)
 	{
 		FullPrefix = fullPrefix;
 		GenericParams = genericParams;
 		Params = @params;
 		ReturnType = returnType;
-		IsExtern = isExtern;
+		AttrsList = attrsList;
 	}
 
 	public string FullPrefix { get; }
@@ -207,7 +210,7 @@ public sealed class HirGenericFnValue : HirFnValue
 
 	public override bool IsMain => false;
 
-	public override bool IsExtern { get; }
+	public override AttrsList AttrsList { get; }
 }
 
 public sealed class HirClosedGenericFnValue : HirFnValue
@@ -239,5 +242,5 @@ public sealed class HirClosedGenericFnValue : HirFnValue
 
 	public override bool IsMain => false;
 
-	public override bool IsExtern => GenericDef.IsExtern;
+	public override AttrsList AttrsList => GenericDef.AttrsList;
 }

@@ -43,6 +43,8 @@ public abstract class FnSymbol : Symbol, ISymbolHasType, ISymbolHasExternAttr, I
 
 	public abstract bool IsExtern { get; }
 
+	public abstract AttrsList AttrsList { get; }
+
 	public abstract ImmutableArray<GenericParamTypeSymbol> GenericParams { get; }
 
 	public abstract ImmutableArray<TypeSymbol> GenericArgs { get; }
@@ -142,6 +144,7 @@ public sealed class SrcFnSymbol : FnSymbol
 	private ImmutableArray<GenericParamTypeSymbol> _genericParams;
 	private FnTypeSymbol? _type;
 	private ImmutableArray<ParamSymbol> _params;
+	private AttrsList? _attrsList;
 
 	internal SrcFnSymbol(FnSigNode node)
 	{
@@ -165,7 +168,9 @@ public sealed class SrcFnSymbol : FnSymbol
 
 	public override bool IsStatic => _node.Parent is FnDeclNode;
 
-	public override bool IsExtern => _node.Attrs.HasAttr(KnownAttrs.Extern);
+	public override bool IsExtern => AttrsList.HasExtern;
+
+	public override AttrsList AttrsList => _attrsList ??= Reasoner.GetAttrs(_node.Attrs);
 
 	public override ImmutableArray<GenericParamTypeSymbol> GenericParams
 	{
@@ -263,6 +268,8 @@ internal sealed class SubstitutedFnSymbol : FnSymbol
 	public override bool IsStatic => _original.IsStatic;
 
 	public override bool IsExtern => _original.IsExtern;
+
+	public override AttrsList AttrsList => _original.AttrsList;
 
 	public override ImmutableArray<GenericParamTypeSymbol> GenericParams => _original.GenericParams;
 

@@ -660,8 +660,8 @@ public class Reasoner
 	private FnTypeKey CreateFnTypeKey(FnSigNode sig)
 	{
 		// TODO: Return something else in case of error diags? (p.Type below could be null)
-		var isExtern = sig.Attrs.HasAttr(KnownAttrs.Extern);
 		var fnSymbol = (FnSymbol)GetDeclaredSymbol(sig.Parent!)!;
+		var isExtern = fnSymbol.IsExtern;
 		Debug.Assert(fnSymbol != null);
 		var receiverType = fnSymbol.MethodReceiverType;
 		IEnumerable<TypeSymbol> receiverTypes = receiverType == null ? [] : [receiverType];
@@ -677,7 +677,7 @@ public class Reasoner
 
 	private FnTypeKey CreateFnTypeKey(FnTypeNode fnType)
 	{
-		var isExtern = fnType.Attrs.HasAttr(KnownAttrs.Extern);
+		var isExtern = GetAttrs(fnType.Attrs).HasExtern;
 		return new FnTypeKey(
 			isExtern,
 			fnType.ReturnType == null ? Workspace.ResolveKnownTypeSymbol(KnownTypeTag.None) : LookupSymbol(fnType.ReturnType).AsTypeSymbolOrUnknown(),
@@ -725,6 +725,60 @@ public class Reasoner
 		return name.GenericArgsList?.GenericArgs
 			.Select(a => LookupSymbol(a).AsTypeSymbolOrUnknown())
 			.ToList() ?? [];
+	}
+
+	public AttrsList GetAttrs(AttrsListNode? node)
+	{
+		if (node == null)
+			return AttrsList.Empty;
+
+		return SymbolInterner.AttrsMap.GetOrAdd(node, CreateAttrs);
+	}
+
+	public static AttrsList CreateAttrs(AttrsListNode node)
+	{
+		List<Attr> attrs = [];
+		foreach (var attrNode in node.Attrs)
+		{
+			var def = AttrsList.Defs.FirstOrDefault(def => def.Name.Equals(attrNode.Identifier.Value));
+			if (def == null)
+				goto invalid_attr;
+
+			var nodeArgs = attrNode.ArgsList?.Args.ToList() ?? [];
+			if (def.Args.Count != nodeArgs.Count)
+				goto invalid_attr;
+
+			var args = new List<object>();
+			for (var i = 0; i < def.Args.Count; i++)
+			{
+				var defArg = def.Args[i];
+				var nodeArg = nodeArgs[i];
+				switch (defArg)
+				{
+					case AttrDef.ArgType.String:
+						if (nodeArg.Expr is LiteralExprNode literalExpr &&
+							literalExpr.Literal.TryGetStringValue(out var stringLiteral) &&
+							stringLiteral != null)
+						{
+							args.Add(stringLiteral);
+						}
+						else
+						{
+							goto invalid_attr;
+						}
+						break;
+					default:
+						throw new UnreachableException();
+				}
+			}
+			attrs.Add(def.Create(attrNode, args));
+			continue;
+
+		invalid_attr:
+			attrs.Add(new InvalidAttr(attrNode));
+		}
+
+		return new AttrsList(attrs);
 	}
 
 	internal ModuleSymbol ResolveCurrentModule()

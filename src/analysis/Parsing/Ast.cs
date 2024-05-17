@@ -1089,15 +1089,6 @@ public partial class MapInitializerNode
 	public IEnumerable<AssignmentExprNode> WellFormedExprs => Items.Select(x => x.Expr).Cast<AssignmentExprNode>();
 }
 
-public static class AttrsListNodeExtensions
-{
-	// Extension instead of a method in a partial to be able to accept a nullable AttrsListNode.
-	public static bool HasAttr(this AttrsListNode? @this, string attrName)
-	{
-		return @this?.Attrs.Any(x => x.Identifier.Value == attrName) ?? false;
-	}
-}
-
 public static class SyntaxNodeKindExtensions
 {
 	/// <summary>

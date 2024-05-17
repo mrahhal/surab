@@ -95,7 +95,7 @@ internal class LoweringInterner
 			var returnType = LowerType(fnSymbol.ReturnType);
 			return new HirNonGenericFnValue(
 				fnSymbol.Identifier, fnSymbol.Name, fnSymbol.FullName, fnType,
-				@params, returnType, fnSymbol.IsMain, fnSymbol.IsExtern);
+				@params, returnType, fnSymbol.IsMain, fnSymbol.AttrsList);
 		}
 		else if (genericArgs.Count == 0)
 		{
@@ -107,7 +107,7 @@ internal class LoweringInterner
 			var returnType = LowerType(fnSymbol.ReturnType);
 			return new HirGenericFnValue(
 				fnSymbol.Identifier, fnSymbol.Name, fnSymbol.FullName, fnSymbol.BuildFullPrefix(), fnType,
-				loweredGenericParams, @params, returnType, fnSymbol.IsExtern);
+				loweredGenericParams, @params, returnType, fnSymbol.AttrsList);
 		}
 		else
 		{

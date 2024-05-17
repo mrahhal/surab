@@ -68,6 +68,9 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 
 	public override void VisitFnDecl(FnDeclNode node)
 	{
+		var fnSymbol = _reasoner.GetDeclaredSymbol(node);
+		AnalyzeFnForBodyExistance(fnSymbol);
+
 		base.VisitFnDecl(node);
 	}
 
@@ -122,6 +125,22 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		}
 
 		base.VisitMethodDecl(node);
+	}
+
+	private void AnalyzeFnForBodyExistance(FnSymbol fn)
+	{
+		var hasBody = fn.HasBody;
+		var isIntrinsic = fn.AttrsList.TryGetIntrinsic(out _);
+		var isExtern = fn.AttrsList.HasExtern;
+
+		//if (hasBody && hasAttrThatWorksWithoutBody)
+		//{
+		//	_diags.Add(fn.SelectionSpan, DiagLevel.Error, $"External functions cannot have a body.");
+		//}
+		if (!hasBody && !isIntrinsic && !isExtern)
+		{
+			_diags.Add(fn.SelectionSpan, DiagLevel.Error, $"Function should have a body.");
+		}
 	}
 
 	private bool IsMemberOfStructOrClass(SyntaxNode node)
@@ -597,6 +616,18 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 	public override void VisitFnType(FnTypeNode node)
 	{
 		base.VisitFnType(node);
+	}
+
+	public override void VisitAttrsList(AttrsListNode node)
+	{
+		var attrsList = _reasoner.GetAttrs(node);
+		foreach (var attr in attrsList.Attrs)
+		{
+			if (attr is InvalidAttr)
+			{
+				_diags.Add(attr.Node.Span, DiagLevel.Error, $"Invalid attribute.");
+			}
+		}
 	}
 
 	// TODO: Things to consider adding here.

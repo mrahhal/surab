@@ -82,6 +82,23 @@ public class TypeCheckerTests
 			""");
 	}
 
+	[Fact]
+	public void FunctionBody()
+	{
+		Test("""
+			fn [|f1|]();
+
+			@extern
+			fn f2() { }
+
+			@extern
+			fn f3();
+
+			@intrinsic("f4")
+			fn f4();
+			""");
+	}
+
 	private void Test(string markup) => AnalyzerTestUtils.Test(markup);
 }
 

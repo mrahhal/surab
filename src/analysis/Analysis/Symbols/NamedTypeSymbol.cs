@@ -24,6 +24,8 @@ public abstract class NamedTypeSymbol : TypeSymbol, ISymbolHasExternAttr, IPossi
 
 	public abstract bool IsExtern { get; }
 
+	public abstract AttrsList AttrsList { get; }
+
 	public abstract ImmutableArray<GenericParamTypeSymbol> GenericParams { get; }
 
 	public abstract ImmutableArray<TypeSymbol> GenericArgs { get; }
@@ -126,6 +128,7 @@ public class SrcNamedTypeSymbol : NamedTypeSymbol
 	private readonly SyntaxNode _node;
 	private ImmutableArray<Symbol> _members;
 	private ImmutableArray<GenericParamTypeSymbol> _genericParams;
+	private AttrsList? _attrsList;
 
 	public SrcNamedTypeSymbol(SyntaxNode node)
 	{
@@ -150,13 +153,15 @@ public class SrcNamedTypeSymbol : NamedTypeSymbol
 
 	public override NamedTypeSymbol OriginalDef => this;
 
-	private AttrsListNode? Attrs => _node switch
+	private AttrsListNode? AttrsListNode => _node switch
 	{
 		StructDeclNode structDecl => structDecl.Attrs,
 		_ => throw new UnreachableException(),
 	};
 
-	public override bool IsExtern => Attrs.HasAttr(KnownAttrs.Extern);
+	public override bool IsExtern => AttrsList.HasExtern;
+
+	public override AttrsList AttrsList => _attrsList ??= Reasoner.GetAttrs(AttrsListNode);
 
 	public override ImmutableArray<GenericParamTypeSymbol> GenericParams
 	{
@@ -250,6 +255,8 @@ internal class SubstitutedNamedTypeSymbol : NamedTypeSymbol
 	internal override IdentifierToken? IdentifierToken => _original.IdentifierToken;
 
 	public override bool IsExtern => _original.IsExtern;
+
+	public override AttrsList AttrsList => _original.AttrsList;
 
 	public override ImmutableArray<GenericParamTypeSymbol> GenericParams => _original.GenericParams;
 

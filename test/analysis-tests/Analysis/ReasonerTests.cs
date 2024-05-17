@@ -807,6 +807,24 @@ public class ReasonerTests
 	}
 
 	[Fact]
+	public void Attrs()
+	{
+		var result = AnalysisTestUtils.CreateFromNodeAnnotatedCode("""
+			@public @intrinsic("foo")
+			fn some() {}
+			""");
+		var reasoner = result.Reasoner;
+
+		var attrsListNode = result.Tree.Root.DescendantNodes().OfType<AttrsListNode>().First();
+		var attrsList = reasoner.GetAttrs(attrsListNode);
+
+		attrsList.HasPublic.Should().BeTrue();
+		attrsList.HasExtern.Should().BeFalse();
+		attrsList.TryGetIntrinsic(out var intrinsicAttr).Should().BeTrue();
+		intrinsicAttr!.Name.Should().Be("foo");
+	}
+
+	[Fact]
 	public void FnSymbol_IsExtern()
 	{
 		var code = """
