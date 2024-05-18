@@ -296,7 +296,7 @@ internal class LoweringInterner
 	}
 
 	// REVIEW: Kinda duplicate with GenericHelper.CreateName.
-	public static string CreateGenericName(string prefix, IReadOnlyList<HirType> genericTypes)
+	private static string CreateGenericName(string prefix, IReadOnlyList<HirType> genericTypes)
 	{
 		Debug.Assert(genericTypes.Count != 0);
 		var genericTypesText = genericTypes.Select(g => g.Name);

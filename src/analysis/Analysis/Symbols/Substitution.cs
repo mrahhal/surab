@@ -110,16 +110,7 @@ internal readonly struct SubstitutedGenericSymbolKey : IEquatable<SubstitutedGen
 
 	public override int GetHashCode()
 	{
-		unchecked
-		{
-			var hash = 92821;
-			hash = hash * 29 + Symbol.GetHashCode();
-			foreach (var p in GenericArgs)
-			{
-				hash = hash * 29 + p.GetHashCode();
-			}
-			return hash;
-		}
+		return HashCodeCombiner.Combine(Symbol, GenericArgs);
 	}
 
 	public override string ToString()

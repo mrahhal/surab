@@ -13,8 +13,6 @@ internal class SymbolInterner
 
 	private readonly ConcurrentDictionary<SubstitutedGenericSymbolKey, Symbol> SubstitutedSymbolMap = [];
 
-	public readonly ConcurrentDictionary<AttrsListNode, AttrsList> AttrsMap = [];
-
 	private T SetInterner<T>(T s)
 		where T: Symbol
 	{

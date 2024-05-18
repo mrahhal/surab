@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Surab.Analysis;
@@ -11,6 +12,7 @@ public class Reasoner
 {
 	private readonly Dictionary<SyntaxNode, Scope> _nodeToScopeMap = [];
 	private readonly Dictionary<SyntaxNode, Symbol> _nodeToSymbolMap = [];
+	private readonly ConcurrentDictionary<AttrsListNode, AttrsList> _attrsMap = [];
 
 	private Reasoner(SurabProject project, ModuleSymbol module, SyntaxTree tree)
 	{
@@ -703,13 +705,13 @@ public class Reasoner
 	{
 		return symbol switch
 		{
-			IPossiblyGenericSymbol genericSymbol when genericArgs.Any() => SymbolInterner.CloseGeneric(symbol, genericSymbol.GenericParams, genericArgs),
-			_ when genericArgs.Any() => CloseInvalidSymbol(symbol),
-			_ => symbol,
+			IPossiblyGenericSymbol genericSymbol => SymbolInterner.CloseGeneric(symbol, genericSymbol.GenericParams, genericArgs),
+			_ => CloseInvalidSymbol(symbol),
 		};
 
 		Symbol CloseInvalidSymbol(Symbol symbol)
 		{
+			// TODO: For fns, we should probably create a different kind of invalid symbol. Fns are not types.
 			return UnknownTypeSymbol.CreateInvalidClosedGeneric(symbol, genericArgs);
 		}
 	}
@@ -732,7 +734,7 @@ public class Reasoner
 		if (node == null)
 			return AttrsList.Empty;
 
-		return SymbolInterner.AttrsMap.GetOrAdd(node, CreateAttrs);
+		return _attrsMap.GetOrAdd(node, CreateAttrs);
 	}
 
 	public static AttrsList CreateAttrs(AttrsListNode node)
@@ -834,8 +836,6 @@ public class Reasoner
 		reversePaths.Reverse();
 		return reversePaths;
 	}
-
-
 
 	private class Builder(SurabProject project, ModuleSymbol module, SyntaxTree tree) : SyntaxTreeVisitor
 	{

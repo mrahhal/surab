@@ -285,7 +285,7 @@ public abstract class Symbol
 	}
 
 	private static Symbol SubstituteWithHierarchyPatching(
-		SymbolInterner symbolCache,
+		SymbolInterner symbolInterner,
 		SubstitutionMap smap,
 		TypeSymbol symbol)
 	{
@@ -343,7 +343,7 @@ public abstract class Symbol
 
 			if (symbol == og)
 			{
-				return symbolCache.CloseGeneric(
+				return symbolInterner.CloseGeneric(
 					symbol,
 					smap);
 			}
@@ -362,7 +362,7 @@ public abstract class Symbol
 			smapSub.AddGenericSubstitutions(
 				genericSymbol.GenericParams,
 				ogGenericArgs);
-			return symbolCache.CloseGeneric(
+			return symbolInterner.CloseGeneric(
 				symbol,
 				smapSub);
 		}
