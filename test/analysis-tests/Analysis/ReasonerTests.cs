@@ -381,18 +381,42 @@ public class ReasonerTests
 	[Fact]
 	public void Generics_Fns()
 	{
-		var code = """
-			fn foo<T1>() { }
+		var result = AnalysisTestUtils.CreateFromNodeAnnotatedCode("""
+			fn f1<T>(v: T) { }
+			fn f2<T>(v: *T) *T { v }
 			struct S<T1> { a: T1; fn bar<T2> { } }
 			fn f() {
 				var s = S { a = 42 };
 				var a = s.a;
-			}
-			""";
-		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(code);
+				{|f1_i32_call:|}f1<i32>(42);
+				var v = 42;
+				{|f2_i32_call:|}f2<i32>(&v);
 
-		var fFnDecl = tree.Root.DescendantNodes().OfType<FnDeclNode>().Single(x => x.Sig.Name.Identifier.Value == "f");
-		var sVarDecl = fFnDecl.DescendantNodes().OfType<VarDeclNode>().ElementAt(0);
+				var a = 2;
+				var ptr = &a;
+				var ptr_2 = std.memory::{|ptr_add_offset_call:|}ptr_add_offset<i32>(ptr, 1);
+			}
+			""");
+		var reasoner = result.Reasoner;
+
+		var f1_i32_call = result.GetNode("f1_i32_call");
+		var f2_i32_call = result.GetNode("f2_i32_call");
+		var ptr_add_offset_call = result.GetNode("ptr_add_offset_call");
+
+		var f1_i32_call_symbol = (FnSymbol)reasoner.LookupSymbol(f1_i32_call)!;
+		var f2_i32_call_symbol = (FnSymbol)reasoner.LookupSymbol(f2_i32_call)!;
+		var ptr_add_offset_call_symbol = (FnSymbol)reasoner.LookupSymbol(ptr_add_offset_call)!;
+		var ptr_add_offset_call_type = ptr_add_offset_call_symbol.Type;
+
+		f1_i32_call_symbol.Params[0].Type.KnownTypeTag.Should().Be(KnownTypeTag.i32);
+		var innerType = f2_i32_call_symbol.Params[0].Type.Should().BeAssignableTo<PtrTypeSymbol>().Subject.InnerType;
+		innerType.Should().NotBeNull();
+		innerType!.KnownTypeTag.Should().Be(KnownTypeTag.i32);
+
+		ptr_add_offset_call_type.ParamTypes[0].Should().Be(ptr_add_offset_call_symbol.Params[0].Type);
+		var innerType2 = ptr_add_offset_call_symbol.Params[0].Type.Should().BeAssignableTo<PtrTypeSymbol>().Subject.InnerType;
+		innerType2.Should().NotBeNull();
+		innerType2.Should().Be(reasoner.Workspace.ResolveKnownTypeSymbol(KnownTypeTag.i32));
 	}
 
 	[Fact]

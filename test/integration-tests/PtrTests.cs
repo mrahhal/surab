@@ -104,6 +104,7 @@ public class PtrTests
 				var a = 2;
 				var ptr = &a;
 				var ptr_2 = std.memory::ptr_add_offset<i32>(ptr, 1);
+				print_i32(a); [|2|]
 			}
 			""");
 	}

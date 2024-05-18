@@ -234,12 +234,19 @@ internal sealed class FnCompiler : HirTreeVisitor
 	private void GenerateIntrinsic_memory_ptr_add_offset()
 	{
 		var ptrUnit = _paramUnits[0];
+		var ptrType = (HirPtrType)FnValue.Params[0].Type;
+		Debug.Assert(ptrType.InnerType != null);
+		var ptrInnerType = LLVMTarget.LowerType(ptrType.InnerType);
 		var offsetUnit = _paramUnits[1];
 
 		var gep = LLVM.Builder.BuildInBoundsGEP2(
-			ptrUnit.Type,
+			ptrInnerType,
 			ptrUnit.Value,
-			[LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, 0), offsetUnit.Value]);
+			[offsetUnit.Unwrap(LLVM).Value]);
+		//[LLVMValueRef.CreateConstInt(LLVMTypeRef.Int64, 0), LLVMValueRef.CreateConstInt(LLVMTypeRef.Int64, 2)]);
+
+		// For arrays
+		//[LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, 0), offsetUnit.Unwrap(LLVM).Value]);
 
 		LLVM.Builder.BuildRet(gep);
 	}

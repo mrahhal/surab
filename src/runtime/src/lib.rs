@@ -29,6 +29,11 @@ pub extern "C" fn surabrt_print_string(v: *const c_char) {
     println!("{}", str);
 }
 
+#[no_mangle]
+pub extern "C" fn surabrt_print_ptr(ptr: *const ()) {
+    println!("{:?}", ptr);
+}
+
 // For print! to flush.
 #[allow(dead_code)]
 fn flush_io() {
