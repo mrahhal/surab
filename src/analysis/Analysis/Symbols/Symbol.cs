@@ -336,9 +336,11 @@ public abstract class Symbol
 			// - `a: S<i32>` field inside `S<T>`, if we create `S<i64> {}`, `S<i64>.a`'s type should be from og (<i32>) and not from smap (<i64>).
 
 			if (!symbol.HasGenericParams())
+			{
 				// Either pure non generic (i32, string), or it'll be already subd if inside a generic (S<T>.M).
 				// Either way, return as is.
 				return symbol;
+			}
 			var genericSymbol = (IPossiblyGenericSymbol)symbol;
 
 			if (symbol == og)
@@ -348,7 +350,11 @@ public abstract class Symbol
 					smap);
 			}
 
-			Debug.Assert(og.HasGenericArgs());
+			if (!og.HasGenericArgs())
+			{
+				return symbol;
+			}
+
 			var ogGenericSymbol = (IPossiblyGenericSymbol)og;
 			Debug.Assert(genericSymbol.GenericParams.Length == ogGenericSymbol.GenericArgs.Length);
 

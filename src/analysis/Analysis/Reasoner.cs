@@ -700,9 +700,27 @@ public class Reasoner
 		};
 	}
 
+	private Symbol CloseGeneric(Symbol symbol, NameNode name)
+	{
+		var genericArgs = ResolveGenericArgsSymbolsFromName(name);
+		if (genericArgs.Any())
+		{
+			return CloseGeneric(symbol, genericArgs);
+		}
+		else
+		{
+			return symbol;
+		}
+	}
+
 	// REVIEW: TryCloseGeneric?
 	public Symbol CloseGeneric(Symbol symbol, IReadOnlyList<TypeSymbol> genericArgs)
 	{
+		if (!genericArgs.Any())
+		{
+			throw new InvalidOperationException("Expected generic args to not be empty.");
+		}
+
 		return symbol switch
 		{
 			IPossiblyGenericSymbol genericSymbol => SymbolInterner.CloseGeneric(symbol, genericSymbol.GenericParams, genericArgs),
@@ -716,13 +734,7 @@ public class Reasoner
 		}
 	}
 
-	private Symbol CloseGeneric(Symbol symbol, NameNode name)
-	{
-		var genericArgs = ResolveGenericArgsSymbolsFromName(name);
-		return CloseGeneric(symbol, genericArgs);
-	}
-
-	private List<TypeSymbol> ResolveGenericArgsSymbolsFromName(NameNode name)
+	private IReadOnlyList<TypeSymbol> ResolveGenericArgsSymbolsFromName(NameNode name)
 	{
 		return name.GenericArgsList?.GenericArgs
 			.Select(a => LookupSymbol(a).AsTypeSymbolOrUnknown())

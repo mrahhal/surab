@@ -130,8 +130,8 @@ public class FnTypeSymbol : TypeSymbol
 	{
 		var key = new FnTypeKey(
 			Key.IsExtern,
-			(TypeSymbol)smap.Replace(Key.ReturnType),
-			Key.ParamTypes.Select(x => (TypeSymbol)smap.Replace(x)));
+			(TypeSymbol)Key.ReturnType.SubstituteWithHierarchyPatching(smap),
+			Key.ParamTypes.Select(x => (TypeSymbol)x.SubstituteWithHierarchyPatching(smap)));
 		return SymbolInterner.GetFnType(key);
 	}
 
