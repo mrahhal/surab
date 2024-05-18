@@ -1,5 +1,5 @@
-﻿using Surab.Analysis;
-using System.Diagnostics;
+﻿using System.Diagnostics;
+using Surab.Analysis;
 
 namespace Surab.Compilation;
 
@@ -44,18 +44,18 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 
 		if (tag is KnownTypeTag.None)
 			return new(0.AsBytes(), 0.AsBytes());
-		if (tag is KnownTypeTag.@char or KnownTypeTag.@bool)
+		if (tag is KnownTypeTag.@char or KnownTypeTag.@bool or KnownTypeTag.i8 or KnownTypeTag.u8)
 			return new(1.AsBytes(), 1.AsBytes());
+		if (tag is KnownTypeTag.i16 or KnownTypeTag.u16)
+			return new(2.AsBytes(), 2.AsBytes());
+		if (tag is KnownTypeTag.i32 or KnownTypeTag.u32 or KnownTypeTag.f32)
+			return new(4.AsBytes(), 4.AsBytes());
+		if (tag is KnownTypeTag.i64 or KnownTypeTag.u64 or KnownTypeTag.f64)
+			return new(8.AsBytes(), 8.AsBytes());
+		if (tag is KnownTypeTag.isize or KnownTypeTag.usize)
+			return new(PtrWidth, PtrWidth);
 		if (tag is KnownTypeTag.@string || type.Kind is HirTypeKind.Ptr or HirTypeKind.Fn)
 			return new(PtrWidth, PtrWidth);
-		if (tag is KnownTypeTag.i32 or KnownTypeTag.u32)
-			return new(4.AsBytes(), 4.AsBytes());
-		if (tag is KnownTypeTag.i64 or KnownTypeTag.u64)
-			return new(8.AsBytes(), 8.AsBytes());
-		if (tag is KnownTypeTag.f32)
-			return new(4.AsBytes(), 4.AsBytes());
-		if (tag is KnownTypeTag.f64)
-			return new(8.AsBytes(), 8.AsBytes());
 
 		if (type is HirStructType structType)
 		{
@@ -119,9 +119,9 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 	{
 		var tag = type.KnownTypeTag;
 
-		if (tag is KnownTypeTag.i32 or KnownTypeTag.i64)
+		if (tag is KnownTypeTag.i8 or KnownTypeTag.i16 or KnownTypeTag.i32 or KnownTypeTag.i64 or KnownTypeTag.isize)
 			return IntegerSign.Signed;
-		if (tag is KnownTypeTag.u32 or KnownTypeTag.u64)
+		if (tag is KnownTypeTag.u8 or KnownTypeTag.u16 or KnownTypeTag.u32 or KnownTypeTag.u64 or KnownTypeTag.usize)
 			return IntegerSign.Unsigned;
 
 		throw new UnreachableException();

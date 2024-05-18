@@ -841,21 +841,24 @@ internal abstract class LLVMTarget
 
 		var tag = type.KnownTypeTag;
 
+		if (tag.IsNumericInteger())
+		{
+			var size = Target.GetAbiSize(type);
+			return LLVMTypeRef.CreateInt((uint)size.Bits);
+		}
+
 		if (tag is KnownTypeTag.None)
 			return LLVMTypeRef.Void;
 		if (tag is KnownTypeTag.@char or KnownTypeTag.@bool)
 			return LLVMTypeRef.Int1;
-		if (tag is KnownTypeTag.@string || type.Kind is HirTypeKind.Ptr)
-			return LLVMTypeRef.CreatePointer(LLVMTypeRef.Void, 0);
 
-		if (tag is KnownTypeTag.i32 or KnownTypeTag.u32)
-			return LLVMTypeRef.Int32;
-		if (tag is KnownTypeTag.i64 or KnownTypeTag.u64)
-			return LLVMTypeRef.Int64;
 		if (tag is KnownTypeTag.f32)
 			return LLVMTypeRef.Float;
 		if (tag is KnownTypeTag.f64)
 			return LLVMTypeRef.Double;
+
+		if (tag is KnownTypeTag.@string || type.Kind is HirTypeKind.Ptr)
+			return LLVMTypeRef.CreatePointer(LLVMTypeRef.Void, 0);
 
 		if (type is HirStructType structType)
 		{
