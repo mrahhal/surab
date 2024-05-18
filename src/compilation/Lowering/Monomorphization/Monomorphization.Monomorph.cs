@@ -135,9 +135,9 @@ internal class MonomorphizationMonomorph : HirTreeVisitor
 	private HirFnDecl RewriteFn(HirFnDecl fnDecl, HirClosedGenericFnValue mono, FlatSubstitutionMap smap)
 	{
 		Debug.Assert(fnDecl.FnValue is HirGenericFnValue);
-		Debug.Assert(fnDecl.Body != null);
 
-		var body = RewriteFnBody(fnDecl, smap);
+		// Body can be null in the case of intrinsics as an e.g.
+		var body = fnDecl.Body == null ? null : RewriteFnBody(fnDecl, smap);
 		return new HirFnDecl(
 			fnDecl.SyntaxNode,
 			mono,
