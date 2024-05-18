@@ -35,7 +35,7 @@ public static class SyntaxNodeMemberStoredFields
 	public static readonly SyntaxNodeMemberStoredField Tokens = new("_childTokens", "SyntaxToken");
 	public static readonly SyntaxNodeMemberStoredField Nodes = new("_childNodes", "SyntaxNode");
 
-	public static IEnumerable<SyntaxNodeMemberStoredField> All => new[] { Tokens, Nodes };
+	public static IEnumerable<SyntaxNodeMemberStoredField> All => [Tokens, Nodes];
 }
 
 public class AstProcessedData
@@ -67,7 +67,12 @@ public class AstDataProvider
 		foreach (var node in nodes)
 		{
 			node.Base ??= "SyntaxNode";
-			node.TypeName = $"{node.Name}Node";
+			if (!node.Name.EndsWith("Node"))
+			{
+				throw new Exception($"Node type name should end with 'Node': {node.Name}");
+			}
+			node.TypeName = node.Name;
+			node.Name = node.Name[..^("Node".Length)];
 			node.Members ??= [];
 			foreach (var m in node.Members)
 			{

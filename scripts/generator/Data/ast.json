@@ -1,7 +1,7 @@
 {
 	"Nodes": [
 		{
-			"Name": "File",
+			"Name": "FileNode",
 			"Members": [
 				{
 					"Name": "importsList",
@@ -14,7 +14,7 @@
 			]
 		},
 		{
-			"Name": "ImportsList",
+			"Name": "ImportsListNode",
 			"Members": [
 				{
 					"Name": "imports",
@@ -24,7 +24,7 @@
 			]
 		},
 		{
-			"Name": "Import",
+			"Name": "ImportNode",
 			"Members": [
 				{
 					"Name": "importToken",
@@ -47,7 +47,7 @@
 			]
 		},
 		{
-			"Name": "ConstDecl",
+			"Name": "ConstDeclNode",
 			"Base": "DeclNode",
 			"Members": [
 				{
@@ -81,7 +81,7 @@
 			]
 		},
 		{
-			"Name": "VarDecl",
+			"Name": "VarDeclNode",
 			"Base": "DeclNode",
 			"Members": [
 				{
@@ -114,7 +114,7 @@
 			]
 		},
 		{
-			"Name": "FnDecl",
+			"Name": "FnDeclNode",
 			"Base": "DeclNode",
 			"Members": [
 				{
@@ -144,7 +144,7 @@
 			]
 		},
 		{
-			"Name": "MethodDecl",
+			"Name": "MethodDeclNode",
 			"Base": "DeclNode",
 			"Members": [
 				{
@@ -169,7 +169,7 @@
 			]
 		},
 		{
-			"Name": "AliasDecl",
+			"Name": "AliasDeclNode",
 			"Base": "DeclNode",
 			"Members": [
 				{
@@ -196,7 +196,7 @@
 			]
 		},
 		{
-			"Name": "AsIdentifier",
+			"Name": "AsIdentifierNode",
 			"Members": [
 				{
 					"Name": "asToken",
@@ -209,7 +209,7 @@
 			]
 		},
 		{
-			"Name": "StructDecl",
+			"Name": "StructDeclNode",
 			"Base": "DeclNode",
 			"Members": [
 				{
@@ -240,7 +240,7 @@
 			]
 		},
 		{
-			"Name": "ClassDecl",
+			"Name": "ClassDeclNode",
 			"Base": "DeclNode",
 			"Members": [
 				{
@@ -271,7 +271,7 @@
 			]
 		},
 		{
-			"Name": "DeclsList",
+			"Name": "DeclsListNode",
 			"Members": [
 				{
 					"Name": "decls",
@@ -281,7 +281,7 @@
 			]
 		},
 		{
-			"Name": "FieldDecl",
+			"Name": "FieldDeclNode",
 			"Base": "DeclNode",
 			"Members": [
 				{
@@ -310,7 +310,7 @@
 			]
 		},
 		{
-			"Name": "SkippedTokensDecl",
+			"Name": "SkippedTokensDeclNode",
 			"Base": "DeclNode",
 			"Members": [
 				{
@@ -321,7 +321,7 @@
 			]
 		},
 		{
-			"Name": "DeclStmt",
+			"Name": "DeclStmtNode",
 			"Base": "StmtNode",
 			"Members": [
 				{
@@ -331,7 +331,7 @@
 			]
 		},
 		{
-			"Name": "ReturnStmt",
+			"Name": "ReturnStmtNode",
 			"Base": "StmtNode",
 			"Members": [
 				{
@@ -350,7 +350,7 @@
 			]
 		},
 		{
-			"Name": "ExprStmt",
+			"Name": "ExprStmtNode",
 			"Base": "StmtNode",
 			"Comment": "An expression statement (`expr();`).",
 			"Members": [
@@ -365,7 +365,7 @@
 			]
 		},
 		{
-			"Name": "BareExprStmt",
+			"Name": "BareExprStmtNode",
 			"Base": "StmtNode",
 			"Comment": "An expression statement without the trailing semicolon (`expr()`).",
 			"Members": [
@@ -376,7 +376,7 @@
 			]
 		},
 		{
-			"Name": "SkippedTokensStmt",
+			"Name": "SkippedTokensStmtNode",
 			"Base": "StmtNode",
 			"Members": [
 				{
@@ -387,7 +387,7 @@
 			]
 		},
 		{
-			"Name": "BlockExpr",
+			"Name": "BlockExprNode",
 			"Base": "ExprNode",
 			"Members": [
 				{
@@ -406,7 +406,7 @@
 			]
 		},
 		{
-			"Name": "AssignmentExpr",
+			"Name": "AssignmentExprNode",
 			"Base": "ExprNode",
 			"Members": [
 				{
@@ -424,7 +424,7 @@
 			]
 		},
 		{
-			"Name": "UnaryExpr",
+			"Name": "UnaryExprNode",
 			"Base": "ExprNode",
 			"Members": [
 				{
@@ -438,7 +438,7 @@
 			]
 		},
 		{
-			"Name": "BinaryExpr",
+			"Name": "BinaryExprNode",
 			"Base": "ExprNode",
 			"Members": [
 				{
@@ -456,7 +456,7 @@
 			]
 		},
 		{
-			"Name": "GroupingExpr",
+			"Name": "GroupingExprNode",
 			"Base": "ExprNode",
 			"Members": [
 				{
@@ -474,7 +474,7 @@
 			]
 		},
 		{
-			"Name": "CallExpr",
+			"Name": "CallExprNode",
 			"Base": "ExprNode",
 			"Comment": "A function/method call (`callee(args)`).",
 			"Members": [
@@ -489,7 +489,7 @@
 			]
 		},
 		{
-			"Name": "AccessExpr",
+			"Name": "AccessExprNode",
 			"Base": "ExprNode",
 			"Comment": "A member access (`target.identifier`).",
 			"Members": [
@@ -508,7 +508,7 @@
 			]
 		},
 		{
-			"Name": "ModuleAccessExpr",
+			"Name": "ModuleAccessExprNode",
 			"Base": "ExprNode",
 			"Comment": "A module access (`target::identifier`).",
 			"Members": [
@@ -527,7 +527,7 @@
 			]
 		},
 		{
-			"Name": "LiteralExpr",
+			"Name": "LiteralExprNode",
 			"Base": "ExprNode",
 			"Members": [
 				{
@@ -537,7 +537,7 @@
 			]
 		},
 		{
-			"Name": "NameExpr",
+			"Name": "NameExprNode",
 			"Base": "ExprNode",
 			"Members": [
 				{
@@ -547,7 +547,7 @@
 			]
 		},
 		{
-			"Name": "ThisExpr",
+			"Name": "ThisExprNode",
 			"Base": "ExprNode",
 			"Members": [
 				{
@@ -557,7 +557,7 @@
 			]
 		},
 		{
-			"Name": "TypeCreationExpr",
+			"Name": "TypeCreationExprNode",
 			"Base": "ExprNode",
 			"Comment": "TypeAsExpr { ... }",
 			"Members": [
@@ -573,13 +573,13 @@
 			]
 		},
 		{
-			"Name": "MissingExpr",
+			"Name": "MissingExprNode",
 			"Base": "ExprNode",
 			"TakesSpan": true,
 			"Members": []
 		},
 		{
-			"Name": "MapInitializer",
+			"Name": "MapInitializerNode",
 			"Members": [
 				{
 					"Name": "openBraceToken",
@@ -597,7 +597,7 @@
 			]
 		},
 		{
-			"Name": "MapInitializerItem",
+			"Name": "MapInitializerItemNode",
 			"Members": [
 				{
 					"Name": "expr",
@@ -612,7 +612,7 @@
 			]
 		},
 		{
-			"Name": "ParamsList",
+			"Name": "ParamsListNode",
 			"Members": [
 				{
 					"Name": "openParenToken",
@@ -630,7 +630,7 @@
 			]
 		},
 		{
-			"Name": "Param",
+			"Name": "ParamNode",
 			"Members": [
 				{
 					"Name": "attrs",
@@ -660,7 +660,7 @@
 			]
 		},
 		{
-			"Name": "ParamTypesList",
+			"Name": "ParamTypesListNode",
 			"Members": [
 				{
 					"Name": "openParenToken",
@@ -678,7 +678,7 @@
 			]
 		},
 		{
-			"Name": "ParamType",
+			"Name": "ParamTypeNode",
 			"Members": [
 				{
 					"Name": "type",
@@ -692,7 +692,7 @@
 			]
 		},
 		{
-			"Name": "ArgsList",
+			"Name": "ArgsListNode",
 			"Members": [
 				{
 					"Name": "openParenToken",
@@ -710,7 +710,7 @@
 			]
 		},
 		{
-			"Name": "Arg",
+			"Name": "ArgNode",
 			"Members": [
 				{
 					"Name": "expr",
@@ -724,7 +724,7 @@
 			]
 		},
 		{
-			"Name": "NameDef",
+			"Name": "NameDefNode",
 			"Comment": "A name definition used in declarations.",
 			"Members": [
 				{
@@ -739,7 +739,7 @@
 			]
 		},
 		{
-			"Name": "Name",
+			"Name": "NameNode",
 			"Comment": "A name reference.",
 			"Members": [
 				{
@@ -754,7 +754,7 @@
 			]
 		},
 		{
-			"Name": "GenericParamsList",
+			"Name": "GenericParamsListNode",
 			"Members": [
 				{
 					"Name": "openChevronToken",
@@ -772,7 +772,7 @@
 			]
 		},
 		{
-			"Name": "GenericParam",
+			"Name": "GenericParamNode",
 			"Members": [
 				{
 					"Name": "identifier",
@@ -786,7 +786,7 @@
 			]
 		},
 		{
-			"Name": "GenericArgsList",
+			"Name": "GenericArgsListNode",
 			"Members": [
 				{
 					"Name": "openChevronToken",
@@ -804,7 +804,7 @@
 			]
 		},
 		{
-			"Name": "GenericArg",
+			"Name": "GenericArgNode",
 			"Members": [
 				{
 					"Name": "type",
@@ -818,7 +818,7 @@
 			]
 		},
 		{
-			"Name": "ColonType",
+			"Name": "ColonTypeNode",
 			"Members": [
 				{
 					"Name": "colonToken",
@@ -831,7 +831,7 @@
 			]
 		},
 		{
-			"Name": "ExprType",
+			"Name": "ExprTypeNode",
 			"Base": "TypeNode",
 			"Members": [
 				{
@@ -847,7 +847,7 @@
 			]
 		},
 		{
-			"Name": "PtrType",
+			"Name": "PtrTypeNode",
 			"Base": "TypeNode",
 			"Members": [
 				{
@@ -867,7 +867,7 @@
 			]
 		},
 		{
-			"Name": "FnType",
+			"Name": "FnTypeNode",
 			"Base": "TypeNode",
 			"Members": [
 				{
@@ -893,7 +893,7 @@
 			]
 		},
 		{
-			"Name": "MissingType",
+			"Name": "MissingTypeNode",
 			"Base": "TypeNode",
 			"TakesSpan": true,
 			"Members": [
@@ -905,7 +905,7 @@
 			]
 		},
 		{
-			"Name": "FnSig",
+			"Name": "FnSigNode",
 			"Members": [
 				{
 					"Name": "name",
@@ -923,7 +923,7 @@
 			]
 		},
 		{
-			"Name": "EqualsExprClause",
+			"Name": "EqualsExprClauseNode",
 			"Members": [
 				{
 					"Name": "equalToken",
@@ -936,7 +936,7 @@
 			]
 		},
 		{
-			"Name": "AttrsList",
+			"Name": "AttrsListNode",
 			"Members": [
 				{
 					"Name": "attrs",
@@ -946,7 +946,7 @@
 			]
 		},
 		{
-			"Name": "Attr",
+			"Name": "AttrNode",
 			"Members": [
 				{
 					"Name": "atToken",
