@@ -12,9 +12,12 @@ let client: LanguageClient;
 console.log("[STARTED]");
 
 export function activate(context: ExtensionContext) {
-	const serverExe = context.asAbsolutePath(
-		"../lsp-server/bin/Debug/net8.0/surab-lsp-server.exe"
-	);
+	// const serverExe = context.asAbsolutePath(
+	// 	"../lsp-server/bin/Debug/net8.0/surab-lsp-server.exe"
+	// );
+
+	// TODO:
+	const serverExe = "C:/dev/src/Projects/surab/src/LSP/lsp-server/bin/Debug/net8.0/surab-lsp-server.exe";
 
 	const command = `${serverExe}`;
 
