@@ -559,12 +559,16 @@
 		{
 			"Name": "TypeCreationExprNode",
 			"Base": "ExprNode",
-			"Comment": "TypeAsExpr { ... }",
+			"Comment": "Type.{ ... }",
 			"Members": [
 				{
 					"Name": "typeExpr",
 					"Type": "ExprNode",
 					"Comment": "Well formed: IdentifierExpr or AccessExpr"
+				},
+				{
+					"Name": "dotToken",
+					"Type": "SimpleToken"
 				},
 				{
 					"Name": "mapInitializer",

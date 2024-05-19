@@ -225,7 +225,7 @@ public class GeneralTests
 					a: i32;
 				}
 
-				var s = S { a = 42 };
+				var s = S.{ a = 42 };
 				print_i32(s.a);
 			}
 			""");
@@ -248,7 +248,7 @@ public class GeneralTests
 					na: i32;
 
 					fn create() SNested {
-						SNested {
+						SNested.{
 							na = 45,
 						}
 					}
@@ -256,9 +256,9 @@ public class GeneralTests
 			}
 
 			fn main() {
-				var s = S {
+				var s = S.{
 					a = 42,
-					s_nested = S.SNested {
+					s_nested = S.SNested.{
 						na = 43,
 					},
 				};

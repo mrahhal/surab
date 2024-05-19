@@ -746,14 +746,14 @@ public partial class ThisExprNode : ExprNode
 }
 
 /// <summary>
-/// TypeAsExpr { ... }
+/// Type.{ ... }
 /// </summary>
 public partial class TypeCreationExprNode : ExprNode
 {
-	public TypeCreationExprNode(SyntaxTree tree, ExprNode typeExpr, MapInitializerNode mapInitializer)
+	public TypeCreationExprNode(SyntaxTree tree, ExprNode typeExpr, SimpleToken dotToken, MapInitializerNode mapInitializer)
 		: base(tree, SyntaxNodeKind.TypeCreationExpr)
 	{
-		_childTokens = new();
+		_childTokens = new() { dotToken, };
 		_childNodes = new() { typeExpr, mapInitializer, };
 
 		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
@@ -764,6 +764,7 @@ public partial class TypeCreationExprNode : ExprNode
 	/// Well formed: IdentifierExpr or AccessExpr
 	/// </summary>
 	public ExprNode TypeExpr => (ExprNode)_childNodes[0]!;
+	public SimpleToken DotToken => (SimpleToken)_childTokens[0]!;
 	public MapInitializerNode MapInitializer => (MapInitializerNode)_childNodes[1]!;
 
 	public override void Accept(SyntaxTreeVisitor visitor)

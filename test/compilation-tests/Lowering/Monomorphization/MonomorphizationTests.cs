@@ -27,26 +27,26 @@ public class MonomorphizationTests
 			struct E<T> { c: C<T, i32>; }
 			struct E2<T> { b: B2<B3<T>>; }
 			struct F { c: C<i32, i32>; }
-			fn f2() { fn f3() { var c = C<i32, f64> { v1 = 42, v2 = 4.2 }; } }
+			fn f2() { fn f3() { var c = C<i32, f64>.{ v1 = 42, v2 = 4.2 }; } }
 			fn f4<T1, T2>() { var b: B<T1>; f<T1, T1>(); }
 
 			fn main() {
 				f<i32, i32>();
 				f<i32, f64>();
-				var a = A { v = 42 };
-				var b = B<i32> { v = 42 };
-				var b = B<i64> { v = 42i64 };
-				var c = C<i32, i64> { v1 = 42, v2 = 42i64 };
-				var c = C<i32, f64> { v1 = 42, v2 = 4.2 };
-				var c = C<i32, f64> { v1 = 42, v2 = 4.2 }; // duplicate
-				var c = C<f64, i32> { v1 = 4.2, v2 = 42 };
+				var a = A.{ v = 42 };
+				var b = B<i32>.{ v = 42 };
+				var b = B<i64>.{ v = 42i64 };
+				var c = C<i32, i64>.{ v1 = 42, v2 = 42i64 };
+				var c = C<i32, f64>.{ v1 = 42, v2 = 4.2 };
+				var c = C<i32, f64>.{ v1 = 42, v2 = 4.2 }; // duplicate
+				var c = C<f64, i32>.{ v1 = 4.2, v2 = 42 };
 				c.c_f1();
 				c.c_f2<i32>();
 				c.c_f2<f64>();
 				C<i32, f64>.c_f_static1<i32>();
-				var e = E<f64> { c = C<f64, i32> { v1 = 4.2, v2 = 42 } };
-				var e = E<bool> { c = C<bool, i32> { v1 = false, v2 = 42 } };
-				var e = E2<f32> { b = B2<B3<f32>> { v = B3<f32> { v = 4.2f32 } } };
+				var e = E<f64>.{ c = C<f64, i32>.{ v1 = 4.2, v2 = 42 } };
+				var e = E<bool>.{ c = C<bool, i32>.{ v1 = false, v2 = 42 } };
+				var e = E2<f32>.{ b = B2<B3<f32>>.{ v = B3<f32>.{ v = 4.2f32 } } };
 				f4<i32, f64>();
 			}
 			""");
@@ -137,10 +137,10 @@ public class MonomorphizationTests
 			alias C<T1, T2> as CAlias3<T1, T2>;
 
 			fn main() {
-				var c = CAlias1 { v1 = 42, v2 = 42 };
-				var c = CAlias2<f64> { v1 = 4.2, v2 = 4.2 };
-				var c = CAlias3<f64, i32> { v1 = 4.2, v2 = 42 };
-				var c = C<f64, i32> { v1 = 4.2, v2 = 42 };
+				var c = CAlias1.{ v1 = 42, v2 = 42 };
+				var c = CAlias2<f64>.{ v1 = 4.2, v2 = 4.2 };
+				var c = CAlias3<f64, i32>.{ v1 = 4.2, v2 = 42 };
+				var c = C<f64, i32>.{ v1 = 4.2, v2 = 42 };
 			}
 			""");
 
@@ -239,11 +239,11 @@ public class MonomorphizationTests
 			struct M<T> { v: N<T>; }
 
 			fn main() {
-				var s = S<i32> { v = 42 };
+				var s = S<i32>.{ v = 42 };
 				print_i32(s.v);
-				var s = S<N<i32>> { v = N<i32> { v = 42 } };
+				var s = S<N<i32>>.{ v = N<i32>.{ v = 42 } };
 				print_i32(s.v.v);
-				var m = M<f64> { v = N<f64> { v = 4.2 } };
+				var m = M<f64>.{ v = N<f64>.{ v = 4.2 } };
 			}
 			""");
 

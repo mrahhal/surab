@@ -211,7 +211,7 @@ internal class ParserImpl
 	}
 
 	[DebuggerStepThrough]
-	private Token? P1() => Peek(0);
+	private Token? P0() => Peek(0);
 
 	// ---
 
@@ -582,14 +582,14 @@ internal class ParserImpl
 		return _current?.Kind switch
 		{
 			// `identifier: Type = 2;` or `identifier = 2;`
-			TokenKind.Identifier when P1()?.Kind is TokenKind.Colon or TokenKind.Equal => ParseFieldDecl(attrs),
+			TokenKind.Identifier when P0()?.Kind is TokenKind.Colon or TokenKind.Equal => ParseFieldDecl(attrs),
 
 			// `identifier(` or `identifier<`
-			TokenKind.Identifier when P1()?.Kind is TokenKind.OpenParen or TokenKind.Less => ParseMethodDecl(attrs),
+			TokenKind.Identifier when P0()?.Kind is TokenKind.OpenParen or TokenKind.Less => ParseMethodDecl(attrs),
 			// `(` (initializer)
 			TokenKind.OpenParen => ParseMethodDecl(attrs),
 			// `+(`
-			_ when _current != null && _current.Kind.IsMethodOp() && P1()?.Kind is TokenKind.OpenParen => ParseMethodDecl(attrs),
+			_ when _current != null && _current.Kind.IsMethodOp() && P0()?.Kind is TokenKind.OpenParen => ParseMethodDecl(attrs),
 
 			// Local decl
 			_ when _current != null && _current.Kind.CanStartDecl() => ParseDecl(attrs),
@@ -1063,12 +1063,14 @@ internal class ParserImpl
 		}
 		else
 		{
+			var p0 = P0();
 			return token.Kind switch
 			{
+				// .{
+				TokenKind.Dot when p0?.Kind is TokenKind.OpenBrace => ParseTypeCreationExpr(left),
 				TokenKind.Dot => ParseAccessExpr(left),
 				TokenKind.ColonColon => ParseModuleAccessExpr(left),
 				TokenKind.OpenParen => ParseCallExpr(left),
-				TokenKind.OpenBrace => ParseTypeCreationExpr(left),
 				TokenKind.Equal => ParseAssignmentExpr(targetPrecedence, left),
 				_ when token.Kind.IsBinary() => ParseBinaryExpr(targetPrecedence, left),
 				_ => CreateMissingExprNode(),
@@ -1104,13 +1106,14 @@ internal class ParserImpl
 
 	/// <summary>
 	/// Parses `module.Decl.Struct1 { a = b, c = d }`
-	/// Requirements: current is LeftBrace.
+	/// Requirements: current is Dot and next is LeftBrace.
 	/// </summary>
 	private ExprNode ParseTypeCreationExpr(ExprNode left)
 	{
+		var dotToken = EatAssertedSimpleToken(TokenKind.Dot);
 		var mapInitializer = ParseMapInitializer();
 
-		return new TypeCreationExprNode(_tree, left, mapInitializer);
+		return new TypeCreationExprNode(_tree, left, dotToken, mapInitializer);
 	}
 
 	/// <summary>

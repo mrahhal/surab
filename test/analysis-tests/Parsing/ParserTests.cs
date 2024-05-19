@@ -570,7 +570,7 @@ public class ParserTests
 	[Fact]
 	public void Expr_TypeCreation()
 	{
-		var code = "Foo { a = 42, b = false }";
+		var code = "Foo.{ a = 42, b = false }";
 		var creationExpr = ParseExpr(code).Should().BeOfType<TypeCreationExprNode>().Subject;
 		creationExpr.TypeExpr.Should().BeOfType<NameExprNode>().Subject.Name.Identifier.Value.Should().Be("Foo");
 		creationExpr.MapInitializer.Items.Should().HaveCount(2);
@@ -587,7 +587,7 @@ public class ParserTests
 	[Fact]
 	public void Expr_TypeCreation_EmptyInitializer()
 	{
-		var code = "Foo { }";
+		var code = "Foo.{ }";
 		var creationExpr = ParseExpr(code).Should().BeOfType<TypeCreationExprNode>().Subject;
 		creationExpr.TypeExpr.Should().BeOfType<NameExprNode>().Subject.Name.Identifier.Value.Should().Be("Foo");
 		creationExpr.MapInitializer.WellFormedExprs.Should().HaveCount(0);
@@ -596,7 +596,7 @@ public class ParserTests
 	[Fact]
 	public void Expr_TypeCreation_NestedAccess()
 	{
-		var code = "S.SNested { a = 42 }";
+		var code = "S.SNested.{ a = 42 }";
 		var tree = Parser.ParseExpr(code);
 		var creationExpr = tree.Root.Should().BeOfType<TypeCreationExprNode>().Subject;
 		var accessExpr = creationExpr.TypeExpr.Should().BeOfType<AccessExprNode>().Subject;
@@ -607,7 +607,7 @@ public class ParserTests
 	[Fact]
 	public void Expr_TypeCreation_ModuleAccess()
 	{
-		var code = "a::B { a = 42 }";
+		var code = "a::B.{ a = 42 }";
 		var tree = Parser.ParseExpr(code);
 		var creationExpr = tree.Root.Should().BeOfType<TypeCreationExprNode>().Subject;
 		var accessExpr = creationExpr.TypeExpr.Should().BeOfType<ModuleAccessExprNode>().Subject;
@@ -870,7 +870,7 @@ public class ParserTests
 			fn f() {
 				fn f2() S.S2 {
 					fn f3() { }
-					return S.S2 { a = 42 };
+					return S.S2.{ a = 42 };
 				}
 				var a = 2;
 				struct S {

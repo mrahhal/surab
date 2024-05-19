@@ -132,7 +132,7 @@ public class HirLowererTests
 				() { }
 			}
 			fn f() {
-				var s = S { a = 42 };
+				var s = S.{ a = 42 };
 			}
 			""";
 		var file = LowerFile(src);
@@ -155,7 +155,7 @@ public class HirLowererTests
 		var src = """
 			struct S { a: i32; }
 			fn f() {
-				var s = S { a = 42 };
+				var s = S.{ a = 42 };
 				var a = s.a;
 			}
 			""";
@@ -173,7 +173,7 @@ public class HirLowererTests
 		var src = """
 			struct S { a: i32; }
 			fn f() {
-				var s = S { a = 42 };
+				var s = S.{ a = 42 };
 				s.a = 43;
 			}
 			""";
@@ -216,7 +216,7 @@ public class HirLowererTests
 				}
 			}
 			fn f() i32 {
-				var s = S { a = 42 };
+				var s = S.{ a = 42 };
 				var s_ptr = &s;
 				var s_ptr_ptr = &s_ptr;
 				print_i32(s_ptr.a);
@@ -257,7 +257,7 @@ public class HirLowererTests
 		var src = """
 			struct S { a: i32; }
 			fn f() i32 {
-				var s = S { a = 42 };
+				var s = S.{ a = 42 };
 				print_i32(s.a);
 			}
 			""";
@@ -274,7 +274,7 @@ public class HirLowererTests
 		var src = """
 			struct S<T1> { a: T1; struct M<T2> { b: T2; do<T3>() { } } }
 			fn f() {
-				var m = S<i32>.M<f64> { b = 4.2 };
+				var m = S<i32>.M<f64>.{ b = 4.2 };
 				m.do<i64>();
 			}
 			""";

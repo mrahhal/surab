@@ -13,7 +13,7 @@ public class AliasTests
 			fn f2(s1: S1) { print_i32(s1.a); }
 
 			fn main() {
-				var a: AliasOfS1 = S1 { a = 42 };
+				var a: AliasOfS1 = S1.{ a = 42 };
 				f1(a);
 				f2(a);
 			}
@@ -37,7 +37,7 @@ public class AliasTests
 			fn f1(s1: S1) { print_i32(s1.a); }
 
 			fn main() {
-				var a = S1 { a = 42 };
+				var a = S1.{ a = 42 };
 				f(a, f1);
 			}
 			""");

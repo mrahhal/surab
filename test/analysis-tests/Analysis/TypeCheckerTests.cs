@@ -49,11 +49,11 @@ public class TypeCheckerTests
 			struct E<T> { c: C<T, i32>; }
 
 			fn f() {
-				var s = S<i32> { v = 42 };
-				var s = S<bool> { v = false };
-				var c = C<f64, i32> { v1 = 4.2, v2 = 42 };
-				var e = E<f64> { c = C<f64, i32> { v1 = 4.2, v2 = 42 } };
-				var e = E<bool> { c = C<bool, i32> { v1 = false, v2 = 42 } };
+				var s = S<i32>.{ v = 42 };
+				var s = S<bool>.{ v = false };
+				var c = C<f64, i32>.{ v1 = 4.2, v2 = 42 };
+				var e = E<f64>.{ c = C<f64, i32>.{ v1 = 4.2, v2 = 42 } };
+				var e = E<bool>.{ c = C<bool, i32>.{ v1 = false, v2 = 42 } };
 			}
 			""");
 	}
@@ -64,7 +64,7 @@ public class TypeCheckerTests
 		Test("""
 			struct S { }
 			fn f() {
-				var s1 = [|S<i32>|] { };
+				var s1 = [|S<i32>|].{ };
 				var s2: [|S<i32>|];
 			}
 			""");
@@ -76,7 +76,7 @@ public class TypeCheckerTests
 		Test("""
 			struct S<T1> { }
 			fn f() {
-				var s1 = [|S<i32, i32>|] { };
+				var s1 = [|S<i32, i32>|].{ };
 				var s2: [|S<i32, i32>|];
 			}
 			""");

@@ -61,7 +61,7 @@ internal class Peeker<T>(IEnumerator<T> source) : IEnumerable<T>, IEnumerator<T>
 	}
 
 	/// <summary>
-	/// Peeks into the source's nth element. (n=0 is next element)
+	/// Peeks into the source's nth element. (n = 0 is next element)
 	/// </summary>
 	[DebuggerStepThrough]
 	public bool TryPeek(int n, [NotNullWhen(true)] out T? result)

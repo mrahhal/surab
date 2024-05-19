@@ -49,7 +49,7 @@ public class ReasonerTests
 	{
 		var result = AnalysisTestUtils.CreateFromNodeAnnotatedCode("""
 			struct S1 { a: i32 = 42; }
-			fn f() { {|var_s:|}var s = S1 { }; {|var_a:|}var a = s.a; }
+			fn f() { {|var_s:|}var s = S1.{ }; {|var_a:|}var a = s.a; }
 			""");
 		var reasoner = result.Reasoner;
 
@@ -90,7 +90,7 @@ public class ReasonerTests
 				}
 			}
 			fn f() {
-				var s_nested = S.SNested { b = 42 };
+				var s_nested = S.SNested.{ b = 42 };
 			}
 			""";
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(code);
@@ -107,7 +107,7 @@ public class ReasonerTests
 	{
 		var code = """
 			struct S1 { a: i32; }
-			fn f() { var s = S1 { a = 42 }; }
+			fn f() { var s = S1.{ a = 42 }; }
 			""";
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(code);
 
@@ -128,7 +128,7 @@ public class ReasonerTests
 	{
 		var code = """
 			struct S1 { a: i32; }
-			fn f() { var s = S1 { a = 2 }; }
+			fn f() { var s = S1.{ a = 2 }; }
 			""";
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(code);
 
@@ -144,7 +144,7 @@ public class ReasonerTests
 	{
 		var code = """
 			struct S1 { (a: i32) { } }
-			fn f() { var s = S1 { a = 2 }; }
+			fn f() { var s = S1.{ a = 2 }; }
 			""";
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(code);
 
@@ -258,7 +258,7 @@ public class ReasonerTests
 			alias S as SAlias;
 
 			fn fn() {
-				var s = SAlias { v = 42 };
+				var s = SAlias.{ v = 42 };
 			}
 			""";
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(code);
@@ -285,16 +285,16 @@ public class ReasonerTests
 			}
 
 			fn f() {
-				var s = S<i32> { a = 42 };
+				var s = S<i32>.{ a = 42 };
 				var a = s.a;
 				var n = s.n;
 				var nn = s.nn;
 				var m = s.m;
 				var o = s.o;
 
-				var x = S<i32>.N<i64> { b = 43i64 };
+				var x = S<i32>.N<i64>.{ b = 43i64 };
 
-				var b = S<i32>.M<bool, bool> { c1 = false, c2 = true };
+				var b = S<i32>.M<bool, bool>.{ c1 = false, c2 = true };
 			}
 			""";
 
@@ -427,9 +427,9 @@ public class ReasonerTests
 			alias S<i32> as SAlias;
 			alias S<T> as SAlias2<T>;
 			fn f() {
-				var s1 = S<i32> { a = 42 };
-				var s2 = SAlias { a = 42 };
-				var s3 = SAlias2<i32> { a = 42 };
+				var s1 = S<i32>.{ a = 42 };
+				var s2 = SAlias.{ a = 42 };
+				var s3 = SAlias2<i32>.{ a = 42 };
 			}
 			""";
 		var (project, tree, reasoner) = AnalysisTestUtils.CreateProjectAndTreeAndReasoner(code);
@@ -529,7 +529,7 @@ public class ReasonerTests
 	{
 		var code = """
 			struct S1 { a: i32 = 42; }
-			fn f() { var s = S1 { }; var a = s.a; }
+			fn f() { var s = S1.{ }; var a = s.a; }
 			""";
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(code);
 
@@ -584,7 +584,7 @@ public class ReasonerTests
 			}
 
 			fn f() {
-				var s = S { };
+				var s = S.{ };
 				var a = s.get();
 				var s_ptr = &s;
 				// Pass through type analysis for pointers. This should properly resolve the method.
