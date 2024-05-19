@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -69,18 +70,21 @@ public class SemanticTokensFullHandler(
 				{
 					triviaTokenBuilder.Init(trivia, reasoner);
 					Process(triviaTokenBuilder);
-					yield return To(trivia.Span, triviaTokenBuilder);
+					foreach (var t in To(trivia.Span, triviaTokenBuilder))
+						yield return t;
 				}
 
 				tokenTokenBuilder.Init(childToken, reasoner);
 				Process(tokenTokenBuilder);
-				yield return To(childToken.Span, tokenTokenBuilder);
+				foreach (var t in To(childToken.Span, tokenTokenBuilder))
+					yield return t;
 
 				foreach (var trivia in childToken.TrailingTrivia)
 				{
 					triviaTokenBuilder.Init(trivia, reasoner);
 					Process(triviaTokenBuilder);
-					yield return To(trivia.Span, triviaTokenBuilder);
+					foreach (var t in To(trivia.Span, triviaTokenBuilder))
+						yield return t;
 				}
 			}
 			else if (childItem.Node != null)
@@ -92,13 +96,34 @@ public class SemanticTokensFullHandler(
 			}
 		}
 
-		static (int, int, int, SemanticTokenType?, List<SemanticTokenModifier>) To<T>(TextSpan span, TokenBuilder<T> builder)
+		static IEnumerable<(int, int, int, SemanticTokenType?, List<SemanticTokenModifier>)> To<T>(TextSpan span, TokenBuilder<T> builder)
 		{
+			if (builder.Type == null)
+				yield break;
+
 			var line = span.Line.Start.Line;
 			var ch = span.Line.Start.Char;
 			var length = span.Size;
 
-			return (line, ch, length, builder.Type, builder.Modifiers);
+			var lineStart = span.Line.Start.Line;
+			var lineEnd = span.Line.End.Line;
+			if (lineStart == lineEnd)
+			{
+				// Token does not span lines.
+				yield return (line, ch, length, builder.Type, builder.Modifiers);
+				yield break;
+			}
+
+			// Accounting for multiline.
+
+			for (var i = lineStart; i < lineEnd; i++)
+			{
+				var startChar = i == lineStart ? span.Line.Start.Char : 0;
+				yield return (i, startChar, int.MaxValue, builder.Type, builder.Modifiers);
+			}
+
+			// Last line.
+			yield return (lineEnd, 0, span.Line.End.Char, builder.Type, builder.Modifiers);
 		}
 	}
 
@@ -147,48 +172,42 @@ public class SemanticTokensFullHandler(
 
 			case IdentifierToken identifierToken:
 				{
-					if (identifierToken.Parent is NameExprNode nameExpr)
+					if (identifierToken.Parent is AttrNode)
 					{
-						var symbol = reasoner.LookupSymbol(nameExpr);
-						builder.SetType(GetTokenType(symbol));
+						builder.SetType(SemanticTokenType.Decorator);
+						return;
 					}
-					else if (identifierToken.Parent is ExprTypeNode exprType)
-					{
-						var symbol = reasoner.LookupSymbol(exprType);
-						builder.SetType(GetTokenType(symbol));
 
-						if (symbol is TypeSymbol typeSymbol && typeSymbol.IsBuiltin())
-						{
-							builder.AddModifier(SemanticTokenModifier.DefaultLibrary);
-						}
-					}
-					else if (identifierToken.DeclaresSymbol())
+					var declaredSymbol = reasoner.GetDeclaredSymbol(identifierToken);
+					if (declaredSymbol != null)
 					{
-						var symbol = reasoner.GetDeclaredSymbol(identifierToken);
-						builder.SetType(GetTokenType(symbol));
-
+						ProcessSymbol(declaredSymbol, builder);
 						builder.AddModifier(SemanticTokenModifier.Declaration);
 					}
-					else
+
+					var symbol = reasoner.LookupSymbol(identifierToken.Parent);
+					if (symbol != null)
 					{
-						builder.SetType(identifierToken.Parent switch
-						{
-							ConstDeclNode => SemanticTokenType.Variable,
-							VarDeclNode => SemanticTokenType.Variable,
-							FnSigNode sig => sig.Parent is FnDeclNode ? (SemanticTokenType?)SemanticTokenType.Function : SemanticTokenType.Method,
-							StructDeclNode or TypeCreationExprNode => SemanticTokenType.Struct,
-							FieldDeclNode => SemanticTokenType.Property,
-							ParamNode => SemanticTokenType.Parameter,
-							TypeNode => SemanticTokenType.Type,
-							AttrNode => SemanticTokenType.Decorator,
-							_ => null,
-						});
+						ProcessSymbol(symbol, builder);
 					}
 				}
 				break;
 
 			default:
 				break;
+		}
+	}
+
+	private static void ProcessSymbol(Symbol symbol, TokenBuilder<SyntaxToken> builder)
+	{
+		builder.SetType(GetTokenType(symbol));
+
+		if (symbol is TypeSymbol typeSymbol)
+		{
+			if (typeSymbol.IsBuiltin())
+			{
+				builder.AddModifier(SemanticTokenModifier.DefaultLibrary);
+			}
 		}
 	}
 
@@ -204,7 +223,7 @@ public class SemanticTokensFullHandler(
 			FieldSymbol => (SemanticTokenType?)SemanticTokenType.Property,
 			ParamSymbol => SemanticTokenType.Parameter,
 			LocalSymbol => SemanticTokenType.Variable,
-			FnSymbol => SemanticTokenType.Function,
+			FnSymbol fn => fn.IsMethod ? SemanticTokenType.Method : SemanticTokenType.Function,
 			TypeSymbol typeSymbol => GetTokenType(typeSymbol),
 			_ => null,
 		};

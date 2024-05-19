@@ -91,6 +91,8 @@ public abstract class SyntaxToken : SyntaxEntity
 		}
 	}
 
+	public new SyntaxNode Parent => base.Parent!;
+
 	public SyntaxTokenKind Kind { get; }
 
 	/// <summary>
