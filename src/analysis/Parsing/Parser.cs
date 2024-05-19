@@ -417,10 +417,15 @@ internal class ParserImpl
 		}
 		else
 		{
-			var token = SimpleToken.CreateMissing(_tree, tokenKind, GetProperSpanForMissingThingAtCurrent());
-			_diags.Add(CoreDiags.S0002, token.Span, [token]);
-			return token;
+			return CreateMissingSimpleToken(tokenKind);
 		}
+	}
+
+	private SimpleToken CreateMissingSimpleToken(TokenKind tokenKind)
+	{
+		var token = SimpleToken.CreateMissing(_tree, tokenKind, GetProperSpanForMissingThingAtCurrent());
+		_diags.Add(CoreDiags.S0002, token.Span, [token]);
+		return token;
 	}
 
 	private bool CheckContextualKeyword(ContextualKeyword contextualKeyword)
@@ -437,18 +442,23 @@ internal class ParserImpl
 		return SimpleToken.Create(_tree, leading, trailing, contextualKeyword, prev);
 	}
 
-	private SimpleToken EatExpectedContextualKeywordToken(ContextualKeyword contextualKeyword)
+	private SimpleToken EatExpectedContextualKeywordToken(ContextualKeyword kw)
 	{
-		if (CheckContextualKeyword(contextualKeyword))
+		if (CheckContextualKeyword(kw))
 		{
-			return EatAssertedContextualKeywordToken(contextualKeyword);
+			return EatAssertedContextualKeywordToken(kw);
 		}
 		else
 		{
-			var token = SimpleToken.CreateMissing(_tree, contextualKeyword, GetProperSpanForMissingThingAtCurrent());
-			_diags.Add(CoreDiags.S0002, token.Span, [contextualKeyword]);
-			return token;
+			return CreateMissingContextualToken(kw);
 		}
+	}
+
+	private SimpleToken CreateMissingContextualToken(ContextualKeyword kw)
+	{
+		var token = SimpleToken.CreateMissing(_tree, kw, GetProperSpanForMissingThingAtCurrent());
+		_diags.Add(CoreDiags.S0002, token.Span, [kw]);
+		return token;
 	}
 
 	private MissingTypeNode CreateMissingTypeNode(AttrsListNode? attrs)
