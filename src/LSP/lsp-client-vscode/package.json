@@ -30,6 +30,9 @@
 		"languages": [
 			{
 				"id": "surab",
+				"aliases": [
+					"Surab"
+				],
 				"extensions": [
 					".srb"
 				],
@@ -64,6 +67,6 @@
 		}
 	},
 	"activationEvents": [
-		"workspaceContains:*/surab-project.json"
+		"workspaceContains:**/surab-project.json"
 	]
 }
