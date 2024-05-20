@@ -71,8 +71,10 @@ public static class Pratt
 		{ TokenKind.Dot, InfixRule.RightAssociative(Precedence.Call) },
 		{ TokenKind.ColonColon, InfixRule.RightAssociative(Precedence.Call) },
 		{ TokenKind.OpenParen, InfixRule.LeftAssociative(Precedence.Call) },
-		// The predicate avoids a situation where `{ 2 } { ... }` is regarded as creation.
-		{ TokenKind.OpenBrace, InfixRule.LeftAssociative(Precedence.Call, leftExpr => leftExpr is NameExprNode or AccessExprNode or ModuleAccessExprNode) },
+
+		// After the type creation syntax was changed from `T { }` to `T.{ }`, this isn't needed anymore.
+		//// The predicate avoids a situation where `{ 2 } { ... }` is regarded as creation.
+		//{ TokenKind.OpenBrace, InfixRule.LeftAssociative(Precedence.Call, leftExpr => leftExpr is NameExprNode or AccessExprNode or ModuleAccessExprNode) },
 	};
 
 	public static bool IsPrefixRule(TokenKind tokenKind) => tokenKind is
