@@ -97,6 +97,11 @@ public abstract partial class SyntaxTreeVisitor
 		Walk(node);
 	}
 
+	public virtual void VisitEmptyStmt(EmptyStmtNode node)
+	{
+		Walk(node);
+	}
+
 	public virtual void VisitSkippedTokensStmt(SkippedTokensStmtNode node)
 	{
 		Walk(node);

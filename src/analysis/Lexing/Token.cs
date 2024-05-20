@@ -255,7 +255,7 @@ public static class TokenKindExtensions
 	public static bool CanStartStmt(this TokenKind kind) =>
 		kind.CanStartDecl() ||
 		kind.CanStartExpr() ||
-		kind is Return;
+		kind is Return or Semicolon;
 
 	public static bool CanStartExpr(this TokenKind kind) =>
 		kind.IsUnary() ||

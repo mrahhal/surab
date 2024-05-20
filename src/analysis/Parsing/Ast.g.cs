@@ -25,6 +25,7 @@ public enum SyntaxNodeKind
 	ReturnStmt,
 	ExprStmt,
 	BareExprStmt,
+	EmptyStmt,
 	SkippedTokensStmt,
 	BlockExpr,
 	AssignmentExpr,
@@ -479,6 +480,29 @@ public partial class BareExprStmtNode : StmtNode
 	public override void Accept(SyntaxTreeVisitor visitor)
 	{
 		visitor.VisitBareExprStmt(this);
+	}
+}
+
+/// <summary>
+/// An extraneous semicolon.
+/// </summary>
+public partial class EmptyStmtNode : StmtNode
+{
+	public EmptyStmtNode(SyntaxTree tree, SimpleToken semicolonToken)
+		: base(tree, SyntaxNodeKind.EmptyStmt)
+	{
+		_childTokens = new() { semicolonToken, };
+		_childNodes = new();
+
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		SetChildrenParent();
+	}
+
+	public SimpleToken SemicolonToken => (SimpleToken)_childTokens[0]!;
+
+	public override void Accept(SyntaxTreeVisitor visitor)
+	{
+		visitor.VisitEmptyStmt(this);
 	}
 }
 

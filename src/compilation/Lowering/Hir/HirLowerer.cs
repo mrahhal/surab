@@ -67,8 +67,9 @@ internal class HirLowerer
 			ReturnStmtNode n => Lower(n),
 			DeclStmtNode n => Lower(n),
 			ExprStmtNode n => Lower(n),
-			GroupingExprNode n => Lower(n.Expr),
 			BareExprStmtNode n => Lower(n),
+			EmptyStmtNode => HirElidedStmt.Instance,
+			GroupingExprNode n => Lower(n.Expr),
 			BlockExprNode n => Lower(n),
 			AssignmentExprNode n => Lower(n),
 			UnaryExprNode n => Lower(n),
@@ -209,10 +210,10 @@ internal class HirLowerer
 				node,
 				expr);
 		}
-		else
-		{
-			return result;
-		}
+
+		// Used to get here when `{ ... };` was its own ExprStmtNode, now we separate extraneous
+		// semicolons into their own EmptyStmtNode, so we should never get here.
+		throw new UnreachableException();
 	}
 
 	private HirNode Lower(BareExprStmtNode node)

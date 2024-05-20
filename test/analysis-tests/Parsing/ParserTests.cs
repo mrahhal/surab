@@ -389,6 +389,22 @@ public class ParserTests
 		blockNode.ReturnsExpr.Should().BeFalse();
 	}
 
+	[Fact]
+	public void EmptyStmt()
+	{
+		var code = """
+			fn f() {
+				{ 2; };
+				;
+			}
+			""";
+		var fnBody = ParseDecl(code).Should().BeOfType<FnDeclNode>().Subject.Body!.Stmts;
+		fnBody.Should().HaveCount(3);
+		fnBody.ElementAt(0).Should().BeOfType<BareExprStmtNode>();
+		fnBody.ElementAt(1).Should().BeOfType<EmptyStmtNode>();
+		fnBody.ElementAt(2).Should().BeOfType<EmptyStmtNode>();
+	}
+
 	[Theory]
 	[InlineData("0", 0)]
 	[InlineData("12", 12)]
@@ -836,9 +852,9 @@ public class ParserTests
 	[Fact]
 	public void SkippedTokens()
 	{
-		var code = "saunk ;";
+		var code = "gomi";
 		var node = ParseDecl(code, hasDiags: true).Should().BeOfType<SkippedTokensDeclNode>().Subject;
-		node.Skipped.Should().HaveCount(2);
+		node.Skipped.Should().HaveCount(1);
 	}
 
 	[Fact]

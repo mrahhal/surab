@@ -768,6 +768,7 @@ internal class ParserImpl
 
 		return _current?.Kind switch
 		{
+			TokenKind.Semicolon => ParseEmptyStmt(),
 			TokenKind.Return => ParseReturnStmt(),
 			_ when _current != null && _current.Kind.CanStartDecl() => ParseDeclStmt(),
 			_ when _current != null && _current.Kind.CanStartExpr() => ParseExprStmt(),
@@ -817,13 +818,32 @@ internal class ParserImpl
 	private StmtNode ParseExprStmt()
 	{
 		var expr = ParseExpr();
-		var semicolonToken = TryEatSimpleToken(TokenKind.Semicolon);
+		if (ExprDoesNotTakeSemicolonWhenUsedAsStmt(expr))
+		{
+			return new BareExprStmtNode(_tree, expr);
+		}
 
-		//Debug.Assert(!expr.IsMissing || semicolonToken != null);
+		var semicolonToken = TryEatSimpleToken(TokenKind.Semicolon);
 
 		return semicolonToken is null ?
 			new BareExprStmtNode(_tree, expr) :
 			new ExprStmtNode(_tree, expr, semicolonToken);
+	}
+
+	private StmtNode ParseEmptyStmt()
+	{
+		var semicolonToken = EatAssertedSimpleToken(TokenKind.Semicolon);
+		return new EmptyStmtNode(_tree, semicolonToken);
+	}
+
+	/// <summary>
+	/// Returns true when the expr does not need a semicolon. e.g. <see cref="BlockExprNode"/>.
+	/// This is used to force parse a <see cref="BareExprStmtNode"/> instead of <see cref="ExprStmtNode"/>
+	/// for these exprs even when it's followed by a semicolon.
+	/// </summary>
+	private bool ExprDoesNotTakeSemicolonWhenUsedAsStmt(ExprNode expr)
+	{
+		return expr.Kind is SyntaxNodeKind.BlockExpr;
 	}
 
 	// Exprs

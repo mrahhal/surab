@@ -376,6 +376,17 @@
 			]
 		},
 		{
+			"Name": "EmptyStmtNode",
+			"Base": "StmtNode",
+			"Comment": "An extraneous semicolon.",
+			"Members": [
+				{
+					"Name": "semicolonToken",
+					"Type": "SimpleToken"
+				}
+			]
+		},
+		{
 			"Name": "SkippedTokensStmtNode",
 			"Base": "StmtNode",
 			"Members": [
