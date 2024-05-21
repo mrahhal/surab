@@ -996,7 +996,7 @@ public partial class FileNode
 {
 	public IEnumerable<ImportNode> Imports => ImportsList.Imports;
 
-	public IEnumerable<DeclNode> Decls => DeclsList.Decls;
+	public IEnumerable<DeclNode> Decls => DeclsList?.Decls ?? [];
 }
 
 public partial class MethodDeclNode
@@ -1048,12 +1048,7 @@ public partial class ConstDeclNode
 public partial class StructDeclNode
 {
 	// REVIEW: Decls might be a better name. Not all these decls are members (e.g. local decl).
-	public IEnumerable<DeclNode> Members => DeclsList.Decls;
-}
-
-public partial class ClassDeclNode
-{
-	public IEnumerable<DeclNode> Members => DeclsList.Decls;
+	public IEnumerable<DeclNode> Members => DeclsList?.Decls ?? [];
 }
 
 public partial class CallExprNode
@@ -1084,13 +1079,12 @@ public static class SyntaxNodeKindExtensions
 
 	/// <summary>
 	/// Returns if the node is a logical enclosure, which is one of the following node types:
-	/// <see cref="StructDeclNode"/>, <see cref="ClassDeclNode"/>, <see cref="FnDeclNode"/>, <see cref="MethodDeclNode"/>
+	/// <see cref="StructDeclNode"/>, <see cref="FnDeclNode"/>, <see cref="MethodDeclNode"/>
 	/// </summary>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static bool IsLogicalEnclosure(this SyntaxNodeKind kind) => kind is
 		// TODO: Add lambdas.
 		SyntaxNodeKind.StructDecl or
-		SyntaxNodeKind.ClassDecl or
 		SyntaxNodeKind.FnDecl or
 		SyntaxNodeKind.MethodDecl;
 }

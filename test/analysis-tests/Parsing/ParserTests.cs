@@ -284,14 +284,6 @@ public class ParserTests
 	}
 
 	[Fact]
-	public void Decl_Class()
-	{
-		var code = "class S1 { a = 2; f() {} }";
-		var node = ParseDecl(code).Should().BeOfType<ClassDeclNode>().Subject;
-		node.Members.Should().HaveCount(2);
-	}
-
-	[Fact]
 	public void Stmt_Var_1()
 	{
 		var code = "var a = 2;";
@@ -899,10 +891,10 @@ public class ParserTests
 		f2Stmts.Should().HaveCount(2);
 		f2Stmts.ElementAt(0).Should().BeOfType<DeclStmtNode>().Subject.Decl.Should().BeOfType<FnDeclNode>();
 		var sStructDecl = fStmts.ElementAt(2).Should().BeOfType<DeclStmtNode>().Subject.Decl.Should().BeOfType<StructDeclNode>().Subject;
-		var sDecls = sStructDecl.DeclsList.Decls;
-		sDecls.Should().HaveCount(2);
-		sDecls.ElementAt(0).Should().BeOfType<FieldDeclNode>();
-		sDecls.ElementAt(1).Should().BeOfType<StructDeclNode>();
+		var sMembers = sStructDecl.Members;
+		sMembers.Should().HaveCount(2);
+		sMembers.ElementAt(0).Should().BeOfType<FieldDeclNode>();
+		sMembers.ElementAt(1).Should().BeOfType<StructDeclNode>();
 	}
 
 	// ---

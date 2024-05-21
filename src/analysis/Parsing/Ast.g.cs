@@ -17,7 +17,6 @@ public enum SyntaxNodeKind
 	AliasDecl,
 	AsIdentifier,
 	StructDecl,
-	ClassDecl,
 	DeclsList,
 	FieldDecl,
 	SkippedTokensDecl,
@@ -69,7 +68,7 @@ public enum SyntaxNodeKind
 
 public partial class FileNode : SyntaxNode
 {
-	public FileNode(SyntaxTree tree, ImportsListNode importsList, DeclsListNode declsList)
+	public FileNode(SyntaxTree tree, ImportsListNode importsList, DeclsListNode? declsList)
 		: base(tree, SyntaxNodeKind.File)
 	{
 		_childTokens = new();
@@ -80,7 +79,7 @@ public partial class FileNode : SyntaxNode
 	}
 
 	public ImportsListNode ImportsList => (ImportsListNode)_childNodes[0]!;
-	public DeclsListNode DeclsList => (DeclsListNode)_childNodes[1]!;
+	public DeclsListNode? DeclsList => (DeclsListNode?)_childNodes[1]!;
 
 	public override void Accept(SyntaxTreeVisitor visitor)
 	{
@@ -284,7 +283,7 @@ public partial class AsIdentifierNode : SyntaxNode
 
 public partial class StructDeclNode : DeclNode
 {
-	public StructDeclNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken structToken, NameDefNode name, SimpleToken openBraceToken, DeclsListNode declsList, SimpleToken closedBraceToken)
+	public StructDeclNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken structToken, NameDefNode name, SimpleToken openBraceToken, DeclsListNode? declsList, SimpleToken closedBraceToken)
 		: base(tree, SyntaxNodeKind.StructDecl)
 	{
 		_childTokens = new() { structToken, openBraceToken, closedBraceToken, };
@@ -298,37 +297,12 @@ public partial class StructDeclNode : DeclNode
 	public SimpleToken StructToken => (SimpleToken)_childTokens[0]!;
 	public NameDefNode Name => (NameDefNode)_childNodes[1]!;
 	public SimpleToken OpenBraceToken => (SimpleToken)_childTokens[1]!;
-	public DeclsListNode DeclsList => (DeclsListNode)_childNodes[2]!;
+	public DeclsListNode? DeclsList => (DeclsListNode?)_childNodes[2]!;
 	public SimpleToken ClosedBraceToken => (SimpleToken)_childTokens[2]!;
 
 	public override void Accept(SyntaxTreeVisitor visitor)
 	{
 		visitor.VisitStructDecl(this);
-	}
-}
-
-public partial class ClassDeclNode : DeclNode
-{
-	public ClassDeclNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken classToken, NameDefNode name, SimpleToken openBraceToken, DeclsListNode declsList, SimpleToken closedBraceToken)
-		: base(tree, SyntaxNodeKind.ClassDecl)
-	{
-		_childTokens = new() { classToken, openBraceToken, closedBraceToken, };
-		_childNodes = new() { attrs, name, declsList, };
-
-		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
-		SetChildrenParent();
-	}
-
-	public AttrsListNode? Attrs => (AttrsListNode?)_childNodes[0]!;
-	public SimpleToken ClassToken => (SimpleToken)_childTokens[0]!;
-	public NameDefNode Name => (NameDefNode)_childNodes[1]!;
-	public SimpleToken OpenBraceToken => (SimpleToken)_childTokens[1]!;
-	public DeclsListNode DeclsList => (DeclsListNode)_childNodes[2]!;
-	public SimpleToken ClosedBraceToken => (SimpleToken)_childTokens[2]!;
-
-	public override void Accept(SyntaxTreeVisitor visitor)
-	{
-		visitor.VisitClassDecl(this);
 	}
 }
 

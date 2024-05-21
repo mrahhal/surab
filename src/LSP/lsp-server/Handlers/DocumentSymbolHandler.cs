@@ -44,7 +44,7 @@ public class DocumentSymbolHandler(
 		if (root is not FileNode fileNode)
 			return null;
 
-		return fileNode.DeclsList.Decls
+		return fileNode.Decls
 			.Select(reasoner.GetDeclaredSymbol)
 			.Where(s => s != null)
 			.Select(s => s!)

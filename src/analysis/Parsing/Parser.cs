@@ -537,7 +537,7 @@ internal class ParserImpl
 		return new ImportNode(_tree, importToken, expr, asIdentifier, semicolonToken);
 	}
 
-	private DeclsListNode ParseDeclsList()
+	private DeclsListNode? ParseDeclsList()
 	{
 		var decls = new List<DeclNode>();
 
@@ -547,7 +547,7 @@ internal class ParserImpl
 			decls.Add(delcaration);
 		}
 
-		return new DeclsListNode(_tree, decls);
+		return decls.Count == 0 ? null : new DeclsListNode(_tree, decls);
 	}
 
 	// Decls
@@ -568,7 +568,6 @@ internal class ParserImpl
 			TokenKind.Var => ParseVarDecl(attrs),
 			TokenKind.Fn => ParseFnDecl(attrs),
 			TokenKind.Struct => ParseStructDecl(attrs),
-			TokenKind.Class => ParseClassDecl(attrs),
 			TokenKind.Alias => ParseAliasDecl(attrs),
 
 			_ => RecoverDecl(),
@@ -680,21 +679,7 @@ internal class ParserImpl
 		return new StructDeclNode(_tree, attrs, structToken, name, openBraceToken, members, closedBraceToken);
 	}
 
-	/// <summary>
-	/// Parses `class Name { ... }`
-	/// </summary>
-	private DeclNode ParseClassDecl(AttrsListNode? attrs)
-	{
-		var classToken = EatAssertedSimpleToken(TokenKind.Class);
-		var name = ParseNameDef(isTypeDecl: true);
-		var openBraceToken = EatExpectedSimpleToken(TokenKind.OpenBrace);
-		var members = ParseDeclMembers();
-		var closedBraceToken = EatExpectedSimpleToken(TokenKind.ClosedBrace);
-
-		return new ClassDeclNode(_tree, attrs, classToken, name, openBraceToken, members, closedBraceToken);
-	}
-
-	private DeclsListNode ParseDeclMembers()
+	private DeclsListNode? ParseDeclMembers()
 	{
 		var members = new List<DeclNode>();
 
@@ -704,7 +689,7 @@ internal class ParserImpl
 			members.Add(decl);
 		}
 
-		return new DeclsListNode(_tree, members);
+		return members.Count == 0 ? null : new DeclsListNode(_tree, members);
 	}
 
 	/// <summary>

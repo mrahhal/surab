@@ -1052,7 +1052,7 @@ public class Reasoner
 		{
 			return node switch
 			{
-				StructDeclNode or ClassDeclNode => new TempTypeContext(),
+				StructDeclNode => new TempTypeContext(),
 				GenericParamsListNode => new TempTypeContext(),
 
 				_ => null,

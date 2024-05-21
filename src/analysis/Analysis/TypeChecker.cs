@@ -79,14 +79,9 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		base.VisitStructDecl(node);
 	}
 
-	public override void VisitClassDecl(ClassDeclNode node)
-	{
-		base.VisitClassDecl(node);
-	}
-
 	public override void VisitFieldDecl(FieldDeclNode node)
 	{
-		if (!IsMemberOfStructOrClass(node))
+		if (!IsMemberOfStruct(node))
 		{
 			_diags.Add(node.Span, DiagLevel.Error, $"a field decl is not allowed in this context");
 		}
@@ -96,7 +91,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 
 	public override void VisitMethodDecl(MethodDeclNode node)
 	{
-		if (!IsMemberOfStructOrClass(node))
+		if (!IsMemberOfStruct(node))
 		{
 			_diags.Add(node.Span, DiagLevel.Error, $"a method decl is not allowed in this context");
 		}
@@ -143,9 +138,9 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		}
 	}
 
-	private bool IsMemberOfStructOrClass(SyntaxNode node)
+	private bool IsMemberOfStruct(SyntaxNode node)
 	{
-		return node.Parent is DeclsListNode declsList && declsList.Parent is StructDeclNode or ClassDeclNode;
+		return node.Parent is DeclsListNode declsList && declsList.Parent is StructDeclNode;
 	}
 
 	public override void VisitReturnStmt(ReturnStmtNode node)

@@ -9,7 +9,8 @@
 				},
 				{
 					"Name": "declsList",
-					"Type": "DeclsListNode"
+					"Type": "DeclsListNode",
+					"Optional": true
 				}
 			]
 		},
@@ -231,38 +232,8 @@
 				},
 				{
 					"Name": "declsList",
-					"Type": "DeclsListNode"
-				},
-				{
-					"Name": "closedBraceToken",
-					"Type": "SimpleToken"
-				}
-			]
-		},
-		{
-			"Name": "ClassDeclNode",
-			"Base": "DeclNode",
-			"Members": [
-				{
-					"Name": "attrs",
-					"Type": "AttrsListNode",
+					"Type": "DeclsListNode",
 					"Optional": true
-				},
-				{
-					"Name": "classToken",
-					"Type": "SimpleToken"
-				},
-				{
-					"Name": "name",
-					"Type": "NameDefNode"
-				},
-				{
-					"Name": "openBraceToken",
-					"Type": "SimpleToken"
-				},
-				{
-					"Name": "declsList",
-					"Type": "DeclsListNode"
 				},
 				{
 					"Name": "closedBraceToken",
