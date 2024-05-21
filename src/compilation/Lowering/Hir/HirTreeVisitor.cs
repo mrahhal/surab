@@ -28,6 +28,7 @@ internal abstract class HirTreeVisitor
 			case HirStructDecl n: VisitStructDecl(n); break;
 			case HirLocalDeclareStmt n: VisitLocalDeclareStmt(n); break;
 			case HirReturnStmt n: VisitReturnStmt(n); break;
+			case HirBlockReturnStmt n: VisitBlockReturnStmt(n); break;
 			case HirExprStmt n: VisitExprStmt(n); break;
 			case HirStmtList n: ThrowInvalidNode(n); break;
 			case HirValueLoadExpr n: VisitValueLoadExpr(n); break;
@@ -37,8 +38,10 @@ internal abstract class HirTreeVisitor
 			case HirUnaryExpr n: VisitUnaryExpr(n); break;
 			case HirBinaryExpr n: VisitBinaryExpr(n); break;
 			case HirCallExpr n: VisitCallExpr(n); break;
+			case HirBlockExpr n: VisitBlockExpr(n); break;
+			case HirMatchExpr n: VisitMatchExpr(n); break;
+			case HirMatchArm n: VisitMatchArm(n); break;
 			case HirLiteralExpr n: VisitLiteralExpr(n); break;
-			case HirStmtListEndingWithExpr n: VisitStmtListEndingWithExpr(n); break;
 			case HirElidedDecl n: ThrowInvalidNode(n); break;
 			case HirElidedStmt n: ThrowInvalidNode(n); break;
 
@@ -73,6 +76,11 @@ internal abstract class HirTreeVisitor
 	}
 
 	public virtual void VisitReturnStmt(HirReturnStmt node)
+	{
+		Walk(node);
+	}
+
+	public virtual void VisitBlockReturnStmt(HirBlockReturnStmt node)
 	{
 		Walk(node);
 	}
@@ -117,12 +125,22 @@ internal abstract class HirTreeVisitor
 		Walk(node);
 	}
 
-	public virtual void VisitLiteralExpr(HirLiteralExpr node)
+	public virtual void VisitBlockExpr(HirBlockExpr node)
 	{
 		Walk(node);
 	}
 
-	public virtual void VisitStmtListEndingWithExpr(HirStmtListEndingWithExpr node)
+	public virtual void VisitMatchExpr(HirMatchExpr node)
+	{
+		Walk(node);
+	}
+
+	public virtual void VisitMatchArm(HirMatchArm node)
+	{
+		Walk(node);
+	}
+
+	public virtual void VisitLiteralExpr(HirLiteralExpr node)
 	{
 		Walk(node);
 	}

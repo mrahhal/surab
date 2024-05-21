@@ -843,7 +843,7 @@ internal class ParserImpl
 	/// </summary>
 	private bool ExprDoesNotTakeSemicolonWhenUsedAsStmt(ExprNode expr)
 	{
-		return expr.Kind is SyntaxNodeKind.BlockExpr;
+		return expr.Kind is SyntaxNodeKind.BlockExpr or SyntaxNodeKind.IfExpr;
 	}
 
 	// Exprs
@@ -921,6 +921,7 @@ internal class ParserImpl
 				TokenKind.OpenBrace => ParseBlockExpr(),
 				TokenKind.Identifier => ParseNameExpr(),
 				TokenKind.This => ParseThisExpr(),
+				TokenKind.If => ParseIfExpr(),
 				_ when token.Kind.IsUnary() => ParseUnaryExpr(),
 				_ when token.Kind.IsLiteral() => ParseLiteralExpr(),
 				_ => CreateMissingExprNode(),
@@ -1158,8 +1159,18 @@ internal class ParserImpl
 		return new BinaryExprNode(_tree, left, op, right);
 	}
 
+	private BlockExprNode? ParseOptionalBlockExpr()
+	{
+		if (!CheckToken(TokenKind.OpenBrace))
+		{
+			return null;
+		}
+		return ParseBlockExpr();
+	}
+
 	/// <summary>
 	/// Parses `{ ... }`
+	/// Requirements: current is OpenBrace.
 	/// </summary>
 	private BlockExprNode ParseBlockExpr()
 	{
@@ -1206,6 +1217,29 @@ internal class ParserImpl
 		var closedBraceToken = EatExpectedSimpleToken(TokenKind.ClosedBrace);
 
 		return new MapInitializerNode(_tree, openBraceToken, items, closedBraceToken);
+	}
+
+	private IfExprNode ParseIfExpr()
+	{
+		var ifToken = EatAssertedSimpleToken(TokenKind.If);
+		var condition = ParseExpr();
+		var thenBlock = ParseOptionalBlockExpr();
+		var elseClause = ParseOptionalElseClause();
+
+		return new IfExprNode(_tree, ifToken, condition, thenBlock, elseClause);
+	}
+
+	private ElseClauseNode? ParseOptionalElseClause()
+	{
+		if (!CheckToken(TokenKind.Else))
+		{
+			return null;
+		}
+
+		var elseToken = EatAssertedSimpleToken(TokenKind.Else);
+		var expr = ParseExpr();
+
+		return new ElseClauseNode(_tree, elseToken, expr);
 	}
 
 	// ---

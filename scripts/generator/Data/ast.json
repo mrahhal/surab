@@ -588,6 +588,45 @@
 			]
 		},
 		{
+			"Name": "IfExprNode",
+			"Base": "ExprNode",
+			"Members": [
+				{
+					"Name": "ifToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "condition",
+					"Type": "ExprNode"
+				},
+				{
+					"Name": "thenBlock",
+					"Type": "BlockExprNode",
+					"Optional": true,
+					"Comment": "Well formed: Has value"
+				},
+				{
+					"Name": "elseClause",
+					"Type": "ElseClauseNode",
+					"Optional": true
+				}
+			]
+		},
+		{
+			"Name": "ElseClauseNode",
+			"Members": [
+				{
+					"Name": "elseToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "expr",
+					"Type": "ExprNode",
+					"Comment": "Well formed: IfExprNode or BlockExprNode"
+				}
+			]
+		},
+		{
 			"Name": "MissingExprNode",
 			"Base": "ExprNode",
 			"TakesSpan": true,

@@ -315,7 +315,7 @@ public class Reasoner
 			ArgNode n => LookupType(n.Expr),
 			EqualsExprClauseNode n => LookupType(n.Expr),
 
-			// Should we really support non expr nodes like these in LookupType or should we force the consumer to use the right thing?
+			// REVIEW: Should we really support non expr nodes like these in LookupType or should we force the consumer to use the right thing?
 			_ when node?.DeclaresSymbol() ?? false => LookupTypeFromDeclaredSymbol(node),
 
 			_ => UnknownTypeSymbol.Create(),
@@ -349,6 +349,7 @@ public class Reasoner
 			NameExprNode n => LookupType(n),
 			ThisExprNode n => LookupType(n),
 			TypeCreationExprNode n => LookupType(n),
+			IfExprNode n => LookupType(n),
 
 			_ => UnknownTypeSymbol.Create(),
 		};
@@ -357,12 +358,21 @@ public class Reasoner
 	private TypeSymbol LookupType(BlockExprNode node)
 	{
 		var lastStmt = node.Stmts.LastOrDefault();
-		if (lastStmt == null)
+		return lastStmt switch
 		{
-			return UnknownTypeSymbol.Create();
+			BareExprStmtNode n => LookupType(n.Expr),
+			_ => Workspace.ResolveKnownTypeSymbol(KnownTypeTag.None),
+		};
+	}
+
+	private TypeSymbol LookupType(IfExprNode node)
+	{
+		if (node.ThenBlock == null)
+		{
+			return Workspace.ResolveKnownTypeSymbol(KnownTypeTag.None);
 		}
 
-		return LookupType(lastStmt);
+		return LookupType(node.ThenBlock);
 	}
 
 	private TypeSymbol LookupType(UnaryExprNode node)

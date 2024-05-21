@@ -167,6 +167,16 @@ public abstract partial class SyntaxTreeVisitor
 		Walk(node);
 	}
 
+	public virtual void VisitIfExpr(IfExprNode node)
+	{
+		Walk(node);
+	}
+
+	public virtual void VisitElseClause(ElseClauseNode node)
+	{
+		Walk(node);
+	}
+
 	public virtual void VisitMissingExpr(MissingExprNode node)
 	{
 		Walk(node);

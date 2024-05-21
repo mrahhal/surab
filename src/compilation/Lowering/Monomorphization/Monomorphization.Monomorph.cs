@@ -205,12 +205,13 @@ internal class MonomorphizationMonomorph : HirTreeVisitor
 		if (expr == null)
 			return null;
 
-		if (expr is HirStmtListEndingWithExpr stmtListEndingWithExpr)
+		if (expr is HirBlockExpr blockExpr)
 		{
-			return new HirStmtListEndingWithExpr(
+			return new HirBlockExpr(
 				expr.SyntaxNode,
-				stmtListEndingWithExpr.Stmts.Select(x => RewriteStmt(x, smap)).ToList(),
-				RewriteExpr(stmtListEndingWithExpr.EndingExpr, smap));
+				ProperlyReplace(expr.Type, smap),
+				blockExpr.Stmts.Select(x => RewriteStmt(x, smap)).ToList(),
+				RewriteExpr(blockExpr.BlockReturnExpr, smap));
 		}
 		else if (expr is HirValueLoadExpr valueLoadExpr)
 		{

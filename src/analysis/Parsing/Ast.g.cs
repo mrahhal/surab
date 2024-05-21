@@ -39,6 +39,8 @@ public enum SyntaxNodeKind
 	NameExpr,
 	ThisExpr,
 	TypeCreationExpr,
+	IfExpr,
+	ElseClause,
 	MissingExpr,
 	MapInitializer,
 	MapInitializerItem,
@@ -794,6 +796,56 @@ public partial class TypeCreationExprNode : ExprNode
 	public override void Accept(SyntaxTreeVisitor visitor)
 	{
 		visitor.VisitTypeCreationExpr(this);
+	}
+}
+
+public partial class IfExprNode : ExprNode
+{
+	public IfExprNode(SyntaxTree tree, SimpleToken ifToken, ExprNode condition, BlockExprNode? thenBlock, ElseClauseNode? elseClause)
+		: base(tree, SyntaxNodeKind.IfExpr)
+	{
+		_childTokens = new() { ifToken, };
+		_childNodes = new() { condition, thenBlock, elseClause, };
+
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		SetChildrenParent();
+	}
+
+	public SimpleToken IfToken => (SimpleToken)_childTokens[0]!;
+	public ExprNode Condition => (ExprNode)_childNodes[0]!;
+	/// <summary>
+	/// Well formed: Has value
+	/// </summary>
+	public BlockExprNode? ThenBlock => (BlockExprNode?)_childNodes[1]!;
+	public ElseClauseNode? ElseClause => (ElseClauseNode?)_childNodes[2]!;
+
+	public override void Accept(SyntaxTreeVisitor visitor)
+	{
+		visitor.VisitIfExpr(this);
+	}
+}
+
+public partial class ElseClauseNode : SyntaxNode
+{
+	public ElseClauseNode(SyntaxTree tree, SimpleToken elseToken, ExprNode expr)
+		: base(tree, SyntaxNodeKind.ElseClause)
+	{
+		_childTokens = new() { elseToken, };
+		_childNodes = new() { expr, };
+
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		SetChildrenParent();
+	}
+
+	public SimpleToken ElseToken => (SimpleToken)_childTokens[0]!;
+	/// <summary>
+	/// Well formed: IfExprNode or BlockExprNode
+	/// </summary>
+	public ExprNode Expr => (ExprNode)_childNodes[0]!;
+
+	public override void Accept(SyntaxTreeVisitor visitor)
+	{
+		visitor.VisitElseClause(this);
 	}
 }
 

@@ -5,62 +5,44 @@ public class GeneralTests
 	[Fact]
 	public void General_1()
 	{
-		var output = IntegrationRunner.Run($$"""
+		IntegrationRunner.TestAnnotatedOutput($$"""
 			fn f(x: i32, y: i32) { print_i32(x); }
 			fn main() {
 				var a = 42;
 				var b = 43;
-				f(a, b);
+				f(a, b); [|42|]
 			}
 			""");
-
-		var expectedOutput = "42".NL();
-
-		output.Should().Be(expectedOutput);
 	}
 
 	[Fact]
 	public void General_Neg()
 	{
-		var output = IntegrationRunner.Run($$"""
+		IntegrationRunner.TestAnnotatedOutput($$"""
 			fn main() {
-				print_i32(-42);
-				print_i32(42 + -2);
-				print_i32(-42 + -2);
-				print_i32(-42 + 2);
+				print_i32(-42); [|-42|]
+				print_i32(42 + -2); [|40|]
+				print_i32(-42 + -2); [|-44|]
+				print_i32(-42 + 2); [|-40|]
 			}
 			""");
-
-		var expectedOutput =
-			"-42".NL() +
-			"40".NL() +
-			"-44".NL() +
-			"-40".NL();
-
-		output.Should().Be(expectedOutput);
 	}
 
 	[Fact]
 	public void General_Not()
 	{
-		var output = IntegrationRunner.Run($$"""
+		IntegrationRunner.TestAnnotatedOutput($$"""
 			fn main() {
-				print_bool(!true);
-				print_bool(!false);
+				print_bool(!true); [|false|]
+				print_bool(!false); [|true|]
 			}
 			""");
-
-		var expectedOutput =
-			"false".NL() +
-			"true".NL();
-
-		output.Should().Be(expectedOutput);
 	}
 
 	[Fact]
 	public void General_FnType()
 	{
-		var output = IntegrationRunner.Run($$"""
+		IntegrationRunner.TestAnnotatedOutput($$"""
 			fn foo1(number: i32) {
 				print_i32(number + 2);
 			}
@@ -72,17 +54,11 @@ public class GeneralTests
 			fn main() {
 				var number = 40;
 				var f = foo1;
-				f(number);
+				f(number); [|42|]
 				f = foo2;
-				f(number);
+				f(number); [|43|]
 			}
 			""");
-
-		var expectedOutput =
-			"42".NL() +
-			"43".NL();
-
-		output.Should().Be(expectedOutput);
 	}
 
 	[Fact]

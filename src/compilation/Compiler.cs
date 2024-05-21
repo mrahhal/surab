@@ -178,8 +178,7 @@ internal sealed class FnCompiler : HirTreeVisitor
 		}
 
 		// Entry has to exist before visiting the params in the signature.
-		var entry = _llvmFnUnit.Value.AppendBasicBlock("entry");
-		LLVM.Builder.PositionAtEnd(entry);
+		EnterBasicBlock("entry");
 
 		SetupParams();
 
@@ -450,6 +449,92 @@ internal sealed class FnCompiler : HirTreeVisitor
 		}
 	}
 
+	// The reason we don't need to implement block expr to avoid pushing a value when there's no
+	// block return is because HirBlockExpr only enumerates the expr if it exists and it's a valid
+	// return. If it didn't have one no unit is pushed. If it had an fn call returning None it
+	// wouldn't pass type check.
+
+	public override void VisitMatchExpr(HirMatchExpr node)
+	{
+		var loweredType = LLVMTarget.LowerType(node.Type);
+		// If matchResultUnit is null, match has no block return.
+		var matchResultUnit = node.Type.KnownTypeTag is KnownTypeTag.None ?
+			null :
+			LLVMUnit.Wrapped(loweredType, LLVM.Builder.BuildAlloca(loweredType, "match_result"));
+
+		var matchEndBlock = AddBasicBlock("match_end");
+		var thenBlockName = "brt";
+		var elseBlockName = "bre";
+
+		// Compile each arm, putting result in matchResult if needed.
+		for (var i = 0; i < node.Arms.Length; i++)
+		{
+			var arm = node.Arms[i];
+			var nextArm = i + 1 >= node.Arms.Length ? null : node.Arms[i + 1];
+			var condition = arm.Condition;
+			var block = arm.Block;
+
+			if (condition != null)
+			{
+				Visit(condition);
+				var conditionType = condition.Type;
+				Debug.Assert(conditionType.KnownTypeTag is KnownTypeTag.@bool);
+				var conditionResult = _stack.Pop();
+				var cmpResult = LLVM.Builder.BuildICmp(LLVMIntPredicate.LLVMIntEQ, conditionResult.Value, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, 1));
+				var brThen = AddBasicBlock(thenBlockName);
+				var brElse = nextArm == null ? matchEndBlock : AddBasicBlock(elseBlockName);
+				LLVM.Builder.BuildCondBr(cmpResult, brThen, brElse);
+
+				// Generate then block.
+				SeekToBasicBlock(brThen);
+				GenerateThen();
+				LLVM.Builder.BuildBr(matchEndBlock);
+
+				// Seek to else, will be filled in the next iteration.
+				SeekToBasicBlock(brElse);
+			}
+			else
+			{
+				GenerateThen();
+				LLVM.Builder.BuildBr(matchEndBlock);
+				SeekToBasicBlock(matchEndBlock);
+			}
+
+			void GenerateThen()
+			{
+				Visit(block);
+				// block.Type could still be None in case of terminators.
+				if (matchResultUnit != null && block.Type.KnownTypeTag is not KnownTypeTag.None)
+				{
+					var rhsUnit = _stack.Pop();
+					GenerateValueStore(matchResultUnit, node.Type, rhsUnit, node.Type);
+				}
+			}
+		}
+
+		if (matchResultUnit != null)
+		{
+			_stack.Push(matchResultUnit);
+		}
+	}
+
+	private LLVMBasicBlockRef EnterBasicBlock(string name)
+	{
+		var block = _llvmFnUnit.Value.AppendBasicBlock(name);
+		LLVM.Builder.PositionAtEnd(block);
+		return block;
+	}
+
+	private LLVMBasicBlockRef AddBasicBlock(string name)
+	{
+		return _llvmFnUnit.Value.AppendBasicBlock(name);
+	}
+
+	private void SeekToBasicBlock(LLVMBasicBlockRef block)
+	{
+		LLVM.Builder.PositionAtEnd(block);
+	}
+
 	public override void VisitUnaryExpr(HirUnaryExpr node)
 	{
 		Visit(node.Expr);
@@ -562,27 +647,34 @@ internal sealed class FnCompiler : HirTreeVisitor
 
 	public override void VisitValueStoreExpr(HirValueStoreStmt node)
 	{
-		var (_, value) = GetUnit(node.Value);
+		var destUnit = GetUnit(node.Value);
 		Visit(node.Expr);
 		var rhsUnit = _stack.Pop();
 
 		var leftType = node.Value.Type;
 		var rightType = node.Expr.Type;
 
+		GenerateValueStore(destUnit, leftType, rhsUnit, rightType);
+	}
+
+	private void GenerateValueStore(LLVMUnit destUnit, HirType destType, LLVMUnit toUnit, HirType toType)
+	{
+		var (_, value) = destUnit;
+
 		// REVIEW: We want to call memcpy instead of store when it's a struct and rhs is wrapped.
 		// This is better than loading into a struct value and then storing it back (effectively emulating memcpy). But even more importantly, this
 		// is necessary for sret to be compiled properly.
 		// Is this logic here good enough?
 		// NOTE: This doesn't mean we'll memcpy the struct data for an actual struct ptr. An actual struct ptr will not have matched StructTypeSymbol. (it'll be a ptr symbol)
-		if (leftType is HirStructType && rightType is HirStructType && rhsUnit.IsWrapped)
+		if (destType is HirStructType && toType is HirStructType && toUnit.IsWrapped)
 		{
-			var (_, rhs) = rhsUnit;
-			var size = Target.GetAbiSize(node.Expr.Type);
+			var (_, rhs) = toUnit;
+			var size = Target.GetAbiSize(toType);
 			LLVM.CallIntrinsic_memcpy_i64(value, rhs, size.Bytes);
 		}
 		else
 		{
-			var (_, rhs) = rhsUnit.Unwrap(LLVM);
+			var (_, rhs) = toUnit.Unwrap(LLVM);
 			LLVM.Builder.BuildStore(rhs, value);
 		}
 	}

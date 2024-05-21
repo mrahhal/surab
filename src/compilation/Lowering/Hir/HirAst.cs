@@ -235,6 +235,23 @@ internal sealed class HirReturnStmt(
 	public override string ToString() => $"return{(Expr == null ? "" : " " + Expr)};";
 }
 
+// Should not pop
+internal sealed class HirBlockReturnStmt(
+	SyntaxNode syntaxNode,
+	HirExpr expr) : HirStmt(syntaxNode)
+{
+	public HirExpr Expr { get; } = expr;
+
+	public override IEnumerable<HirNode> EnumerateChildren() => [Expr];
+
+	public override IEnumerable<HirValue> EnumerateValues() => [];
+
+	public override IEnumerable<HirType> EnumerateTypes() => [];
+
+	public override string ToString() => $"block_return {Expr};";
+}
+
+// Should pop
 internal sealed class HirExprStmt(
 	SyntaxNode syntaxNode,
 	HirExpr expr) : HirStmt(syntaxNode)
@@ -253,24 +270,6 @@ internal sealed class HirExprStmt(
 internal abstract class HirExpr(SyntaxNode syntaxNode, HirType type) : HirNode(syntaxNode)
 {
 	public HirType Type { get; } = type;
-}
-
-internal sealed class HirStmtListEndingWithExpr(
-	SyntaxNode syntaxNode,
-	IEnumerable<HirStmt> stmts,
-	HirExpr endingExpr) : HirExpr(syntaxNode, endingExpr.Type)
-{
-	public ImmutableArray<HirStmt> Stmts { get; } = stmts.ToImmutableArray();
-
-	public HirExpr EndingExpr { get; } = endingExpr;
-
-	public override IEnumerable<HirNode> EnumerateChildren() => [.. Stmts, EndingExpr];
-
-	public override IEnumerable<HirValue> EnumerateValues() => [];
-
-	public override IEnumerable<HirType> EnumerateTypes() => [];
-
-	public override string ToString() => $"{Stmts.Length} stmts followed by ending expr: {EndingExpr}";
 }
 
 internal sealed class HirValueLoadExpr(
@@ -408,6 +407,71 @@ internal sealed class HirCallExpr(
 	public override IEnumerable<HirType> EnumerateTypes() => [FnType];
 
 	public override string ToString() => $"{Callee}(...)";
+}
+
+internal sealed class HirBlockExpr(
+	SyntaxNode syntaxNode,
+	HirType type,
+	IEnumerable<HirStmt> stmts,
+	HirExpr? blockReturnExpr) : HirExpr(syntaxNode, type)
+{
+	public ImmutableArray<HirStmt> Stmts { get; } = stmts.ToImmutableArray();
+
+	public HirExpr? BlockReturnExpr { get; } = blockReturnExpr;
+
+	public override IEnumerable<HirNode> EnumerateChildren()
+	{
+		foreach (var stmt in Stmts)
+		{
+			yield return stmt;
+		}
+		if (BlockReturnExpr != null)
+		{
+			yield return BlockReturnExpr;
+		}
+	}
+
+	public override IEnumerable<HirValue> EnumerateValues() => [];
+
+	public override IEnumerable<HirType> EnumerateTypes() => [];
+
+	public override string ToString() => "{ ... }";
+}
+
+internal sealed class HirMatchExpr(
+	SyntaxNode syntaxNode,
+	HirType type,
+	IEnumerable<HirMatchArm> arms) : HirExpr(syntaxNode, type)
+{
+	// If this match expr returns something, all arms must return and must be exhaustive.
+	// Return type should match this match's return type (which could be None).
+	public ImmutableArray<HirMatchArm> Arms { get; } = arms.ToImmutableArray();
+
+	public override IEnumerable<HirNode> EnumerateChildren() => [.. Arms];
+
+	public override IEnumerable<HirValue> EnumerateValues() => [];
+
+	public override IEnumerable<HirType> EnumerateTypes() => [];
+
+	public override string ToString() => $"match";
+}
+
+internal sealed class HirMatchArm(
+	SyntaxNode syntaxNode,
+	HirExpr? condition,
+	HirExpr block) : HirNode(syntaxNode)
+{
+	public HirExpr? Condition { get; } = condition;
+
+	public HirExpr Block { get; } = block;
+
+	public override IEnumerable<HirNode> EnumerateChildren() => [];
+
+	public override IEnumerable<HirValue> EnumerateValues() => [];
+
+	public override IEnumerable<HirType> EnumerateTypes() => [];
+
+	public override string ToString() => $"match arm";
 }
 
 internal sealed class HirLiteralExpr(

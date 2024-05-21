@@ -178,14 +178,16 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 
 	public override void VisitBlockExpr(BlockExprNode node)
 	{
-		// If this block returns an expr, it can't stand on its own.
-		// i.e. It shouldn't be parented by ExprStmtNode or BareExprStmtNode.
-		if (node.ReturnsExpr &&
-			node.Parent is ExprStmtNode or BareExprStmtNode)
+		Debug.Assert(node.Parent is not ExprStmtNode);
+		// If this block has a block return, it can't stand on its own.
+		// i.e. It shouldn't be parented by BareExprStmtNode.
+		var type = _reasoner.LookupType(node);
+		if (type.KnownTypeTag is not KnownTypeTag.None &&
+			node.Parent is BareExprStmtNode)
 		{
 			_diags.Add(
 				node.Span, DiagLevel.Error,
-				$"a block returning an expr can not stand on its own");
+				$"A block having a block return can not stand on its own.");
 		}
 
 		base.VisitBlockExpr(node);
@@ -199,9 +201,15 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		Debug.Assert(node.Parent is BlockExprNode);
 		var parentBlock = (BlockExprNode)node.Parent;
 
-		if (!node.IsTreatedAsStmt && parentBlock.Stmts.Last() != node)
+		var blockReturnType = _reasoner.LookupType(node.Expr);
+		if (parentBlock.Stmts.Last() != node && blockReturnType.KnownTypeTag is not KnownTypeTag.None)
 		{
-			_diags.Add(node.Span, DiagLevel.Error, $"a bare expr can only exist as the last stmt of a block");
+			_diags.Add(node.Span, DiagLevel.Error, $"A block return can only exist as the last statement of a block.");
+		}
+
+		if (node.Expr is CallExprNode callExpr && blockReturnType.KnownTypeTag is KnownTypeTag.None)
+		{
+			_diags.Add(callExpr.Span, DiagLevel.Error, $"A function that returns None cannot be used as a block return.");
 		}
 
 		base.VisitBareExprStmt(node);
@@ -526,6 +534,25 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		}
 
 		base.VisitTypeCreationExpr(node);
+	}
+
+	public override void VisitIfExpr(IfExprNode node)
+	{
+		var type = _reasoner.LookupType(node.Condition);
+
+		if (!type.IsUnknown() && type.KnownTypeTag is not KnownTypeTag.@bool)
+		{
+			_diags.Add(node.Condition.Span, DiagLevel.Error, $"Expected if condition to evaluate to bool.");
+		}
+
+		if (node.ThenBlock == null)
+		{
+			_diags.Add(node.Span, DiagLevel.Error, $"Expected a then block.");
+		}
+
+		// TODO: If it returns something, ensure all paths return, and that they return the same type.
+
+		base.VisitIfExpr(node);
 	}
 
 	public override void VisitMapInitializerItem(MapInitializerItemNode node)

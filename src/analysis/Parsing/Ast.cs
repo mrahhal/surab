@@ -188,6 +188,9 @@ public enum SimpleTokenKind
 	Public,
 	Return,
 
+	If,
+	Else,
+
 	AsKeyword,
 	ImportKeyword,
 }
@@ -259,6 +262,9 @@ public sealed class SimpleToken : SyntaxToken
 				TokenKind.Const => SimpleTokenKind.Const,
 				TokenKind.Return => SimpleTokenKind.Return,
 
+				TokenKind.If => SimpleTokenKind.If,
+				TokenKind.Else => SimpleTokenKind.Else,
+
 				_ => throw new Exception($"TokenKind {tokenKind} not supported."),
 			},
 		};
@@ -317,6 +323,9 @@ public sealed class SimpleToken : SyntaxToken
 			SimpleTokenKind.Var => "let",
 			SimpleTokenKind.Const => "const",
 			SimpleTokenKind.Return => "return",
+
+			SimpleTokenKind.If => "if",
+			SimpleTokenKind.Else => "else",
 
 			_ => throw new NotImplementedException(),
 		};
@@ -1006,40 +1015,6 @@ public partial class MethodDeclNode
 	/// Gets whether the method is an implementation of an operator.
 	/// </summary>
 	public bool IsMethodOp => TokenHelper.TryGetMethodOp(Sig.Name.Identifier.Value, out _);
-}
-
-public partial class BareExprStmtNode
-{
-	private bool? _isTreatedAsStmt;
-
-	public bool IsTreatedAsStmt
-	{
-		get
-		{
-			if (_isTreatedAsStmt.HasValue)
-				return _isTreatedAsStmt.Value;
-
-			_isTreatedAsStmt = Expr is BlockExprNode childBlock && !childBlock.ReturnsExpr;
-			return _isTreatedAsStmt.Value;
-		}
-	}
-}
-
-public partial class BlockExprNode
-{
-	private bool? _returnsExpr;
-
-	public bool ReturnsExpr
-	{
-		get
-		{
-			if (_returnsExpr.HasValue)
-				return _returnsExpr.Value;
-
-			_returnsExpr = Stmts.Any() && Stmts.Last() is BareExprStmtNode bareExprStmt && !bareExprStmt.IsTreatedAsStmt;
-			return _returnsExpr.Value;
-		}
-	}
 }
 
 public partial class FnTypeNode

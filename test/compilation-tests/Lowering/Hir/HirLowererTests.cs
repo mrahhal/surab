@@ -120,7 +120,7 @@ public class HirLowererTests
 			""";
 		var f = LowerFn(src);
 		var body = f.GetFnBody();
-		body.Should().HaveCount(0);
+		body.Should().HaveCount(1);
 	}
 
 	[Fact]
@@ -181,10 +181,10 @@ public class HirLowererTests
 		var body = file.GetFnBody("f");
 		body.Should().HaveCount(4);
 		var storeExpr = body[3].Should().BeOfType<HirExprStmt>().Subject
-			.Expr.Should().BeOfType<HirStmtListEndingWithExpr>().Subject;
+			.Expr.Should().BeOfType<HirBlockExpr>().Subject;
 		storeExpr.Stmts.Should().HaveCount(1);
 		storeExpr.Stmts[0].Should().BeOfType<HirFieldStoreStmt>();
-		var fieldLoadExpr = storeExpr.EndingExpr.Should().BeOfType<HirFieldLoadExpr>().Subject;
+		var fieldLoadExpr = storeExpr.BlockReturnExpr.Should().BeOfType<HirFieldLoadExpr>().Subject;
 		fieldLoadExpr.FieldValue.Name.Should().Be("a");
 	}
 

@@ -350,46 +350,6 @@ public class ParserTests
 	}
 
 	[Fact]
-	public void BareExprs_Blocks()
-	{
-		var code = "{ 2 }";
-		var node = ParseStmt(code).Should().BeOfType<BareExprStmtNode>().Subject;
-		node.IsTreatedAsStmt.Should().BeFalse();
-		var blockNode = node.Expr.Should().BeOfType<BlockExprNode>().Subject;
-		blockNode.ReturnsExpr.Should().BeTrue();
-	}
-
-	[Fact]
-	public void BareExprs_Blocks2()
-	{
-		var code = "{ var a = 2; }";
-		var node = ParseStmt(code).Should().BeOfType<BareExprStmtNode>().Subject;
-		node.IsTreatedAsStmt.Should().BeTrue();
-		var blockNode = node.Expr.Should().BeOfType<BlockExprNode>().Subject;
-		blockNode.ReturnsExpr.Should().BeFalse();
-	}
-
-	[Fact]
-	public void BareExprs_Blocks3()
-	{
-		var code = "{ { 2 } }";
-		var node = ParseStmt(code).Should().BeOfType<BareExprStmtNode>().Subject;
-		node.IsTreatedAsStmt.Should().BeFalse();
-		var blockNode = node.Expr.Should().BeOfType<BlockExprNode>().Subject;
-		blockNode.ReturnsExpr.Should().BeTrue();
-	}
-
-	[Fact]
-	public void BareExprs_Blocks4()
-	{
-		var code = "{ { var a = 2; } }";
-		var node = ParseStmt(code).Should().BeOfType<BareExprStmtNode>().Subject;
-		node.IsTreatedAsStmt.Should().BeTrue();
-		var blockNode = node.Expr.Should().BeOfType<BlockExprNode>().Subject;
-		blockNode.ReturnsExpr.Should().BeFalse();
-	}
-
-	[Fact]
 	public void EmptyStmt()
 	{
 		var code = """
@@ -629,6 +589,38 @@ public class ParserTests
 		var accessExpr = creationExpr.TypeExpr.Should().BeOfType<ModuleAccessExprNode>().Subject;
 		accessExpr.Name.Identifier.Value.Should().Be("B");
 		accessExpr.Target.Should().BeOfType<NameExprNode>().Subject.Name.Identifier.Value.Should().Be("a");
+	}
+
+	[Fact]
+	public void Expr_If()
+	{
+		var code = "if b { c }";
+		var node = ParseStmt(code).Should().BeOfType<BareExprStmtNode>().Subject;
+		var ifExpr = node.Expr.Should().BeOfType<IfExprNode>().Subject;
+		ifExpr.ThenBlock.Should().BeOfType<BlockExprNode>();
+	}
+
+	[Fact]
+	public void Expr_If2()
+	{
+		var code = "var a = if b { c } else { d };";
+		var node = ParseDecl(code).Should().BeOfType<VarDeclNode>().Subject;
+		var ifExpr = node.Initializer!.Expr.Should().BeOfType<IfExprNode>().Subject;
+		ifExpr.ElseClause.Should().NotBeNull();
+		ifExpr.ElseClause!.Expr.Should().BeOfType<BlockExprNode>();
+	}
+
+	[Fact]
+	public void Expr_If3()
+	{
+		var code = "if b { c } else if d { e } else { f }";
+		var node = ParseStmt(code).Should().BeOfType<BareExprStmtNode>().Subject;
+		var ifExpr = node.Expr.Should().BeOfType<IfExprNode>().Subject;
+		ifExpr.ThenBlock.Should().BeOfType<BlockExprNode>();
+		ifExpr.ElseClause.Should().NotBeNull();
+		var elseIfExpr = ifExpr.ElseClause!.Expr.Should().BeOfType<IfExprNode>().Subject;
+		elseIfExpr.ElseClause.Should().NotBeNull();
+		elseIfExpr.ElseClause!.Expr.Should().BeOfType<BlockExprNode>();
 	}
 
 	[Fact]

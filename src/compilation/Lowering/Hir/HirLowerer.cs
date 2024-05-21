@@ -1,5 +1,6 @@
-﻿using System.Collections.Immutable;
-using System.Diagnostics;
+﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Xml.Linq;
 using Surab.Analysis;
 
 namespace Surab.Compilation;
@@ -81,6 +82,7 @@ internal class HirLowerer
 			NameExprNode n => Lower(n),
 			ThisExprNode n => Lower(n),
 			TypeCreationExprNode n => Lower(n),
+			IfExprNode n => Lower(n),
 
 			// All other nodes not in this switch should be taken care of as part of these nodes mentioned above.
 			_ => throw new UnreachableException(),
@@ -218,8 +220,8 @@ internal class HirLowerer
 
 	private HirNode Lower(BareExprStmtNode node)
 	{
-		// This is called in cases such as standalone blocks.
-		return Lower(node.Expr);
+		var expr = LowerWithCast(node.Expr);
+		return new HirBlockReturnStmt(node, expr);
 	}
 
 	/// <summary>
@@ -236,13 +238,13 @@ internal class HirLowerer
 		var prevBag = _localDeclareStmtsHoistingBag;
 		_localDeclareStmtsHoistingBag = new();
 
-		var (stmts, bareReturnExpr) = LowerBlock(node);
+		var (stmts, blockReturnExpr) = LowerBlockStmtsAndBlockReturnExpr(node);
 
-		if (bareReturnExpr != null)
+		if (blockReturnExpr != null)
 		{
 			stmts.Add(new HirReturnStmt(
 				node,
-				bareReturnExpr));
+				blockReturnExpr));
 		}
 
 		var hoistedLocalDeclareStmts = _localDeclareStmtsHoistingBag.TakeHoisted();
@@ -253,42 +255,53 @@ internal class HirLowerer
 			[.. hoistedLocalDeclareStmts, .. stmts]);
 	}
 
-	// BareReturnExpr will only be set if there's a bare block return expr (that's not treated as a stmt).
-	private (List<HirStmt> Stmts, HirExpr? BareReturnExpr) LowerBlock(BlockExprNode node)
+	private (List<HirStmt> Stmts, HirExpr? BlockReturnExpr) LowerBlockStmtsAndBlockReturnExpr(BlockExprNode node)
 	{
 		var parsedStmts = node.Stmts.ToList();
 		var lastParsedStmt = parsedStmts.LastOrDefault();
 
-		var bareReturnExpr = default(HirExpr?);
-		if (lastParsedStmt is BareExprStmtNode bareExprStmtNode &&
-			!bareExprStmtNode.IsTreatedAsStmt)
+		var blockReturnExpr = default(HirExpr?);
+		if (CanBeBlockReturnExprStmt(lastParsedStmt, out var bareExprStmt))
 		{
 			parsedStmts.Remove(lastParsedStmt);
-			bareReturnExpr = LowerWithCast(bareExprStmtNode.Expr);
+			blockReturnExpr = LowerWithCast(bareExprStmt.Expr);
 		}
 
 		var stmts = LowerWithCast(parsedStmts).ToList();
 
-		return (stmts, bareReturnExpr);
+		return (stmts, blockReturnExpr);
+	}
+
+	/// <summary>
+	/// Returns whether a stmt can be a block return expr stmt.
+	/// A <see cref="BareExprStmtNode"/> is considered a block return when it has return type that isn't None.
+	/// </summary>
+	private bool CanBeBlockReturnExprStmt([NotNullWhen(true)] StmtNode? stmt, [NotNullWhen(true)] out BareExprStmtNode? bareExprStmt)
+	{
+		if (stmt is BareExprStmtNode bare &&
+			_reasoner.LookupType(bare.Expr).KnownTypeTag is not KnownTypeTag.None)
+		{
+			bareExprStmt = bare;
+			return true;
+		}
+		bareExprStmt = null;
+		return false;
 	}
 
 	private HirNode Lower(BlockExprNode node)
 	{
-		var (stmts, bareExpr) = LowerBlock(node);
+		var (stmts, blockReturnExpr) = LowerBlockStmtsAndBlockReturnExpr(node);
+		return CreateBlockExpr(node, stmts, blockReturnExpr);
+	}
 
-		if (bareExpr != null)
+	private HirBlockExpr CreateBlockExpr(SyntaxNode node, List<HirStmt> stmts, HirExpr? blockReturnExpr = null)
+	{
+		var type = _interner.LowerType(_reasoner.Workspace.ResolveKnownTypeSymbol(KnownTypeTag.None));
+		if (blockReturnExpr != null)
 		{
-			return new HirStmtListEndingWithExpr(
-				node,
-				stmts,
-				bareExpr);
+			type = blockReturnExpr.Type;
 		}
-		else
-		{
-			return new HirStmtList(
-				node,
-				stmts);
-		}
+		return new HirBlockExpr(node, type, stmts, blockReturnExpr);
 	}
 
 	private HirNode Lower(AssignmentExprNode node)
@@ -308,7 +321,7 @@ internal class HirLowerer
 				value.Type,
 				value);
 
-			return new HirStmtListEndingWithExpr(
+			return CreateBlockExpr(
 				node,
 				[storeStmt],
 				loadExpr);
@@ -332,7 +345,7 @@ internal class HirLowerer
 				loweredTarget,
 				value);
 
-			return new HirStmtListEndingWithExpr(
+			return CreateBlockExpr(
 				node,
 				[storeStmt],
 				loadExpr);
@@ -606,10 +619,52 @@ internal class HirLowerer
 
 		// Combine
 
-		return new HirStmtListEndingWithExpr(
+		return CreateBlockExpr(
 			node,
 			stmts,
 			structLoadExpr);
+	}
+
+	private HirNode Lower(IfExprNode node)
+	{
+		var type = _reasoner.LookupType(node);
+		var loweredType = _interner.LowerType(type);
+		var arms = new List<HirMatchArm>();
+
+		ExprNode? current = node;
+		while (current != null)
+		{
+			if (current is IfExprNode ifExpr)
+			{
+				var condition = LowerWithCast(ifExpr.Condition);
+				Debug.Assert(ifExpr.ThenBlock != null);
+				var block = LowerWithCast(ifExpr.ThenBlock);
+				arms.Add(new HirMatchArm(ifExpr, condition, block));
+				current = ifExpr.ElseClause?.Expr;
+			}
+			else if (current is BlockExprNode blockExpr)
+			{
+				var block = LowerWithCast(blockExpr);
+				arms.Add(new HirMatchArm(current, null, block));
+				current = null;
+			}
+			else
+			{
+				throw new UnreachableException();
+			}
+		}
+
+		for (var i = 0; i < arms.Count; i++)
+		{
+			var arm = arms[i];
+			var last = i == arms.Count - 1;
+			if (!last)
+			{
+				Debug.Assert(arm.Condition != null);
+			}
+		}
+
+		return new HirMatchExpr(node, loweredType, arms);
 	}
 
 	private HirDecl LowerWithCast(DeclNode node) => (HirDecl)Lower(node);

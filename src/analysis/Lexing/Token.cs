@@ -51,6 +51,9 @@ public enum TokenKind
 	Const,
 	Return,
 
+	If,
+	Else,
+
 	NumericLiteral,
 	NumericLiteralType,
 	CharLiteral,
@@ -132,6 +135,9 @@ public class Token(TokenKind kind, TextSpan span, object? data)
 			Const => "const",
 			Return => "return",
 
+			If => "if",
+			Else => "else",
+
 			NumericLiteral => "numlit",
 			NumericLiteralType => "numlit_type",
 			CharLiteral => "charlit",
@@ -179,6 +185,8 @@ internal static class TokenKindHelper
 		{ "var", Var },
 		{ "const", Const },
 		{ "return", Return },
+		{ "if", If },
+		{ "else", Else },
 	};
 
 	public static readonly HashSet<TokenKind> ReservedKeywordsSet = [.. ReservedKeywordsMap.Values];
@@ -260,7 +268,7 @@ public static class TokenKindExtensions
 	public static bool CanStartExpr(this TokenKind kind) =>
 		kind.IsUnary() ||
 		kind.IsLiteral() ||
-		kind is OpenParen or OpenBrace or This or Identifier;
+		kind is OpenParen or OpenBrace or This or Identifier or If;
 
 	public static bool CanStartParam(this TokenKind kind) =>
 		kind is Identifier ||

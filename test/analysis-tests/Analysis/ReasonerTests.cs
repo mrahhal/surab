@@ -103,6 +103,31 @@ public class ReasonerTests
 	}
 
 	[Fact]
+	public void IfExpr1()
+	{
+		var result = AnalysisTestUtils.CreateFromNodeAnnotatedCode("""
+			fn f() {
+				{|if1:|}if (true) {
+				} else {
+				}
+
+				{|a:|}var a = if (true) {
+					42
+				} else {
+					43
+				};
+			}
+			""");
+		var reasoner = result.Reasoner;
+
+		var ifExpr = result.GetNode<IfExprNode>("if1");
+		reasoner.LookupType(ifExpr).KnownTypeTag.Should().Be(KnownTypeTag.None);
+
+		var a_var_decl = result.GetNode<VarDeclNode>("a");
+		reasoner.GetDeclaredSymbol(a_var_decl).Type.KnownTypeTag.Should().Be(KnownTypeTag.i32);
+	}
+
+	[Fact]
 	public void Field_InsideMapInitializer()
 	{
 		var code = """
