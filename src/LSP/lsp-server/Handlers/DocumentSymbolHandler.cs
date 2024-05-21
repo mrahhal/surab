@@ -27,9 +27,14 @@ public class DocumentSymbolHandler(
 			if (firstLevelSymbols == null)
 				return null;
 
-			List<SymbolInformationOrDocumentSymbol> documentSymbols = [.. Cleanup(firstLevelSymbols.Select(Convert))];
+			List<SymbolInformationOrDocumentSymbol> documentSymbols = [.. Process(firstLevelSymbols)];
 			return new SymbolInformationOrDocumentSymbolContainer(documentSymbols);
 		});
+	}
+
+	private IEnumerable<DocumentSymbol> Process(IEnumerable<Symbol> symbols)
+	{
+		return Cleanup(symbols.Select(Convert));
 	}
 
 	private List<Symbol>? GetFirstLevelSymbols(SurabProject project, ProjectFile file)
@@ -59,7 +64,7 @@ public class DocumentSymbolHandler(
 
 		return new DocumentSymbol
 		{
-			Children = new([.. Cleanup(symbol.Children.Select(Convert))]),
+			Children = new([.. Process(symbol.Children)]),
 			Name = string.IsNullOrEmpty(symbol.Name) ? FillEmptyName(symbol) : symbol.Name,
 			Kind = kind.Value,
 			Range = ConversionHelper.FromTo(symbol.Span),
@@ -101,6 +106,7 @@ public class DocumentSymbolHandler(
 
 	private LSPSymbolKind? GetSymbolKind(Symbol symbol)
 	{
+		// Returning a null means we don't want to show the symbol in the document symbol viewer.
 		return symbol switch
 		{
 			ConstSymbol => LSPSymbolKind.Constant,
@@ -112,7 +118,6 @@ public class DocumentSymbolHandler(
 				TypeSymbolKind.Struct => LSPSymbolKind.Struct,
 				_ => LSPSymbolKind.Null, // TODO
 			},
-			//ClassTypeSymbol => LSPSymbolKind.Class,
 			AliasTypeSymbol => LSPSymbolKind.Null, // TODO
 			_ => null,
 		};

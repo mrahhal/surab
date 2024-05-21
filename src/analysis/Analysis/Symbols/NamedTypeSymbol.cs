@@ -22,6 +22,8 @@ public abstract class NamedTypeSymbol : TypeSymbol, ISymbolHasExternAttr, IPossi
 
 	public override abstract NamedTypeSymbol OriginalDef { get; }
 
+	public override IEnumerable<Symbol> Children => [.. Members];
+
 	public abstract bool IsExtern { get; }
 
 	public abstract AttrsList AttrsList { get; }

@@ -8,6 +8,7 @@ public abstract class FnSymbol : Symbol, ISymbolHasType, ISymbolHasExternAttr, I
 	private TypeSymbol? _methodReceiverType;
 	private FnTypeSymbol? _typeWithoutReceiver;
 	private string? _name;
+	private IEnumerable<Symbol>? _children;
 
 	protected FnSymbol() : base(SymbolKind.Fn)
 	{
@@ -22,6 +23,7 @@ public abstract class FnSymbol : Symbol, ISymbolHasType, ISymbolHasExternAttr, I
 	}
 
 	// TODO: Children
+	public override IEnumerable<Symbol> Children => _children ??= FnChildrenComputer.Compute(this);
 
 	// TODO: Remove?
 	public abstract FnSigNode SigNode { get; }
@@ -291,5 +293,39 @@ internal sealed class SubstitutedFnSymbol : FnSymbol
 				.Select(p => (ParamSymbol)p.SubstituteAndSetParent(this, _smap))
 				.ToImmutableArray();
 		}
+	}
+}
+
+file class FnChildrenComputer(Reasoner reasoner) : SyntaxTreeVisitor
+{
+	private readonly List<Symbol> _children = [];
+
+	public static IEnumerable<Symbol> Compute(FnSymbol fn)
+	{
+		var body = fn.DeclaringNode switch
+		{
+			FnDeclNode fnDecl => fnDecl.Body,
+			MethodDeclNode methodDecl => methodDecl.Body,
+			_ => null,
+		};
+		if (body == null)
+		{
+			return [];
+		}
+
+		var visitor = new FnChildrenComputer(fn.Reasoner);
+		visitor.Visit(body);
+		return visitor._children;
+	}
+
+	public override void Visit(SyntaxNode node)
+	{
+		if (node.DeclaresSymbol() && reasoner.GetDeclaredSymbol(node) is { } symbol)
+		{
+			_children.Add(symbol);
+			return;
+		}
+
+		base.Visit(node);
 	}
 }

@@ -699,6 +699,28 @@ public class ReasonerTests
 	}
 
 	[Fact]
+	public void FnSymbol_Children()
+	{
+		var code = """
+			fn f() {
+				fn bar() {}
+
+				{
+					var a = 2;
+					struct baz {
+						fn foo() { }
+					}
+				}
+			}
+			""";
+		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(code);
+
+		var fnDecl = tree.Root.DescendantNodes().OfType<FnDeclNode>().First();
+		var fnSymbol = reasoner.GetDeclaredSymbol(fnDecl);
+		fnSymbol.Children.Should().HaveCount(3);
+	}
+
+	[Fact]
 	public void FnSymbol_ReturnTypeAsNoneIfNotSet()
 	{
 		var code = """
@@ -707,8 +729,7 @@ public class ReasonerTests
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(code);
 
 		var fnDecl = tree.Root.DescendantNodes().OfType<FnDeclNode>().Single();
-		reasoner.TryGetDeclaredSymbol(fnDecl, out var symbol).Should().BeTrue();
-		var fnSymbol = symbol.Should().BeAssignableTo<FnSymbol>().Subject;
+		var fnSymbol = reasoner.GetDeclaredSymbol(fnDecl);
 		fnSymbol.ReturnType.KnownTypeTag.Should().Be(KnownTypeTag.None);
 	}
 
