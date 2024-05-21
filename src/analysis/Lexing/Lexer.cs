@@ -236,7 +236,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 		Debug.Assert(_prev == '/' && P1() == '*');
 
 		var depth = 1;
-		while (true)
+		while (!IsAtEnd())
 		{
 			var ch = Advance();
 
