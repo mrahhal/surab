@@ -423,7 +423,7 @@ public class ParserTests
 	[InlineData("'勉")]
 	public void Expr_Char_Invalid(string code)
 	{
-		var node = ParseExpr(code).Should().BeOfType<LiteralExprNode>().Subject;
+		var node = ParseExpr(code, hasDiags: true).Should().BeOfType<LiteralExprNode>().Subject;
 		node.Literal.LiteralTokenKind.Should().Be(LiteralTokenKind.Char);
 		node.Literal.TryGetCharValue(out var value).Should().BeTrue();
 		value.Should().BeNull();
@@ -445,7 +445,7 @@ public class ParserTests
 	[InlineData("\"勉")]
 	public void Expr_String_Invalid(string code)
 	{
-		var node = ParseExpr(code).Should().BeOfType<LiteralExprNode>().Subject;
+		var node = ParseExpr(code, hasDiags: true).Should().BeOfType<LiteralExprNode>().Subject;
 		node.Literal.LiteralTokenKind.Should().Be(LiteralTokenKind.String);
 		node.Literal.TryGetStringValue(out var value).Should().BeTrue();
 		value.Should().BeNull();

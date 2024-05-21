@@ -1034,6 +1034,7 @@ internal class ParserImpl
 		}
 		else
 		{
+			_diags.Add(token.Span, DiagLevel.Error, "Non terminated char literal.");
 			return LiteralToken.FromChar(_tree, leading, trailing, token, null);
 		}
 	}
@@ -1051,6 +1052,7 @@ internal class ParserImpl
 		}
 		else
 		{
+			_diags.Add(token.Span, DiagLevel.Error, "Non terminated string literal.");
 			return LiteralToken.FromString(_tree, leading, trailing, token, null);
 		}
 	}

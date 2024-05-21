@@ -196,7 +196,7 @@ internal class Lexer : IEnumerable<Token>, IEnumerator<Token>
 	/// or we reach the end or a new line leaving out the final semicolon (flawed token).
 	/// Returns `true` if properly terminated.
 	/// </summary>
-	private bool AdvanceUntil(char terminal)
+	private bool AdvanceUntil(char terminal, bool includingNewlines = true)
 	{
 		while (true)
 		{
@@ -210,6 +210,9 @@ internal class Lexer : IEnumerable<Token>, IEnumerator<Token>
 					return false;
 
 				case (';', var ch2) when Chars.IsNewlineStart(ch2) || ch2 == Chars.EOF:
+					return false;
+
+				case (var ch1, _) when !includingNewlines && Chars.IsNewlineStart(ch1):
 					return false;
 
 				default:
@@ -274,7 +277,7 @@ internal class Lexer : IEnumerable<Token>, IEnumerator<Token>
 	{
 		Debug.Assert(_prev == '\'');
 
-		var terminated = AdvanceUntil('\'');
+		var terminated = AdvanceUntil('\'', false);
 		return MakeToken(TokenKind.CharLiteral, new CharLiteralTokenData { IsTerminated = terminated });
 	}
 
@@ -282,7 +285,7 @@ internal class Lexer : IEnumerable<Token>, IEnumerator<Token>
 	{
 		Debug.Assert(_prev == '"');
 
-		var terminated = AdvanceUntil('"');
+		var terminated = AdvanceUntil('"', false);
 		return MakeToken(TokenKind.StringLiteral, new StringLiteralTokenData { IsTerminated = terminated });
 	}
 
