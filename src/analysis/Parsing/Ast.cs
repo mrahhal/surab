@@ -19,6 +19,9 @@ public class SyntaxTree
 	// Set during parsing.
 	public DiagBag Diags { get; internal set; } = default!;
 
+	// Set during parsing.
+	public IReadOnlyList<int> LineOffsetToCharsCount { get; internal set; } = default!;
+
 	/// <summary>
 	/// Gets the deepest node at the given position.
 	/// </summary>

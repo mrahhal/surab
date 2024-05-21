@@ -3,17 +3,7 @@ using System.Diagnostics;
 
 namespace Surab.Analysis;
 
-internal static class Lexer
-{
-	public static IEnumerable<Token> Lex(string code)
-	{
-		return new LexerImpl(code);
-	}
-
-	public static IEnumerable<Token> LexSkipTrivia(string code) => Lex(code).SkipTrivia();
-}
-
-internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
+internal class Lexer : IEnumerable<Token>, IEnumerator<Token>
 {
 	struct Position
 	{
@@ -24,25 +14,34 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 		public int Char { get; set; }
 	}
 
-
 	private readonly ReadOnlyMemory<char> _code;
 	private ReadOnlyMemory<char> _window;
 	private Position _pos;
 	private Position _posIterStart;
 	private Token? _current;
 	private char _prev;
+	private readonly List<int> _lineOffsetToCharsCount = [];
 
-	public LexerImpl(string code)
+	public Lexer(string code)
 	{
 		_code = code.AsMemory();
 		Reset();
 	}
+
+	public static Lexer Create(string code)
+	{
+		return new Lexer(code);
+	}
+
+	public static IEnumerable<Token> LexSkipTrivia(string code) => Create(code).SkipTrivia();
 
 	public Token Current => _current!;
 	object IEnumerator.Current => Current;
 
 	public IEnumerator<Token> GetEnumerator() => this;
 	IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+	public IReadOnlyList<int> LineOffsetToCharsCount => _lineOffsetToCharsCount;
 
 	public bool MoveNext()
 	{
@@ -128,6 +127,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 
 		if (ch == '\n')
 		{
+			_lineOffsetToCharsCount.Add(_pos.Char);
 			_pos.Line++;
 			_pos.Char = 0;
 		}

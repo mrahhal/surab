@@ -16,7 +16,7 @@ public static class Parser
 	/// </summary>
 	public static SyntaxTree ParseFile(ProjectFile file)
 	{
-		var tokens = Lexer.Lex(file.Text);
+		var tokens = Lexer.Create(file.Text);
 		var parser = new ParserImpl(file, tokens);
 		return parser.ParseAsFile();
 	}
@@ -31,7 +31,7 @@ public static class Parser
 	/// </summary>
 	public static SyntaxTree ParseDecl(ProjectFile file)
 	{
-		var tokens = Lexer.Lex(file.Text);
+		var tokens = Lexer.Create(file.Text);
 		var parser = new ParserImpl(file, tokens);
 		return parser.ParseAsDecl();
 	}
@@ -46,7 +46,7 @@ public static class Parser
 	/// </summary>
 	public static SyntaxTree ParseStmt(ProjectFile file)
 	{
-		var tokens = Lexer.Lex(file.Text);
+		var tokens = Lexer.Create(file.Text);
 		var parser = new ParserImpl(file, tokens);
 		return parser.ParseAsStmt();
 	}
@@ -61,7 +61,7 @@ public static class Parser
 	/// </summary>
 	public static SyntaxTree ParseExpr(ProjectFile file)
 	{
-		var tokens = Lexer.Lex(file.Text);
+		var tokens = Lexer.Create(file.Text);
 		var parser = new ParserImpl(file, tokens);
 		return parser.ParseAsExpr();
 	}
@@ -71,6 +71,7 @@ internal class ParserImpl
 {
 	private readonly string _code;
 	private readonly ProjectFile _file;
+	private readonly Lexer _lexer;
 	private readonly Peeker<Token> _tokens;
 	private Token? _current;
 	private Token? _prev;
@@ -84,11 +85,12 @@ internal class ParserImpl
 
 	public ParserImpl(
 		ProjectFile file,
-		IEnumerable<Token> tokens)
+		Lexer lexer)
 	{
 		_code = file.Text;
 		_file = file;
-		_tokens = new(tokens);
+		_lexer = lexer;
+		_tokens = new(lexer.AsEnumerable());
 		_tree = new(file);
 
 		// So that the parser starts with the first token in current.
@@ -104,6 +106,7 @@ internal class ParserImpl
 
 		_tree.Root = root;
 		_tree.Diags = diagnostics;
+		_tree.LineOffsetToCharsCount = _lexer.LineOffsetToCharsCount;
 
 		return _tree;
 	}

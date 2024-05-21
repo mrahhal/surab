@@ -96,7 +96,7 @@ public class SemanticTokensFullHandler(
 			}
 		}
 
-		static IEnumerable<(int, int, int, SemanticTokenType?, List<SemanticTokenModifier>)> To<T>(TextSpan span, TokenBuilder<T> builder)
+		IEnumerable<(int, int, int, SemanticTokenType?, List<SemanticTokenModifier>)> To<T>(TextSpan span, TokenBuilder<T> builder)
 		{
 			if (builder.Type == null)
 				yield break;
@@ -119,7 +119,16 @@ public class SemanticTokensFullHandler(
 			for (var i = lineStart; i < lineEnd; i++)
 			{
 				var startChar = i == lineStart ? span.Line.Start.Char : 0;
-				yield return (i, startChar, int.MaxValue, builder.Type, builder.Modifiers);
+				var charCount = 0;
+				if (reasoner.Tree.LineOffsetToCharsCount.Count >= i)
+				{
+					charCount = reasoner.Tree.LineOffsetToCharsCount[i];
+				}
+				else
+				{
+					_logger.LogWarning("Did not find LineOffsetToCharsCount entry for line '{LineOffset}'.", i);
+				}
+				yield return (i, startChar, charCount, builder.Type, builder.Modifiers);
 			}
 
 			// Last line.
