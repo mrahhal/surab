@@ -534,10 +534,10 @@ internal class ParserImpl
 	{
 		var importToken = EatAssertedContextualKeywordToken(ContextualKeyword.Import);
 		var expr = ParseExpr();
-		var asIdentifier = ParseOptionalAsIdentifier();
+		var asName = ParseOptionalAsName();
 		var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
-		return new ImportNode(_tree, importToken, expr, asIdentifier, semicolonToken);
+		return new ImportNode(_tree, importToken, expr, asName, semicolonToken);
 	}
 
 	private DeclsListNode? ParseDeclsList()
@@ -702,21 +702,21 @@ internal class ParserImpl
 	{
 		var aliasToken = EatAssertedSimpleToken(TokenKind.Alias);
 		var targetType = ParseType();
-		var asIdentifier = ParseAsIdentifier();
+		var asName = ParseAsName();
 		var semicolonToken = EatExpectedSimpleToken(TokenKind.Semicolon);
 
-		return new AliasDeclNode(_tree, attrs, aliasToken, targetType, asIdentifier, semicolonToken);
+		return new AliasDeclNode(_tree, attrs, aliasToken, targetType, asName, semicolonToken);
 	}
 
-	private AsIdentifierNode ParseAsIdentifier()
+	private AsNameNode ParseAsName()
 	{
 		var asToken = EatExpectedContextualKeywordToken(ContextualKeyword.As);
 		var name = ParseNameDef(isTypeDecl: true);
 
-		return new AsIdentifierNode(_tree, asToken, name);
+		return new AsNameNode(_tree, asToken, name);
 	}
 
-	private AsIdentifierNode? ParseOptionalAsIdentifier()
+	private AsNameNode? ParseOptionalAsName()
 	{
 		if (!CheckContextualKeyword(ContextualKeyword.As))
 		{
@@ -726,7 +726,7 @@ internal class ParserImpl
 		var asToken = EatAssertedContextualKeywordToken(ContextualKeyword.As);
 		var name = ParseNameDef(isTypeDecl: true);
 
-		return new AsIdentifierNode(_tree, asToken, name);
+		return new AsNameNode(_tree, asToken, name);
 	}
 
 	/// <summary>

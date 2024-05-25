@@ -59,7 +59,7 @@ public class SrcAliasTypeSymbol : AliasTypeSymbol
 
 	public override AliasDeclNode DeclaringNode => _node;
 
-	internal override IdentifierToken? IdentifierToken => _node.AsIdentifier.Name.Identifier;
+	internal override IdentifierToken? IdentifierToken => _node.AsName.Name.Identifier;
 
 	public override ImmutableArray<GenericParamTypeSymbol> GenericParams
 	{
@@ -83,7 +83,7 @@ public class SrcAliasTypeSymbol : AliasTypeSymbol
 			.ToImmutableArray() ?? [];
 	}
 
-	private GenericParamsListNode? GetGenericParamsList() => _node.AsIdentifier.Name.GenericParamsList;
+	private GenericParamsListNode? GetGenericParamsList() => _node.AsName.Name.GenericParamsList;
 
 	public override TypeSymbol TargetType
 	{

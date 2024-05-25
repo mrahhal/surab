@@ -47,7 +47,7 @@ public abstract partial class SyntaxTreeVisitor
 		Walk(node);
 	}
 
-	public virtual void VisitAsIdentifier(AsIdentifierNode node)
+	public virtual void VisitAsName(AsNameNode node)
 	{
 		Walk(node);
 	}

@@ -819,9 +819,9 @@ public class Reasoner
 		var targetModule = Workspace.ResolveModule(this, path);
 		if (targetModule == null) return ResolvedImport.Failed();
 
-		if (import.AsIdentifier != null)
+		if (import.AsName != null)
 		{
-			var alias = import.AsIdentifier.Name.Identifier.Value;
+			var alias = import.AsName.Name.Identifier.Value;
 			targetModule = new AliasedModuleSymbol(targetModule, alias);
 			return ResolvedImport.Resolved(targetModule, [targetModule]);
 		}

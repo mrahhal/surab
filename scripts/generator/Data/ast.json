@@ -37,8 +37,8 @@
 					"Comment": "Well formed: IdentifierExpr or AccessExpr"
 				},
 				{
-					"Name": "asIdentifier",
-					"Type": "AsIdentifierNode",
+					"Name": "asName",
+					"Type": "AsNameNode",
 					"Optional": true
 				},
 				{
@@ -187,8 +187,8 @@
 					"Type": "TypeNode"
 				},
 				{
-					"Name": "asIdentifier",
-					"Type": "AsIdentifierNode"
+					"Name": "asName",
+					"Type": "AsNameNode"
 				},
 				{
 					"Name": "semicolonToken",
@@ -197,7 +197,7 @@
 			]
 		},
 		{
-			"Name": "AsIdentifierNode",
+			"Name": "AsNameNode",
 			"Members": [
 				{
 					"Name": "asToken",

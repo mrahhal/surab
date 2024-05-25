@@ -26,11 +26,11 @@ public class ParserTests
 		file.Should().NotBeNull();
 		file.Imports.Should().HaveCount(2);
 		file.Imports.ElementAt(0).Target.Should().BeOfType<NameExprNode>();
-		file.Imports.ElementAt(0).AsIdentifier.Should().BeNull();
+		file.Imports.ElementAt(0).AsName.Should().BeNull();
 		file.Imports.ElementAt(1).Target.Should().BeOfType<AccessExprNode>();
-		file.Imports.ElementAt(1).AsIdentifier.Should().NotBeNull();
-		file.Imports.ElementAt(1).AsIdentifier!.AsToken.IsMissing.Should().BeFalse();
-		file.Imports.ElementAt(1).AsIdentifier!.Name.Identifier.Value.Should().Be("baz2");
+		file.Imports.ElementAt(1).AsName.Should().NotBeNull();
+		file.Imports.ElementAt(1).AsName!.AsToken.IsMissing.Should().BeFalse();
+		file.Imports.ElementAt(1).AsName!.Name.Identifier.Value.Should().Be("baz2");
 		file.Decls.Should().HaveCount(1);
 	}
 
@@ -187,11 +187,11 @@ public class ParserTests
 		node.Attrs.Should().NotBeNull();
 		node.Attrs!.Attrs.Should().HaveCount(1);
 		node.AliasToken.Kind.Should().Be(SyntaxTokenKind.Simple);
-		node.AsIdentifier.Name.Identifier.Value.Should().Be("Bar");
-		node.AsIdentifier.AsToken.IsMissing.Should().BeFalse();
-		node.AsIdentifier.AsToken.SimpleTokenKind.Should().Be(SimpleTokenKind.AsKeyword);
-		node.AsIdentifier.AsToken.IsKeyword.Should().BeTrue();
-		node.AsIdentifier.AsToken.IsContextualKeyword.Should().BeTrue();
+		node.AsName.Name.Identifier.Value.Should().Be("Bar");
+		node.AsName.AsToken.IsMissing.Should().BeFalse();
+		node.AsName.AsToken.SimpleTokenKind.Should().Be(SimpleTokenKind.AsKeyword);
+		node.AsName.AsToken.IsKeyword.Should().BeTrue();
+		node.AsName.AsToken.IsContextualKeyword.Should().BeTrue();
 		node.TargetType.Should().BeOfType<ExprTypeNode>().Subject.Expr.Should().BeOfType<NameExprNode>().Subject.Name.Identifier.Value.Should().Be("Foo");
 		node.SemicolonToken.Should().NotBeNull();
 	}
@@ -202,8 +202,8 @@ public class ParserTests
 		var code = "alias @extern fn (S2) i32 as Delegate;";
 		var node = ParseDecl(code).Should().BeOfType<AliasDeclNode>().Subject;
 		node.AliasToken.Kind.Should().Be(SyntaxTokenKind.Simple);
-		node.AsIdentifier.Name.Identifier.Value.Should().Be("Delegate");
-		node.AsIdentifier.AsToken.IsMissing.Should().BeFalse();
+		node.AsName.Name.Identifier.Value.Should().Be("Delegate");
+		node.AsName.AsToken.IsMissing.Should().BeFalse();
 		var fnType = node.TargetType.Should().BeOfType<FnTypeNode>().Subject;
 		fnType.Attrs.Should().NotBeNull();
 		fnType.ReturnType.Should().NotBeNull();
@@ -216,8 +216,8 @@ public class ParserTests
 		var code = "alias @extern fn (S2) as Delegate;";
 		var node = ParseDecl(code).Should().BeOfType<AliasDeclNode>().Subject;
 		node.AliasToken.Kind.Should().Be(SyntaxTokenKind.Simple);
-		node.AsIdentifier.Name.Identifier.Value.Should().Be("Delegate");
-		node.AsIdentifier.AsToken.IsMissing.Should().BeFalse();
+		node.AsName.Name.Identifier.Value.Should().Be("Delegate");
+		node.AsName.AsToken.IsMissing.Should().BeFalse();
 		var fnType = node.TargetType.Should().BeOfType<FnTypeNode>().Subject;
 		fnType.Attrs.Should().NotBeNull();
 		fnType.ReturnType.Should().BeNull();
