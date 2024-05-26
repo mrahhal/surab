@@ -121,7 +121,7 @@ public class ReasonerTests
 		var reasoner = result.Reasoner;
 
 		var ifExpr = result.GetNode<IfExprNode>("if1");
-		reasoner.LookupType(ifExpr).KnownTypeTag.Should().Be(KnownTypeTag.None);
+		reasoner.LookupType(ifExpr).KnownTypeTag.Should().Be(KnownTypeTag.@void);
 
 		var a_var_decl = result.GetNode<VarDeclNode>("a");
 		reasoner.GetDeclaredSymbol(a_var_decl).Type.KnownTypeTag.Should().Be(KnownTypeTag.i32);
@@ -721,7 +721,7 @@ public class ReasonerTests
 	}
 
 	[Fact]
-	public void FnSymbol_ReturnTypeAsNoneIfNotSet()
+	public void FnSymbol_ReturnTypeAsVoidIfNotSet()
 	{
 		var code = """
 			fn f() { }
@@ -730,7 +730,7 @@ public class ReasonerTests
 
 		var fnDecl = tree.Root.DescendantNodes().OfType<FnDeclNode>().Single();
 		var fnSymbol = reasoner.GetDeclaredSymbol(fnDecl);
-		fnSymbol.ReturnType.KnownTypeTag.Should().Be(KnownTypeTag.None);
+		fnSymbol.ReturnType.KnownTypeTag.Should().Be(KnownTypeTag.@void);
 	}
 
 	[Fact]

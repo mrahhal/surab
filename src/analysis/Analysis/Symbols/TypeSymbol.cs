@@ -15,7 +15,7 @@ public enum TypeSymbolKind
 
 public enum KnownTypeTag
 {
-	None,
+	@void,
 
 	i8,
 	i16,

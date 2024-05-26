@@ -6,7 +6,7 @@ public static class KnownTypes
 	{
 		return name switch
 		{
-			"None" => (KnownTypeTag?)KnownTypeTag.None,
+			"void" => (KnownTypeTag?)KnownTypeTag.@void,
 			"i8" => KnownTypeTag.i8,
 			"i16" => KnownTypeTag.i16,
 			"i32" => KnownTypeTag.i32,
@@ -30,7 +30,7 @@ public static class KnownTypes
 	public static bool IsBuiltin(this KnownTypeTag? tag)
 	{
 		return tag is
-			KnownTypeTag.None or
+			KnownTypeTag.@void or
 			KnownTypeTag.i8 or
 			KnownTypeTag.i16 or
 			KnownTypeTag.i32 or

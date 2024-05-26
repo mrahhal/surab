@@ -42,7 +42,7 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 
 		var tag = type.KnownTypeTag;
 
-		if (tag is KnownTypeTag.None)
+		if (tag is KnownTypeTag.@void)
 			return new(0.AsBytes(), 0.AsBytes());
 		if (tag is KnownTypeTag.@char or KnownTypeTag.@bool or KnownTypeTag.i8 or KnownTypeTag.u8)
 			return new(1.AsBytes(), 1.AsBytes());

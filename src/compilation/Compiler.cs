@@ -191,7 +191,7 @@ internal sealed class FnCompiler : HirTreeVisitor
 
 			if (!_returnSeen)
 			{
-				if (FnValue.IsMain && FnValue.ReturnType.KnownTypeTag == KnownTypeTag.None)
+				if (FnValue.IsMain && FnValue.ReturnType.KnownTypeTag == KnownTypeTag.@void)
 				{
 					LLVM.Builder.BuildRet(LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, 0));
 				}
@@ -451,14 +451,14 @@ internal sealed class FnCompiler : HirTreeVisitor
 
 	// The reason we don't need to implement block expr to avoid pushing a value when there's no
 	// block return is because HirBlockExpr only enumerates the expr if it exists and it's a valid
-	// return. If it didn't have one no unit is pushed. If it had an fn call returning None it
+	// return. If it didn't have one no unit is pushed. If it had an fn call returning void it
 	// wouldn't pass type check.
 
 	public override void VisitMatchExpr(HirMatchExpr node)
 	{
 		var loweredType = LLVMTarget.LowerType(node.Type);
 		// If matchResultUnit is null, match has no block return.
-		var matchResultUnit = node.Type.KnownTypeTag is KnownTypeTag.None ?
+		var matchResultUnit = node.Type.KnownTypeTag is KnownTypeTag.@void ?
 			null :
 			LLVMUnit.Wrapped(loweredType, LLVM.Builder.BuildAlloca(loweredType, "match_result"));
 
@@ -503,8 +503,8 @@ internal sealed class FnCompiler : HirTreeVisitor
 			void GenerateThen()
 			{
 				Visit(block);
-				// block.Type could still be None in case of terminators.
-				if (matchResultUnit != null && block.Type.KnownTypeTag is not KnownTypeTag.None)
+				// block.Type could still be void in case of terminators.
+				if (matchResultUnit != null && block.Type.KnownTypeTag is not KnownTypeTag.@void)
 				{
 					var rhsUnit = _stack.Pop();
 					GenerateValueStore(matchResultUnit, node.Type, rhsUnit, node.Type);
@@ -890,7 +890,7 @@ internal abstract class LLVMTarget
 	// TODO: Support different calling conventions. Right now it's always Win64 cc.
 	public LLVMTypeRef LowerFnReturnType(HirFnType fnType)
 	{
-		if (fnType.ReturnType.KnownTypeTag == KnownTypeTag.None)
+		if (fnType.ReturnType.KnownTypeTag == KnownTypeTag.@void)
 			return LLVMTypeRef.Void;
 
 		Debug.Assert(!Target.GetAbiSize(fnType.ReturnType).IsZeroSized);
@@ -939,7 +939,7 @@ internal abstract class LLVMTarget
 			return LLVMTypeRef.CreateInt((uint)size.Bits);
 		}
 
-		if (tag is KnownTypeTag.None)
+		if (tag is KnownTypeTag.@void)
 			return LLVMTypeRef.Void;
 		if (tag is KnownTypeTag.@char or KnownTypeTag.@bool)
 			return LLVMTypeRef.Int1;

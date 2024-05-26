@@ -444,7 +444,7 @@ internal sealed class HirMatchExpr(
 	IEnumerable<HirMatchArm> arms) : HirExpr(syntaxNode, type)
 {
 	// If this match expr returns something, all arms must return and must be exhaustive.
-	// Return type should match this match's return type (which could be None).
+	// Return type should match this match's return type (which could be void).
 	public ImmutableArray<HirMatchArm> Arms { get; } = arms.ToImmutableArray();
 
 	public override IEnumerable<HirNode> EnumerateChildren() => [.. Arms];

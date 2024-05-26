@@ -159,9 +159,9 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 			_ => throw new UnreachableException(),
 		};
 
-		var noneType = _reasoner.Workspace.ResolveKnownTypeSymbol(KnownTypeTag.None);
-		var fnReturnType = returnTypeNode == null ? noneType : _reasoner.LookupSymbol(returnTypeNode).AsTypeSymbolOrUnknown();
-		var returnType = node.Expr == null ? noneType : _reasoner.LookupType(node.Expr);
+		var voidType = _reasoner.Workspace.ResolveKnownTypeSymbol(KnownTypeTag.@void);
+		var fnReturnType = returnTypeNode == null ? voidType : _reasoner.LookupSymbol(returnTypeNode).AsTypeSymbolOrUnknown();
+		var returnType = node.Expr == null ? voidType : _reasoner.LookupType(node.Expr);
 
 		if (!fnReturnType.IsAssignableFrom(returnType))
 		{
@@ -177,7 +177,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		// If this block has a block return, it can't stand on its own.
 		// i.e. It shouldn't be parented by BareExprStmtNode.
 		var type = _reasoner.LookupType(node);
-		if (type.KnownTypeTag is not KnownTypeTag.None &&
+		if (type.KnownTypeTag is not KnownTypeTag.@void &&
 			node.Parent is BareExprStmtNode)
 		{
 			_diags.Add(
@@ -197,14 +197,14 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		var parentBlock = (BlockExprNode)node.Parent;
 
 		var blockReturnType = _reasoner.LookupType(node.Expr);
-		if (parentBlock.Stmts.Last() != node && blockReturnType.KnownTypeTag is not KnownTypeTag.None)
+		if (parentBlock.Stmts.Last() != node && blockReturnType.KnownTypeTag is not KnownTypeTag.@void)
 		{
 			_diags.Add(node.Span, DiagLevel.Error, $"A block return can only exist as the last statement of a block.");
 		}
 
-		if (node.Expr is CallExprNode callExpr && blockReturnType.KnownTypeTag is KnownTypeTag.None)
+		if (node.Expr is CallExprNode callExpr && blockReturnType.KnownTypeTag is KnownTypeTag.@void)
 		{
-			_diags.Add(callExpr.Span, DiagLevel.Error, $"A function that returns None cannot be used as a block return.");
+			_diags.Add(callExpr.Span, DiagLevel.Error, $"A function that returns void cannot be used as a block return.");
 		}
 
 		base.VisitBareExprStmt(node);

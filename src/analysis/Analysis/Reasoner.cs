@@ -361,7 +361,7 @@ public class Reasoner
 		return lastStmt switch
 		{
 			BareExprStmtNode n => LookupType(n.Expr),
-			_ => Workspace.ResolveKnownTypeSymbol(KnownTypeTag.None),
+			_ => Workspace.ResolveKnownTypeSymbol(KnownTypeTag.@void),
 		};
 	}
 
@@ -369,7 +369,7 @@ public class Reasoner
 	{
 		if (node.ThenBlock == null)
 		{
-			return Workspace.ResolveKnownTypeSymbol(KnownTypeTag.None);
+			return Workspace.ResolveKnownTypeSymbol(KnownTypeTag.@void);
 		}
 
 		return LookupType(node.ThenBlock);
@@ -683,7 +683,7 @@ public class Reasoner
 		});
 		return new FnTypeKey(
 			isExtern,
-			sig.ReturnType == null ? Workspace.ResolveKnownTypeSymbol(KnownTypeTag.None) : LookupSymbol(sig.ReturnType).AsTypeSymbolOrUnknown(),
+			sig.ReturnType == null ? Workspace.ResolveKnownTypeSymbol(KnownTypeTag.@void) : LookupSymbol(sig.ReturnType).AsTypeSymbolOrUnknown(),
 			[.. receiverTypes, .. paramTypes]);
 	}
 
@@ -692,7 +692,7 @@ public class Reasoner
 		var isExtern = GetAttrs(fnType.Attrs).HasExtern;
 		return new FnTypeKey(
 			isExtern,
-			fnType.ReturnType == null ? Workspace.ResolveKnownTypeSymbol(KnownTypeTag.None) : LookupSymbol(fnType.ReturnType).AsTypeSymbolOrUnknown(),
+			fnType.ReturnType == null ? Workspace.ResolveKnownTypeSymbol(KnownTypeTag.@void) : LookupSymbol(fnType.ReturnType).AsTypeSymbolOrUnknown(),
 			// TODO: Should be able to handle ParamTypes being null better.
 			fnType.ParamTypes == null ? [UnknownTypeSymbol.Create()] : fnType.ParamTypes.Select(p =>
 			{

@@ -274,12 +274,12 @@ internal class HirLowerer
 
 	/// <summary>
 	/// Returns whether a stmt can be a block return expr stmt.
-	/// A <see cref="BareExprStmtNode"/> is considered a block return when it has return type that isn't None.
+	/// A <see cref="BareExprStmtNode"/> is considered a block return when it has return type that isn't void.
 	/// </summary>
 	private bool CanBeBlockReturnExprStmt([NotNullWhen(true)] StmtNode? stmt, [NotNullWhen(true)] out BareExprStmtNode? bareExprStmt)
 	{
 		if (stmt is BareExprStmtNode bare &&
-			_reasoner.LookupType(bare.Expr).KnownTypeTag is not KnownTypeTag.None)
+			_reasoner.LookupType(bare.Expr).KnownTypeTag is not KnownTypeTag.@void)
 		{
 			bareExprStmt = bare;
 			return true;
@@ -296,7 +296,7 @@ internal class HirLowerer
 
 	private HirBlockExpr CreateBlockExpr(SyntaxNode node, List<HirStmt> stmts, HirExpr? blockReturnExpr = null)
 	{
-		var type = _interner.LowerType(_reasoner.Workspace.ResolveKnownTypeSymbol(KnownTypeTag.None));
+		var type = _interner.LowerType(_reasoner.Workspace.ResolveKnownTypeSymbol(KnownTypeTag.@void));
 		if (blockReturnExpr != null)
 		{
 			type = blockReturnExpr.Type;
