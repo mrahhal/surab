@@ -19,7 +19,7 @@ public abstract class UnknownTypeSymbol : TypeSymbol
 
 	public override SyntaxNode? DeclaringNode => null;
 
-	public override ImmutableArray<Symbol> Members => throw new NotImplementedException();
+	public override ImmutableArray<Symbol> Members => [];
 
 	internal override IdentifierToken? IdentifierToken => null;
 

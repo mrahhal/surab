@@ -574,18 +574,15 @@ public class Reasoner
 	private bool TryResolveNameExprSymbolInCreationExpr(NameExprNode nameExpr, out Symbol? symbol)
 	{
 		symbol = null;
-		// The identifier inside a creation expr: `S1 { a = 42 }`
+		// The identifier inside a creation expr: `S1.{ a = 42 }`
 		if (nameExpr.Parent is AssignmentExprNode assignmentExpr &&
 			assignmentExpr.Lhs == nameExpr &&
 			assignmentExpr.Parent is MapInitializerItemNode mapInitializerItem &&
 			mapInitializerItem.Parent is MapInitializerNode mapInitializer &&
-			mapInitializer.Parent is TypeCreationExprNode typeCreationExpr)
+			mapInitializer.Parent is TypeCreationExprNode typeCreationExpr &&
+			LookupType(typeCreationExpr).UnwrapTypeAliases() is NamedTypeSymbol namedType)
 		{
-			var type = LookupType(typeCreationExpr).UnwrapTypeAliases();
-			// TODO: Need to report this as a semantic diag instead of this assertion, as this is a valid state.
-			// e.g. `alias *i32 as PtrToInt; PtrToInt { a = ... }`
-			Debug.Assert(type is NamedTypeSymbol);
-			symbol = ((NamedTypeSymbol)type).GetCreationMemberSymbol(nameExpr.Name.Identifier)?.Symbol;
+			symbol = namedType.GetCreationMemberSymbol(nameExpr.Name.Identifier)?.Symbol;
 			return true;
 		}
 		return false;

@@ -239,11 +239,14 @@ public class ParserTests
 				+() { }
 
 				// method
-				f() { }
+				m() { }
+
+				// fn (static)
+				fn f2() { }
 			}
 			""";
 		var node = ParseDecl(code).Should().BeOfType<StructDeclNode>().Subject;
-		node.Members.Should().HaveCount(4);
+		node.Members.Should().HaveCount(5);
 		node.Members.ElementAt(0).Should().BeOfType<FieldDeclNode>();
 		node.Members.ElementAt(1).Should().BeOfType<MethodDeclNode>().Subject
 			.IsInitializer.Should().BeTrue();
@@ -251,6 +254,7 @@ public class ParserTests
 			.IsMethodOp.Should().BeTrue();
 		node.Members.ElementAt(3).Should().BeOfType<MethodDeclNode>().Subject
 			.IsNormallyCallable.Should().BeTrue();
+		node.Members.ElementAt(4).Should().BeOfType<FnDeclNode>();
 	}
 
 	[Fact]
