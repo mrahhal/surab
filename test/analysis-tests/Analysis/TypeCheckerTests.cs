@@ -99,6 +99,24 @@ public class TypeCheckerTests
 			""");
 	}
 
+	[Fact]
+	public void ThisIsNotValidHere()
+	{
+		Test("""
+			struct S {
+				a: i32;
+
+				m() i32 {
+					this.a
+				}
+
+				fn f() i32 {
+					[|this|].a
+				}
+			}
+			""");
+	}
+
 	private void Test(string markup) => AnalyzerTestUtils.Test(markup);
 }
 

@@ -22,6 +22,10 @@ struct S1 {
 @extern
 struct S2 {
 	a: f64;
+
+	fn new(a: f64) S2 {
+		S2.{ a = a }
+	}
 }
 
 @extern
@@ -63,7 +67,7 @@ fn main() {
 
 	var s1_number = s1.get_number();
 
-	var s2 = S2.{ a = 42.3 };
+	var s2 = S2.new(42.3);
 
 	fs(s1, s2);
 

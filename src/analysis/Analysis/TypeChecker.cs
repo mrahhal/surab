@@ -466,10 +466,27 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		var thisType = _reasoner.LookupType(node);
 		if (thisType == null)
 		{
-			_diags.Add(node.Span, DiagLevel.Error, $"unknown this context");
+			_diags.Add(node.Span, DiagLevel.Error, "Unknown this context.");
+		}
+
+		var functionOrMethodDecl = GetEnclosingFunctionOrMethodDecl(node);
+		if (functionOrMethodDecl != null &&
+			_reasoner.GetDeclaredSymbol(functionOrMethodDecl) is FnSymbol fn)
+		{
+			if (fn.IsStatic)
+			{
+				_diags.Add(node.Span, DiagLevel.Error, "'this' is not valid in a static function.");
+			}
 		}
 
 		base.VisitThisExpr(node);
+	}
+
+	private SyntaxNode? GetEnclosingFunctionOrMethodDecl(SyntaxNode node)
+	{
+		return node.Ancestors()
+			.Where(x => x.Kind is SyntaxNodeKind.FnDecl or SyntaxNodeKind.MethodDecl)
+			.FirstOrDefault();
 	}
 
 	public override void VisitTypeCreationExpr(TypeCreationExprNode node)
