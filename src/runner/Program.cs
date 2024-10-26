@@ -75,7 +75,7 @@ var code = """
 		print_f64(c);
 		print_i32(41 + 1);
 
-		var s1 = S1 {
+		var s1 = S1.{
 			a = 82.0,
 			b = true,
 		};
@@ -84,7 +84,7 @@ var code = """
 		print_f64(s1.a);
 		print_bool(s1.b);
 
-		var s2 = S2 { a = 42.3 };
+		var s2 = S2.{ a = 42.3 };
 
 		fs(s1, s2);
 
@@ -103,7 +103,7 @@ var code = """
 		var s3_from_rust = get_s3_from_rust();
 		print_s3_from_rust(s3_from_rust);
 
-		var s4 = S3.S4 { s3 = s3_from_rust };
+		var s4 = S3.S4.{ s3 = s3_from_rust };
 		print_s3_from_rust(s4.s3);
 
 		var str = "This is created in surab and printed from rust.";
