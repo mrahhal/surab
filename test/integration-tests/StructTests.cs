@@ -5,7 +5,8 @@ public class StructTests
 	[Fact]
 	public void General_StructBasics()
 	{
-		var output = IntegrationRunner.Run($$"""
+		IntegrationRunner.TestAnnotatedOutput(
+			"""
 			struct S {
 				a: i32;
 
@@ -16,37 +17,30 @@ public class StructTests
 				var s = S.{
 					a = 42,
 				};
-				print_i32(s.get_a());
+				print_i32(s.get_a()); [|42|]
 			}
 			""");
-
-		var expectedOutput =
-			"42".NL();
-
-		output.Should().Be(expectedOutput);
 	}
 
 	[Fact]
 	public void DefaultFieldValues()
 	{
-		var output = IntegrationRunner.Run($$"""
+		IntegrationRunner.TestAnnotatedOutput(
+			"""
 			struct S1 { a: i32 = 42; }
 
 			fn main() {
 				var s1 = S1.{ };
-				print_i32(s1.a);
+				print_i32(s1.a); [|42|]
 			}
 			""");
-
-		var expectedOutput = "42".NL();
-
-		output.Should().Be(expectedOutput);
 	}
 
 	[Fact]
 	public void General_TypeCreation()
 	{
-		var output = IntegrationRunner.Run($$"""
+		IntegrationRunner.TestAnnotatedOutput(
+			"""
 			struct S {
 				a: i32;
 				b: bool;
@@ -63,25 +57,17 @@ public class StructTests
 					a = 2,
 					b = false,
 				};
-				print_i32(s1.a);
-				print_bool(s1.b);
-				print_i32(s1.c);
+				print_i32(s1.a); [|2|]
+				print_bool(s1.b); [|false|]
+				print_i32(s1.c); [|3|]
 
 				var s2 = S.{
 					a = 2,
 					b = false,
 					c = 4,
 				};
-				print_i32(s2.c);
+				print_i32(s2.c); [|4|]
 			}
 			""");
-
-		var expectedOutput =
-			"2".NL() +
-			"false".NL() +
-			"3".NL() +
-			"4".NL();
-
-		output.Should().Be(expectedOutput);
 	}
 }

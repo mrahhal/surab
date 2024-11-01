@@ -5,7 +5,8 @@ public class PtrTests
 	[Fact]
 	public void Ptr_Basic()
 	{
-		IntegrationRunner.TestAnnotatedOutput($$"""
+		IntegrationRunner.TestAnnotatedOutput(
+			"""
 			struct S {
 				a: i32;
 
@@ -70,7 +71,8 @@ public class PtrTests
 	[Fact]
 	public void Ptr_NoUnexpectedMutation()
 	{
-		IntegrationRunner.TestAnnotatedOutput($$"""
+		IntegrationRunner.TestAnnotatedOutput(
+			"""
 			struct S {
 				a: f64;
 				b: f64;
@@ -94,7 +96,8 @@ public class PtrTests
 	[Fact]
 	public void Ptr_Arith()
 	{
-		IntegrationRunner.TestAnnotatedOutput($$"""
+		IntegrationRunner.TestAnnotatedOutput(
+			"""
 			struct S {
 				a: f64;
 				b: f64;

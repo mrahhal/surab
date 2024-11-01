@@ -17,7 +17,8 @@ public class SmokeTests
 	[Fact]
 	public void Fail()
 	{
-		IntegrationRunner.Run("""
+		IntegrationRunner.Run(
+			"""
 			fn main() {
 				fffffffffffff
 			}

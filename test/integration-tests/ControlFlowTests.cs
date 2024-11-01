@@ -5,7 +5,8 @@ public class ControlFlowTests
 	[Fact]
 	public void If1()
 	{
-		IntegrationRunner.TestAnnotatedOutput($$"""
+		IntegrationRunner.TestAnnotatedOutput(
+			"""
 			fn main() {
 				if true {
 					print_i32(42); [|42|]
@@ -26,7 +27,8 @@ public class ControlFlowTests
 	[Fact]
 	public void If2()
 	{
-		IntegrationRunner.TestAnnotatedOutput($$"""
+		IntegrationRunner.TestAnnotatedOutput(
+			"""
 			fn main() {
 				var a = if true {
 					42
@@ -44,7 +46,8 @@ public class ControlFlowTests
 	[Fact(Skip = "Not yet implemented (eq)")]
 	public void If3()
 	{
-		IntegrationRunner.TestAnnotatedOutput($$"""
+		IntegrationRunner.TestAnnotatedOutput(
+			"""
 			fn main() {
 				fn p(a: i32) {
 					if a == 1 {
@@ -66,7 +69,8 @@ public class ControlFlowTests
 	[Fact(Skip = "Not yet implemented (eq)")]
 	public void If4()
 	{
-		IntegrationRunner.TestAnnotatedOutput($$"""
+		IntegrationRunner.TestAnnotatedOutput(
+			"""
 			fn main() {
 				var a = if true {
 					42
