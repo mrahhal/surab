@@ -17,7 +17,7 @@ export function activate(context: ExtensionContext) {
 	// );
 
 	// TODO:
-	const serverExe = "C:/dev/src/Projects/surab/src/LSP/lsp-server/bin/Debug/net8.0/surab-lsp-server.exe";
+	const serverExe = "C:/dev/src/Projects/surab/src/LSP/lsp-server/bin/Debug/net9.0/surab-lsp-server.exe";
 
 	const command = `${serverExe}`;
 
