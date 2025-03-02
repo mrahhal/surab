@@ -665,6 +665,32 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		}
 	}
 
+	//public override void VisitMissingType(MissingTypeNode node)
+	//{
+	//	base.VisitMissingType(node);
+	//}
+
+	public override void VisitMissingExpr(MissingExprNode node)
+	{
+		_diags.Add(node.Span, DiagLevel.Error, $"expected an expression");
+	}
+
+	public override void VisitSimpleToken(SimpleToken simpleToken)
+	{
+		if (simpleToken.IsMissing)
+		{
+			_diags.Add(simpleToken.Span, DiagLevel.Error, $"expected `{simpleToken}`");
+		}
+	}
+
+	public override void VisitIdentifierToken(IdentifierToken identifierToken)
+	{
+		if (identifierToken.IsMissing)
+		{
+			_diags.Add(identifierToken.Span, DiagLevel.Error, $"expected an identifier");
+		}
+	}
+
 	// TODO: Things to consider adding here.
 	// - LetStmtNode.Type and Initializer:
 	//   - Initializer should always be given a value as a start
