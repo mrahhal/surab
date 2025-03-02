@@ -24,7 +24,7 @@ struct S2 {
 	a: f64;
 
 	fn new(a: f64) S2 {
-		S2.{ a = a }
+		S2.{ a: a }
 	}
 }
 
@@ -56,9 +56,9 @@ fn main() {
 	print_i32(41 + 1);
 
 	var s1 = S1.{
-		a = 82.0,
-		b = true,
-		c = 4,
+		a: 82.0,
+		b: true,
+		c: 4,
 	};
 	print_f64(s1.a);
 	s1.a = 83.0;

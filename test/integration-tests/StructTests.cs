@@ -15,7 +15,7 @@ public class StructTests
 
 			fn main() {
 				var s = S.{
-					a = 42,
+					a: 42,
 				};
 				print_i32(s.get_a()); [|42|]
 			}
@@ -54,17 +54,17 @@ public class StructTests
 
 			fn main() {
 				var s1 = S.{
-					a = 2,
-					b = false,
+					a: 2,
+					b: false,
 				};
 				print_i32(s1.a); [|2|]
 				print_bool(s1.b); [|false|]
 				print_i32(s1.c); [|3|]
 
 				var s2 = S.{
-					a = 2,
-					b = false,
-					c = 4,
+					a: 2,
+					b: false,
+					c: 4,
 				};
 				print_i32(s2.c); [|4|]
 			}

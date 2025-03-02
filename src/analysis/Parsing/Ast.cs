@@ -1056,11 +1056,6 @@ public partial class CallExprNode
 	public IEnumerable<ArgNode> Args => ArgsList.Args;
 }
 
-public partial class MapInitializerNode
-{
-	public IEnumerable<AssignmentExprNode> WellFormedExprs => Items.Select(x => x.Expr).Cast<AssignmentExprNode>();
-}
-
 public static class SyntaxNodeKindExtensions
 {
 	/// <summary>

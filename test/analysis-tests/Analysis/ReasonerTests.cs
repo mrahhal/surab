@@ -90,7 +90,7 @@ public class ReasonerTests
 				}
 			}
 			fn f() {
-				var s_nested = S.SNested.{ b = 42 };
+				var s_nested = S.SNested.{ b: 42 };
 			}
 			""";
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(code);
@@ -128,20 +128,20 @@ public class ReasonerTests
 	}
 
 	[Fact]
-	public void Field_InsideMapInitializer()
+	public void Field_InsideObjectInitializer()
 	{
 		var code = """
 			struct S1 { a: i32; }
-			fn f() { var s = S1.{ a = 42 }; }
+			fn f() { var s = S1.{ a: 42 }; }
 			""";
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(code);
 
 		var varDecl = tree.Root.DescendantNodes().OfType<VarDeclNode>().Single();
 		var creationExpr = (TypeCreationExprNode)varDecl.Initializer!.Expr;
-		var mapInitializer = creationExpr.MapInitializer;
+		var objectInitializer = creationExpr.ObjectInitializer;
 
-		var fieldSymbol = reasoner.LookupSymbol(mapInitializer.WellFormedExprs.ElementAt(0).Lhs);
-		var fieldType = reasoner.LookupType(mapInitializer.WellFormedExprs.ElementAt(0).Lhs);
+		var fieldSymbol = reasoner.LookupSymbol(objectInitializer.Items.ElementAt(0));
+		var fieldType = reasoner.LookupType(objectInitializer.Items.ElementAt(0));
 
 		fieldSymbol.Should().NotBeNull().And.BeAssignableTo<FieldSymbol>();
 		fieldType.Should().NotBeNull();
@@ -153,13 +153,12 @@ public class ReasonerTests
 	{
 		var code = """
 			struct S1 { a: i32; }
-			fn f() { var s = S1.{ a = 2 }; }
+			fn f() { var s = S1.{ a: 2 }; }
 			""";
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(code);
 
 		var creationExpr = tree.Root.DescendantNodes().OfType<TypeCreationExprNode>().Single();
-		var assignmentExpr = creationExpr.MapInitializer.DescendantNodes().OfType<AssignmentExprNode>().Single();
-		var symbol = reasoner.LookupSymbol(assignmentExpr.Lhs);
+		var symbol = reasoner.LookupSymbol(creationExpr.ObjectInitializer.Items.ElementAt(0));
 		symbol.Should().BeAssignableTo<FieldSymbol>().Subject.
 			Type.KnownTypeTag.Should().Be(KnownTypeTag.i32);
 	}
@@ -169,13 +168,12 @@ public class ReasonerTests
 	{
 		var code = """
 			struct S1 { (a: i32) { } }
-			fn f() { var s = S1.{ a = 2 }; }
+			fn f() { var s = S1.{ a: 2 }; }
 			""";
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(code);
 
 		var creationExpr = tree.Root.DescendantNodes().OfType<TypeCreationExprNode>().Single();
-		var assignmentExpr = creationExpr.MapInitializer.DescendantNodes().OfType<AssignmentExprNode>().Single();
-		var symbol = reasoner.LookupSymbol(assignmentExpr.Lhs);
+		var symbol = reasoner.LookupSymbol(creationExpr.ObjectInitializer.Items.ElementAt(0));
 		symbol.Should().BeAssignableTo<ParamSymbol>().Subject.
 			Type.KnownTypeTag.Should().Be(KnownTypeTag.i32);
 	}
@@ -283,13 +281,13 @@ public class ReasonerTests
 			alias S as SAlias;
 
 			fn fn() {
-				var s = SAlias.{ v = 42 };
+				var s = SAlias.{ v: 42 };
 			}
 			""";
 		var (tree, reasoner) = AnalysisTestUtils.CreateTreeAndReasoner(code);
 
-		var assignmentInsideTypeCreation = tree.Root.DescendantNodes().OfType<AssignmentExprNode>().First();
-		var result = reasoner.LookupSymbol(assignmentInsideTypeCreation.Lhs);
+		var objectInitializerItem = tree.Root.DescendantNodes().OfType<ObjectInitializerItemNode>().First();
+		var result = reasoner.LookupSymbol(objectInitializerItem);
 		result.Should().BeAssignableTo<FieldSymbol>();
 	}
 
@@ -310,16 +308,16 @@ public class ReasonerTests
 			}
 
 			fn f() {
-				var s = S<i32>.{ a = 42 };
+				var s = S<i32>.{ a: 42 };
 				var a = s.a;
 				var n = s.n;
 				var nn = s.nn;
 				var m = s.m;
 				var o = s.o;
 
-				var x = S<i32>.N<i64>.{ b = 43i64 };
+				var x = S<i32>.N<i64>.{ b: 43i64 };
 
-				var b = S<i32>.M<bool, bool>.{ c1 = false, c2 = true };
+				var b = S<i32>.M<bool, bool>.{ c1: false, c2: true };
 			}
 			""";
 
@@ -411,7 +409,7 @@ public class ReasonerTests
 			fn f2<T>(v: *T) *T { v }
 			struct S<T1> { a: T1; fn bar<T2> { } }
 			fn f() {
-				var s = S { a = 42 };
+				var s = S.{ a: 42 };
 				var a = s.a;
 				{|f1_i32_call:|}f1<i32>(42);
 				var v = 42;
@@ -452,9 +450,9 @@ public class ReasonerTests
 			alias S<i32> as SAlias;
 			alias S<T> as SAlias2<T>;
 			fn f() {
-				var s1 = S<i32>.{ a = 42 };
-				var s2 = SAlias.{ a = 42 };
-				var s3 = SAlias2<i32>.{ a = 42 };
+				var s1 = S<i32>.{ a: 42 };
+				var s2 = SAlias.{ a: 42 };
+				var s3 = SAlias2<i32>.{ a: 42 };
 			}
 			""";
 		var (project, tree, reasoner) = AnalysisTestUtils.CreateProjectAndTreeAndReasoner(code);
@@ -496,7 +494,7 @@ public class ReasonerTests
 			struct S<T1> { a: T1; }
 			fn foo<T>(value: T) T { value }
 			fn foo() {
-				var s = S { a = 42 };
+				var s = S { a: 42 };
 				var a = s.a;
 
 				print_i32(foo<i32>(42));

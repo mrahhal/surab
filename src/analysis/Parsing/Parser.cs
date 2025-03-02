@@ -1116,15 +1116,15 @@ internal class ParserImpl
 	}
 
 	/// <summary>
-	/// Parses `module.Decl.Struct1 { a = b, c = d }`
+	/// Parses `module.Decl.Struct1 { a: b, c: d }`
 	/// Requirements: current is Dot and next is LeftBrace.
 	/// </summary>
 	private ExprNode ParseTypeCreationExpr(ExprNode left)
 	{
 		var dotToken = EatAssertedSimpleToken(TokenKind.Dot);
-		var mapInitializer = ParseMapInitializer();
+		var objectInitializer = ParseObjectInitializer();
 
-		return new TypeCreationExprNode(_tree, left, dotToken, mapInitializer);
+		return new TypeCreationExprNode(_tree, left, dotToken, objectInitializer);
 	}
 
 	/// <summary>
@@ -1182,31 +1182,32 @@ internal class ParserImpl
 	}
 
 	/// <summary>
-	/// Parses `{ a = b, c = d }`
+	/// Parses `{ a: b, c: d }`
 	/// Requirements: current is OpenParen.
-	private MapInitializerNode ParseMapInitializer()
+	private ObjectInitializerNode ParseObjectInitializer()
 	{
 		var openBraceToken = EatAssertedSimpleToken(TokenKind.OpenBrace);
 
-		var items = new List<MapInitializerItemNode>();
+		var items = new List<ObjectInitializerItemNode>();
 
 		while (true)
 		{
 			VerifyLoopIsNotPossiblyInfinite(items, threshold: 1_000_000);
 
-			if (IsAtEnd() || CheckToken(TokenKind.ClosedBrace) || (!_current.Kind.CanStartExpr() && !CheckToken(TokenKind.Comma)))
+			if (IsAtEnd() || CheckToken(TokenKind.ClosedBrace) || (!CheckToken(TokenKind.Identifier) && !CheckToken(TokenKind.Comma)))
 				break;
 
-			// Will parse a whole single assignment expr.
+			var identifier = ParseIdentifier() ?? CreateMissingIdentifierToken();
+			var colonToken = EatExpectedSimpleToken(TokenKind.Colon);
 			var expr = ParseExpr();
 			var commaToken = TryEatSimpleToken(TokenKind.Comma);
 
-			items.Add(new MapInitializerItemNode(_tree, expr, commaToken));
+			items.Add(new ObjectInitializerItemNode(_tree, identifier, colonToken, expr, commaToken));
 		}
 
 		var closedBraceToken = EatExpectedSimpleToken(TokenKind.ClosedBrace);
 
-		return new MapInitializerNode(_tree, openBraceToken, items, closedBraceToken);
+		return new ObjectInitializerNode(_tree, openBraceToken, items, closedBraceToken);
 	}
 
 	private IfExprNode ParseIfExpr()

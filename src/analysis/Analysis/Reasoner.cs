@@ -178,6 +178,7 @@ public class Reasoner
 			AccessExprNode n => LookupSymbol(n),
 			ModuleAccessExprNode n => LookupSymbol(n),
 			GenericArgNode n => LookupSymbol(n.Type),
+			ObjectInitializerItemNode n => LookupSymbol(n),
 
 			_ => null,
 		};
@@ -196,14 +197,7 @@ public class Reasoner
 
 	public Symbol? LookupSymbol(NameExprNode node)
 	{
-		if (TryResolveNameExprSymbolInCreationExpr(node, out var creationExprSymbol))
-		{
-			return creationExprSymbol;
-		}
-		else
-		{
-			return LookupOnlyName(node.Name);
-		}
+		return LookupOnlyName(node.Name);
 	}
 
 	public Symbol? LookupSymbol(NameNode node)
@@ -285,6 +279,11 @@ public class Reasoner
 		return ResolveSymbolWithName(member, node.Name);
 	}
 
+	private Symbol? LookupSymbol(ObjectInitializerItemNode node)
+	{
+		return ResolveObjectInitializerItemSymbol(node);
+	}
+
 	// TODO: What does "exported" mean in this context? (right now it means a public symbol in a module)
 	/// <summary>
 	/// Looks up an exported <see cref="Symbol"/> matching the given name.
@@ -314,6 +313,7 @@ public class Reasoner
 			ExprNode n => LookupType(n),
 			ArgNode n => LookupType(n.Expr),
 			EqualsExprClauseNode n => LookupType(n.Expr),
+			ObjectInitializerItemNode n => LookupType(n),
 
 			// REVIEW: Should we really support non expr nodes like these in LookupType or should we force the consumer to use the right thing?
 			_ when node?.DeclaresSymbol() ?? false => LookupTypeFromDeclaredSymbol(node),
@@ -409,6 +409,13 @@ public class Reasoner
 		return GetTypeOfSymbol(symbol, false);
 	}
 
+	private TypeSymbol LookupType(ObjectInitializerItemNode node)
+	{
+		var symbol = LookupSymbol(node) as ISymbolHasType;
+		var type = symbol?.Type;
+		return type.AsTypeSymbolOrUnknown();
+	}
+
 	private TypeSymbol GetTypeOfSymbol(Symbol? symbol, bool isInstanceAccess)
 	{
 		return symbol switch
@@ -492,7 +499,7 @@ public class Reasoner
 		if (targetType != null && targetType.HasGenericParams() && !targetType.HasGenericArgs())
 		{
 			// Not closed.
-			// TODO: Try infer generic args from node.MapInitializer.
+			// TODO: Try infer generic args from node.ObjectInitializer.
 		}
 
 		return targetType.AsTypeSymbolOrUnknown();
@@ -571,21 +578,24 @@ public class Reasoner
 	/// If the identifier expr is a part of setting a symbol in a creation expr, this method returns true and tries to resolve that symbol.
 	/// Otherwise false is returned.
 	/// </summary>
-	private bool TryResolveNameExprSymbolInCreationExpr(NameExprNode nameExpr, out Symbol? symbol)
+	private Symbol? ResolveObjectInitializerItemSymbol(ObjectInitializerItemNode objectInitializerItem)
 	{
-		symbol = null;
-		// The identifier inside a creation expr: `S1.{ a = 42 }`
-		if (nameExpr.Parent is AssignmentExprNode assignmentExpr &&
-			assignmentExpr.Lhs == nameExpr &&
-			assignmentExpr.Parent is MapInitializerItemNode mapInitializerItem &&
-			mapInitializerItem.Parent is MapInitializerNode mapInitializer &&
-			mapInitializer.Parent is TypeCreationExprNode typeCreationExpr &&
+		if (objectInitializerItem.Identifier.IsMissing)
+		{
+			return null;
+		}
+
+		// In a creation expr: `S1.{ a: 42 }`
+		if (objectInitializerItem.Parent is ObjectInitializerNode objectInitializer &&
+			objectInitializer.Parent is TypeCreationExprNode typeCreationExpr &&
 			LookupType(typeCreationExpr).UnwrapTypeAliases() is NamedTypeSymbol namedType)
 		{
-			symbol = namedType.GetCreationMemberSymbol(nameExpr.Name.Identifier)?.Symbol;
-			return true;
+			return namedType.GetCreationMemberSymbol(objectInitializerItem.Identifier)?.Symbol;
 		}
-		return false;
+
+		// TODO: In a fn call using object notation: `f({ a: 42 })`
+
+		return null;
 	}
 
 	public TypeSymbol? InferTypeOfDeclaringNode(SyntaxNode node)

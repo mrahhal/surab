@@ -14,8 +14,8 @@ public class GenericTests
 			}
 
 			fn main() {
-				var s1 = S<i32>.{ value = 42 };
-				var s2 = S<bool>.{ value = true };
+				var s1 = S<i32>.{ value: 42 };
+				var s2 = S<bool>.{ value: true };
 
 				print_i32(s1.value); [|42|]
 				print_bool(s2.value); [|true|]
@@ -33,7 +33,7 @@ public class GenericTests
 			struct S<T> { v: T; }
 
 			fn f1<T>(value: T) T { value }
-			fn f2<T>(value: T) T { var s = S<T>.{ v = value }; s.v }
+			fn f2<T>(value: T) T { var s = S<T>.{ v: value }; s.v }
 
 			fn main() {
 				var a = 42;
@@ -62,22 +62,22 @@ public class GenericTests
 				alias S1<f64> as S0;
 				alias S1<bool> as SBool;
 
-				var s2 = S2<i32, f64>.{ a = 42, b = 4.2 };
-				var s1 = S1<f64>.{ a = 43, b = 4.3 };
-				var s0 = S0.{ a = 44, b = 4.4 };
-				var s_bool = SBool.{ a = 44, b = true };
+				var s2 = S2<i32, f64>.{ a: 42, b: 4.2 };
+				var s1 = S1<f64>.{ a: 43, b: 4.3 };
+				var s0 = S0.{ a: 44, b: 4.4 };
+				var s_bool = SBool.{ a: 44, b: true };
 
-				s2 = S0.{ a = 45, b = 4.5 };
-				s1 = S0.{ a = 45, b = 4.5 };
-				s0 = S0.{ a = 45, b = 4.5 };
+				s2 = S0.{ a: 45, b: 4.5 };
+				s1 = S0.{ a: 45, b: 4.5 };
+				s0 = S0.{ a: 45, b: 4.5 };
 
-				s2 = S1<f64>.{ a = 46, b = 4.6 };
-				s1 = S1<f64>.{ a = 46, b = 4.6 };
-				s0 = S1<f64>.{ a = 46, b = 4.6 };
+				s2 = S1<f64>.{ a: 46, b: 4.6 };
+				s1 = S1<f64>.{ a: 46, b: 4.6 };
+				s0 = S1<f64>.{ a: 46, b: 4.6 };
 
-				s2 = S2<i32, f64>.{ a = 47, b = 4.7 };
-				s1 = S2<i32, f64>.{ a = 47, b = 4.7 };
-				s0 = S2<i32, f64>.{ a = 47, b = 4.7 };
+				s2 = S2<i32, f64>.{ a: 47, b: 4.7 };
+				s1 = S2<i32, f64>.{ a: 47, b: 4.7 };
+				s0 = S2<i32, f64>.{ a: 47, b: 4.7 };
 
 				print_i32(s2.a); [|47|]
 				print_f64(s2.b); [|4.7|]
@@ -128,8 +128,8 @@ public class GenericTests
 			}
 
 			fn main() {
-				var s1 = S<N<i32>>.{ value = N<i32>.{ value = 42 } };
-				var s2 = S<N<bool>>.{ value = N<bool>.{ value = true } };
+				var s1 = S<N<i32>>.{ value: N<i32>.{ value: 42 } };
+				var s2 = S<N<bool>>.{ value: N<bool>.{ value: true } };
 
 				print_i32(s1.value.value); [|42|]
 				print_bool(s2.value.value); [|true|]
@@ -147,11 +147,11 @@ public class GenericTests
 			}
 
 			fn main() {
-				fn create<T>(value: T) S<T> { S.{ value = value } } // Inferred
+				fn create<T>(value: T) S<T> { S.{ value: value } } // Inferred
 
-				var s1 = S<i32>.{ value = 42 };
-				var s2 = S<f64>.{ value = 4.2 };
-				var s3 = S.{ value = 43 }; // Inferred
+				var s1 = S<i32>.{ value: 42 };
+				var s2 = S<f64>.{ value: 4.2 };
+				var s3 = S.{ value: 43 }; // Inferred
 				var s4 = create(4.3); // Inferred
 
 				print_i32(s1.value); [|42|]

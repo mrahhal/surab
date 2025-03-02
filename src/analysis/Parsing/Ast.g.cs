@@ -41,8 +41,8 @@ public enum SyntaxNodeKind
 	IfExpr,
 	ElseClause,
 	MissingExpr,
-	MapInitializer,
-	MapInitializerItem,
+	ObjectInitializer,
+	ObjectInitializerItem,
 	ParamsList,
 	Param,
 	ParamTypesList,
@@ -750,11 +750,11 @@ public partial class ThisExprNode : ExprNode
 /// </summary>
 public partial class TypeCreationExprNode : ExprNode
 {
-	public TypeCreationExprNode(SyntaxTree tree, ExprNode typeExpr, SimpleToken dotToken, MapInitializerNode mapInitializer)
+	public TypeCreationExprNode(SyntaxTree tree, ExprNode typeExpr, SimpleToken dotToken, ObjectInitializerNode objectInitializer)
 		: base(tree, SyntaxNodeKind.TypeCreationExpr)
 	{
 		_childTokens = new() { dotToken, };
-		_childNodes = new() { typeExpr, mapInitializer, };
+		_childNodes = new() { typeExpr, objectInitializer, };
 
 		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
@@ -765,7 +765,7 @@ public partial class TypeCreationExprNode : ExprNode
 	/// </summary>
 	public ExprNode TypeExpr => (ExprNode)_childNodes[0]!;
 	public SimpleToken DotToken => (SimpleToken)_childTokens[0]!;
-	public MapInitializerNode MapInitializer => (MapInitializerNode)_childNodes[1]!;
+	public ObjectInitializerNode ObjectInitializer => (ObjectInitializerNode)_childNodes[1]!;
 
 	public override void Accept(SyntaxTreeVisitor visitor)
 	{
@@ -842,10 +842,10 @@ public partial class MissingExprNode : ExprNode
 	}
 }
 
-public partial class MapInitializerNode : SyntaxNode
+public partial class ObjectInitializerNode : SyntaxNode
 {
-	public MapInitializerNode(SyntaxTree tree, SimpleToken openBraceToken, IEnumerable<MapInitializerItemNode> items, SimpleToken closedBraceToken)
-		: base(tree, SyntaxNodeKind.MapInitializer)
+	public ObjectInitializerNode(SyntaxTree tree, SimpleToken openBraceToken, IEnumerable<ObjectInitializerItemNode> items, SimpleToken closedBraceToken)
+		: base(tree, SyntaxNodeKind.ObjectInitializer)
 	{
 		_childTokens = new() { openBraceToken, closedBraceToken, };
 		_childNodes = items.Cast<SyntaxNode?>().ToList();
@@ -855,36 +855,35 @@ public partial class MapInitializerNode : SyntaxNode
 	}
 
 	public SimpleToken OpenBraceToken => (SimpleToken)_childTokens[0]!;
-	public IEnumerable<MapInitializerItemNode> Items => _childNodes.Cast<MapInitializerItemNode>();
+	public IEnumerable<ObjectInitializerItemNode> Items => _childNodes.Cast<ObjectInitializerItemNode>();
 	public SimpleToken ClosedBraceToken => (SimpleToken)_childTokens[1]!;
 
 	public override void Accept(SyntaxTreeVisitor visitor)
 	{
-		visitor.VisitMapInitializer(this);
+		visitor.VisitObjectInitializer(this);
 	}
 }
 
-public partial class MapInitializerItemNode : SyntaxNode
+public partial class ObjectInitializerItemNode : SyntaxNode, ISyntaxNodeHasMainIdentifier
 {
-	public MapInitializerItemNode(SyntaxTree tree, ExprNode expr, SimpleToken? commaToken)
-		: base(tree, SyntaxNodeKind.MapInitializerItem)
+	public ObjectInitializerItemNode(SyntaxTree tree, IdentifierToken identifier, SimpleToken colonToken, ExprNode expr, SimpleToken? commaToken)
+		: base(tree, SyntaxNodeKind.ObjectInitializerItem)
 	{
-		_childTokens = new() { commaToken, };
+		_childTokens = new() { identifier, colonToken, commaToken, };
 		_childNodes = new() { expr, };
 
 		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
 		SetChildrenParent();
 	}
 
-	/// <summary>
-	/// Well formed: AssignmentExprNode
-	/// </summary>
+	public IdentifierToken Identifier => (IdentifierToken)_childTokens[0]!;
+	public SimpleToken ColonToken => (SimpleToken)_childTokens[1]!;
 	public ExprNode Expr => (ExprNode)_childNodes[0]!;
-	public SimpleToken? CommaToken => (SimpleToken?)_childTokens[0]!;
+	public SimpleToken? CommaToken => (SimpleToken?)_childTokens[2]!;
 
 	public override void Accept(SyntaxTreeVisitor visitor)
 	{
-		visitor.VisitMapInitializerItem(this);
+		visitor.VisitObjectInitializerItem(this);
 	}
 }
 

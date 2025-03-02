@@ -75,9 +75,9 @@ public class ModulesTests
 			import mod1;
 
 			fn main() {
-				var foo = mod1::Foo.{ a = 42 };
-				var bar = mod1::Bar.{ a = 43 };
-				var baz = Baz.{ a = 44 };
+				var foo = mod1::Foo.{ a: 42 };
+				var bar = mod1::Bar.{ a: 43 };
+				var baz = Baz.{ a: 44 };
 
 				print_i32(foo.a);
 				print_i32(bar.a);

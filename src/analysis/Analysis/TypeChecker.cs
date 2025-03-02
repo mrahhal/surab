@@ -505,12 +505,9 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		{
 			// If not a type that can be created, skip analyzing lhs for each initializer item as we won't be able to resolve them anyway.
 			// Do analyze rhs.
-			foreach (var initializerExpr in node.MapInitializer.Items.Select(x => x.Expr as AssignmentExprNode))
+			foreach (var initializerItem in node.ObjectInitializer.Items)
 			{
-				if (initializerExpr != null)
-				{
-					Visit(initializerExpr.Rhs);
-				}
+				Visit(initializerItem.Expr);
 			}
 
 			_diags.Add(node.TypeExpr.Span, DiagLevel.Error, $"not a type that can be created");
@@ -518,13 +515,12 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		}
 
 		// Report unset required symbols.
-		var setSymbols = node.MapInitializer
-			.Items
-			.Select(x => x.Expr as AssignmentExprNode).Where(x => x != null)
-			.Select(x => (Assignment: x!, Symbol: _reasoner.LookupSymbol(x!.Lhs)!))
+		var setSymbols = node.ObjectInitializer.Items
+			.Where(x => !x.Identifier.IsMissing)
+			.Select(x => (Item: x, Symbol: _reasoner.LookupSymbol(x)!))
 			.Where(x => x.Symbol != null)
 			.ToList();
-		var setSymbolsMap = setSymbols.ToDictionary(x => x.Symbol!, x => x.Assignment);
+		var setSymbolsMap = setSymbols.ToDictionary(x => x.Symbol!, x => x.Item);
 		var creationSymbols = namedTypeSymbol.CreationMemberSymbols.Select(x => x.Symbol).ToList();
 		var requiredSymbols = namedTypeSymbol.CreationMemberSymbols.Where(x => !x.IsOptional && !x.IsConflicting).Select(x => x.Symbol);
 		var unsetSymbols = requiredSymbols.Where(requiredSymbol => !setSymbolsMap.ContainsKey(requiredSymbol)).ToList();
@@ -567,14 +563,14 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		base.VisitIfExpr(node);
 	}
 
-	public override void VisitMapInitializerItem(MapInitializerItemNode node)
+	public override void VisitObjectInitializerItem(ObjectInitializerItemNode node)
 	{
-		if (node.Expr is not AssignmentExprNode)
+		if (node.Identifier.IsMissing)
 		{
-			_diags.Add(node.Span, DiagLevel.Error, $"invalid assignment in initializer");
+			_diags.Add(node.Span, DiagLevel.Error, $"invalid initializer item");
 		}
 
-		base.VisitMapInitializerItem(node);
+		base.VisitObjectInitializerItem(node);
 	}
 
 	public override void VisitParam(ParamNode node)

@@ -542,17 +542,17 @@ public class ParserTests
 	[Fact]
 	public void Expr_TypeCreation()
 	{
-		var code = "Foo.{ a = 42, b = false }";
+		var code = "Foo.{ a: 42, b: false }";
 		var creationExpr = ParseExpr(code).Should().BeOfType<TypeCreationExprNode>().Subject;
 		creationExpr.TypeExpr.Should().BeOfType<NameExprNode>().Subject.Name.Identifier.Value.Should().Be("Foo");
-		creationExpr.MapInitializer.Items.Should().HaveCount(2);
-		creationExpr.MapInitializer.WellFormedExprs.ElementAt(0).Lhs.Should().BeOfType<NameExprNode>()
-			.Which.Name.Identifier.Value.Should().Be("a");
-		creationExpr.MapInitializer.WellFormedExprs.ElementAt(0).Rhs.Should().BeOfType<LiteralExprNode>()
+		creationExpr.ObjectInitializer.Items.Should().HaveCount(2);
+		creationExpr.ObjectInitializer.Items.ElementAt(0).Identifier.Value.Should().Be("a");
+		creationExpr.ObjectInitializer.Items.ElementAt(0).ColonToken.IsMissing.Should().BeFalse();
+		creationExpr.ObjectInitializer.Items.ElementAt(0).Expr.Should().BeOfType<LiteralExprNode>()
 			.Which.Literal.LiteralTokenKind.Should().Be(LiteralTokenKind.NumericInteger);
-		creationExpr.MapInitializer.WellFormedExprs.ElementAt(1).Lhs.Should().BeOfType<NameExprNode>()
-			.Which.Name.Identifier.Value.Should().Be("b");
-		creationExpr.MapInitializer.WellFormedExprs.ElementAt(1).Rhs.Should().BeOfType<LiteralExprNode>()
+		creationExpr.ObjectInitializer.Items.ElementAt(1).Identifier.Value.Should().Be("b");
+		creationExpr.ObjectInitializer.Items.ElementAt(1).ColonToken.IsMissing.Should().BeFalse();
+		creationExpr.ObjectInitializer.Items.ElementAt(1).Expr.Should().BeOfType<LiteralExprNode>()
 			.Which.Literal.LiteralTokenKind.Should().Be(LiteralTokenKind.Bool);
 	}
 
@@ -562,13 +562,13 @@ public class ParserTests
 		var code = "Foo.{ }";
 		var creationExpr = ParseExpr(code).Should().BeOfType<TypeCreationExprNode>().Subject;
 		creationExpr.TypeExpr.Should().BeOfType<NameExprNode>().Subject.Name.Identifier.Value.Should().Be("Foo");
-		creationExpr.MapInitializer.WellFormedExprs.Should().HaveCount(0);
+		creationExpr.ObjectInitializer.Items.Should().HaveCount(0);
 	}
 
 	[Fact]
 	public void Expr_TypeCreation_NestedAccess()
 	{
-		var code = "S.SNested.{ a = 42 }";
+		var code = "S.SNested.{ a: 42 }";
 		var tree = Parser.ParseExpr(code);
 		var creationExpr = tree.Root.Should().BeOfType<TypeCreationExprNode>().Subject;
 		var accessExpr = creationExpr.TypeExpr.Should().BeOfType<AccessExprNode>().Subject;
@@ -579,7 +579,7 @@ public class ParserTests
 	[Fact]
 	public void Expr_TypeCreation_ModuleAccess()
 	{
-		var code = "a::B.{ a = 42 }";
+		var code = "a::B.{ a: 42 }";
 		var tree = Parser.ParseExpr(code);
 		var creationExpr = tree.Root.Should().BeOfType<TypeCreationExprNode>().Subject;
 		var accessExpr = creationExpr.TypeExpr.Should().BeOfType<ModuleAccessExprNode>().Subject;
@@ -874,7 +874,7 @@ public class ParserTests
 			fn f() {
 				fn f2() S.S2 {
 					fn f3() { }
-					return S.S2.{ a = 42 };
+					return S.S2.{ a: 42 };
 				}
 				var a = 2;
 				struct S {

@@ -553,8 +553,8 @@
 					"Type": "SimpleToken"
 				},
 				{
-					"Name": "mapInitializer",
-					"Type": "MapInitializerNode"
+					"Name": "objectInitializer",
+					"Type": "ObjectInitializerNode"
 				}
 			]
 		},
@@ -604,7 +604,7 @@
 			"Members": []
 		},
 		{
-			"Name": "MapInitializerNode",
+			"Name": "ObjectInitializerNode",
 			"Members": [
 				{
 					"Name": "openBraceToken",
@@ -612,7 +612,7 @@
 				},
 				{
 					"Name": "items",
-					"Type": "MapInitializerItemNode",
+					"Type": "ObjectInitializerItemNode",
 					"List": true
 				},
 				{
@@ -622,12 +622,19 @@
 			]
 		},
 		{
-			"Name": "MapInitializerItemNode",
+			"Name": "ObjectInitializerItemNode",
 			"Members": [
 				{
+					"Name": "identifier",
+					"Type": "IdentifierToken"
+				},
+				{
+					"Name": "colonToken",
+					"Type": "SimpleToken"
+				},
+				{
 					"Name": "expr",
-					"Type": "ExprNode",
-					"Comment": "Well formed: AssignmentExprNode"
+					"Type": "ExprNode"
 				},
 				{
 					"Name": "commaToken",

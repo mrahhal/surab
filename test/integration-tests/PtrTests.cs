@@ -36,7 +36,7 @@ public class PtrTests
 				print_i32(**&n_ptr); [|42|]
 
 				var s = S.{
-					a = 43,
+					a: 43,
 				};
 				var s_ptr = &s;
 				var s_ptr_ptr = &s_ptr;
@@ -85,10 +85,10 @@ public class PtrTests
 			}
 
 			fn main() {
-				var s = S.{ a = 41.0, b = 42.0 };
+				var s = S.{ a: 41.0, b: 42.0 };
 				f(s); [|43|] // Will be copied, so the change in f shouldn't be observed in the next line.
 				print_f64(s.b); [|42|]
-				f(S.{ a = 45.0, b = 46.0 }); [|43|]
+				f(S.{ a: 45.0, b: 46.0 }); [|43|]
 			}
 			""");
 	}

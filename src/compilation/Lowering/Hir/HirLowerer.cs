@@ -576,10 +576,10 @@ internal class HirLowerer
 
 		var structLoadExpr = new HirValueLoadExpr(node, namedType, tempLocalValue);
 
-		var initializerItems = node.MapInitializer.WellFormedExprs.Select(expr =>
+		var initializerItems = node.ObjectInitializer.Items.Select(item =>
 		{
-			var targetSymbol = _reasoner.LookupSymbol(expr.Lhs)!;
-			return (targetSymbol, rhs: LowerWithCast(expr.Rhs));
+			var targetSymbol = _reasoner.LookupSymbol(item)!;
+			return (targetSymbol, expr: LowerWithCast(item.Expr));
 		});
 
 		var initFieldItems = initializerItems.Where(x => x.targetSymbol is FieldSymbol);
@@ -589,7 +589,7 @@ internal class HirLowerer
 
 		foreach (var fieldSymbol in namedTypeSymbol.Members.Fields())
 		{
-			var expr = initFieldItems.FirstOrDefault(initF => initF.targetSymbol == fieldSymbol).rhs;
+			var expr = initFieldItems.FirstOrDefault(initF => initF.targetSymbol == fieldSymbol).expr;
 			expr ??= LowerWithCast(fieldSymbol.InitializerExprNode!);
 			var fieldValue = _interner.LowerValue(fieldSymbol);
 			stmts.Add(new HirFieldStoreStmt(node, structLoadExpr, fieldValue, expr));
@@ -603,7 +603,7 @@ internal class HirLowerer
 			var initializerFnValue = _interner.LowerValue(initializerFnSymbol);
 			IEnumerable<HirExpr> argsSet = initializerFnSymbol.Params.Select(p =>
 			{
-				var arg = initParamItems.FirstOrDefault(initP => initP.targetSymbol == p).rhs;
+				var arg = initParamItems.FirstOrDefault(initP => initP.targetSymbol == p).expr;
 				arg ??= LowerWithCast(p.InitializerExprNode!);
 				return arg;
 			});
