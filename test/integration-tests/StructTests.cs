@@ -10,6 +10,10 @@ public class StructTests
 			struct S {
 				a: i32;
 
+				fn new(a: i32) S {
+					S.{ a: a }
+				}
+
 				get_a() i32 { this.a }
 			}
 
@@ -18,6 +22,8 @@ public class StructTests
 					a: 42,
 				};
 				print_i32(s.get_a()); [|42|]
+				var s2 = S.new(43);
+				print_i32(s2.get_a()); [|43|]
 			}
 			""");
 	}
