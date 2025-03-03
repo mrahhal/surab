@@ -8,28 +8,28 @@ use std::{
     io::Write,
 };
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn surabrt_print_i32(v: i32) {
     println!("{}", v);
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn surabrt_print_f64(v: f64) {
     println!("{}", v);
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn surabrt_print_bool(b: bool) {
     println!("{}", b);
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn surabrt_print_string(v: *const c_char) {
     let str = unsafe { CStr::from_ptr(v) }.to_str().unwrap();
     println!("{}", str);
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn surabrt_print_ptr(ptr: *const ()) {
     println!("{:?}", ptr);
 }
@@ -57,7 +57,7 @@ pub struct S3 {
     pub b: f64,
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn print_from_rust(s2: S2) {
     println!("==========");
     println!("From rust: ");
@@ -65,12 +65,12 @@ pub extern "C" fn print_from_rust(s2: S2) {
     println!("==========");
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn get_s3_from_rust() -> S3 {
     S3 { a: 76.0, b: 73.0 }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn print_s3_from_rust(s3: S3) {
     println!("==========");
     println!("From rust (S3): ");
