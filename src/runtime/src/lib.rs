@@ -77,3 +77,36 @@ pub extern "C" fn print_s3_from_rust(s3: S3) {
     println!("{:?}", s3);
     println!("==========");
 }
+
+trait SomeTrait {
+    fn some(&self);
+}
+trait SomeTrait2 {
+    fn some(&self);
+}
+
+struct SomeStruct {
+}
+
+impl SomeStruct {
+    pub fn some(&self) {
+        print!("1")
+    }
+}
+
+impl SomeTrait for SomeStruct {
+    fn some(&self) {
+        print!("2")
+    }
+}
+impl SomeTrait2 for SomeStruct {
+    fn some(&self) {
+        print!("22")
+    }
+}
+
+fn a() {
+    let a = SomeStruct {};
+    a.some();
+    SomeTrait::some(&a);
+}

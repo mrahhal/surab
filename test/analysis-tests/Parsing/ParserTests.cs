@@ -288,6 +288,25 @@ public class ParserTests
 	}
 
 	[Fact]
+	public void Decl_Impl()
+	{
+		var code = """
+			struct S1 {
+				a: u32;
+
+				impl Some {
+					foo() {}
+				}
+			}
+			""";
+		var node = ParseDecl(code).Should().BeOfType<StructDeclNode>().Subject;
+		node.Members.Should().HaveCount(2);
+		var implDecl = node.Members.ElementAt(1).Should().BeOfType<ImplDeclNode>().Subject;
+		implDecl.Members.Should().HaveCount(1);
+		implDecl.Members.ElementAt(0).Should().BeOfType<MethodDeclNode>();
+	}
+
+	[Fact]
 	public void Stmt_Var_1()
 	{
 		var code = "var a = 2;";

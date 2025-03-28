@@ -12,14 +12,14 @@ internal readonly record struct PtrTypeKey(TypeSymbol? innerType)
 {
 	public readonly TypeSymbol? InnerType { get; } = innerType;
 
-	public bool IsAssignableFrom(PtrTypeKey other)
+	public bool IsAssignableFrom(PtrTypeKey other, bool allowCoercion)
 	{
 		if (InnerType == null)
 		{
 			// Opaque ptr.
 			return other.InnerType == null;
 		}
-		return InnerType.IsAssignableFrom(other.InnerType);
+		return InnerType.IsAssignableFrom(other.InnerType, allowCoercion);
 	}
 
 	public override string ToString()
@@ -52,11 +52,11 @@ public class PtrTypeSymbol : TypeSymbol
 
 	public override string Name => $"*{InnerType?.Name}";
 
-	protected override bool IsAssignableFromCore(TypeSymbol to, TypeSymbol from)
+	protected override bool IsAssignableFromCore(TypeSymbol to, TypeSymbol from, bool allowCoercion)
 	{
 		if (to is not PtrTypeSymbol toPtrType || from is not PtrTypeSymbol fromPtrType)
 			return false;
-		return toPtrType.Key.IsAssignableFrom(fromPtrType.Key);
+		return toPtrType.Key.IsAssignableFrom(fromPtrType.Key, allowCoercion);
 	}
 
 	public override TypeSymbol? UnwrapPointers()

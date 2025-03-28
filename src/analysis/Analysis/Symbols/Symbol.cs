@@ -16,6 +16,7 @@ public enum SymbolKind
 	Temp,
 	This,
 	Type,
+	Impl,
 }
 
 /// <summary>
@@ -172,6 +173,37 @@ public abstract class Symbol
 		}
 	}
 
+	/// <summary>
+	/// The type symbol of the enclosing type if any.
+	/// </summary>
+	public TypeSymbol? EnclosingType
+	{
+		get
+		{
+			return Parent switch
+			{
+				TypeSymbol type => type,
+				ImplSymbol impl => impl.EnclosingType,
+				_ => throw new UnreachableException(),
+			};
+		}
+	}
+
+	/// <summary>
+	/// The enclosing impl symbol if this is a part of an impl.
+	/// </summary>
+	public ImplSymbol? EnclosingImpl
+	{
+		get
+		{
+			if (Parent is ImplSymbol impl)
+			{
+				return impl;
+			}
+			return null;
+		}
+	}
+
 	internal SymbolInterner SymbolInterner { get; set; } = null!;
 
 	/// <summary>
@@ -300,6 +332,7 @@ public abstract class Symbol
 				return symbol.Substitute(smap);
 
 			case TypeSymbolKind.Struct:
+			case TypeSymbolKind.Trait:
 			case TypeSymbolKind.Alias:
 				// Continued after switch
 				break;

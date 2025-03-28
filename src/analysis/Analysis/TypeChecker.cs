@@ -79,6 +79,27 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		base.VisitStructDecl(node);
 	}
 
+	public override void VisitTraitDecl(TraitDeclNode node)
+	{
+		// TODO: Add error diags for members that are not allowed in a trait.
+
+		base.VisitTraitDecl(node);
+	}
+
+	public override void VisitImplDecl(ImplDeclNode node)
+	{
+		var implSymbol = _reasoner.GetDeclaredSymbol(node);
+		if (implSymbol.TraitType.TypeKind != TypeSymbolKind.Trait)
+		{
+			_diags.Add(node.Name.Span, DiagLevel.Error, $"Not a trait you can implement.");
+		}
+
+		// TODO:
+		// Ensure trait is implemented fully (no missing members, no invalid members).
+
+		base.VisitImplDecl(node);
+	}
+
 	public override void VisitFieldDecl(FieldDeclNode node)
 	{
 		if (!IsMemberOfStruct(node))
@@ -91,7 +112,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 
 	public override void VisitMethodDecl(MethodDeclNode node)
 	{
-		if (!IsMemberOfStruct(node))
+		if (!IsMemberOfStruct(node) && !IsMemberOfTrait(node) && !IsMemberOfImpl(node))
 		{
 			_diags.Add(node.Span, DiagLevel.Error, $"a method decl is not allowed in this context");
 		}
@@ -141,6 +162,16 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 	private bool IsMemberOfStruct(SyntaxNode node)
 	{
 		return node.Parent is DeclsListNode declsList && declsList.Parent is StructDeclNode;
+	}
+
+	private bool IsMemberOfTrait(SyntaxNode node)
+	{
+		return node.Parent is DeclsListNode declsList && declsList.Parent is TraitDeclNode;
+	}
+
+	private bool IsMemberOfImpl(SyntaxNode node)
+	{
+		return node.Parent is DeclsListNode declsList && declsList.Parent is ImplDeclNode;
 	}
 
 	public override void VisitReturnStmt(ReturnStmtNode node)
@@ -406,7 +437,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		var targetSymbol = _reasoner.LookupSymbol(node.Target);
 		if (targetSymbol is ModuleSymbol)
 		{
-			_diags.Add(node.Name.Identifier.Span, DiagLevel.Error, $"invalid access on a module, did you mean to use :: instead?");
+			_diags.Add(node.Name.Identifier.Span, DiagLevel.Error, $"Invalid access on a module, did you mean to use `::` instead?");
 			return;
 		}
 
@@ -423,13 +454,17 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		//    return; // Should we return?
 		//}
 
-		// TODO: Store and use a lookup table for this?
-		var member = targetType.GetMember(node.Name.Identifier);
-		if (member == null)
+		var candidates = targetType.LookupAccessibleSymbols(node.Name.Identifier.Value);
+		if (candidates.Length == 0)
 		{
-			_diags.Add(node.Name.Identifier.Span, DiagLevel.Error, $"unknown member access");
+			_diags.Add(node.Name.Identifier.Span, DiagLevel.Error, $"Unknown member access.");
 		}
-		if (member is FnSymbol && _reasoner.IsInstanceAccess(node))
+		if (candidates.Length > 1)
+		{
+			_diags.Add(node.Name.Identifier.Span, DiagLevel.Error, $"Ambiguous access. More than one member matched.");
+		}
+		var match = candidates[0];
+		if (match is FnSymbol && _reasoner.IsInstanceAccess(node))
 		{
 			if (node.Parent is not CallExprNode)
 			{

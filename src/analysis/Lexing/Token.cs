@@ -42,7 +42,9 @@ public enum TokenKind
 	Fn,
 	Struct,
 	Class,
+	Trait,
 	Alias,
+	Impl,
 	This,
 	True,
 	False,
@@ -125,7 +127,9 @@ public class Token(TokenKind kind, TextSpan span, object? data)
 			Fn => "fn",
 			Struct => "struct",
 			Class => "class",
+			Trait => "trait",
 			Alias => "alias",
+			Impl => "impl",
 			This => "this",
 			True => "true",
 			False => "false",
@@ -175,7 +179,9 @@ internal static class TokenKindHelper
 		{ "fn", Fn },
 		{ "struct", Struct },
 		{ "class", Class },
+		{ "trait", Trait },
 		{ "alias", Alias },
+		{ "impl", Impl },
 		{ "this", This },
 		{ "true", True },
 		{ "false", False },
@@ -254,7 +260,9 @@ public static class TokenKindExtensions
 		Fn or
 		Struct or
 		Class or
-		Alias ||
+		Trait or
+		Alias or
+		Impl ||
 		CanStartAttribute(kind);
 
 	public static bool CanStartStmt(this TokenKind kind) =>

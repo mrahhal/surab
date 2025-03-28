@@ -64,6 +64,7 @@ internal class HirLowerer
 			MethodDeclNode n => Lower(n),
 			StructDeclNode n => Lower(n),
 			//ClassDeclNode n => Lower(n),
+			TraitDeclNode => HirElidedDecl.Instance,
 			AliasDeclNode => HirElidedDecl.Instance,
 			ReturnStmtNode n => Lower(n),
 			DeclStmtNode n => Lower(n),
@@ -161,7 +162,10 @@ internal class HirLowerer
 		{
 			var namedTypeSymbol = _reasoner.GetDeclaredSymbol(node);
 			var type = _interner.LowerType(namedTypeSymbol);
-			var nonFieldDecls = namedTypeSymbol.Members.Where(x => x.Kind is not SymbolKind.Field);
+			var nonFieldDeclsDirect = namedTypeSymbol.Members.Where(x => x.Kind is not SymbolKind.Field and not SymbolKind.Impl);
+			var nonFieldDeclsInImplBlocks = namedTypeSymbol.Members.OfType<ImplSymbol>().SelectMany(x => x.Members);
+
+			IEnumerable<Symbol> nonFieldDecls = [.. nonFieldDeclsDirect, .. nonFieldDeclsInImplBlocks];
 
 			foreach (var nonFieldDecl in nonFieldDecls)
 			{

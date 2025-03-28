@@ -57,6 +57,16 @@ public abstract partial class SyntaxTreeVisitor
 		Walk(node);
 	}
 
+	public virtual void VisitTraitDecl(TraitDeclNode node)
+	{
+		Walk(node);
+	}
+
+	public virtual void VisitImplDecl(ImplDeclNode node)
+	{
+		Walk(node);
+	}
+
 	public virtual void VisitDeclsList(DeclsListNode node)
 	{
 		Walk(node);

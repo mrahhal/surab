@@ -27,19 +27,19 @@ internal readonly struct FnTypeKey(
 			ParamTypesEqual(this, other);
 	}
 
-	public bool IsAssignableFrom(FnTypeKey other)
+	public bool IsAssignableFrom(FnTypeKey other, bool allowCoercion)
 	{
 		return
 			IsExtern == other.IsExtern &&
-			ReturnTypesAssignable(ReturnType, other.ReturnType) &&
-			ParamTypesAssignable(this, other);
+			ReturnTypesAssignable(ReturnType, other.ReturnType, allowCoercion) &&
+			ParamTypesAssignable(this, other, allowCoercion);
 	}
 
 	private static bool ReturnTypesEqual(TypeSymbol x, TypeSymbol y) => x == y;
-	private static bool ReturnTypesAssignable(TypeSymbol x, TypeSymbol y) => x.IsAssignableFrom(y);
+	private static bool ReturnTypesAssignable(TypeSymbol x, TypeSymbol y, bool allowCoercion) => x.IsAssignableFrom(y, allowCoercion);
 
 	private static bool ParamTypesEqual(FnTypeKey x, FnTypeKey y) => ParamTypesCompare(x, y, (x, y) => x == y);
-	private static bool ParamTypesAssignable(FnTypeKey x, FnTypeKey y) => ParamTypesCompare(x, y, (x, y) => x.IsAssignableFrom(y));
+	private static bool ParamTypesAssignable(FnTypeKey x, FnTypeKey y, bool allowCoercion) => ParamTypesCompare(x, y, (x, y) => x.IsAssignableFrom(y, allowCoercion));
 	private static bool ParamTypesCompare(FnTypeKey x, FnTypeKey y, Func<TypeSymbol, TypeSymbol, bool> compare)
 	{
 		if (x.ParamTypes.Length != y.ParamTypes.Length)
@@ -117,13 +117,14 @@ public class FnTypeSymbol : TypeSymbol
 	// TODO: If it's a named fn type (alias), display that instead?
 	public override string Name => Key.ToString();
 
+	// TODO: Should we return an empty list instead?
 	public override ImmutableArray<Symbol> Members => throw new NotImplementedException();
 
-	protected override bool IsAssignableFromCore(TypeSymbol to, TypeSymbol from)
+	protected override bool IsAssignableFromCore(TypeSymbol to, TypeSymbol from, bool allowCoercion)
 	{
 		if (to is not FnTypeSymbol toFnType || from is not FnTypeSymbol fromFnType)
 			return false;
-		return toFnType.Key.IsAssignableFrom(fromFnType.Key);
+		return toFnType.Key.IsAssignableFrom(fromFnType.Key, allowCoercion);
 	}
 
 	internal override TypeSymbol SubstituteCore(SubstitutionMap smap)

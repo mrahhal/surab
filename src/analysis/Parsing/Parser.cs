@@ -571,6 +571,7 @@ internal class ParserImpl
 			TokenKind.Var => ParseVarDecl(attrs),
 			TokenKind.Fn => ParseFnDecl(attrs),
 			TokenKind.Struct => ParseStructDecl(attrs),
+			TokenKind.Trait => ParseTraitDecl(attrs),
 			TokenKind.Alias => ParseAliasDecl(attrs),
 
 			_ => RecoverDecl(),
@@ -590,6 +591,8 @@ internal class ParserImpl
 			TokenKind.Identifier when P0()?.Kind is TokenKind.OpenParen or TokenKind.Less => ParseMethodDecl(attrs),
 			// `(` (initializer)
 			TokenKind.OpenParen => ParseMethodDecl(attrs),
+			// `impl identifier`
+			TokenKind.Impl => ParseImplDecl(attrs),
 			// `+(`
 			_ when _current != null && _current.Kind.IsMethodOp() && P0()?.Kind is TokenKind.OpenParen => ParseMethodDecl(attrs),
 
@@ -669,6 +672,20 @@ internal class ParserImpl
 	}
 
 	/// <summary>
+	/// Parses `impl Name { ... }`
+	/// </summary>
+	private DeclNode ParseImplDecl(AttrsListNode? attrs)
+	{
+		var implToken = EatAssertedSimpleToken(TokenKind.Impl);
+		var name = ParseName();
+		var openBraceToken = EatExpectedSimpleToken(TokenKind.OpenBrace);
+		var members = ParseDeclMembers();
+		var closedBraceToken = EatExpectedSimpleToken(TokenKind.ClosedBrace);
+
+		return new ImplDeclNode(_tree, attrs, implToken, name, openBraceToken, members, closedBraceToken);
+	}
+
+	/// <summary>
 	/// Parses `struct Name { ... }`
 	/// </summary>
 	private DeclNode ParseStructDecl(AttrsListNode? attrs)
@@ -680,6 +697,20 @@ internal class ParserImpl
 		var closedBraceToken = EatExpectedSimpleToken(TokenKind.ClosedBrace);
 
 		return new StructDeclNode(_tree, attrs, structToken, name, openBraceToken, members, closedBraceToken);
+	}
+
+	/// <summary>
+	/// Parses `trait Name { ... }`
+	/// </summary>
+	private DeclNode ParseTraitDecl(AttrsListNode? attrs)
+	{
+		var structToken = EatAssertedSimpleToken(TokenKind.Trait);
+		var name = ParseNameDef(isTypeDecl: true);
+		var openBraceToken = EatExpectedSimpleToken(TokenKind.OpenBrace);
+		var members = ParseDeclMembers();
+		var closedBraceToken = EatExpectedSimpleToken(TokenKind.ClosedBrace);
+
+		return new TraitDeclNode(_tree, attrs, structToken, name, openBraceToken, members, closedBraceToken);
 	}
 
 	private DeclsListNode? ParseDeclMembers()
@@ -1309,7 +1340,7 @@ internal class ParserImpl
 	}
 
 	/// <summary>
-	/// Returns false for type names that are not allowed (e.g. `as`).
+	/// Returns false for type names that are not allowed (e.g. `as`, `This`).
 	/// This is so that we can still parse certain syntax properly without having to create reserved keywords.
 	/// </summary>
 	private bool CurrentIdentifierAllowedAsTypeName()
@@ -1317,6 +1348,10 @@ internal class ParserImpl
 		Debug.Assert(!IsAtEnd() && _current.Kind is TokenKind.Identifier);
 
 		var lexeme = GetLexeme(_current);
+		if (lexeme == "This") // This is a reserved type name.
+		{
+			return false;
+		}
 		return !TokenHelper.IsContextualKeyword(ContextualKeyword.As, lexeme);
 	}
 

@@ -6,10 +6,7 @@ public abstract class FieldSymbol : Symbol, ISymbolHasType
 	{
 	}
 
-	/// <summary>
-	/// The type symbol of the enclosing type.
-	/// </summary>
-	public TypeSymbol EnclosingType => (TypeSymbol)Parent!;
+	public new TypeSymbol EnclosingType => base.EnclosingType!;
 
 	/// <summary>
 	/// The type of the field.

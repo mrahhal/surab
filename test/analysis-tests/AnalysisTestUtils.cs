@@ -1,4 +1,6 @@
-﻿namespace Surab.Analysis;
+﻿using FluentAssertions.Execution;
+
+namespace Surab.Analysis;
 
 public static class AnalysisTestUtils
 {
@@ -69,6 +71,21 @@ public static class AnalysisTestUtils
 		{
 			var node = GetNode(name);
 			return node.Should().BeAssignableTo<T>().Subject;
+		}
+
+		public FnSymbol GetDeclaredFnSymbol(string name)
+		{
+			return Reasoner.GetDeclaredSymbol(GetNode<FnDeclNode>(name));
+		}
+
+		public FnSymbol GetDeclaredMethodSymbol(string name)
+		{
+			return Reasoner.GetDeclaredSymbol(GetNode<NameDefNode>(name).Ancestors().OfType<MethodDeclNode>().First());
+		}
+
+		public ImplSymbol GetDeclaredImplSymbol(string name)
+		{
+			return Reasoner.GetDeclaredSymbol(GetNode<ImplDeclNode>(name));
 		}
 	}
 }

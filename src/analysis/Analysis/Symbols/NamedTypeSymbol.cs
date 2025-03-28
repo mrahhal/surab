@@ -4,7 +4,7 @@ using System.Diagnostics;
 namespace Surab.Analysis;
 
 /// <summary>
-/// A named type. Can be any of: struct.
+/// A named type. Can be any of: struct, trait.
 /// </summary>
 public abstract class NamedTypeSymbol : TypeSymbol, ISymbolHasExternAttr, IPossiblyGenericSymbol
 {
@@ -138,11 +138,13 @@ public class SrcNamedTypeSymbol : NamedTypeSymbol
 		IdentifierToken = node switch
 		{
 			StructDeclNode structDecl => structDecl.Name.Identifier,
+			TraitDeclNode traitDecl => traitDecl.Name.Identifier,
 			_ => throw new UnreachableException(),
 		};
 		TypeKind = node switch
 		{
 			StructDeclNode => TypeSymbolKind.Struct,
+			TraitDeclNode => TypeSymbolKind.Trait,
 			_ => throw new UnreachableException(),
 		};
 	}
@@ -158,6 +160,7 @@ public class SrcNamedTypeSymbol : NamedTypeSymbol
 	private AttrsListNode? AttrsListNode => _node switch
 	{
 		StructDeclNode structDecl => structDecl.Attrs,
+		TraitDeclNode traitDecl => traitDecl.Attrs,
 		_ => throw new UnreachableException(),
 	};
 
@@ -190,6 +193,7 @@ public class SrcNamedTypeSymbol : NamedTypeSymbol
 	private GenericParamsListNode? GetGenericParamsList() => _node switch
 	{
 		StructDeclNode structDecl => structDecl.Name.GenericParamsList,
+		TraitDeclNode traitDecl => traitDecl.Name.GenericParamsList,
 		_ => throw new UnreachableException(),
 	};
 
@@ -223,6 +227,7 @@ public class SrcNamedTypeSymbol : NamedTypeSymbol
 		return _node switch
 		{
 			StructDeclNode structDecl => structDecl.Members,
+			TraitDeclNode traitDecl => traitDecl.Members,
 			_ => throw new UnreachableException(),
 		};
 	}
