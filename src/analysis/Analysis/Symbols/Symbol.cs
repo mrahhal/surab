@@ -26,6 +26,7 @@ public enum SymbolKind
 public abstract class Symbol
 {
 	private Reasoner? _reasoner;
+	private SymbolInterner? _symbolInterner;
 	private Symbol? _parent;
 	private string? _fullName;
 
@@ -50,6 +51,23 @@ public abstract class Symbol
 		set
 		{
 			_reasoner = value;
+		}
+	}
+
+	// TODO: Do this better.
+	internal SymbolInterner SymbolInterner
+	{
+		get
+		{
+			if (_symbolInterner == null)
+			{
+				throw new InvalidOperationException($"SymbolInterner was not set on symbol '{GetType().Name}'.");
+			}
+			return _symbolInterner;
+		}
+		set
+		{
+			_symbolInterner = value;
 		}
 	}
 
@@ -203,8 +221,6 @@ public abstract class Symbol
 			return null;
 		}
 	}
-
-	internal SymbolInterner SymbolInterner { get; set; } = null!;
 
 	/// <summary>
 	/// Returns a symbol's hierarchy as a list, starting from the top level symbol down to this symbol.
