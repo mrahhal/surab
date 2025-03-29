@@ -268,7 +268,7 @@ internal class ParserImpl
 
 	private void ReportSkippedNode(SyntaxNode node)
 	{
-		_diags.Add(CoreDiags.S0001, node.Span);
+		_diags.Add(CoreDiags.S0001_SkippedUnparsedTokens, node.Span);
 	}
 
 	private List<SkippedToken> RecoverMain()
@@ -427,7 +427,7 @@ internal class ParserImpl
 	private SimpleToken CreateMissingSimpleToken(TokenKind tokenKind)
 	{
 		var token = SimpleToken.CreateMissing(_tree, tokenKind, GetProperSpanForMissingThingAtCurrent());
-		_diags.Add(CoreDiags.S0002, token.Span, [token]);
+		_diags.Add(CoreDiags.S0002_Expected_0_, token.Span, [token]);
 		return token;
 	}
 
@@ -460,7 +460,7 @@ internal class ParserImpl
 	private SimpleToken CreateMissingContextualToken(ContextualKeyword kw)
 	{
 		var token = SimpleToken.CreateMissing(_tree, kw, GetProperSpanForMissingThingAtCurrent());
-		_diags.Add(CoreDiags.S0002, token.Span, [kw]);
+		_diags.Add(CoreDiags.S0002_Expected_0_, token.Span, [kw]);
 		return token;
 	}
 
@@ -468,14 +468,14 @@ internal class ParserImpl
 	{
 		// TODO: Is the span shrinking here correct?
 		var node = new MissingTypeNode(_tree, attrs == null ? GetProperSpanForMissingThingAtCurrent() : attrs.Span.ShrinkToEnd(), attrs);
-		_diags.Add(CoreDiags.S0003, node.Span);
+		_diags.Add(CoreDiags.S0003_ExpectedAType, node.Span);
 		return node;
 	}
 
 	private MissingExprNode CreateMissingExprNode()
 	{
 		var node = new MissingExprNode(_tree, GetProperSpanForMissingThingAtCurrent());
-		_diags.Add(CoreDiags.S0004, node.Span);
+		_diags.Add(CoreDiags.S0004_ExpectedAnExpression, node.Span);
 		return node;
 	}
 
@@ -1717,7 +1717,7 @@ internal class ParserImpl
 		if (!CurrentIdentifierAllowedAsTypeName())
 		{
 			// TODO: This alone might not be ideal. Would be better if we can also create an *error* identifier token to represent this.
-			_diags.Add(CoreDiags.S0006, _current.Span, [GetLexeme(_current).ToString()]);
+			_diags.Add(CoreDiags.S0006__0_IsNotAllowedAsATypeName, _current.Span, [GetLexeme(_current).ToString()]);
 		}
 
 		return ParseOptionalIdentifier();
@@ -1731,7 +1731,7 @@ internal class ParserImpl
 	private IdentifierToken CreateMissingIdentifierToken()
 	{
 		var token = IdentifierToken.CreateMissing(_tree, GetProperSpanForMissingThingAtCurrent(startFromLeadingTrivia: false));
-		_diags.Add(CoreDiags.S0005, token.Span);
+		_diags.Add(CoreDiags.S0005_ExpectedAnIdentifier, token.Span);
 		return token;
 	}
 

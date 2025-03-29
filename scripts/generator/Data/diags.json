@@ -1,0 +1,50 @@
+{
+	"S0001": {
+		"Level": "Error",
+		"Message": "Skipped unparsed tokens."
+	},
+	"S0002": {
+		"Level": "Error",
+		"Message": "Expected '{0}'."
+	},
+	"S0003": {
+		"Level": "Error",
+		"Message": "Expected a type."
+	},
+	"S0004": {
+		"Level": "Error",
+		"Message": "Expected an expression."
+	},
+	"S0005": {
+		"Level": "Error",
+		"Message": "Expected an identifier."
+	},
+	"S0006": {
+		"Level": "Error",
+		"Message": "'{0}' is not allowed as a type name."
+	},
+	"S0100": {
+		"Level": "Error",
+		"Message": "Invalid syntax for import."
+	},
+	"S0101": {
+		"Level": "Error",
+		"Message": "Failed to resolve module to import."
+	},
+	"S0150": {
+		"Level": "Error",
+		"Message": "'{0}' is not allowed in this context."
+	},
+	"S0200": {
+		"Level": "Error",
+		"Message": "Not a trait to implement."
+	},
+	"S0201": {
+		"Level": "Error",
+		"Message": "Trait not fully implemented. Missing members: {0}."
+	},
+	"S0202": {
+		"Level": "Error",
+		"Message": "Member not a part of the trait."
+	}
+}

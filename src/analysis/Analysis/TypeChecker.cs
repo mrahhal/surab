@@ -26,11 +26,11 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 	{
 		if (node.Target is not NameExprNode and not AccessExprNode)
 		{
-			_diags.Add(CoreDiags.S0100, node.Target.Span);
+			_diags.Add(CoreDiags.S0100_InvalidSyntaxForImport, node.Target.Span);
 		}
 		else if (_reasoner.ResolveImport(node).IsFailed)
 		{
-			_diags.Add(CoreDiags.S0101, node.Target.Span);
+			_diags.Add(CoreDiags.S0101_FailedToResolveModuleToImport, node.Target.Span);
 		}
 
 		// TODO: Need a way to try resolve an import that connects back to the SurabProject somehow.
@@ -89,7 +89,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		var implSymbol = _reasoner.GetDeclaredSymbol(node);
 		if (implSymbol.TraitType.TypeKind != TypeSymbolKind.Trait)
 		{
-			_diags.Add(CoreDiags.S0200, node.Name.Span);
+			_diags.Add(CoreDiags.S0200_NotATraitToImplement, node.Name.Span);
 		}
 		else
 		{
@@ -108,12 +108,12 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 			if (missingMembers.Count != 0)
 			{
 				var missingMembersText = string.Join(',', missingMembers.Select(x => x.ImplSymbol.Name));
-				_diags.Add(CoreDiags.S0201, node.Name.Span, [missingMembersText]);
+				_diags.Add(CoreDiags.S0201_TraitNotFullyImplementedMissingMembers_0_, node.Name.Span, [missingMembersText]);
 			}
 
 			foreach (var invalidMember in invalidMembers)
 			{
-				_diags.Add(CoreDiags.S0202, invalidMember.Span);
+				_diags.Add(CoreDiags.S0202_MemberNotAPartOfTheTrait, invalidMember.Span);
 			}
 		}
 
@@ -125,7 +125,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		var symbol = _reasoner.GetDeclaredSymbol(node);
 		if (!SymbolFacts.IsFieldInAllowedContext(symbol))
 		{
-			_diags.Add(CoreDiags.S0150, symbol.SelectionSpan, [symbol.Name]);
+			_diags.Add(CoreDiags.S0150__0_IsNotAllowedInThisContext, symbol.SelectionSpan, [symbol.Name]);
 		}
 
 		base.VisitFieldDecl(node);
@@ -137,7 +137,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 
 		if (!SymbolFacts.IsFnInAllowedContext(fnSymbol))
 		{
-			_diags.Add(CoreDiags.S0150, fnSymbol.SelectionSpan, [fnSymbol.Name]);
+			_diags.Add(CoreDiags.S0150__0_IsNotAllowedInThisContext, fnSymbol.SelectionSpan, [fnSymbol.Name]);
 		}
 		else if (node.IsInitializer)
 		{
