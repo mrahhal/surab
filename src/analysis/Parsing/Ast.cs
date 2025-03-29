@@ -1109,8 +1109,8 @@ public static class SyntaxNodeExtensions
 		return node switch
 		{
 			ISyntaxNodeHasMainIdentifier n => n.Identifier,
-			FnDeclNode n => GetMainIdentifierToken(n.Sig),
-			MethodDeclNode n => GetMainIdentifierToken(n.Sig),
+			FnDeclNode n => n.Sig.Name.Identifier,
+			MethodDeclNode n => n.Sig.Name.Identifier,
 			_ => null,
 		};
 	}
