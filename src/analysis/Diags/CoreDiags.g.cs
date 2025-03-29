@@ -60,6 +60,14 @@ public static class CoreDiags
 		"'{0}' is not allowed as a type name.");
 
 	/// <summary>
+	/// Expected a body or ';'.
+	/// </summary>
+	public static readonly DiagDef S0007_ExpectedABodyOrSemicolon = new(
+		"S0007",
+		DiagLevel.Error,
+		"Expected a body or ';'.");
+
+	/// <summary>
 	/// Invalid syntax for import.
 	/// </summary>
 	public static readonly DiagDef S0100_InvalidSyntaxForImport = new(

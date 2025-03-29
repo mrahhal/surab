@@ -23,6 +23,10 @@
 		"Level": "Error",
 		"Message": "'{0}' is not allowed as a type name."
 	},
+	"S0007": {
+		"Level": "Error",
+		"Message": "Expected a body or ';'."
+	},
 	"S0100": {
 		"Level": "Error",
 		"Message": "Invalid syntax for import."

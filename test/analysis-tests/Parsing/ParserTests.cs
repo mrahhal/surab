@@ -102,8 +102,7 @@ public class ParserTests
 	public void Decl_Fn_Faulty()
 	{
 		var code = "fn some()";
-		// Semicolon and body can body be nulls so this won't have a parsing diag.
-		ParseDecl(code, hasDiags: false).Should().NotBeNull();
+		ParseDecl(code, hasDiags: true).Should().NotBeNull();
 	}
 
 	[Fact]

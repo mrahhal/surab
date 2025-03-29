@@ -69,6 +69,7 @@ public class DiagsDataProvider
 		{
 			message = message.Replace(item, "_");
 		}
+		message = message.Replace(";", "Semicolon");
 		return message;
 	}
 }

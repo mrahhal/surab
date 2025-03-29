@@ -672,6 +672,10 @@ internal class ParserImpl
 		{
 			semicolonToken = TryEatSimpleToken(TokenKind.Semicolon);
 		}
+		if (body == null && semicolonToken == null)
+		{
+			_diags.Add(CoreDiags.S0007_ExpectedABodyOrSemicolon, GetProperSpanForMissingThingAtCurrent());
+		}
 		return (body, semicolonToken);
 	}
 
