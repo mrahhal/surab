@@ -482,7 +482,11 @@ internal class ParserImpl
 	private TextSpan GetProperSpanForMissingThingAtCurrent(bool startFromLeadingTrivia = true)
 	{
 		if (_current == null)
-			return new();
+		{
+			// Can be the case if we're at the end of the file. Just return the prev span shrinked to end.
+			Debug.Assert(_prev != null);
+			return _prev.Span.ShrinkToEnd();
+		}
 
 		// Try to get a span at the start of the first leading trivia of the current token.
 		// e.g. This gives us a span at the newline to report a missing semicolon, instead of at the next token

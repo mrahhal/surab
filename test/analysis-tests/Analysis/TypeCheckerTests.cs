@@ -3,6 +3,20 @@
 public class TypeCheckerTests
 {
 	[Fact]
+	public void Expected()
+	{
+		Test("""
+			struct S1 {
+				some: i32{|S0002:|}
+			}
+
+			fn foo() {
+				var a = 2{|S0002:|}
+			}
+			""");
+	}
+
+	[Fact]
 	public void Import_InvalidSyntax()
 	{
 		Test("""
