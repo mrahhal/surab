@@ -167,6 +167,16 @@ public class TypeCheckerTests
 			""");
 	}
 
+	[Fact]
+	public void Trait_CannotHaveBody()
+	{
+		Test("""
+			trait T1 {
+				{|S0203:some|}() { }
+			}
+			""");
+	}
+
 	private void Test(string markup) => AnalyzerTestUtils.Test(markup);
 }
 

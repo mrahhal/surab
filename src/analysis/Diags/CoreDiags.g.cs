@@ -107,4 +107,12 @@ public static class CoreDiags
 		DiagLevel.Error,
 		"Member not a part of the trait.");
 
+	/// <summary>
+	/// Trait method cannot have a body.
+	/// </summary>
+	public static readonly DiagDef S0203_TraitMethodCannotHaveABody = new(
+		"S0203",
+		DiagLevel.Error,
+		"Trait method cannot have a body.");
+
 }

@@ -159,6 +159,10 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 				_diags.Add(node.Sig.ParamsList.Span, DiagLevel.Error, $"only one initializer is allowed on a type");
 			}
 		}
+		else if (fnSymbol.HasBody && fnSymbol.EnclosingType?.TypeKind is TypeSymbolKind.Trait)
+		{
+			_diags.Add(CoreDiags.S0203_TraitMethodCannotHaveABody, fnSymbol.SelectionSpan);
+		}
 
 		base.VisitMethodDecl(node);
 	}

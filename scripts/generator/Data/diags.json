@@ -46,5 +46,9 @@
 	"S0202": {
 		"Level": "Error",
 		"Message": "Member not a part of the trait."
+	},
+	"S0203": {
+		"Level": "Error",
+		"Message": "Trait method cannot have a body."
 	}
 }
