@@ -19,15 +19,18 @@ public static class GetSyntaxTreeRequest
 	public static Task<SyntaxTreeNode?> HandlerAsync(TextDocumentPositionParams @params, LanguageServer server)
 	{
 		var solver = server.Services.GetRequiredService<SurabSolver>();
-		var file = solver.GetFile(@params.TextDocument);
-		if (file != null)
+		return solver.Workspace.LockForRead(() =>
 		{
-			var project = solver.Workspace.GetFileProject(file.Path);
-			var tree = project.GetSyntaxTree(file);
-			return Task.FromResult(Convert(tree));
-		}
+			var file = solver.GetFile(@params.TextDocument);
+			if (file != null)
+			{
+				var project = solver.Workspace.GetFileProject(file.Path);
+				var tree = project.GetSyntaxTree(file);
+				return Task.FromResult(Convert(tree));
+			}
 
-		return Task.FromResult((SyntaxTreeNode?)null);
+			return Task.FromResult((SyntaxTreeNode?)null);
+		});
 	}
 
 	private static SyntaxTreeNode? Convert(SyntaxTree tree)
