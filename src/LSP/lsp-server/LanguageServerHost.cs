@@ -121,6 +121,7 @@ public class LanguageServerHost
 				Uri = DocumentUri.FromFileSystemPath(fileDiags.FilePath.Value),
 				Diagnostics = Container.From(fileDiags.Diags.Select(d => new Diagnostic
 				{
+					Code = d.Id != null ? (DiagnosticCode?)new DiagnosticCode(d.Id) : null,
 					Range = ConversionHelper.FromTo(d.Span),
 					Severity = ConversionHelper.FromTo(d.Level),
 					Message = d.Message,
