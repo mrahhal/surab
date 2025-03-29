@@ -12,6 +12,8 @@ public abstract class ImplSymbol : Symbol
 	{
 	}
 
+	public override IEnumerable<Symbol> Children => [.. RawMembers];
+
 	// Generic trait usage is a part of the TraitType below, so  ImplSymbol does not have substitutes.
 	public override Symbol OriginalDef => this;
 

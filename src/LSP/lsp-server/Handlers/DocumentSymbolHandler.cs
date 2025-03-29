@@ -91,6 +91,7 @@ public class DocumentSymbolHandler(
 		{
 			FnSymbol fn => SyntaxTreeUtils.GetSigStringWithoutIdentifier(fn.SigNode),
 			ISymbolHasType hasType => hasType.Type.Name,
+			ImplSymbol => "impl",
 			_ => null,
 		};
 	}
@@ -116,9 +117,11 @@ public class DocumentSymbolHandler(
 			NamedTypeSymbol namedType => namedType.TypeKind switch
 			{
 				TypeSymbolKind.Struct => LSPSymbolKind.Struct,
+				TypeSymbolKind.Trait => LSPSymbolKind.Interface,
 				_ => LSPSymbolKind.Null, // TODO
 			},
 			AliasTypeSymbol => LSPSymbolKind.Null, // TODO
+			ImplSymbol => LSPSymbolKind.Interface,
 			_ => null,
 		};
 	}

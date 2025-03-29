@@ -9,7 +9,7 @@ export const getSyntaxTreeRequest = new lc.RequestType<
 >("surab/getSyntaxTree");
 
 export class SyntaxTreeNode {
-	identifier: string;
+	identifier: string | null;
 	kind: string;
 	span: vscode.Range;
 	spanLabel: string;
@@ -33,7 +33,7 @@ export class SyntaxTreeProvider implements vscode.TreeDataProvider<SyntaxTreeNod
 	}
 
 	getTreeItem(node: SyntaxTreeNode): vscode.TreeItem | Promise<vscode.TreeItem> {
-		var identifierText = node.identifier ? "" : `@ ${node.identifier}`;
+		var identifierText = node.identifier ? `@ ${node.identifier}` : "";
 		const label = `${node.kind} ${identifierText} ${node.spanLabel}`;
 
 		const item = new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.Expanded);
@@ -90,7 +90,7 @@ function getIconFromNodeKind(kind: string): string | null {
 		case 'ImportsList': return 'symbol-module';
 		case 'Import': return 'symbol-module';
 		case 'ConstDecl': return 'symbol-constant';
-		case 'VarDecl': return '';
+		case 'VarDecl': return 'symbol-variable';
 		case 'FnDecl': return 'symbol-function';
 		case 'MethodDecl': return 'symbol-function';
 		case 'AliasDecl': return 'symbol-key';
