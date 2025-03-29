@@ -27,6 +27,30 @@
 		"watch": "tsc -b -w"
 	},
 	"contributes": {
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "surab-debug",
+					"title": "Surab (debug)",
+					"icon": "$(list-tree)"
+				}
+			]
+		},
+		"views": {
+			"surab-debug": [
+				{
+					"id": "surab-debug-syntax-tree",
+					"name": "Syntax Tree",
+					"icon": "$(list-tree)"
+				}
+			]
+		},
+		"viewsWelcome": [
+			{
+				"view": "surab-debug-syntax-tree",
+				"contents": "Nothing to show..."
+			}
+		],
 		"languages": [
 			{
 				"id": "surab",

@@ -7,6 +7,7 @@ using OmniSharp.Extensions.LanguageServer.Server;
 using Serilog;
 using Surab.Analysis;
 using Surab.LSPServer.Handlers;
+using Surab.LSPServer.Requests;
 
 namespace Surab.LSPServer;
 
@@ -73,7 +74,9 @@ public class LanguageServerHost
 			.WithHandler<DeclarationHandler>()
 			.WithHandler<HoverHandler>()
 			.WithHandler<DocumentSymbolHandler>()
-			.WithHandler<SignatureHelpHandler>();
+			.WithHandler<SignatureHelpHandler>()
+
+			.OnRequest<TextDocumentPositionParams, GetSyntaxTreeRequest.SyntaxTreeNode?>("surab/getSyntaxTree", p => GetSyntaxTreeRequest.HandlerAsync(p, Server));
 
 		Server = LanguageServer.Create(options, services.BuildServiceProvider());
 		_logger = Server.Services.GetRequiredService<ILogger<LanguageServerHost>>();

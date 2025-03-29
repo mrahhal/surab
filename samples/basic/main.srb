@@ -6,6 +6,10 @@ alias @extern fn (S2) as Delegate1;
 /* c */ const /* c */ /* c */ a /* c */ = /* c */ 2 /* c */; // c
 */
 
+trait T1 {
+	foo() i32;
+}
+
 struct S1 {
 	a: f64;
 	b: bool;
@@ -17,6 +21,10 @@ struct S1 {
 	}
 
 	get_number() i32 { this.c }
+
+	impl T1 {
+		foo() i32 { 42 }
+	}
 }
 
 @extern

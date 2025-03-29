@@ -176,8 +176,8 @@ public class SurabWorkspace
 					return file;
 			}
 		}
-		// REVIEW:
-		throw new UnreachableException();
+
+		return null;
 	}
 
 	public async Task EnsureAnalyzedAsync(CancellationToken ct = default)
