@@ -242,6 +242,70 @@
 			]
 		},
 		{
+			"Name": "TraitDeclNode",
+			"Base": "DeclNode",
+			"Members": [
+				{
+					"Name": "attrs",
+					"Type": "AttrsListNode",
+					"Optional": true
+				},
+				{
+					"Name": "traitToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "name",
+					"Type": "NameDefNode"
+				},
+				{
+					"Name": "openBraceToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "declsList",
+					"Type": "DeclsListNode",
+					"Optional": true
+				},
+				{
+					"Name": "closedBraceToken",
+					"Type": "SimpleToken"
+				}
+			]
+		},
+		{
+			"Name": "ImplDeclNode",
+			"Base": "DeclNode",
+			"Members": [
+				{
+					"Name": "attrs",
+					"Type": "AttrsListNode",
+					"Optional": true
+				},
+				{
+					"Name": "implToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "name",
+					"Type": "NameNode"
+				},
+				{
+					"Name": "openBraceToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "declsList",
+					"Type": "DeclsListNode",
+					"Optional": true
+				},
+				{
+					"Name": "closedBraceToken",
+					"Type": "SimpleToken"
+				}
+			]
+		},
+		{
 			"Name": "DeclsListNode",
 			"Members": [
 				{

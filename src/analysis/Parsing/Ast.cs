@@ -179,7 +179,9 @@ public enum SimpleTokenKind
 	Fn,
 	Struct,
 	Class,
+	Trait,
 	Alias,
+	Impl,
 	This,
 	True,
 	False,
@@ -255,7 +257,9 @@ public sealed class SimpleToken : SyntaxToken
 				TokenKind.Fn => SimpleTokenKind.Fn,
 				TokenKind.Struct => SimpleTokenKind.Struct,
 				TokenKind.Class => SimpleTokenKind.Class,
+				TokenKind.Trait => SimpleTokenKind.Trait,
 				TokenKind.Alias => SimpleTokenKind.Alias,
+				TokenKind.Impl => SimpleTokenKind.Impl,
 				TokenKind.This => SimpleTokenKind.This,
 				TokenKind.True => SimpleTokenKind.True,
 				TokenKind.False => SimpleTokenKind.False,
@@ -316,7 +320,9 @@ public sealed class SimpleToken : SyntaxToken
 			SimpleTokenKind.Fn => "fn",
 			SimpleTokenKind.Struct => "struct",
 			SimpleTokenKind.Class => "class",
+			SimpleTokenKind.Trait => "trait",
 			SimpleTokenKind.Alias => "alias",
+			SimpleTokenKind.Impl => "impl",
 			SimpleTokenKind.This => "this",
 			SimpleTokenKind.True => "true",
 			SimpleTokenKind.False => "false",
@@ -1048,6 +1054,18 @@ public partial class ConstDeclNode
 public partial class StructDeclNode
 {
 	// REVIEW: Decls might be a better name. Not all these decls are members (e.g. local decl).
+	public IEnumerable<DeclNode> Members => DeclsList?.Decls ?? [];
+}
+
+public partial class TraitDeclNode
+{
+	// REVIEW: same as above
+	public IEnumerable<DeclNode> Members => DeclsList?.Decls ?? [];
+}
+
+public partial class ImplDeclNode
+{
+	// REVIEW: same as above
 	public IEnumerable<DeclNode> Members => DeclsList?.Decls ?? [];
 }
 

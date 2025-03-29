@@ -14,6 +14,7 @@ async Task Generate()
 {
 	await GenerateAst();
 	await GenerateAstVisitors();
+	await GenerateDiags();
 }
 
 async Task GenerateAst()
@@ -27,5 +28,12 @@ async Task GenerateAstVisitors()
 {
 	var generatedFilePath = Path.Combine(srcFolderPath, "analysis/Parsing/SyntaxTreeVisitor.g.cs");
 	var generator = provider.GetRequiredService<AstVisitorsGenerator>();
+	await generator.GenerateToAsync(generatedFilePath);
+}
+
+async Task GenerateDiags()
+{
+	var generatedFilePath = Path.Combine(srcFolderPath, "analysis/Diags/CoreDiags.g.cs");
+	var generator = provider.GetRequiredService<DiagsGenerator>();
 	await generator.GenerateToAsync(generatedFilePath);
 }

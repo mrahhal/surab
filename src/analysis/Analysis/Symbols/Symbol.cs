@@ -16,6 +16,7 @@ public enum SymbolKind
 	Temp,
 	This,
 	Type,
+	Impl,
 }
 
 /// <summary>
@@ -25,6 +26,7 @@ public enum SymbolKind
 public abstract class Symbol
 {
 	private Reasoner? _reasoner;
+	private SymbolInterner? _symbolInterner;
 	private Symbol? _parent;
 	private string? _fullName;
 
@@ -49,6 +51,23 @@ public abstract class Symbol
 		set
 		{
 			_reasoner = value;
+		}
+	}
+
+	// TODO: Do this better.
+	internal SymbolInterner SymbolInterner
+	{
+		get
+		{
+			if (_symbolInterner == null)
+			{
+				throw new InvalidOperationException($"SymbolInterner was not set on symbol '{GetType().Name}'.");
+			}
+			return _symbolInterner;
+		}
+		set
+		{
+			_symbolInterner = value;
 		}
 	}
 
@@ -172,7 +191,36 @@ public abstract class Symbol
 		}
 	}
 
-	internal SymbolInterner SymbolInterner { get; set; } = null!;
+	/// <summary>
+	/// The type symbol of the enclosing type if any.
+	/// </summary>
+	public TypeSymbol? EnclosingType
+	{
+		get
+		{
+			return Parent switch
+			{
+				TypeSymbol type => type,
+				ImplSymbol impl => impl.EnclosingType,
+				_ => throw new UnreachableException(),
+			};
+		}
+	}
+
+	/// <summary>
+	/// The enclosing impl symbol if this is a part of an impl.
+	/// </summary>
+	public ImplSymbol? EnclosingImpl
+	{
+		get
+		{
+			if (Parent is ImplSymbol impl)
+			{
+				return impl;
+			}
+			return null;
+		}
+	}
 
 	/// <summary>
 	/// Returns a symbol's hierarchy as a list, starting from the top level symbol down to this symbol.
@@ -300,6 +348,7 @@ public abstract class Symbol
 				return symbol.Substitute(smap);
 
 			case TypeSymbolKind.Struct:
+			case TypeSymbolKind.Trait:
 			case TypeSymbolKind.Alias:
 				// Continued after switch
 				break;
@@ -459,8 +508,6 @@ public interface ISymbolHasExternAttr
 
 public static class SymbolExtensions
 {
-	public static bool IsType(this Symbol? symbol) => symbol?.Kind is SymbolKind.Type;
-
 	public static TypeSymbol AsTypeSymbolOrUnknown(this Symbol? symbol)
 	{
 		return (symbol as TypeSymbol) ?? UnknownTypeSymbol.Create();

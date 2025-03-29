@@ -17,6 +17,8 @@ public enum SyntaxNodeKind
 	AliasDecl,
 	AsName,
 	StructDecl,
+	TraitDecl,
+	ImplDecl,
 	DeclsList,
 	FieldDecl,
 	SkippedTokensDecl,
@@ -303,6 +305,56 @@ public partial class StructDeclNode : DeclNode
 	public override void Accept(SyntaxTreeVisitor visitor)
 	{
 		visitor.VisitStructDecl(this);
+	}
+}
+
+public partial class TraitDeclNode : DeclNode
+{
+	public TraitDeclNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken traitToken, NameDefNode name, SimpleToken openBraceToken, DeclsListNode? declsList, SimpleToken closedBraceToken)
+		: base(tree, SyntaxNodeKind.TraitDecl)
+	{
+		_childTokens = new() { traitToken, openBraceToken, closedBraceToken, };
+		_childNodes = new() { attrs, name, declsList, };
+
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		SetChildrenParent();
+	}
+
+	public AttrsListNode? Attrs => (AttrsListNode?)_childNodes[0]!;
+	public SimpleToken TraitToken => (SimpleToken)_childTokens[0]!;
+	public NameDefNode Name => (NameDefNode)_childNodes[1]!;
+	public SimpleToken OpenBraceToken => (SimpleToken)_childTokens[1]!;
+	public DeclsListNode? DeclsList => (DeclsListNode?)_childNodes[2]!;
+	public SimpleToken ClosedBraceToken => (SimpleToken)_childTokens[2]!;
+
+	public override void Accept(SyntaxTreeVisitor visitor)
+	{
+		visitor.VisitTraitDecl(this);
+	}
+}
+
+public partial class ImplDeclNode : DeclNode
+{
+	public ImplDeclNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken implToken, NameNode name, SimpleToken openBraceToken, DeclsListNode? declsList, SimpleToken closedBraceToken)
+		: base(tree, SyntaxNodeKind.ImplDecl)
+	{
+		_childTokens = new() { implToken, openBraceToken, closedBraceToken, };
+		_childNodes = new() { attrs, name, declsList, };
+
+		(Span, SpanWithTrivia) = TextSpanHelper.ComputeSpanningSpan(ChildNodes, ChildTokens);
+		SetChildrenParent();
+	}
+
+	public AttrsListNode? Attrs => (AttrsListNode?)_childNodes[0]!;
+	public SimpleToken ImplToken => (SimpleToken)_childTokens[0]!;
+	public NameNode Name => (NameNode)_childNodes[1]!;
+	public SimpleToken OpenBraceToken => (SimpleToken)_childTokens[1]!;
+	public DeclsListNode? DeclsList => (DeclsListNode?)_childNodes[2]!;
+	public SimpleToken ClosedBraceToken => (SimpleToken)_childTokens[2]!;
+
+	public override void Accept(SyntaxTreeVisitor visitor)
+	{
+		visitor.VisitImplDecl(this);
 	}
 }
 

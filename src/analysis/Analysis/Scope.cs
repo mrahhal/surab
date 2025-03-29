@@ -61,7 +61,6 @@ internal abstract class Scope
 		return default;
 	}
 
-	// TODO: Seperate this into LookupIdentifierForType and LookupIdentifierForInstance?
 	/// <summary>
 	/// Looks up an identifier in this scope.
 	/// </summary>
@@ -323,8 +322,31 @@ internal sealed class NamedTypeDeclScope(NamedTypeSymbol symbol) : Scope
 
 	private ImmutableArray<Symbol> BuildLocalDecls()
 	{
-		// Need to filter out fields for example, because files are not in scope without `this`?
-		return _symbol.Members.Where(x => x.Kind is SymbolKind.Type or SymbolKind.Fn).ToImmutableArray();
+		// Fields and methods are not a part of this list because they are not in scope without `this`.
+
+		var builder = ImmutableArray.CreateBuilder<Symbol>();
+
+		foreach (var member in _symbol.Members)
+		{
+			switch (member.Kind)
+			{
+				case SymbolKind.Fn:
+					// Only fns are locally visible, methods are access through `this`.
+					if (!((FnSymbol)member).IsMethod)
+					{
+						builder.Add(member);
+					}
+					break;
+				case SymbolKind.Type:
+					builder.Add(member);
+					break;
+
+				default:
+					break;
+			}
+		}
+
+		return builder.ToImmutable();
 	}
 }
 

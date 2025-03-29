@@ -326,25 +326,25 @@ public class ReasonerTests
 		var SDecl = tree.Root.DescendantNodes().OfType<StructDeclNode>().ElementAt(0);
 		var SSymbol = reasoner.GetDeclaredSymbol(SDecl);
 		SSymbol.GenericParams.Should().HaveCount(1);
-		var NSymbol = (NamedTypeSymbol)SSymbol.GetMember("N")!;
+		var NSymbol = (NamedTypeSymbol)SSymbol.LookupSingleAccessibleSymbol("N")!;
 		NSymbol.GenericParams.Should().HaveCount(1);
-		var NNSymbol = NSymbol.GetMember("NN");
-		var MSymbol = (NamedTypeSymbol)SSymbol.GetMember("M")!;
+		var NNSymbol = NSymbol.LookupSingleAccessibleSymbol("NN");
+		var MSymbol = (NamedTypeSymbol)SSymbol.LookupSingleAccessibleSymbol("M")!;
 		MSymbol.GenericParams.Should().HaveCount(2);
-		var OSymbol = (NamedTypeSymbol)SSymbol.GetMember("O")!;
+		var OSymbol = (NamedTypeSymbol)SSymbol.LookupSingleAccessibleSymbol("O")!;
 
-		var aFieldSymbol = (FieldSymbol)SSymbol.GetMember("a")!;
+		var aFieldSymbol = (FieldSymbol)SSymbol.LookupSingleAccessibleSymbol("a")!;
 		aFieldSymbol.Type.Should().Be(SSymbol.GenericParams[0]);
-		var nFieldSymbol = (FieldSymbol)SSymbol.GetMember("n")!;
+		var nFieldSymbol = (FieldSymbol)SSymbol.LookupSingleAccessibleSymbol("n")!;
 		nFieldSymbol.Type.OriginalDef.Should().Be(NSymbol);
 		nFieldSymbol.Type.FullName.Should().Be("main::S<T1>.N<f64>");
-		var nnFieldSymbol = (FieldSymbol)SSymbol.GetMember("nn")!;
+		var nnFieldSymbol = (FieldSymbol)SSymbol.LookupSingleAccessibleSymbol("nn")!;
 		nnFieldSymbol.Type.OriginalDef.Should().Be(NNSymbol);
 		nnFieldSymbol.Type.FullName.Should().Be("main::S<T1>.N<f64>.NN<i32>");
-		var mFieldSymbol = (FieldSymbol)SSymbol.GetMember("m")!;
+		var mFieldSymbol = (FieldSymbol)SSymbol.LookupSingleAccessibleSymbol("m")!;
 		mFieldSymbol.Type.OriginalDef.Should().Be(MSymbol);
 		mFieldSymbol.Type.FullName.Should().Be("main::S<T1>.M<f64, T1>");
-		var oFieldSymbol = (FieldSymbol)SSymbol.GetMember("o")!;
+		var oFieldSymbol = (FieldSymbol)SSymbol.LookupSingleAccessibleSymbol("o")!;
 		oFieldSymbol.Type.OriginalDef.Should().Be(OSymbol);
 		oFieldSymbol.Type.FullName.Should().Be("main::S<T1>.O");
 
@@ -353,15 +353,15 @@ public class ReasonerTests
 		var sVarDecl = tree.Root.DescendantNodes().OfType<VarDeclNode>().ElementAt(0);
 		var sLocalSymbol = reasoner.GetDeclaredSymbol(sVarDecl);
 		sLocalSymbol.Type.Should().Be(expectedS1ClosedType);
-		var s_aFieldSymbol = (FieldSymbol)sLocalSymbol.Type.GetMember("a")!;
+		var s_aFieldSymbol = (FieldSymbol)sLocalSymbol.Type.LookupSingleAccessibleSymbol("a")!;
 		s_aFieldSymbol.Type.FullName.Should().Be("std._prelude::i32");
-		var s_nFieldSymbol = (FieldSymbol)sLocalSymbol.Type.GetMember("n")!;
+		var s_nFieldSymbol = (FieldSymbol)sLocalSymbol.Type.LookupSingleAccessibleSymbol("n")!;
 		s_nFieldSymbol.Type.Should().BeAssignableTo<SubstitutedNamedTypeSymbol>().Subject.OriginalDef.Should().Be(NSymbol);
 		s_nFieldSymbol.Type.FullName.Should().Be("main::S<i32>.N<f64>");
-		var s_nnFieldSymbol = (FieldSymbol)sLocalSymbol.Type.GetMember("nn")!;
+		var s_nnFieldSymbol = (FieldSymbol)sLocalSymbol.Type.LookupSingleAccessibleSymbol("nn")!;
 		s_nnFieldSymbol.Type.Should().BeAssignableTo<SubstitutedNamedTypeSymbol>().Subject.OriginalDef.Should().Be(NNSymbol);
 		s_nnFieldSymbol.Type.FullName.Should().Be("main::S<i32>.N<f64>.NN<i32>");
-		var s_mFieldSymbol = (FieldSymbol)sLocalSymbol.Type.GetMember("m")!;
+		var s_mFieldSymbol = (FieldSymbol)sLocalSymbol.Type.LookupSingleAccessibleSymbol("m")!;
 		s_mFieldSymbol.Type.Should().BeAssignableTo<SubstitutedNamedTypeSymbol>().Subject.OriginalDef.Should().Be(MSymbol);
 		s_mFieldSymbol.Type.FullName.Should().Be("main::S<i32>.M<f64, i32>");
 
@@ -440,6 +440,38 @@ public class ReasonerTests
 		var innerType2 = ptr_add_offset_call_symbol.Params[0].Type.Should().BeAssignableTo<PtrTypeSymbol>().Subject.InnerType;
 		innerType2.Should().NotBeNull();
 		innerType2.Should().Be(reasoner.Workspace.ResolveKnownTypeSymbol(KnownTypeTag.i32));
+	}
+
+	[Fact]
+	public void Generics_Traits()
+	{
+		var code = """
+			trait T<T1> {
+				foo() T1;
+				bar() T1;
+			}
+			struct S {
+				impl T<i32> {
+					foo() i32 { 42 }
+				}
+			}
+			""";
+		var (_, tree, reasoner) = AnalysisTestUtils.CreateProjectAndTreeAndReasoner(code);
+
+		var traitSymbol = reasoner.GetDeclaredSymbol(tree.Root.DescendantNodes().OfType<TraitDeclNode>().ElementAt(0));
+		var traitFooFn = (FnSymbol)traitSymbol.LookupSingleAccessibleSymbol("foo");
+		traitFooFn.ReturnType.Should().BeAssignableTo<GenericParamTypeSymbol>();
+
+		var structSymbol = reasoner.GetDeclaredSymbol(tree.Root.DescendantNodes().OfType<StructDeclNode>().ElementAt(0));
+		var structFooFn = (FnSymbol)structSymbol.LookupSingleAccessibleSymbol("foo");
+		structFooFn.ReturnType.KnownTypeTag.Should().Be(KnownTypeTag.i32);
+		structFooFn.EnclosingImpl.Should().NotBeNull();
+		structFooFn.EnclosingImpl!.TraitType.OriginalDef.Should().Be(traitSymbol);
+		structFooFn.MethodReceiverType.Should().Be(reasoner.GetPtrType(structSymbol));
+
+		var structBarFn = (FnSymbol)structSymbol.LookupSingleAccessibleSymbol("bar");
+		structBarFn.Should().NotBeNull();
+		structBarFn.MethodReceiverType.Should().Be(reasoner.GetPtrType(structSymbol));
 	}
 
 	[Fact]

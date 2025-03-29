@@ -69,6 +69,11 @@ public class Reasoner
 		return (NamedTypeSymbol)GetDeclaredSymbol((SyntaxNode)node)!;
 	}
 
+	public NamedTypeSymbol GetDeclaredSymbol(TraitDeclNode node)
+	{
+		return (NamedTypeSymbol)GetDeclaredSymbol((SyntaxNode)node)!;
+	}
+
 	public AliasTypeSymbol GetDeclaredSymbol(AliasDeclNode node)
 	{
 		return (AliasTypeSymbol)GetDeclaredSymbol((SyntaxNode)node)!;
@@ -79,6 +84,11 @@ public class Reasoner
 		return (LocalSymbol)GetDeclaredSymbol((SyntaxNode)node)!;
 	}
 
+	public FieldSymbol GetDeclaredSymbol(FieldDeclNode node)
+	{
+		return (FieldSymbol)GetDeclaredSymbol((SyntaxNode)node)!;
+	}
+
 	public FnSymbol GetDeclaredSymbol(FnDeclNode node)
 	{
 		return (FnSymbol)GetDeclaredSymbol((SyntaxNode)node)!;
@@ -87,6 +97,11 @@ public class Reasoner
 	public FnSymbol GetDeclaredSymbol(MethodDeclNode node)
 	{
 		return (FnSymbol)GetDeclaredSymbol((SyntaxNode)node)!;
+	}
+
+	public ImplSymbol GetDeclaredSymbol(ImplDeclNode node)
+	{
+		return (ImplSymbol)GetDeclaredSymbol((SyntaxNode)node)!;
 	}
 
 	public GenericParamTypeSymbol GetDeclaredSymbol(GenericParamNode node)
@@ -143,6 +158,27 @@ public class Reasoner
 			}
 		}
 		return null;
+	}
+
+	/// <summary>
+	/// Gets the declaration symbol.
+	/// Type member (e.g. method) -> the declaration in the trait of the member.
+	/// </summary>
+	public Symbol? LookupDeclaration(Symbol? symbol)
+	{
+		if (symbol == null) return null;
+
+		throw new NotImplementedException();
+	}
+
+	/// <summary>
+	/// Gets the implementation symbols.
+	/// Trait decl -> all types that implement the trait.
+	/// Trait member (e.g. method) -> all concrete implementations (definitions) of the member.
+	/// </summary>
+	public IEnumerable<Symbol> LookupImplementations(Symbol? symbol)
+	{
+		throw new NotImplementedException();
 	}
 
 	/// <summary>
@@ -213,6 +249,7 @@ public class Reasoner
 		{
 			return LookupSymbol(moduleAccessExpr);
 		}
+		// TODO: Isn't this a useless block? Same as fallback below? (for now maybe)
 		else if (node.Parent is NameExprNode nameExpr)
 		{
 			return LookupSymbol(nameExpr);
@@ -263,8 +300,14 @@ public class Reasoner
 		// REVIEW: PtrTypeSymbol's GetMember already does pass through, so this isn't really needed?
 		targetType = targetType.UnwrapPointers();
 
-		var member = targetType?.GetMember(node.Name.Identifier);
-		return ResolveSymbolWithName(member, node.Name);
+		var candidates = targetType?.LookupAccessibleSymbols(node.Name.Identifier.Value);
+		if (candidates == null || candidates.Value.Length == 0)
+		{
+			return null;
+		}
+		// Always taking the first candidate here is fine. An error diag will be added by the type checker because of ambiguity.
+		var match = candidates.Value[0];
+		return ResolveSymbolWithName(match, node.Name);
 	}
 
 	private Symbol? LookupSymbol(ModuleAccessExprNode node)
@@ -996,7 +1039,9 @@ public class Reasoner
 				MethodDeclNode n => new SrcFnSymbol(n.Sig),
 				FieldDeclNode n => new SrcFieldSymbol(n, _typeContext == null ? throw new UnreachableException() : _typeContext.FieldCounter++),
 				StructDeclNode n => new SrcNamedTypeSymbol(n),
+				TraitDeclNode n => new SrcNamedTypeSymbol(n),
 				AliasDeclNode n => new SrcAliasTypeSymbol(n),
+				ImplDeclNode n => new SrcImplSymbol(n),
 				GenericParamNode n => new SrcGenericParamTypeSymbol(n, _typeContext == null ? throw new UnreachableException() : _typeContext.GenericParamCounter++),
 
 				ParamNode n => new SrcParamSymbol(n),
@@ -1041,6 +1086,7 @@ public class Reasoner
 				// Create a new local scope on each new var that will live until the end of the enclosing block.
 				VarDeclNode => new LocalScope((LocalSymbol)symbol!),
 				StructDeclNode => new NamedTypeDeclScope((NamedTypeSymbol)symbol!),
+				TraitDeclNode => new NamedTypeDeclScope((NamedTypeSymbol)symbol!),
 				AliasDeclNode => new AliasTypeDeclScope((AliasTypeSymbol)symbol!),
 				FnDeclNode => new FnScope((FnSymbol)symbol!),
 				MethodDeclNode => new FnScope((FnSymbol)symbol!),
@@ -1060,6 +1106,7 @@ public class Reasoner
 			return node switch
 			{
 				StructDeclNode => new TempTypeContext(),
+				TraitDeclNode => new TempTypeContext(),
 				GenericParamsListNode => new TempTypeContext(),
 
 				_ => null,
@@ -1076,6 +1123,6 @@ public static class ReasonerExtensions
 	public static bool IsInstanceAccess(this Reasoner reasoner, AccessExprNode accessExpr)
 	{
 		var targetSymbol = reasoner.LookupSymbol(accessExpr.Target);
-		return !targetSymbol.IsType();
+		return !SymbolFacts.IsType(targetSymbol);
 	}
 }

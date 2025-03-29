@@ -1,5 +1,4 @@
 ﻿using System.Collections.Immutable;
-using System.Diagnostics;
 
 namespace Surab.Analysis;
 
@@ -81,18 +80,6 @@ public abstract class FnSymbol : Symbol, ISymbolHasType, ISymbolHasExternAttr, I
 				normalType.ReturnType,
 				[.. normalType.ParamTypes[1..]]);
 			return _typeWithoutReceiver = SymbolInterner.GetFnType(key);
-		}
-	}
-
-	public TypeSymbol? EnclosingType
-	{
-		get
-		{
-			if (!IsMethod)
-				return null;
-
-			Debug.Assert(Parent is TypeSymbol);
-			return (TypeSymbol)Parent;
 		}
 	}
 
@@ -294,6 +281,47 @@ internal sealed class SubstitutedFnSymbol : FnSymbol
 				.ToImmutableArray();
 		}
 	}
+}
+
+internal sealed class ReplicatedFnSymbol : FnSymbol
+{
+	private readonly FnSymbol _target;
+
+	public ReplicatedFnSymbol(FnSymbol target, Symbol parent)
+	{
+		_target = target;
+
+		SetParent(parent);
+		SymbolInterner = target.SymbolInterner;
+	}
+
+	public override FnSigNode SigNode => _target.SigNode;
+
+	public override bool HasBody => _target.HasBody;
+
+	public override bool IsMethod => _target.IsMethod;
+
+	public override bool IsInitializerMethod => _target.IsInitializerMethod;
+
+	public override bool IsStatic => _target.IsStatic;
+
+	public override bool IsExtern => _target.IsExtern;
+
+	public override AttrsList AttrsList => _target.AttrsList;
+
+	public override ImmutableArray<GenericParamTypeSymbol> GenericParams => _target.GenericParams;
+
+	public override ImmutableArray<TypeSymbol> GenericArgs => _target.GenericArgs;
+
+	public override FnTypeSymbol Type => _target.Type;
+
+	public override ImmutableArray<ParamSymbol> Params => _target.Params;
+
+	public override Symbol OriginalDef => _target.OriginalDef;
+
+	public override SyntaxNode? DeclaringNode => _target.DeclaringNode;
+
+	internal override IdentifierToken? IdentifierToken => _target.IdentifierToken;
 }
 
 file class FnChildrenComputer(Reasoner reasoner) : SyntaxTreeVisitor

@@ -268,7 +268,7 @@ internal class ParserImpl
 
 	private void ReportSkippedNode(SyntaxNode node)
 	{
-		_diags.Add(CoreDiags.S0001, node.Span);
+		_diags.Add(CoreDiags.S0001_SkippedUnparsedTokens, node.Span);
 	}
 
 	private List<SkippedToken> RecoverMain()
@@ -427,7 +427,7 @@ internal class ParserImpl
 	private SimpleToken CreateMissingSimpleToken(TokenKind tokenKind)
 	{
 		var token = SimpleToken.CreateMissing(_tree, tokenKind, GetProperSpanForMissingThingAtCurrent());
-		_diags.Add(CoreDiags.S0002, token.Span, [token]);
+		_diags.Add(CoreDiags.S0002_Expected_0_, token.Span, [token]);
 		return token;
 	}
 
@@ -460,7 +460,7 @@ internal class ParserImpl
 	private SimpleToken CreateMissingContextualToken(ContextualKeyword kw)
 	{
 		var token = SimpleToken.CreateMissing(_tree, kw, GetProperSpanForMissingThingAtCurrent());
-		_diags.Add(CoreDiags.S0002, token.Span, [kw]);
+		_diags.Add(CoreDiags.S0002_Expected_0_, token.Span, [kw]);
 		return token;
 	}
 
@@ -468,18 +468,18 @@ internal class ParserImpl
 	{
 		// TODO: Is the span shrinking here correct?
 		var node = new MissingTypeNode(_tree, attrs == null ? GetProperSpanForMissingThingAtCurrent() : attrs.Span.ShrinkToEnd(), attrs);
-		_diags.Add(CoreDiags.S0003, node.Span);
+		_diags.Add(CoreDiags.S0003_ExpectedAType, node.Span);
 		return node;
 	}
 
 	private MissingExprNode CreateMissingExprNode()
 	{
 		var node = new MissingExprNode(_tree, GetProperSpanForMissingThingAtCurrent());
-		_diags.Add(CoreDiags.S0004, node.Span);
+		_diags.Add(CoreDiags.S0004_ExpectedAnExpression, node.Span);
 		return node;
 	}
 
-	private TextSpan GetProperSpanForMissingThingAtCurrent()
+	private TextSpan GetProperSpanForMissingThingAtCurrent(bool startFromLeadingTrivia = true)
 	{
 		if (_current == null)
 			return new();
@@ -487,7 +487,7 @@ internal class ParserImpl
 		// Try to get a span at the start of the first leading trivia of the current token.
 		// e.g. This gives us a span at the newline to report a missing semicolon, instead of at the next token
 		// after it (which is probably on another line, more confusing).
-		if (_tokenOffsetToTriviaMap.TryGetValue(_current.Span.File.Start, out var t) && t.Leading != null)
+		if (startFromLeadingTrivia && _tokenOffsetToTriviaMap.TryGetValue(_current.Span.File.Start, out var t) && t.Leading != null)
 		{
 			return t.Leading[0].Span.ShrinkToStart();
 		}
@@ -571,6 +571,7 @@ internal class ParserImpl
 			TokenKind.Var => ParseVarDecl(attrs),
 			TokenKind.Fn => ParseFnDecl(attrs),
 			TokenKind.Struct => ParseStructDecl(attrs),
+			TokenKind.Trait => ParseTraitDecl(attrs),
 			TokenKind.Alias => ParseAliasDecl(attrs),
 
 			_ => RecoverDecl(),
@@ -590,6 +591,8 @@ internal class ParserImpl
 			TokenKind.Identifier when P0()?.Kind is TokenKind.OpenParen or TokenKind.Less => ParseMethodDecl(attrs),
 			// `(` (initializer)
 			TokenKind.OpenParen => ParseMethodDecl(attrs),
+			// `impl identifier`
+			TokenKind.Impl => ParseImplDecl(attrs),
 			// `+(`
 			_ when _current != null && _current.Kind.IsMethodOp() && P0()?.Kind is TokenKind.OpenParen => ParseMethodDecl(attrs),
 
@@ -669,6 +672,20 @@ internal class ParserImpl
 	}
 
 	/// <summary>
+	/// Parses `impl Name { ... }`
+	/// </summary>
+	private DeclNode ParseImplDecl(AttrsListNode? attrs)
+	{
+		var implToken = EatAssertedSimpleToken(TokenKind.Impl);
+		var name = ParseName();
+		var openBraceToken = EatExpectedSimpleToken(TokenKind.OpenBrace);
+		var members = ParseDeclMembers();
+		var closedBraceToken = EatExpectedSimpleToken(TokenKind.ClosedBrace);
+
+		return new ImplDeclNode(_tree, attrs, implToken, name, openBraceToken, members, closedBraceToken);
+	}
+
+	/// <summary>
 	/// Parses `struct Name { ... }`
 	/// </summary>
 	private DeclNode ParseStructDecl(AttrsListNode? attrs)
@@ -680,6 +697,20 @@ internal class ParserImpl
 		var closedBraceToken = EatExpectedSimpleToken(TokenKind.ClosedBrace);
 
 		return new StructDeclNode(_tree, attrs, structToken, name, openBraceToken, members, closedBraceToken);
+	}
+
+	/// <summary>
+	/// Parses `trait Name { ... }`
+	/// </summary>
+	private DeclNode ParseTraitDecl(AttrsListNode? attrs)
+	{
+		var structToken = EatAssertedSimpleToken(TokenKind.Trait);
+		var name = ParseNameDef(isTypeDecl: true);
+		var openBraceToken = EatExpectedSimpleToken(TokenKind.OpenBrace);
+		var members = ParseDeclMembers();
+		var closedBraceToken = EatExpectedSimpleToken(TokenKind.ClosedBrace);
+
+		return new TraitDeclNode(_tree, attrs, structToken, name, openBraceToken, members, closedBraceToken);
 	}
 
 	private DeclsListNode? ParseDeclMembers()
@@ -1309,7 +1340,7 @@ internal class ParserImpl
 	}
 
 	/// <summary>
-	/// Returns false for type names that are not allowed (e.g. `as`).
+	/// Returns false for type names that are not allowed (e.g. `as`, `This`).
 	/// This is so that we can still parse certain syntax properly without having to create reserved keywords.
 	/// </summary>
 	private bool CurrentIdentifierAllowedAsTypeName()
@@ -1317,6 +1348,10 @@ internal class ParserImpl
 		Debug.Assert(!IsAtEnd() && _current.Kind is TokenKind.Identifier);
 
 		var lexeme = GetLexeme(_current);
+		if (lexeme == "This") // This is a reserved type name.
+		{
+			return false;
+		}
 		return !TokenHelper.IsContextualKeyword(ContextualKeyword.As, lexeme);
 	}
 
@@ -1618,7 +1653,7 @@ internal class ParserImpl
 			else if (_current?.Kind is TokenKind.OpenParen)
 			{
 				// Empty identifier (initializer method)
-				var identifier = IdentifierToken.Create(_tree, [], [], GetProperSpanForMissingThingAtCurrent(), string.Empty);
+				var identifier = IdentifierToken.Create(_tree, [], [], GetProperSpanForMissingThingAtCurrent(startFromLeadingTrivia: false), string.Empty);
 				return ParseNameDefWithIdentifier(identifier);
 			}
 			else
@@ -1682,7 +1717,7 @@ internal class ParserImpl
 		if (!CurrentIdentifierAllowedAsTypeName())
 		{
 			// TODO: This alone might not be ideal. Would be better if we can also create an *error* identifier token to represent this.
-			_diags.Add(CoreDiags.S0006, _current.Span, [GetLexeme(_current).ToString()]);
+			_diags.Add(CoreDiags.S0006__0_IsNotAllowedAsATypeName, _current.Span, [GetLexeme(_current).ToString()]);
 		}
 
 		return ParseOptionalIdentifier();
@@ -1695,8 +1730,8 @@ internal class ParserImpl
 
 	private IdentifierToken CreateMissingIdentifierToken()
 	{
-		var token = IdentifierToken.CreateMissing(_tree, GetProperSpanForMissingThingAtCurrent());
-		_diags.Add(CoreDiags.S0005, token.Span);
+		var token = IdentifierToken.CreateMissing(_tree, GetProperSpanForMissingThingAtCurrent(startFromLeadingTrivia: false));
+		_diags.Add(CoreDiags.S0005_ExpectedAnIdentifier, token.Span);
 		return token;
 	}
 
