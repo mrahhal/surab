@@ -133,7 +133,7 @@ public abstract class TypeSymbol : Symbol
 			var member = impl.GetMember(identifier);
 			if (member != null)
 			{
-				builder.Add(member);
+				builder.Add(member.ImplSymbol);
 			}
 		}
 		return builder.ToImmutable();

@@ -38,4 +38,22 @@ public static class CoreDiags
 		nameof(S0101),
 		DiagLevel.Error,
 		"Failed to resolve module to import.");
+
+	public static readonly DiagDef S0150 = new(
+		nameof(S0150),
+		DiagLevel.Error,
+		"'{0}' is not allowed in this context.");
+
+	public static readonly DiagDef S0200 = new(
+		nameof(S0200),
+		DiagLevel.Error,
+		"Not a trait to implement.");
+	public static readonly DiagDef S0201 = new(
+		nameof(S0201),
+		DiagLevel.Error,
+		"Trait not fully implemented. Missing members: {0}.");
+	public static readonly DiagDef S0202 = new(
+		nameof(S0202),
+		DiagLevel.Error,
+		"Member not a part of the trait.");
 }

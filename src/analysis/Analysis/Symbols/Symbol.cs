@@ -508,8 +508,6 @@ public interface ISymbolHasExternAttr
 
 public static class SymbolExtensions
 {
-	public static bool IsType(this Symbol? symbol) => symbol?.Kind is SymbolKind.Type;
-
 	public static TypeSymbol AsTypeSymbolOrUnknown(this Symbol? symbol)
 	{
 		return (symbol as TypeSymbol) ?? UnknownTypeSymbol.Create();

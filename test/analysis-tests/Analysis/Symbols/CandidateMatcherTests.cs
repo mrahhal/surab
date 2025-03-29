@@ -50,7 +50,7 @@ public class CandidateMatcherTests
 
 		CandidateMatcher.FnsMatch(symbol_Trait1_Method1, symbol_ImplTrait1_Method1).Should().BeTrue();
 		CandidateMatcher.FnsMatch(symbol_Trait1_Method2, symbol_ImplTrait1_Method2).Should().BeTrue();
-		CandidateMatcher.FnsMatch((FnSymbol)symbol_Struct1_ImplTrait2.GetMember("method1")!, symbol_ImplTrait2_Method1).Should().BeTrue();
+		CandidateMatcher.FnsMatch((FnSymbol)symbol_Struct1_ImplTrait2.GetMember("method1")!.ImplSymbol, symbol_ImplTrait2_Method1).Should().BeTrue();
 
 		CandidateMatcher.FnsMatch(symbol_Trait1_Method1, symbol_ImplTrait1_Method1_unmatch).Should().BeFalse();
 		CandidateMatcher.FnsMatch(symbol_Trait1_Method2, symbol_ImplTrait1_Method2_unmatch).Should().BeFalse();

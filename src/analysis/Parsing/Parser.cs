@@ -479,7 +479,7 @@ internal class ParserImpl
 		return node;
 	}
 
-	private TextSpan GetProperSpanForMissingThingAtCurrent()
+	private TextSpan GetProperSpanForMissingThingAtCurrent(bool startFromLeadingTrivia = true)
 	{
 		if (_current == null)
 			return new();
@@ -487,7 +487,7 @@ internal class ParserImpl
 		// Try to get a span at the start of the first leading trivia of the current token.
 		// e.g. This gives us a span at the newline to report a missing semicolon, instead of at the next token
 		// after it (which is probably on another line, more confusing).
-		if (_tokenOffsetToTriviaMap.TryGetValue(_current.Span.File.Start, out var t) && t.Leading != null)
+		if (startFromLeadingTrivia && _tokenOffsetToTriviaMap.TryGetValue(_current.Span.File.Start, out var t) && t.Leading != null)
 		{
 			return t.Leading[0].Span.ShrinkToStart();
 		}
@@ -1653,7 +1653,7 @@ internal class ParserImpl
 			else if (_current?.Kind is TokenKind.OpenParen)
 			{
 				// Empty identifier (initializer method)
-				var identifier = IdentifierToken.Create(_tree, [], [], GetProperSpanForMissingThingAtCurrent(), string.Empty);
+				var identifier = IdentifierToken.Create(_tree, [], [], GetProperSpanForMissingThingAtCurrent(startFromLeadingTrivia: false), string.Empty);
 				return ParseNameDefWithIdentifier(identifier);
 			}
 			else
@@ -1730,7 +1730,7 @@ internal class ParserImpl
 
 	private IdentifierToken CreateMissingIdentifierToken()
 	{
-		var token = IdentifierToken.CreateMissing(_tree, GetProperSpanForMissingThingAtCurrent());
+		var token = IdentifierToken.CreateMissing(_tree, GetProperSpanForMissingThingAtCurrent(startFromLeadingTrivia: false));
 		_diags.Add(CoreDiags.S0005, token.Span);
 		return token;
 	}

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Diagnostics;
 
 namespace Surab.Analysis;
 
@@ -9,6 +10,7 @@ public enum DiagLevel
 	Error,
 }
 
+[DebuggerDisplay("[{Id,nq}]: {Span} {Message,nq}")]
 public class Diag(string? id, TextSpan span, DiagLevel level, string message)
 {
 	public string? Id { get; } = id;
@@ -26,6 +28,7 @@ public class Diag(string? id, TextSpan span, DiagLevel level, string message)
 }
 
 // Used in tests.
+[DebuggerDisplay("[{Id,nq}]: {FileSpan}")]
 internal class ExpectedDiag(string? id, FileSpan fileSpan)
 {
 	public string? Id { get; } = id;

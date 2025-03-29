@@ -117,6 +117,42 @@ public class TypeCheckerTests
 			""");
 	}
 
+	[Fact]
+	public void NotAllowedInThisContext()
+	{
+		// TODO: Add more.
+
+		Test("""
+			trait T1 {
+				{|S0150:a|}: i32; // field
+
+				{|S0150:|}() { } // initializer
+			}
+			""");
+	}
+
+	[Fact]
+	public void Trait()
+	{
+		Test("""
+			trait T1 { add(); }
+			struct S2 {
+				impl T1 { add() { } }
+			}
+			""");
+	}
+
+	[Fact]
+	public void Trait_NotATraitToImplement()
+	{
+		Test("""
+			struct S1 { }
+			struct S2 {
+				impl {|S0200:S1|} { }
+			}
+			""");
+	}
+
 	private void Test(string markup) => AnalyzerTestUtils.Test(markup);
 }
 

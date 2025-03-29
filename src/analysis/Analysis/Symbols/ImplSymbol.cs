@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Surab.Analysis;
 
@@ -20,17 +21,22 @@ public abstract class ImplSymbol : Symbol
 	public abstract TypeSymbol TraitType { get; }
 
 	/// <summary>
-	/// Will always include the members declared by the trait, whether they're properly implemented or not (synthesized).
+	/// The raw members of the impl block. Can include invalid members.
 	/// </summary>
-	public abstract ImmutableArray<Symbol> Members { get; }
+	public abstract ImmutableArray<Symbol> RawMembers { get; }
 
-	public Symbol? GetMember(string identifier)
+	/// <summary>
+	/// Will always include the members declared by the trait, whether they're properly implemented or not (replicated).
+	/// </summary>
+	public abstract ImmutableArray<ImplSymbolMember> Members { get; }
+
+	public ImplSymbolMember? GetMember(string identifier)
 	{
 		// Move from bottom to top trying to match the identifier.
 		for (var i = Members.Length - 1; i >= 0; i--)
 		{
 			var item = Members[i];
-			if (item.IdentifierMatches(identifier))
+			if (item.ImplSymbol.IdentifierMatches(identifier))
 			{
 				return item;
 			}
@@ -41,11 +47,22 @@ public abstract class ImplSymbol : Symbol
 	// Future: Reassignments/redefinitions of symbols, etc.
 }
 
+public class ImplSymbolMember(Symbol implSymbol, Symbol? matchingTraitSymbol)
+{
+	public Symbol ImplSymbol { get; } = implSymbol;
+
+	public Symbol? MatchingTraitSymbol { get; } = matchingTraitSymbol;
+
+	[MemberNotNullWhen(true, nameof(MatchingTraitSymbol))]
+	public bool HasMatch => MatchingTraitSymbol != null;
+}
+
 internal sealed class SrcImplSymbol : ImplSymbol
 {
 	private readonly ImplDeclNode _node;
 	private TypeSymbol? _traitType;
-	private ImmutableArray<Symbol> _members;
+	private ImmutableArray<Symbol> _rawMembers;
+	private ImmutableArray<ImplSymbolMember> _members;
 
 	public SrcImplSymbol(ImplDeclNode node)
 	{
@@ -72,7 +89,19 @@ internal sealed class SrcImplSymbol : ImplSymbol
 		}
 	}
 
-	public override ImmutableArray<Symbol> Members
+	public override ImmutableArray<Symbol> RawMembers
+	{
+		get
+		{
+			if (_rawMembers.IsDefault)
+			{
+				ImmutableInterlocked.InterlockedCompareExchange(ref _rawMembers, BuildRawMembers(), default);
+			}
+			return _rawMembers;
+		}
+	}
+
+	public override ImmutableArray<ImplSymbolMember> Members
 	{
 		get
 		{
@@ -89,15 +118,15 @@ internal sealed class SrcImplSymbol : ImplSymbol
 		return Reasoner.LookupSymbol(_node.Name).AsTypeSymbolOrUnknown();
 	}
 
-	private ImmutableArray<Symbol> BuildMembers()
+	private ImmutableArray<ImplSymbolMember> BuildMembers()
 	{
 		// Need to expose impl members here even if they're not implemented yet. (so that it appears in intellisense etc)
 		// So don't include members that aren't defined by the trait, and include missing members by synthesizing them.
 		// GoToDef goes to the trait declaration if it's not implemented.
 
-		var builder = ImmutableArray.CreateBuilder<Symbol>();
+		var builder = ImmutableArray.CreateBuilder<ImplSymbolMember>();
 
-		var implMembers = BuildImplMembers();
+		var rawMembers = RawMembers;
 		var traitMembers = TraitType.Members;
 
 		foreach (var traitMember in traitMembers)
@@ -109,21 +138,21 @@ internal sealed class SrcImplSymbol : ImplSymbol
 			{
 				throw new NotImplementedException();
 			}
-			var match = implMembers.OfType<FnSymbol>().FirstOrDefault(implFn => CandidateMatcher.FnsMatch(traitFn, implFn));
+			var match = rawMembers.OfType<FnSymbol>().FirstOrDefault(implFn => CandidateMatcher.FnsMatch(traitFn, implFn));
 			if (match != null)
 			{
-				builder.Add(match);
+				builder.Add(new ImplSymbolMember(match, traitMember));
 			}
 			else
 			{
-				builder.Add(new ReplicatedFnSymbol(traitFn, this));
+				builder.Add(new ImplSymbolMember(new ReplicatedFnSymbol(traitFn, this), null));
 			}
 		}
 
 		return builder.ToImmutable();
 	}
 
-	private ImmutableArray<Symbol> BuildImplMembers()
+	private ImmutableArray<Symbol> BuildRawMembers()
 	{
 		var builder = ImmutableArray.CreateBuilder<Symbol>();
 		foreach (var node in _node.Members)

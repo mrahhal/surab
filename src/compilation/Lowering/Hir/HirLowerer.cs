@@ -165,7 +165,7 @@ internal class HirLowerer
 			var nonFieldDeclsDirect = namedTypeSymbol.Members.Where(x => x.Kind is not SymbolKind.Field and not SymbolKind.Impl);
 			var nonFieldDeclsInImplBlocks = namedTypeSymbol.Members.OfType<ImplSymbol>().SelectMany(x => x.Members);
 
-			IEnumerable<Symbol> nonFieldDecls = [.. nonFieldDeclsDirect, .. nonFieldDeclsInImplBlocks];
+			IEnumerable<Symbol> nonFieldDecls = [.. nonFieldDeclsDirect, .. nonFieldDeclsInImplBlocks.Select(x => x.ImplSymbol)];
 
 			foreach (var nonFieldDecl in nonFieldDecls)
 			{

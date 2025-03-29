@@ -84,6 +84,11 @@ public class Reasoner
 		return (LocalSymbol)GetDeclaredSymbol((SyntaxNode)node)!;
 	}
 
+	public FieldSymbol GetDeclaredSymbol(FieldDeclNode node)
+	{
+		return (FieldSymbol)GetDeclaredSymbol((SyntaxNode)node)!;
+	}
+
 	public FnSymbol GetDeclaredSymbol(FnDeclNode node)
 	{
 		return (FnSymbol)GetDeclaredSymbol((SyntaxNode)node)!;
@@ -1101,6 +1106,7 @@ public class Reasoner
 			return node switch
 			{
 				StructDeclNode => new TempTypeContext(),
+				TraitDeclNode => new TempTypeContext(),
 				GenericParamsListNode => new TempTypeContext(),
 
 				_ => null,
@@ -1117,6 +1123,6 @@ public static class ReasonerExtensions
 	public static bool IsInstanceAccess(this Reasoner reasoner, AccessExprNode accessExpr)
 	{
 		var targetSymbol = reasoner.LookupSymbol(accessExpr.Target);
-		return !targetSymbol.IsType();
+		return !SymbolFacts.IsType(targetSymbol);
 	}
 }

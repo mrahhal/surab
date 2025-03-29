@@ -81,8 +81,6 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 
 	public override void VisitTraitDecl(TraitDeclNode node)
 	{
-		// TODO: Add error diags for members that are not allowed in a trait.
-
 		base.VisitTraitDecl(node);
 	}
 
@@ -91,20 +89,43 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		var implSymbol = _reasoner.GetDeclaredSymbol(node);
 		if (implSymbol.TraitType.TypeKind != TypeSymbolKind.Trait)
 		{
-			_diags.Add(node.Name.Span, DiagLevel.Error, $"Not a trait you can implement.");
+			_diags.Add(CoreDiags.S0200, node.Name.Span);
 		}
+		else
+		{
+			// Ensure trait is implemented fully (no missing members, no invalid members).
 
-		// TODO:
-		// Ensure trait is implemented fully (no missing members, no invalid members).
+			var traitMembers = implSymbol.TraitType.Members;
+			var implMembers = implSymbol.Members;
+			var rawMembers = implSymbol.RawMembers;
+
+			var missingMembers = implMembers.Where(x => !x.HasMatch).ToList();
+			var invalidMembers = rawMembers.Where(rawMember =>
+			{
+				return !implMembers.Any(implMember => implMember.ImplSymbol == rawMember);
+			}).ToList();
+
+			if (missingMembers.Count != 0)
+			{
+				var missingMembersText = string.Join(',', missingMembers.Select(x => x.ImplSymbol.Name));
+				_diags.Add(CoreDiags.S0201, node.Name.Span, [missingMembersText]);
+			}
+
+			foreach (var invalidMember in invalidMembers)
+			{
+				_diags.Add(CoreDiags.S0202, invalidMember.Span);
+			}
+		}
 
 		base.VisitImplDecl(node);
 	}
 
 	public override void VisitFieldDecl(FieldDeclNode node)
 	{
-		if (!IsMemberOfStruct(node))
+		var symbol = _reasoner.GetDeclaredSymbol(node);
+		if (!SymbolFacts.IsFieldInAllowedContext(symbol))
 		{
-			_diags.Add(node.Span, DiagLevel.Error, $"a field decl is not allowed in this context");
+			_diags.Add(CoreDiags.S0150, symbol.SelectionSpan, [symbol.Name]);
 		}
 
 		base.VisitFieldDecl(node);
@@ -112,21 +133,20 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 
 	public override void VisitMethodDecl(MethodDeclNode node)
 	{
-		if (!IsMemberOfStruct(node) && !IsMemberOfTrait(node) && !IsMemberOfImpl(node))
-		{
-			_diags.Add(node.Span, DiagLevel.Error, $"a method decl is not allowed in this context");
-		}
-
 		var fnSymbol = _reasoner.GetDeclaredSymbol(node);
-		var enclosingType = fnSymbol?.EnclosingType as NamedTypeSymbol;
-		Debug.Assert(enclosingType != null);
 
-		if (node.IsInitializer)
+		if (!SymbolFacts.IsFnInAllowedContext(fnSymbol))
 		{
-			if (enclosingType.InitializerMethod == fnSymbol)
+			_diags.Add(CoreDiags.S0150, fnSymbol.SelectionSpan, [fnSymbol.Name]);
+		}
+		else if (node.IsInitializer)
+		{
+			var enclosingNamedType = fnSymbol.EnclosingType as NamedTypeSymbol;
+			Debug.Assert(enclosingNamedType != null);
+			if (enclosingNamedType.InitializerMethod == fnSymbol)
 			{
 				// Report conflicting initializer param if it conflicts with a field.
-				var conflictingParams = enclosingType.CreationMemberSymbols.Where(x => x.IsConflicting);
+				var conflictingParams = enclosingNamedType.CreationMemberSymbols.Where(x => x.IsConflicting);
 				foreach (var conflicting in conflictingParams)
 				{
 					// TODO: Better diag message.
@@ -159,20 +179,20 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		}
 	}
 
-	private bool IsMemberOfStruct(SyntaxNode node)
-	{
-		return node.Parent is DeclsListNode declsList && declsList.Parent is StructDeclNode;
-	}
+	//private bool IsMemberOfStruct(SyntaxNode node)
+	//{
+	//	return node.Parent is DeclsListNode declsList && declsList.Parent is StructDeclNode;
+	//}
 
-	private bool IsMemberOfTrait(SyntaxNode node)
-	{
-		return node.Parent is DeclsListNode declsList && declsList.Parent is TraitDeclNode;
-	}
+	//private bool IsMemberOfTrait(SyntaxNode node)
+	//{
+	//	return node.Parent is DeclsListNode declsList && declsList.Parent is TraitDeclNode;
+	//}
 
-	private bool IsMemberOfImpl(SyntaxNode node)
-	{
-		return node.Parent is DeclsListNode declsList && declsList.Parent is ImplDeclNode;
-	}
+	//private bool IsMemberOfImpl(SyntaxNode node)
+	//{
+	//	return node.Parent is DeclsListNode declsList && declsList.Parent is ImplDeclNode;
+	//}
 
 	public override void VisitReturnStmt(ReturnStmtNode node)
 	{

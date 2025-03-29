@@ -1,6 +1,4 @@
-﻿using FluentAssertions.Execution;
-
-namespace Surab.Analysis;
+﻿namespace Surab.Analysis;
 
 public static class AnalysisTestUtils
 {
