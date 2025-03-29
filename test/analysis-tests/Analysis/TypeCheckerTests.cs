@@ -13,6 +13,10 @@ public class TypeCheckerTests
 			fn foo() {
 				var a = 2{|S0002:|}
 			}
+
+			trait T1 {
+				foo(){|S0007:|}
+			}
 			""");
 	}
 

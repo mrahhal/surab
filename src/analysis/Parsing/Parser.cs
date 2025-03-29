@@ -292,7 +292,8 @@ internal class ParserImpl
 
 			if (prev.Kind is TokenKind.Semicolon ||
 				_current.Kind.CanStartDecl() ||
-				_current.Kind.CanStartStmt())
+				_current.Kind.CanStartStmt() ||
+				_current.Kind.IsTerminal())
 			{
 				break;
 			}
@@ -408,6 +409,25 @@ internal class ParserImpl
 		var token = EatAssertedToken(tokenKind);
 		var (leading, trailing) = ConsumeTrivia(token);
 		return SimpleToken.Create(_tree, leading, trailing, token);
+	}
+
+	private SimpleToken EatExpectedOpenBracePair()
+	{
+		return EatExpectedSimpleToken(TokenKind.OpenBrace);
+	}
+
+	/// <summary>
+	/// This method only tries to eat the expected token if the open token is not missing.
+	/// If the open token is missing, this will always return a missing token as well.
+	/// The purpose is to improve error recovery.
+	/// </summary>
+	private SimpleToken EatExpectedClosedBracePair(SimpleToken openToken)
+	{
+		if (openToken.IsMissing)
+		{
+			return CreateMissingSimpleToken(TokenKind.ClosedBrace);
+		}
+		return EatExpectedSimpleToken(TokenKind.ClosedBrace);
 	}
 
 	private SimpleToken EatExpectedSimpleToken(TokenKind tokenKind)
@@ -548,7 +568,7 @@ internal class ParserImpl
 	{
 		var decls = new List<DeclNode>();
 
-		while (!IsAtEnd())
+		while (!IsAtEnd())  // && _current.Kind.CanStartDecl() ?
 		{
 			var delcaration = ParseDecl();
 			decls.Add(delcaration);
@@ -686,9 +706,9 @@ internal class ParserImpl
 	{
 		var implToken = EatAssertedSimpleToken(TokenKind.Impl);
 		var name = ParseName();
-		var openBraceToken = EatExpectedSimpleToken(TokenKind.OpenBrace);
+		var openBraceToken = EatExpectedOpenBracePair();
 		var members = ParseDeclMembers();
-		var closedBraceToken = EatExpectedSimpleToken(TokenKind.ClosedBrace);
+		var closedBraceToken = EatExpectedClosedBracePair(openBraceToken);
 
 		return new ImplDeclNode(_tree, attrs, implToken, name, openBraceToken, members, closedBraceToken);
 	}
@@ -700,9 +720,9 @@ internal class ParserImpl
 	{
 		var structToken = EatAssertedSimpleToken(TokenKind.Struct);
 		var name = ParseNameDef(isTypeDecl: true);
-		var openBraceToken = EatExpectedSimpleToken(TokenKind.OpenBrace);
+		var openBraceToken = EatExpectedOpenBracePair();
 		var members = ParseDeclMembers();
-		var closedBraceToken = EatExpectedSimpleToken(TokenKind.ClosedBrace);
+		var closedBraceToken = EatExpectedClosedBracePair(openBraceToken);
 
 		return new StructDeclNode(_tree, attrs, structToken, name, openBraceToken, members, closedBraceToken);
 	}
@@ -714,9 +734,9 @@ internal class ParserImpl
 	{
 		var structToken = EatAssertedSimpleToken(TokenKind.Trait);
 		var name = ParseNameDef(isTypeDecl: true);
-		var openBraceToken = EatExpectedSimpleToken(TokenKind.OpenBrace);
+		var openBraceToken = EatExpectedOpenBracePair();
 		var members = ParseDeclMembers();
-		var closedBraceToken = EatExpectedSimpleToken(TokenKind.ClosedBrace);
+		var closedBraceToken = EatExpectedClosedBracePair(openBraceToken);
 
 		return new TraitDeclNode(_tree, attrs, structToken, name, openBraceToken, members, closedBraceToken);
 	}

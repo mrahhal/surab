@@ -247,6 +247,9 @@ public static class TokenKindExtensions
 		LineComment or
 		BlockComment;
 
+	public static bool IsTerminal(this TokenKind kind) =>
+		kind is Semicolon or ClosedBrace or ClosedParen;
+
 	public static bool CanStartAttribute(this TokenKind kind) => kind is
 		AtBeforeIdentifier;
 
@@ -261,8 +264,7 @@ public static class TokenKindExtensions
 		Struct or
 		Class or
 		Trait or
-		Alias or
-		Impl ||
+		Alias ||
 		CanStartAttribute(kind);
 
 	public static bool CanStartStmt(this TokenKind kind) =>
