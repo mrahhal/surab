@@ -5,8 +5,8 @@ public class BlockExprTests
 	[Theory]
 	[InlineData("2")]
 	[InlineData("{ 2 }")]
-	[InlineData("{ { 4; } 2 }")]
-	[InlineData("{ { 4; }; 2 }")]
+	[InlineData("{ { ; } 2 }")]
+	[InlineData("{ { var b = 4; }; 2 }")]
 	[InlineData("{ var a = { 2 }; a }")]
 	public void Test_1(string snippet)
 	{

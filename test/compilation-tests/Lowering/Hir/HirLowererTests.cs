@@ -194,13 +194,13 @@ public class HirLowererTests
 		var src = """
 			fn f() i32 {
 				var n = 42;
-				*&n;
+				var n2 = *&n;
 			}
 			""";
 		var f = LowerFn(src);
 		var body = f.GetFnBody();
-		body.Should().HaveCount(3);
-		body[2].Should().BeOfType<HirExprStmt>().Subject
+		body.Should().HaveCount(4);
+		body[3].Should().BeOfType<HirValueStoreStmt>().Subject
 			.Expr.Should().BeOfType<HirValueLoadExpr>(); // Deref(Address) disappears
 	}
 
