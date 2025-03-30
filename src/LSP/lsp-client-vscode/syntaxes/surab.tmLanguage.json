@@ -4,13 +4,13 @@
 	"scopeName": "source.surab",
 	"patterns": [
 		{
-			"include": "#keyword"
+			"include": "#keywords"
 		}
 	],
 	"repository": {
-		"keyword": {
-			"match": "fn|struct|alias|true|false|var|const|return",
-			"name": "keyword.control.surab"
+		"keywords": {
+			"name": "keyword.control.surab",
+			"match": "(?<!@)\\b(fn|struct|alias|true|false|var|const|return)\\b"
 		}
 	}
 }

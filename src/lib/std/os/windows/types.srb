@@ -1,0 +1,82 @@
+// Refs:
+// - https://learn.microsoft.com/en-us/cpp/cpp/fundamental-types-cpp
+// - https://learn.microsoft.com/en-us/cpp/cpp/data-type-ranges
+// - https://learn.microsoft.com/en-us/windows/win32/winprog/windows-data-types
+
+/*
+
+@public
+alias WORD as ATOM;
+@public
+alias c_int as BOOL;
+@public
+alias BYTE as BOOLEAN;
+//CALLBACK
+@public
+alias u8 as BYTE;
+@public
+alias c_int as INT;
+@public
+alias c_uint as UINT;
+@public
+alias u8 as CHAR;
+@public
+alias u8 as UCHAR;
+@public
+alias f32 as FLOAT;
+@public
+alias * as HANDLE;
+@public
+alias HANDLE as HLOCAL;
+@public
+alias * as LPCVOID;
+@public
+alias * as PVOID;
+@public
+alias usize as SIZE_T;
+@public
+alias usize as ULONG_PTR;
+@public
+alias isize as LONG_PTR;
+@public
+alias ULONG_PTR as DWORD_PTR;
+@public
+alias u16 as WCHAR;
+@public
+alias u16 as WORD;
+@public
+alias u32 as DWORD;
+@public
+alias u64 as DWORD64;
+@public
+alias i64 as LARGE_INTEGER;
+@public
+alias u64 as ULARGE_INTEGER;
+@public
+alias u16 as USHORT;
+@public
+alias i16 as SHORT;
+@public
+alias u32 as ULONG;
+@public
+alias i32 as LONG;
+@public
+alias u64 as ULONG64;
+@public
+alias u64 as ULONGLONG;
+@public
+alias i64 as LONGLONG;
+
+@public
+alias usize as WPARAM;
+@public
+alias LONG_PTR as LPARAM;
+@public
+alias LONG_PTR as LRESULT;
+
+@public
+const FALSE: i32 = 0;
+@public
+const TRUE: i32 = 1;
+
+*/

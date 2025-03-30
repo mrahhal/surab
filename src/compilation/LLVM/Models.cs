@@ -1,5 +1,4 @@
 ﻿using LLVMSharp.Interop;
-using Surab.Analysis;
 
 namespace Surab.Compilation.LLVM;
 
@@ -73,15 +72,4 @@ internal class LLVMFn(LLVMTypeRef? sret, LLVMFnAttrsDef attrs)
 		sret = SRet;
 		attrs = Attrs;
 	}
-}
-
-/// <summary>
-/// Represents a created LLVM type lowered from a <see cref="TypeSymbol"/>.
-/// </summary>
-internal sealed class LLVMType(LLVMTypeRef type)
-{
-	/// <summary>
-	/// The LLVM lowered type of the <see cref="TypeSymbol"/>.
-	/// </summary>
-	public LLVMTypeRef Type { get; } = type;
 }

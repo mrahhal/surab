@@ -5,12 +5,13 @@ public class BlockExprTests
 	[Theory]
 	[InlineData("2")]
 	[InlineData("{ 2 }")]
-	[InlineData("{ { 4; } 2 }")]
-	[InlineData("{ { 4; }; 2 }")]
+	[InlineData("{ { ; } 2 }")]
+	[InlineData("{ { var b = 4; }; 2 }")]
 	[InlineData("{ var a = { 2 }; a }")]
 	public void Test_1(string snippet)
 	{
-		var output = IntegrationRunner.Run($$"""
+		var output = IntegrationRunner.Run(
+			$$"""
 			fn main() {
 				var a = {{snippet}};
 				print_i32(a);
@@ -27,7 +28,8 @@ public class BlockExprTests
 	[InlineData("{ { 4 }; 2 }")]
 	public void Test_Fail_1(string snippet)
 	{
-		IntegrationRunner.Run($$"""
+		IntegrationRunner.Run(
+			$$"""
 			fn main() {
 				var a = {{snippet}};
 				print_i32(a);
@@ -38,7 +40,8 @@ public class BlockExprTests
 	[Fact]
 	public void Test_2()
 	{
-		var output = IntegrationRunner.Run("""
+		var output = IntegrationRunner.Run(
+			"""
 			fn main() {
 				var a = 2;
 				print_i32(a);
@@ -53,7 +56,8 @@ public class BlockExprTests
 	[Fact]
 	public void Test_3()
 	{
-		var output = IntegrationRunner.Run("""
+		var output = IntegrationRunner.Run(
+			"""
 			fn main() {
 				{ }
 				{

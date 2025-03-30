@@ -20,33 +20,38 @@ public class TextDocumentSyncHandler(
 
 	public TextDocumentSyncKind Change => TextDocumentSyncKind.Full;
 
-	public override Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken token)
-	{
-		return Unit.Task;
-	}
+	public override Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken token) => Unit.Task;
 
 	public override Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken token)
 	{
-		_logger.LogTrace("[DidChangeTextDocumentParams]");
+		_logger.LogInformation("[DidChangeTextDocumentParams]");
 
-		_solver.Project.LockForWrite(() =>
+		_solver.Workspace.LockForWrite(() =>
 		{
-			var sourceFile = _solver.GetSourceFile(notification.TextDocument)!;
-			_solver.Project.UpdateSourceFile(sourceFile, notification.ContentChanges.First().Text);
+			var path = (NormalizedPath)notification.TextDocument.Uri.GetFileSystemPath();
+			var project = _solver.Workspace.GetFileProject(path);
+			var file = project.GetFile(path);
+			if (file == null)
+			{
+				_logger.LogInformation("Did not find SourceFile with path {FilePath}.", notification.TextDocument.Uri);
+			}
+			else
+			{
+				project.VFS.UpdateFile(file, notification.ContentChanges.First().Text);
+			}
 		});
 
 		return Unit.Task;
 	}
 
-	public override Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken token)
-	{
-		return Unit.Task;
-	}
+	public override Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken token) => Unit.Task;
 
 	public override Task<Unit> Handle(DidSaveTextDocumentParams notification, CancellationToken token) => Unit.Task;
 
 	protected override TextDocumentSyncRegistrationOptions CreateRegistrationOptions(TextSynchronizationCapability capability, ClientCapabilities clientCapabilities)
 	{
+		// TODO: Track surab-project.json
+
 		return new()
 		{
 			DocumentSelector = LanguageServerHelper.CreateSurabDocumentSelector(),

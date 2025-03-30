@@ -1,0 +1,221 @@
+﻿using System.Collections.Immutable;
+using System.Diagnostics;
+
+namespace Surab.Analysis;
+
+/// <summary>
+/// Represents a possibly generic symbol.
+/// A generic symbol is one that has generic params defined on it. (`struct S<T> { }`)
+/// A possibly generic symbol is one that by definition could have generic params defined on it, but might not have them. (structs and fns)
+/// </summary>
+public interface IPossiblyGenericSymbol
+{
+	/// <summary>
+	/// A symbol's generic type params.
+	/// </summary>
+	ImmutableArray<GenericParamTypeSymbol> GenericParams { get; }
+
+	/// <summary>
+	/// A symbol's generic args substituted for generic params. If a generic param
+	/// isn't substituted then the generic param will be returned.
+	/// </summary>
+	ImmutableArray<TypeSymbol> GenericArgs { get; }
+
+	internal Symbol SubstituteConstructedGeneric(SubstitutionMap smap, IReadOnlyList<TypeSymbol> genericArgs);
+}
+
+public static class GenericSymbolExtensions
+{
+	/// <summary>
+	/// Returns the effective generic types. Generic params if this is a definition, generic args if this is closed.
+	/// </summary>
+	public static IEnumerable<TypeSymbol> GetGenericTypes(this IPossiblyGenericSymbol genericSymbol)
+	{
+		if (genericSymbol.GenericArgs.Any())
+		{
+			return genericSymbol.GenericArgs;
+		}
+		else
+		{
+			return genericSymbol.GenericParams;
+		}
+	}
+}
+
+internal static class GenericHelper
+{
+	public static string CreateName(IPossiblyGenericSymbol genericSymbol, string identifier)
+	{
+		if (genericSymbol.GenericParams.Any())
+		{
+			var genericTypesText = genericSymbol.GetGenericTypes().Select(g => g.Name);
+			return $"{identifier}<{string.Join(", ", genericTypesText)}>";
+		}
+		else
+		{
+			return identifier;
+		}
+	}
+}
+
+// TODO: Very similar to FnTypeKey. Consider refactoring these similar keys.
+/// <summary>
+/// Represents a key that is used to identify substituted generic symbols.
+///
+/// Some examples:
+/// - S<i32>
+/// - S<i32>.M<f64>
+/// </summary>
+[DebuggerDisplay("{ToString()}")]
+internal readonly struct SubstitutedGenericSymbolKey : IEquatable<SubstitutedGenericSymbolKey>
+{
+	public SubstitutedGenericSymbolKey(
+		Symbol symbol,
+		IReadOnlyList<TypeSymbol> genericArgs)
+	{
+		Debug.Assert(genericArgs.Any(), "We can't have non generic symbols or ones that aren't being closed here.");
+
+		Symbol = symbol;
+		GenericArgs = genericArgs;
+	}
+
+	public readonly Symbol Symbol { get; }
+
+	public readonly IReadOnlyList<TypeSymbol> GenericArgs { get; }
+
+	public override bool Equals(object? obj) => obj is SubstitutedGenericSymbolKey other && Equals(other);
+
+	public bool Equals(SubstitutedGenericSymbolKey other)
+	{
+		return
+			TypesEqual(Symbol, other.Symbol) &&
+			ArgsEqual(this, other);
+	}
+
+	private static bool TypesEqual(Symbol x, Symbol y) => x == y;
+
+	private static bool ArgsEqual(SubstitutedGenericSymbolKey x, SubstitutedGenericSymbolKey y) => ArgsCompare(x, y, (x, y) => x == y);
+
+	private static bool ArgsCompare(SubstitutedGenericSymbolKey x, SubstitutedGenericSymbolKey y, Func<TypeSymbol, TypeSymbol, bool> compare)
+	{
+		if (x.GenericArgs.Count != y.GenericArgs.Count)
+			return false;
+		for (var i = 0; i < x.GenericArgs.Count; i++)
+		{
+			if (!compare(x.GenericArgs[i], y.GenericArgs[i]))
+				return false;
+		}
+		return true;
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCodeCombiner.Combine(Symbol, GenericArgs);
+	}
+
+	public override string ToString()
+	{
+		IEnumerable<string?> args = [.. GenericArgs.Select(p => p.Name)];
+		return $"{Symbol.Identifier}<{string.Join(", ", args)}>";
+	}
+}
+
+internal class SubstitutionMap
+{
+	private readonly Dictionary<TypeSymbol, TypeSymbol> _map = [];
+
+	private SubstitutionMap(SubstitutionMap? parent)
+	{
+		Parent = parent;
+	}
+
+	public SubstitutionMap? Parent { get; }
+
+	public bool IsEmpty
+	{
+		get
+		{
+			if (_map.Count > 0)
+				return false;
+			return Parent?.IsEmpty ?? true;
+		}
+	}
+
+	public static SubstitutionMap Create()
+	{
+		return new SubstitutionMap(null);
+	}
+
+	public SubstitutionMap CreateSub()
+	{
+		return new SubstitutionMap(this);
+	}
+
+	public void AddGenericSubstitutions(
+		IReadOnlyList<GenericParamTypeSymbol> genericParams,
+		IReadOnlyList<TypeSymbol> genericArgs)
+	{
+		// Go up to the min of the two. Different lengths are possible in case of syntax errors.
+		for (var i = 0; i < Math.Min(genericParams.Count, genericArgs.Count); i++)
+		{
+			AddGenericSubstitution(genericParams[i], genericArgs[i]);
+		}
+	}
+
+	private void AddGenericSubstitution(
+		GenericParamTypeSymbol from,
+		TypeSymbol to)
+	{
+		_map.Add(from.OriginalDef, to);
+	}
+
+	public List<TypeSymbol> ReplaceGenericTypes(IEnumerable<GenericParamTypeSymbol> genericParams)
+	{
+		ArgumentNullException.ThrowIfNull(genericParams);
+		return genericParams
+			.Select(Replace)
+			.ToList();
+	}
+
+	// ReplaceOnce doesn't resolve transitive substitutions whereas Replace does.
+	//
+	// If we have T2 -> T1 -> i32, then:
+	// ReplaceOnce(T2) => T1
+	// Replace(T2) => i32
+	//
+	// Note that full resolve could still return a generic param if this smap doesn't represent
+	// a fully closed generic symbol.
+
+	public TypeSymbol Replace(TypeSymbol symbol)
+	{
+		var prev = symbol;
+		var current = symbol;
+		while (current.TypeKind is TypeSymbolKind.GenericParam)
+		{
+			// REVIEW: Opt: We could in theory continue from the last parent we checked
+			// as substitutions always flow from child smap to parent smap?
+			current = ReplaceOnce(current);
+			if (prev == current)
+			{
+				// ReplaceOnce returned same symbol, this means the sub chain ends with this
+				// generic param (partial resolve) so return it.
+				return current;
+			}
+			prev = current;
+		}
+		return current;
+	}
+
+	private TypeSymbol ReplaceOnce(TypeSymbol symbol)
+	{
+		if (_map.TryGetValue(symbol.OriginalDef, out var subd))
+		{
+			return subd;
+		}
+		if (Parent != null)
+		{
+			return Parent.ReplaceOnce(symbol.OriginalDef);
+		}
+		return symbol;
+	}
+}

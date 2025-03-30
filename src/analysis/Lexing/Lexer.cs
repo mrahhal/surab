@@ -3,17 +3,7 @@ using System.Diagnostics;
 
 namespace Surab.Analysis;
 
-internal static class Lexer
-{
-	public static IEnumerable<Token> Lex(string src)
-	{
-		return new LexerImpl(src);
-	}
-
-	public static IEnumerable<Token> LexSkipTrivia(string src) => Lex(src).SkipTrivia();
-}
-
-internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
+internal class Lexer : IEnumerable<Token>, IEnumerator<Token>
 {
 	struct Position
 	{
@@ -24,25 +14,34 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 		public int Char { get; set; }
 	}
 
-
-	private readonly ReadOnlyMemory<char> _src;
+	private readonly ReadOnlyMemory<char> _code;
 	private ReadOnlyMemory<char> _window;
 	private Position _pos;
 	private Position _posIterStart;
 	private Token? _current;
 	private char _prev;
+	private readonly List<int> _lineOffsetToCharsCount = [];
 
-	public LexerImpl(string src)
+	public Lexer(string code)
 	{
-		_src = src.AsMemory();
+		_code = code.AsMemory();
 		Reset();
 	}
+
+	public static Lexer Create(string code)
+	{
+		return new Lexer(code);
+	}
+
+	public static IEnumerable<Token> LexSkipTrivia(string code) => Create(code).SkipTrivia();
 
 	public Token Current => _current!;
 	object IEnumerator.Current => Current;
 
 	public IEnumerator<Token> GetEnumerator() => this;
 	IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+	public IReadOnlyList<int> LineOffsetToCharsCount => _lineOffsetToCharsCount;
 
 	public bool MoveNext()
 	{
@@ -63,14 +62,14 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 
 			_ when Chars.IsWhitespace(ch) => ConsumeWhitespace(),
 
-			'(' => MakeToken(TokenKind.LeftParen),
-			')' => MakeToken(TokenKind.RightParen),
-			'{' => MakeToken(TokenKind.LeftBrace),
-			'}' => MakeToken(TokenKind.RightBrace),
+			'(' => MakeToken(TokenKind.OpenParen),
+			')' => MakeToken(TokenKind.ClosedParen),
+			'{' => MakeToken(TokenKind.OpenBrace),
+			'}' => MakeToken(TokenKind.ClosedBrace),
 			',' => MakeToken(TokenKind.Comma),
 			'.' => MakeToken(TokenKind.Dot),
 			';' => MakeToken(TokenKind.Semicolon),
-			':' => MakeToken(TokenKind.Colon),
+			':' => CreateTokenIfMatchesOrToken(':', TokenKind.ColonColon, TokenKind.Colon),
 			'?' => MakeToken(TokenKind.Question),
 			'-' => MakeToken(TokenKind.Minus),
 			'+' => MakeToken(TokenKind.Plus),
@@ -102,7 +101,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 
 	public void Reset()
 	{
-		_window = _src;
+		_window = _code;
 		_pos = new();
 		_posIterStart = new();
 		_current = null;
@@ -128,6 +127,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 
 		if (ch == '\n')
 		{
+			_lineOffsetToCharsCount.Add(_pos.Char);
 			_pos.Line++;
 			_pos.Char = 0;
 		}
@@ -196,7 +196,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 	/// or we reach the end or a new line leaving out the final semicolon (flawed token).
 	/// Returns `true` if properly terminated.
 	/// </summary>
-	private bool AdvanceUntil(char terminal)
+	private bool AdvanceUntil(char terminal, bool includingNewlines = true)
 	{
 		while (true)
 		{
@@ -210,6 +210,9 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 					return false;
 
 				case (';', var ch2) when Chars.IsNewlineStart(ch2) || ch2 == Chars.EOF:
+					return false;
+
+				case (var ch1, _) when !includingNewlines && Chars.IsNewlineStart(ch1):
 					return false;
 
 				default:
@@ -236,7 +239,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 		Debug.Assert(_prev == '/' && P1() == '*');
 
 		var depth = 1;
-		while (true)
+		while (!IsAtEnd())
 		{
 			var ch = Advance();
 
@@ -274,7 +277,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 	{
 		Debug.Assert(_prev == '\'');
 
-		var terminated = AdvanceUntil('\'');
+		var terminated = AdvanceUntil('\'', false);
 		return MakeToken(TokenKind.CharLiteral, new CharLiteralTokenData { IsTerminated = terminated });
 	}
 
@@ -282,7 +285,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 	{
 		Debug.Assert(_prev == '"');
 
-		var terminated = AdvanceUntil('"');
+		var terminated = AdvanceUntil('"', false);
 		return MakeToken(TokenKind.StringLiteral, new StringLiteralTokenData { IsTerminated = terminated });
 	}
 
@@ -372,7 +375,7 @@ internal class LexerImpl : IEnumerable<Token>, IEnumerator<Token>
 
 	private ReadOnlySpan<char> SliceConsumed()
 	{
-		return _src.Span[ConsumedFileSpan().GetRange()];
+		return _code.Span[ConsumedFileSpan().GetRange()];
 	}
 
 	private FileSpan ConsumedFileSpan() => new()

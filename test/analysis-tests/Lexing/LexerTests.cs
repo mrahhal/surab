@@ -17,7 +17,7 @@ public class LexerTests
 	[InlineData(" \t\r\n")]
 	public void Whitespace(string src)
 	{
-		var tokens = Lexer.Lex(src).ToList();
+		var tokens = Lexer.Create(src).ToList();
 		tokens.Should().HaveCount(1);
 		tokens[0].Kind.Should().Be(TokenKind.Whitespace);
 	}

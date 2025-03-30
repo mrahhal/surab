@@ -10,28 +10,55 @@
 		"url": "https://github.com/mrahhal/surab"
 	},
 	"engines": {
-		"vscode": "^1.75.0"
+		"vscode": "^1.98.0"
 	},
 	"main": "./out/extension",
 	"dependencies": {
-		"vscode-languageclient": "^8.1.0"
+		"vscode-languageclient": "^9.0.1"
 	},
 	"devDependencies": {
 		"@types/node": "^20.10.4",
-		"@types/vscode": "^1.75.1",
-		"@vscode/test-electron": "^2.2.3",
-		"typescript": "^5.3.3"
+		"@types/vscode": "^1.98.0",
+		"@vscode/test-electron": "^2.4.1",
+		"typescript": "^5.8.2"
 	},
 	"scripts": {
 		"compile": "tsc -b",
 		"watch": "tsc -b -w"
 	},
 	"contributes": {
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "surab-debug",
+					"title": "Surab (debug)",
+					"icon": "$(list-tree)"
+				}
+			]
+		},
+		"views": {
+			"surab-debug": [
+				{
+					"id": "surab-debug-syntax-tree",
+					"name": "Syntax Tree",
+					"icon": "$(list-tree)"
+				}
+			]
+		},
+		"viewsWelcome": [
+			{
+				"view": "surab-debug-syntax-tree",
+				"contents": "Nothing to show..."
+			}
+		],
 		"languages": [
 			{
 				"id": "surab",
+				"aliases": [
+					"Surab"
+				],
 				"extensions": [
-					".surab"
+					".srb"
 				],
 				"configuration": "./language-configuration.json"
 			},
@@ -64,6 +91,6 @@
 		}
 	},
 	"activationEvents": [
-		"workspaceContains:*/surab-project.json"
+		"workspaceContains:**/surab-project.json"
 	]
 }

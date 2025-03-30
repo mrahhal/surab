@@ -1,24 +1,34 @@
 ﻿namespace Surab.Compilation.LLVM;
 
+/// <summary>
+/// The kind of an <see cref="LLVMTypeLowering"/>.
+/// </summary>
 internal enum LLVMTypeLoweringKind
 {
+	None,
+
 	/// <summary>
-	/// Zero sized lowering.
+	/// Zero sized.
 	/// </summary>
 	ZeroSized,
 	/// <summary>
-	/// By value lowering. This means
+	/// By value. The arg should be passed as is by its value without any conversion.
 	/// </summary>
 	ByValue,
 	/// <summary>
-	/// By copy ref. This means the original arg is copied but we need to lower it to be by ref.
-	/// So mutations shouldn't be observed after the function we're going to call returns to preserve
-	/// by copy semantics.
+	/// By copy ref. The arg is originally passed as a copy but the abi is telling us to pass it by ref.
+	/// Mutations shouldn't be observed after the function we're going to call returns to preserve by copy semantics.
 	/// </summary>
 	ByCopyRef,
-	AbiInt,
+	/// <summary>
+	/// As an integer. The arg should be passed as a bitcasted integer of the same bit size.
+	/// </summary>
+	AsInt,
 }
 
+/// <summary>
+/// Represents a certain conversion imposed by an ABI by which an arg should be passed.
+/// </summary>
 internal readonly struct LLVMTypeLowering
 {
 	public required LLVMTypeLoweringKind Kind { get; init; }
@@ -29,5 +39,5 @@ internal readonly struct LLVMTypeLowering
 
 	public static readonly LLVMTypeLowering ByCopyRef = new() { Kind = LLVMTypeLoweringKind.ByCopyRef };
 
-	public static readonly LLVMTypeLowering AbiInt = new() { Kind = LLVMTypeLoweringKind.AbiInt };
+	public static readonly LLVMTypeLowering AsInt = new() { Kind = LLVMTypeLoweringKind.AsInt };
 }

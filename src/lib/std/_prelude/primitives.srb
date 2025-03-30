@@ -1,0 +1,47 @@
+@public
+struct void { }
+
+@public
+struct i8 { }
+
+@public
+struct i16 { }
+
+@public
+struct i32 { }
+
+@public
+struct i64 { }
+
+@public
+struct isize { }
+
+@public
+struct u8 { }
+
+@public
+struct u16 { }
+
+@public
+struct u32 { }
+
+@public
+struct u64 { }
+
+@public
+struct usize { }
+
+@public
+struct f32 { }
+
+@public
+struct f64 { }
+
+@public
+struct bool { }
+
+@public
+struct char { }
+
+@public
+struct string { }

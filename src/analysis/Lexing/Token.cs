@@ -8,14 +8,15 @@ namespace Surab.Analysis;
 /// </summary>
 public enum TokenKind
 {
-	LeftParen,
-	RightParen,
-	LeftBrace,
-	RightBrace,
+	OpenParen,
+	ClosedParen,
+	OpenBrace,
+	ClosedBrace,
 	Comma,
 	Dot,
 	Semicolon,
 	Colon,
+	ColonColon,
 	Question,
 	Plus,
 	Minus,
@@ -41,14 +42,18 @@ public enum TokenKind
 	Fn,
 	Struct,
 	Class,
+	Trait,
 	Alias,
-	New,
+	Impl,
 	This,
 	True,
 	False,
 	Var,
 	Const,
 	Return,
+
+	If,
+	Else,
 
 	NumericLiteral,
 	NumericLiteralType,
@@ -88,14 +93,15 @@ public class Token(TokenKind kind, TextSpan span, object? data)
 	{
 		return Kind switch
 		{
-			LeftParen => "(",
-			RightParen => ")",
-			LeftBrace => "{",
-			RightBrace => "}",
+			OpenParen => "(",
+			ClosedParen => ")",
+			OpenBrace => "{",
+			ClosedBrace => "}",
 			Comma => ",",
 			Dot => ".",
 			Semicolon => ";",
 			Colon => ":",
+			ColonColon => "::",
 			Question => "?",
 			Minus => "-",
 			Plus => "+",
@@ -121,14 +127,18 @@ public class Token(TokenKind kind, TextSpan span, object? data)
 			Fn => "fn",
 			Struct => "struct",
 			Class => "class",
+			Trait => "trait",
 			Alias => "alias",
-			New => "new",
+			Impl => "impl",
 			This => "this",
 			True => "true",
 			False => "false",
 			Var => "let",
 			Const => "const",
 			Return => "return",
+
+			If => "if",
+			Else => "else",
 
 			NumericLiteral => "numlit",
 			NumericLiteralType => "numlit_type",
@@ -169,14 +179,17 @@ internal static class TokenKindHelper
 		{ "fn", Fn },
 		{ "struct", Struct },
 		{ "class", Class },
+		{ "trait", Trait },
 		{ "alias", Alias },
-		{ "new", New },
+		{ "impl", Impl },
 		{ "this", This },
 		{ "true", True },
 		{ "false", False },
 		{ "var", Var },
 		{ "const", Const },
 		{ "return", Return },
+		{ "if", If },
+		{ "else", Else },
 	};
 
 	public static readonly HashSet<TokenKind> ReservedKeywordsSet = [.. ReservedKeywordsMap.Values];
@@ -234,26 +247,35 @@ public static class TokenKindExtensions
 		LineComment or
 		BlockComment;
 
+	public static bool IsTerminal(this TokenKind kind) =>
+		kind is Semicolon or ClosedBrace or ClosedParen;
+
 	public static bool CanStartAttribute(this TokenKind kind) => kind is
 		AtBeforeIdentifier;
 
+	/// <summary>
+	/// Returns if the token can start a decl.
+	/// Note that this doesn't include member decls as those have their own contextual parsing.
+	/// </summary>
 	public static bool CanStartDecl(this TokenKind kind) => kind is
 		Const or
+		Var or
 		Fn or
 		Struct or
 		Class or
-		Alias or
-		Identifier ||
-		CanStartAttribute(kind); // While an attribute isn't a part of the decl in the structural sense, we need to account for it here.
+		Trait or
+		Alias ||
+		CanStartAttribute(kind);
 
 	public static bool CanStartStmt(this TokenKind kind) =>
+		kind.CanStartDecl() ||
 		kind.CanStartExpr() ||
-		kind is Var or Return;
+		kind is Return or Semicolon;
 
 	public static bool CanStartExpr(this TokenKind kind) =>
 		kind.IsUnary() ||
 		kind.IsLiteral() ||
-		kind is LeftParen or LeftBrace or This or Identifier;
+		kind is OpenParen or OpenBrace or This or Identifier or If;
 
 	public static bool CanStartParam(this TokenKind kind) =>
 		kind is Identifier ||

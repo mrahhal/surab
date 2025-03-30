@@ -12,5 +12,5 @@ public static class LanguageServerHelper
 		});
 	}
 
-	public static string GetSurabFilesGlob() => "**/*.surab";
+	public static string GetSurabFilesGlob() => $"**/*{Constants.CodeFileExt}";
 }

@@ -16,19 +16,20 @@ public class DidChangeWatchedFilesHandler(
 
 	public override Task<Unit> Handle(DidChangeWatchedFilesParams request, CancellationToken cancellationToken)
 	{
-		_logger.LogTrace("[DidChangeWatchedFilesParams]");
+		_logger.LogInformation("[DidChangeWatchedFilesParams]");
 
-		_solver.Project.LockForWrite(() =>
+		_solver.Workspace.LockForWrite(() =>
 		{
 			foreach (var change in request.Changes)
 			{
+				var path = change.Uri.GetFileSystemPath();
+				var project = _solver.Workspace.GetFileProject(path);
+
 				switch (change.Type)
 				{
 					case FileChangeType.Created:
 						{
-							var path = change.Uri.GetFileSystemPath();
-							var sourceFile = SourceFile.Create(path, File.ReadAllText(path));
-							_solver.Project.AddSourceFile(sourceFile);
+							project.VFS.AddFile(path, File.ReadAllText(path));
 						}
 						break;
 
@@ -40,10 +41,14 @@ public class DidChangeWatchedFilesHandler(
 
 					case FileChangeType.Deleted:
 						{
-							var sourceFile = _solver.GetSourceFile(change.Uri);
-							if (sourceFile != null)
+							var file = project.VFS.GetFile(path);
+							if (file == null)
 							{
-								_solver.Project.RemoveSourceFile(sourceFile);
+								_logger.LogInformation("Did not find SourceFile with path {FilePath}.", change.Uri);
+							}
+							else
+							{
+								project.VFS.RemoveFile(file);
 							}
 						}
 						break;
@@ -59,6 +64,8 @@ public class DidChangeWatchedFilesHandler(
 
 	protected override DidChangeWatchedFilesRegistrationOptions CreateRegistrationOptions(DidChangeWatchedFilesCapability capability, ClientCapabilities clientCapabilities)
 	{
+		// TODO: Track surab-project.json
+
 		return new()
 		{
 			Watchers = new Container<FileSystemWatcher>(

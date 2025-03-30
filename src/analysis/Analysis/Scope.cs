@@ -61,7 +61,6 @@ internal abstract class Scope
 		return default;
 	}
 
-	// TODO: Seperate this into LookupIdentifierForType and LookupIdentifierForInstance?
 	/// <summary>
 	/// Looks up an identifier in this scope.
 	/// </summary>
@@ -87,7 +86,7 @@ internal abstract class Scope
 	protected static T? LookupIdentifierIn<T>(T symbol, string identifier)
 		where T : Symbol
 	{
-		if (symbol.Identifier?.Value == identifier)
+		if (symbol.IdentifierMatches(identifier))
 		{
 			return symbol;
 		}
@@ -101,7 +100,7 @@ internal abstract class Scope
 		for (var i = array.Length - 1; i >= 0; i--)
 		{
 			var item = array[i];
-			if (item.Identifier?.Value == identifier)
+			if (item.IdentifierMatches(identifier))
 			{
 				return item;
 			}
@@ -122,7 +121,7 @@ internal abstract class Scope
 		else
 		{
 			var boundType = Reasoner.InferTypeOfDeclaringNode(node);
-			return ResolvedType.Inferred(boundType ?? UnknownTypeSymbol.Create(Reasoner));
+			return ResolvedType.Inferred(boundType ?? UnknownTypeSymbol.Create());
 		}
 	}
 
@@ -142,12 +141,12 @@ internal abstract class Scope
 		var resolvedType = typeNode switch
 		{
 			PtrTypeNode ptrTypeNode => Reasoner.LookupSymbol(ptrTypeNode),
-			NamedTypeNode namedTypeNode => LookupIdentifier(namedTypeNode.Identifier),
+			ExprTypeNode exprTypeNode => Reasoner.LookupSymbol(exprTypeNode),
 			FnTypeNode fnTypeNode => Reasoner.LookupSymbol(fnTypeNode),
-			MissingTypeNode => UnknownTypeSymbol.Create(Reasoner),
+			MissingTypeNode => UnknownTypeSymbol.Create(),
 			_ => throw new UnreachableException(),
 		};
-		return ResolvedType.Typed(resolvedType as TypeSymbol ?? UnknownTypeSymbol.Create(Reasoner));
+		return ResolvedType.Typed(resolvedType.AsTypeSymbolOrUnknown());
 	}
 
 	/// <summary>
@@ -165,14 +164,16 @@ internal abstract class Scope
 	}
 }
 
-internal class FileScope(FileNode file, Reasoner fileReasoner, Reasoner? preludeReasoner) : Scope
+/// <summary>
+/// A scope that exposes file declarations, symbols in the current module, and imported symbols.
+/// </summary>
+internal sealed class FileScope(FileNode file, Reasoner fileReasoner, SurabProject project) : Scope
 {
 	private ImmutableArray<Symbol> _decls;
 
 	private readonly FileNode _file = file;
 	private readonly Reasoner _fileReasoner = fileReasoner;
-
-	private readonly Reasoner? _preludeReasoner = preludeReasoner;
+	private readonly SurabProject _project = project;
 
 	public ImmutableArray<Symbol> Decls
 	{
@@ -191,7 +192,16 @@ internal class FileScope(FileNode file, Reasoner fileReasoner, Reasoner? prelude
 	{
 		return
 			LookupIdentifierIn(Decls, identifier) ??
-			LookupInImports(identifier);
+			LookupInCurrentModule(identifier) ??
+			LookupInImports(identifier) ??
+			LookupInPrelude(identifier);
+	}
+
+	private Symbol? LookupInCurrentModule(string identifier)
+	{
+		var module = _fileReasoner.ResolveCurrentModule();
+		// All exported symbols of current module are exposed to files inside the module.
+		return module.GetExportedSymbol(identifier);
 	}
 
 	private Symbol? LookupInImports(string identifier)
@@ -200,17 +210,46 @@ internal class FileScope(FileNode file, Reasoner fileReasoner, Reasoner? prelude
 		for (var i = imports.Count - 1; i >= 0; i--)
 		{
 			var import = imports[i];
-			var targetReasoner = _fileReasoner.ResolveImportedFileReasoner(import);
-			var result = targetReasoner?.LookupExportedSymbolByName(identifier);
+			var resolvedImport = _fileReasoner.ResolveImport(import);
+			var result = LookupInResolvedModule(resolvedImport, identifier);
 
 			if (result != null)
-			{
 				return result;
-			}
 		}
 
-		// If nothing else works, try resolve from the prelude.
-		return _preludeReasoner?.LookupExportedSymbolByName(identifier);
+		return null;
+	}
+
+	private Symbol? LookupInPrelude(string identifier)
+	{
+		var preludeModule = _project.Workspace.PreludeModule;
+		if (_fileReasoner.Module == preludeModule)
+		{
+			// We're in the prelude already.
+			return null;
+		}
+		var preludeImport = ResolvedImport.Resolved(
+			preludeModule,
+			preludeModule.ExportedSymbols);
+		return LookupInResolvedModule(preludeImport, identifier);
+	}
+
+	private Symbol? LookupInResolvedModule(ResolvedImport resolvedImport, string identifier)
+	{
+		return resolvedImport.ExposedSymbols.FirstOrDefault(s => s.IdentifierMatches(identifier));
+	}
+
+	internal ModuleSymbol? LookupImportedModule(string identifier)
+	{
+		foreach (var import in _file.Imports)
+		{
+			var resolvedModule = _fileReasoner.ResolveImport(import);
+			if (!resolvedModule.IsFailed && resolvedModule.Module.IdentifierMatches(identifier))
+			{
+				return resolvedModule.Module;
+			}
+		}
+		return null;
 	}
 
 	public override Symbol? LookupExportedIdentifier(string identifier)
@@ -232,15 +271,43 @@ internal class FileScope(FileNode file, Reasoner fileReasoner, Reasoner? prelude
 	}
 }
 
-internal class TypeDeclScope(NamedTypeSymbol symbol) : Scope
+/// <summary>
+/// A scope that exposes local declarations in the type, `this`, and generic params.
+/// </summary>
+internal sealed class NamedTypeDeclScope(NamedTypeSymbol symbol) : Scope
 {
-	protected readonly NamedTypeSymbol _symbol = symbol;
+	private readonly NamedTypeSymbol _symbol = symbol;
+
+	private ImmutableArray<Symbol> _localDecls;
+
+	public ImmutableArray<Symbol> LocalDecls
+	{
+		get
+		{
+			if (_localDecls.IsDefault)
+			{
+				ImmutableInterlocked.InterlockedCompareExchange(ref _localDecls, BuildLocalDecls(), default);
+			}
+
+			return _localDecls;
+		}
+	}
 
 	public override Symbol? LookupIdentifierHere(string identifier)
 	{
-		// Type members are accessed through `this`, so they're not visible from the scope.
-		return null;
-		//return LookupIdentifierIn(_symbol.Members, identifier);
+		// Type members (fields and methods) are accessed through `this`, so they're not visible from the scope.
+		// Local decls don't use `this`, so here we only need to lookup using LocalDecls.
+
+		return
+			LookupIdentifierIn(LocalDecls, identifier) ??
+			LookupIdentifierInGenericParams(identifier);
+	}
+
+	private Symbol? LookupIdentifierInGenericParams(string identifier)
+	{
+		if (!_symbol.TryGetGenericParams(out var genericParams))
+			return null;
+		return LookupIdentifierIn(genericParams, identifier);
 	}
 
 	public override TypeSymbol? LookupThisHere()
@@ -252,32 +319,81 @@ internal class TypeDeclScope(NamedTypeSymbol symbol) : Scope
 	{
 		return _symbol;
 	}
+
+	private ImmutableArray<Symbol> BuildLocalDecls()
+	{
+		// Fields and methods are not a part of this list because they are not in scope without `this`.
+
+		var builder = ImmutableArray.CreateBuilder<Symbol>();
+
+		foreach (var member in _symbol.Members)
+		{
+			switch (member.Kind)
+			{
+				case SymbolKind.Fn:
+					// Only fns are locally visible, methods are access through `this`.
+					if (!((FnSymbol)member).IsMethod)
+					{
+						builder.Add(member);
+					}
+					break;
+				case SymbolKind.Type:
+					builder.Add(member);
+					break;
+
+				default:
+					break;
+			}
+		}
+
+		return builder.ToImmutable();
+	}
 }
 
-internal class StructDeclScope(
-	StructDeclNode structDecl,
-	StructTypeSymbol symbol) : TypeDeclScope(symbol)
+/// <summary>
+/// A scope that exposes the generic params in the alias type.
+/// </summary>
+internal sealed class AliasTypeDeclScope(AliasTypeSymbol symbol) : Scope
 {
-	private readonly StructDeclNode _structDecl = structDecl;
-}
-
-internal class ClassDeclScope(
-	ClassDeclNode classDecl,
-	NamedTypeSymbol symbol) : TypeDeclScope(symbol)
-{
-	private readonly ClassDeclNode _classDecl = classDecl;
-}
-
-internal class FnScope(
-	FnSigNode fnSig,
-	FnSymbol fnSymbol) : Scope
-{
-	private readonly FnSigNode _fnSig = fnSig;
-	private readonly FnSymbol _fnSymbol = fnSymbol;
+	private readonly AliasTypeSymbol _symbol = symbol;
 
 	public override Symbol? LookupIdentifierHere(string identifier)
 	{
-		return LookupIdentifierIn(_fnSymbol.Params, identifier);
+		return LookupIdentifierInGenericParams(identifier);
+	}
+
+	private Symbol? LookupIdentifierInGenericParams(string identifier)
+	{
+		if (!_symbol.TryGetGenericParams(out var genericParams))
+			return null;
+		return LookupIdentifierIn(genericParams, identifier);
+	}
+
+	public override TypeSymbol? LookupTypeDeclHere()
+	{
+		return _symbol;
+	}
+}
+
+/// <summary>
+/// A scope that exposes a function's params and generic params.
+/// </summary>
+internal sealed class FnScope(FnSymbol symbol) : Scope
+{
+	private readonly FnSymbol _symbol = symbol;
+
+	public override Symbol? LookupIdentifierHere(string identifier)
+	{
+		return
+			LookupIdentifierIn(_symbol.Params, identifier) ??
+			LookupIdentifierInGenericParams(identifier);
+	}
+
+	private Symbol? LookupIdentifierInGenericParams(string identifier)
+	{
+		if (!_symbol.TryGetGenericParams(out var genericParams))
+			return null;
+		return LookupIdentifierIn(genericParams, identifier);
 	}
 }
 
@@ -287,7 +403,7 @@ internal class FnScope(
 /// <remarks>
 /// This scope gets extended until the end of a block node. This scope replaces explicit block scopes to allow var shadowing.
 /// </remarks>
-internal class LocalScope(LocalSymbol symbol) : Scope
+internal sealed class LocalScope(LocalSymbol symbol) : Scope
 {
 	private readonly LocalSymbol _symbol = symbol;
 
@@ -300,5 +416,51 @@ internal class LocalScope(LocalSymbol symbol) : Scope
 	{
 		// A local scope lives until its containing block ends.
 		return node is BlockExprNode;
+	}
+}
+
+/// <summary>
+/// A scope that exposes declarations local to the block to the entire block.
+/// This means declaring a struct anywhere inside the block makes it available to any statement inside the whole block.
+/// </summary>
+internal sealed class BlockScope(BlockExprNode blockExprNode) : Scope
+{
+	private ImmutableArray<Symbol> _localDecls;
+
+	public BlockExprNode BlockExprNode { get; } = blockExprNode;
+
+	public ImmutableArray<Symbol> LocalDecls
+	{
+		get
+		{
+			if (_localDecls.IsDefault)
+			{
+				ImmutableInterlocked.InterlockedCompareExchange(ref _localDecls, BuildLocalDecls(), default);
+			}
+
+			return _localDecls;
+		}
+	}
+
+	public override Symbol? LookupIdentifierHere(string identifier)
+	{
+		return LookupIdentifierIn(LocalDecls, identifier);
+	}
+
+	private ImmutableArray<Symbol> BuildLocalDecls()
+	{
+		var builder = ImmutableArray.CreateBuilder<Symbol>();
+		// We need to skip VarDeclNodes as those get their own LocalScopes and abide by a special ending scope.
+		var declStmts = BlockExprNode.Stmts
+			.OfType<DeclStmtNode>()
+			.Where(declStmt => declStmt.Decl is not VarDeclNode);
+		foreach (var declStmt in declStmts)
+		{
+			if (Reasoner.TryGetDeclaredSymbol(declStmt.Decl, out var symbol))
+			{
+				builder.Add(symbol);
+			}
+		}
+		return builder.ToImmutable();
 	}
 }

@@ -16,7 +16,7 @@ public enum RuntimeTypeKind
 
 public static class TypeSymbolExtensions
 {
-	public static bool IsScalar(this TypeSymbol type)
+	public static bool IsScalar(this HirType type)
 	{
 		return type.GetRuntimeKind() switch
 		{
@@ -25,18 +25,16 @@ public static class TypeSymbolExtensions
 		};
 	}
 
-	public static RuntimeTypeKind GetRuntimeKind(this TypeSymbol type)
+	public static RuntimeTypeKind GetRuntimeKind(this HirType type)
 	{
-		type = type.UnwrapAliases();
 		var tag = type.KnownTypeTag;
 
-		if (tag == KnownTypeTag.None) return RuntimeTypeKind.ZeroSized;
-		if (tag == KnownTypeTag.@char) return RuntimeTypeKind.Char;
-		if (tag == KnownTypeTag.@string || type is PtrTypeSymbol) return RuntimeTypeKind.Ptr;
-		if (type.IsNumeric()) return RuntimeTypeKind.Numeric;
-		if (tag == KnownTypeTag.@bool) return RuntimeTypeKind.Bool;
-		if (type is StructTypeSymbol) return RuntimeTypeKind.Struct;
-		if (type is FnTypeSymbol) return RuntimeTypeKind.Ptr;
+		if (tag is KnownTypeTag.@void) return RuntimeTypeKind.ZeroSized;
+		if (tag is KnownTypeTag.@char) return RuntimeTypeKind.Char;
+		if (tag is KnownTypeTag.@string || type.Kind is HirTypeKind.Ptr or HirTypeKind.Fn) return RuntimeTypeKind.Ptr;
+		if (type.KnownTypeTag.IsNumeric()) return RuntimeTypeKind.Numeric;
+		if (tag is KnownTypeTag.@bool) return RuntimeTypeKind.Bool;
+		if (type.Kind is HirTypeKind.Struct) return RuntimeTypeKind.Struct;
 
 		throw new UnreachableException();
 	}

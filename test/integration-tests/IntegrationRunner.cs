@@ -6,22 +6,49 @@ namespace Surab;
 
 public static class IntegrationRunner
 {
-	public static string Run(string src, bool fails = false)
+	/// <summary>
+	/// Tests the code against an expected output.
+	/// Parses the expected output from annotations (each annotation is treated as a line).
+	/// </summary>
+	public static void TestAnnotatedOutput(string annotatedCode)
 	{
-		var sourceFile = SourceFile.FromText(src);
+		var result = AnnotatedCodeUtil.Parse(annotatedCode, treatAnnotatedContentAsCode: false);
+		var expectedOutput = string.Join(Environment.NewLine, result.Annotations.Select(a => a.Content)).NL();
 
-		var project = SurabProject.Create([sourceFile]);
-		var reasoner = project.GetReasoner(sourceFile);
+		Test(result.Code, expectedOutput);
+	}
 
-		var diags = reasoner.GetAllDiagnostics();
-		var errors = diags.Where(x => x.Level >= DiagnosticLevel.Error).Select(x => new { x.Level, x.Message, Text = src[x.Span.File.Start..x.Span.File.End] });
+	public static void Test(string code, string expectedOutput)
+	{
+		var output = Run(code);
+		output.Should().Be(expectedOutput.ReplaceLineEndings());
+	}
+
+	public static string Run(string code, bool fails = false)
+	{
+		var project = SurabWorkspace.CreateInMemoryProject(code);
+		return Run(project, fails);
+	}
+
+	public static string Run(SurabProject project, bool fails = false)
+	{
+		var totalErrors = new List<(DiagLevel, string, string)>();
+		foreach (var reasoner in project.GetAllReasoners())
+		{
+			var diags = reasoner.GetAllDiags();
+			var src = reasoner.Tree.File.Text;
+			var errors = diags
+				.Where(x => x.Level >= DiagLevel.Error)
+				.Select(x => (x.Level, x.Message, Text: src[x.Span.File.Start..x.Span.File.End]));
+			totalErrors.AddRange(errors);
+		}
 		if (!fails)
 		{
-			errors.Should().HaveCount(0);
+			totalErrors.Should().HaveCount(0);
 		}
 		else
 		{
-			errors.Should().NotBeEmpty();
+			totalErrors.Should().NotBeEmpty();
 			return string.Empty;
 		}
 

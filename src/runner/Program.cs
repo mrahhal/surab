@@ -18,8 +18,8 @@ var p = new Process
 p.Start();
 p.WaitForExit();
 
-var src = """
-	alias Delegate1 as @extern fn (S2);
+var code = """
+	alias @extern fn (S2) as Delegate1;
 
 	struct S1 {
 		a: f64;
@@ -35,11 +35,11 @@ var src = """
 	struct S3 {
 		a: f64;
 		b: f64;
-	}
 
-	@extern
-	struct S4 {
-		s3: S3;
+		@extern
+		struct S4 {
+			s3: S3;
+		}
 	}
 
 	@extern
@@ -50,8 +50,6 @@ var src = """
 
 	@extern
 	fn print_s3_from_rust(s3: S3);
-
-	fn noop() { }
 
 	@extern
 	fn f(x: f64, y: f64) f64 {
@@ -66,6 +64,7 @@ var src = """
 
 	fn main() {
 		var a = 2.0;
+		fn noop() { }
 		noop();
 		var b: f64 = 4.0;
 		var c = f(a, b);
@@ -76,16 +75,16 @@ var src = """
 		print_f64(c);
 		print_i32(41 + 1);
 
-		var s1 = S1 {
-			a = 82.0,
-			b = true,
+		var s1 = S1.{
+			a: 82.0,
+			b: true,
 		};
 		print_f64(s1.a);
 		s1.a = 83.0;
 		print_f64(s1.a);
 		print_bool(s1.b);
 
-		var s2 = S2 { a = 42.3 };
+		var s2 = S2.{ a: 42.3 };
 
 		fs(s1, s2);
 
@@ -104,23 +103,24 @@ var src = """
 		var s3_from_rust = get_s3_from_rust();
 		print_s3_from_rust(s3_from_rust);
 
-		var s4 = S4 { s3 = s3_from_rust };
+		var s4 = S3.S4.{ s3: s3_from_rust };
 		print_s3_from_rust(s4.s3);
 
 		var str = "This is created in surab and printed from rust.";
 		print_string(str);
 	}
 	""";
-var sourceFile = SourceFile.FromText(src);
 
-var project = SurabProject.Create([sourceFile]);
-var tree = project.GetSyntaxTree(sourceFile);
-var reasoner = project.GetReasoner(sourceFile);
+var vfs = VFS.Create();
+var codeFile = vfs.AddCodeFile(code);
+var project = SurabWorkspace.CreateInMemoryProject(vfs);
+var tree = project.GetSyntaxTree(codeFile);
+var reasoner = project.GetReasoner(codeFile);
 
-var diags = reasoner.GetAllDiagnostics();
-if (diags.Any(x => x.Level >= DiagnosticLevel.Error))
+var diags = reasoner.GetAllDiags();
+if (diags.Any(x => x.Level >= DiagLevel.Error))
 {
-	var errors = diags.Select(d => (d, v: d.Visualize(src))).ToList();
+	var errors = diags.Select(d => (d, v: d.Visualize(code))).ToList();
 	ConsoleHelper.WriteError("ERROR COMPILING\n");
 	Console.WriteLine(string.Join('\n', errors.Select(x => x.v)));
 	return;

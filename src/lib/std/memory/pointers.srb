@@ -1,0 +1,2 @@
+@public @intrinsic("memory_ptr_add_offset")
+fn ptr_add_offset<T>(ptr: *T, offset: i32) *T;

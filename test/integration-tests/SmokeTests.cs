@@ -5,22 +5,20 @@ public class SmokeTests
 	[Fact]
 	public void Succeed()
 	{
-		var output = IntegrationRunner.Run("""
+		IntegrationRunner.TestAnnotatedOutput(
+			"""
 			fn main() {
 				var a = 42;
-				print_i32(a);
+				print_i32(a); [|42|]
 			}
 			""");
-
-		var expectedOutput = "42".NL();
-
-		output.Should().Be(expectedOutput);
 	}
 
 	[Fact]
 	public void Fail()
 	{
-		IntegrationRunner.Run("""
+		IntegrationRunner.Run(
+			"""
 			fn main() {
 				fffffffffffff
 			}

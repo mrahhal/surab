@@ -1,22 +1,42 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace Surab.Analysis;
 
 public class SyntaxTree
 {
-	internal SyntaxTree(SourceFile sourceFile)
+	internal SyntaxTree(ProjectFile file)
 	{
-		SourceFile = sourceFile;
+		File = file;
 	}
 
-	public SourceFile SourceFile { get; }
+	public ProjectFile File { get; }
 
 	// Set during parsing.
 	public SyntaxNode Root { get; internal set; } = default!;
 
 	// Set during parsing.
-	public DiagnosticBag Diagnostics { get; internal set; } = default!;
+	public DiagBag Diags { get; internal set; } = default!;
+
+	// Set during parsing.
+	public IReadOnlyList<int> LineOffsetToCharsCount { get; internal set; } = default!;
+
+	/// <summary>
+	/// Gets the deepest node at the given position.
+	/// </summary>
+	public SyntaxNode? GetNodeAt(LinePosition linePosition)
+	{
+		return Root.GetNodeAt(linePosition);
+	}
+
+	/// <summary>
+	/// Gets the deepest node at the given position.
+	/// </summary>
+	public SyntaxNode? GetNodeAt(int filePosition)
+	{
+		return Root.GetNodeAt(filePosition);
+	}
 }
 
 public abstract class SyntaxEntity : ISyntaxTreeVisitable
@@ -74,10 +94,18 @@ public abstract class SyntaxToken : SyntaxEntity
 		}
 	}
 
+	public new SyntaxNode Parent => base.Parent!;
+
 	public SyntaxTokenKind Kind { get; }
 
+	/// <summary>
+	/// The leading trivia.
+	/// </summary>
 	public IEnumerable<SyntaxTrivia> LeadingTrivia => _leadingTrivia;
 
+	/// <summary>
+	/// The trailing trivia. Usually empty except for the last token in a file.
+	/// </summary>
 	public IEnumerable<SyntaxTrivia> TrailingTrivia => _trailingTrivia;
 }
 
@@ -132,12 +160,15 @@ internal static class TokenHelper
 
 public enum SimpleTokenKind
 {
-	LeftParen,
-	RightParen,
-	LeftBrace,
-	RightBrace,
+	OpenParen,
+	ClosedParen,
+	OpenBrace,
+	ClosedBrace,
+	OpenChevron,
+	ClosedChevron,
 	Comma,
 	Dot,
+	ColonColon,
 	Semicolon,
 	Colon,
 	Question,
@@ -148,8 +179,9 @@ public enum SimpleTokenKind
 	Fn,
 	Struct,
 	Class,
+	Trait,
 	Alias,
-	New,
+	Impl,
 	This,
 	True,
 	False,
@@ -159,6 +191,9 @@ public enum SimpleTokenKind
 	Extern,
 	Public,
 	Return,
+
+	If,
+	Else,
 
 	AsKeyword,
 	ImportKeyword,
@@ -202,12 +237,15 @@ public sealed class SimpleToken : SyntaxToken
 			IsMissing = isMissing,
 			SimpleTokenKind = tokenKind switch
 			{
-				TokenKind.LeftParen => SimpleTokenKind.LeftParen,
-				TokenKind.RightParen => SimpleTokenKind.RightParen,
-				TokenKind.LeftBrace => SimpleTokenKind.LeftBrace,
-				TokenKind.RightBrace => SimpleTokenKind.RightBrace,
+				TokenKind.OpenParen => SimpleTokenKind.OpenParen,
+				TokenKind.ClosedParen => SimpleTokenKind.ClosedParen,
+				TokenKind.OpenBrace => SimpleTokenKind.OpenBrace,
+				TokenKind.ClosedBrace => SimpleTokenKind.ClosedBrace,
+				TokenKind.Less => SimpleTokenKind.OpenChevron,
+				TokenKind.Greater => SimpleTokenKind.ClosedChevron,
 				TokenKind.Comma => SimpleTokenKind.Comma,
 				TokenKind.Dot => SimpleTokenKind.Dot,
+				TokenKind.ColonColon => SimpleTokenKind.ColonColon,
 				TokenKind.Semicolon => SimpleTokenKind.Semicolon,
 				TokenKind.Colon => SimpleTokenKind.Colon,
 				TokenKind.Question => SimpleTokenKind.Question,
@@ -219,14 +257,18 @@ public sealed class SimpleToken : SyntaxToken
 				TokenKind.Fn => SimpleTokenKind.Fn,
 				TokenKind.Struct => SimpleTokenKind.Struct,
 				TokenKind.Class => SimpleTokenKind.Class,
+				TokenKind.Trait => SimpleTokenKind.Trait,
 				TokenKind.Alias => SimpleTokenKind.Alias,
-				TokenKind.New => SimpleTokenKind.New,
+				TokenKind.Impl => SimpleTokenKind.Impl,
 				TokenKind.This => SimpleTokenKind.This,
 				TokenKind.True => SimpleTokenKind.True,
 				TokenKind.False => SimpleTokenKind.False,
 				TokenKind.Var => SimpleTokenKind.Var,
 				TokenKind.Const => SimpleTokenKind.Const,
 				TokenKind.Return => SimpleTokenKind.Return,
+
+				TokenKind.If => SimpleTokenKind.If,
+				TokenKind.Else => SimpleTokenKind.Else,
 
 				_ => throw new Exception($"TokenKind {tokenKind} not supported."),
 			},
@@ -259,12 +301,15 @@ public sealed class SimpleToken : SyntaxToken
 	{
 		return SimpleTokenKind switch
 		{
-			SimpleTokenKind.LeftParen => "(",
-			SimpleTokenKind.RightParen => ")",
-			SimpleTokenKind.LeftBrace => "{",
-			SimpleTokenKind.RightBrace => "}",
+			SimpleTokenKind.OpenParen => "(",
+			SimpleTokenKind.ClosedParen => ")",
+			SimpleTokenKind.OpenBrace => "{",
+			SimpleTokenKind.ClosedBrace => "}",
+			SimpleTokenKind.OpenChevron => "<",
+			SimpleTokenKind.ClosedChevron => ">",
 			SimpleTokenKind.Comma => ",",
 			SimpleTokenKind.Dot => ".",
+			SimpleTokenKind.ColonColon => "::",
 			SimpleTokenKind.Semicolon => ";",
 			SimpleTokenKind.Colon => ":",
 			SimpleTokenKind.Question => "?",
@@ -275,14 +320,18 @@ public sealed class SimpleToken : SyntaxToken
 			SimpleTokenKind.Fn => "fn",
 			SimpleTokenKind.Struct => "struct",
 			SimpleTokenKind.Class => "class",
+			SimpleTokenKind.Trait => "trait",
 			SimpleTokenKind.Alias => "alias",
-			SimpleTokenKind.New => "new",
+			SimpleTokenKind.Impl => "impl",
 			SimpleTokenKind.This => "this",
 			SimpleTokenKind.True => "true",
 			SimpleTokenKind.False => "false",
 			SimpleTokenKind.Var => "let",
 			SimpleTokenKind.Const => "const",
 			SimpleTokenKind.Return => "return",
+
+			SimpleTokenKind.If => "if",
+			SimpleTokenKind.Else => "else",
 
 			_ => throw new NotImplementedException(),
 		};
@@ -678,7 +727,7 @@ public readonly struct SyntaxTrivia
 
 	public override string ToString()
 	{
-		return Token.Tree.SourceFile.Text[Span.File.GetRange()];
+		return Token.Tree.File.Text[Span.File.GetRange()];
 	}
 }
 
@@ -701,6 +750,9 @@ public abstract class SyntaxNode : SyntaxEntity
 
 	public SyntaxNodeKind Kind { get; }
 
+	/// <summary>
+	/// Gets the child tokens of this node. Guaranteed to be ordered by the start of the child token's Span.
+	/// </summary>
 	public IEnumerable<SyntaxToken> ChildTokens
 	{
 		[DebuggerStepThrough]
@@ -716,6 +768,9 @@ public abstract class SyntaxNode : SyntaxEntity
 		}
 	}
 
+	/// <summary>
+	/// Gets the child nodes of this node. Guaranteed to be ordered by the start of the child node's Span.
+	/// </summary>
 	public IEnumerable<SyntaxNode> ChildNodes
 	{
 		[DebuggerStepThrough]
@@ -798,6 +853,105 @@ public abstract class SyntaxNode : SyntaxEntity
 	}
 
 	/// <summary>
+	/// Enumerates descendant tokens in breadth first order.
+	/// </summary>
+	public IEnumerable<SyntaxToken> DescendantTokens()
+	{
+		foreach (var item in EnumerateBySpanStart())
+		{
+			if (item.Token != null)
+			{
+				yield return item.Token;
+			}
+			else if (item.Node != null)
+			{
+				foreach (var token in item.Node.DescendantTokens())
+				{
+					yield return token;
+				}
+			}
+		}
+	}
+
+	/// <summary>
+	/// Gets the deepest node at the given position.
+	/// </summary>
+	public SyntaxNode? GetNodeAt(LinePosition linePosition)
+	{
+		return GetNodeAtRecursive(this, linePosition);
+	}
+
+	/// <summary>
+	/// Gets the deepest node at the given position.
+	/// </summary>
+	public SyntaxNode? GetNodeAt(int filePosition)
+	{
+		return GetNodeAtRecursive(this, filePosition);
+	}
+
+	private static SyntaxNode? GetNodeAtRecursive(SyntaxNode node, LinePosition linePosition)
+	{
+		foreach (var childNode in node.ChildNodes)
+		{
+			if (childNode.SpanWithTrivia.Line.Contains(linePosition))
+			{
+				return GetNodeAtRecursive(childNode, linePosition);
+			}
+		}
+		return node;
+	}
+
+	private static SyntaxNode? GetNodeAtRecursive(SyntaxNode node, int filePosition)
+	{
+		foreach (var childNode in node.ChildNodes)
+		{
+			if (childNode.SpanWithTrivia.File.Contains(filePosition))
+			{
+				return GetNodeAtRecursive(childNode, filePosition);
+			}
+		}
+		return node;
+	}
+
+	/// <summary>
+	/// Gets the token at the position without taking into account trivia.
+	/// </summary>
+	public SyntaxToken? GetTokenAt(LinePosition linePosition)
+	{
+		foreach (var token in ChildTokens)
+		{
+			if (token.Span.Line.Contains(linePosition))
+			{
+				return token;
+			}
+			else if (token.Span.Line.Start > linePosition)
+			{
+				break;
+			}
+		}
+		return null;
+	}
+
+	/// <summary>
+	/// Gets the token at the position without taking into account trivia.
+	/// </summary>
+	public SyntaxToken? GetTokenAt(int filePosition)
+	{
+		foreach (var token in ChildTokens)
+		{
+			if (token.Span.File.Contains(filePosition))
+			{
+				return token;
+			}
+			else if (token.Span.File.Start > filePosition)
+			{
+				break;
+			}
+		}
+		return null;
+	}
+
+	/// <summary>
 	/// Yields back child nodes or tokens in span start order.
 	/// </summary>
 	public IEnumerable<(SyntaxNode? Node, SyntaxToken? Token)> EnumerateBySpanStart()
@@ -812,7 +966,7 @@ public abstract class SyntaxNode : SyntaxEntity
 
 	public override string ToString()
 	{
-		return Tree.SourceFile.Text[Span.File.GetRange()];
+		return Tree.File.Text[Span.File.GetRange()];
 	}
 
 	/// <summary>
@@ -820,7 +974,7 @@ public abstract class SyntaxNode : SyntaxEntity
 	/// </summary>
 	public bool DeclaresSymbol()
 	{
-		return this is DeclNode or VarStmtNode or ParamNode;
+		return this is DeclNode or DeclStmtNode or ParamNode or GenericParamNode;
 	}
 }
 
@@ -848,20 +1002,7 @@ public partial class FileNode
 {
 	public IEnumerable<ImportNode> Imports => ImportsList.Imports;
 
-	public IEnumerable<DeclNode> Decls => DeclsList.Decls;
-}
-
-public partial class ImportNode
-{
-	public string WellFormedModulePath
-	{
-		get
-		{
-			var succeeded = ((LiteralExprNode)ModulePath).Literal.TryGetStringValue(out var value);
-			Debug.Assert(succeeded);
-			return value!;
-		}
-	}
+	public IEnumerable<DeclNode> Decls => DeclsList?.Decls ?? [];
 }
 
 public partial class MethodDeclNode
@@ -874,46 +1015,12 @@ public partial class MethodDeclNode
 	/// <summary>
 	/// Gets whether the method is the special initializer method `() { }`.
 	/// </summary>
-	public bool IsInitializer => !Sig.Identifier.IsMissing && Sig.Identifier.Value == string.Empty;
+	public bool IsInitializer => !Sig.Name.Identifier.IsMissing && Sig.Name.Identifier.Value == string.Empty;
 
 	/// <summary>
 	/// Gets whether the method is an implementation of an operator.
 	/// </summary>
-	public bool IsMethodOp => TokenHelper.TryGetMethodOp(Sig.Identifier.Value, out _);
-}
-
-public partial class BareExprStmtNode
-{
-	private bool? _isTreatedAsStmt;
-
-	public bool IsTreatedAsStmt
-	{
-		get
-		{
-			if (_isTreatedAsStmt.HasValue)
-				return _isTreatedAsStmt.Value;
-
-			_isTreatedAsStmt = Expr is BlockExprNode childBlock && !childBlock.ReturnsExpr;
-			return _isTreatedAsStmt.Value;
-		}
-	}
-}
-
-public partial class BlockExprNode
-{
-	private bool? _returnsExpr;
-
-	public bool ReturnsExpr
-	{
-		get
-		{
-			if (_returnsExpr.HasValue)
-				return _returnsExpr.Value;
-
-			_returnsExpr = Stmts.Any() && Stmts.Last() is BareExprStmtNode bareExprStmt && !bareExprStmt.IsTreatedAsStmt;
-			return _returnsExpr.Value;
-		}
-	}
+	public bool IsMethodOp => TokenHelper.TryGetMethodOp(Sig.Name.Identifier.Value, out _);
 }
 
 public partial class FnTypeNode
@@ -946,12 +1053,20 @@ public partial class ConstDeclNode
 
 public partial class StructDeclNode
 {
-	public IEnumerable<DeclNode> Members => DeclsList.Decls;
+	// REVIEW: Decls might be a better name. Not all these decls are members (e.g. local decl).
+	public IEnumerable<DeclNode> Members => DeclsList?.Decls ?? [];
 }
 
-public partial class ClassDeclNode
+public partial class TraitDeclNode
 {
-	public IEnumerable<DeclNode> Members => DeclsList.Decls;
+	// REVIEW: same as above
+	public IEnumerable<DeclNode> Members => DeclsList?.Decls ?? [];
+}
+
+public partial class ImplDeclNode
+{
+	// REVIEW: same as above
+	public IEnumerable<DeclNode> Members => DeclsList?.Decls ?? [];
 }
 
 public partial class CallExprNode
@@ -959,18 +1074,32 @@ public partial class CallExprNode
 	public IEnumerable<ArgNode> Args => ArgsList.Args;
 }
 
-public partial class MapInitializerNode
+public static class SyntaxNodeKindExtensions
 {
-	public IEnumerable<AssignmentExprNode> WellFormedExprs => Items.Select(x => x.Expr).Cast<AssignmentExprNode>();
-}
+	/// <summary>
+	/// Returns if the node is <see cref="FnDeclNode"/> or <see cref="MethodDeclNode"/>.
+	/// </summary>
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static bool IsFnOrMethod(this SyntaxNodeKind kind) => kind is
+		SyntaxNodeKind.FnDecl or
+		SyntaxNodeKind.MethodDecl;
 
-public static class AttrsListNodeExtensions
-{
-	// Extension instead of a method in a partial to be able to accept a nullable AttrsListNode.
-	public static bool HasAttr(this AttrsListNode? @this, string attrName)
-	{
-		return @this?.Attrs.Any(x => x.Identifier.Value == attrName) ?? false;
-	}
+	/// <summary>
+	/// Returns if the node can contain executable code (i.e. a function, a method, etc).
+	/// </summary>
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static bool CanContainExecutableCode(this SyntaxNodeKind kind) => kind.IsFnOrMethod();
+
+	/// <summary>
+	/// Returns if the node is a logical enclosure, which is one of the following node types:
+	/// <see cref="StructDeclNode"/>, <see cref="FnDeclNode"/>, <see cref="MethodDeclNode"/>
+	/// </summary>
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static bool IsLogicalEnclosure(this SyntaxNodeKind kind) => kind is
+		// TODO: Add lambdas.
+		SyntaxNodeKind.StructDecl or
+		SyntaxNodeKind.FnDecl or
+		SyntaxNodeKind.MethodDecl;
 }
 
 public static class SyntaxNodeExtensions
@@ -980,9 +1109,19 @@ public static class SyntaxNodeExtensions
 		return node switch
 		{
 			ISyntaxNodeHasMainIdentifier n => n.Identifier,
-			FnDeclNode n => GetMainIdentifierToken(n.Sig),
-			MethodDeclNode n => GetMainIdentifierToken(n.Sig),
+			FnDeclNode n => n.Sig.Name.Identifier,
+			MethodDeclNode n => n.Sig.Name.Identifier,
 			_ => null,
 		};
+	}
+
+	/// <summary>
+	/// Climbs up and returns the first logical enclosure node encountered.
+	/// </summary>
+	public static SyntaxNode? GetLogicalEnclosure(this SyntaxNode? node)
+	{
+		return node?.Ancestors()
+			.Where(x => x.Kind.IsLogicalEnclosure())
+			.FirstOrDefault();
 	}
 }

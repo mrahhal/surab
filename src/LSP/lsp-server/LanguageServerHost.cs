@@ -8,6 +8,7 @@ using OmniSharp.Extensions.LanguageServer.Server;
 using Serilog;
 using Surab.Analysis;
 using Surab.LSPServer.Handlers;
+using Surab.LSPServer.Requests;
 
 namespace Surab.LSPServer;
 
@@ -26,7 +27,7 @@ public class LanguageServerHost
 
 	public LanguageServer Server { get; private set; } = null!;
 
-	public SurabProject Project { get; private set; } = null!;
+	public SurabWorkspace Workspace { get; private set; } = null!;
 
 	public static LanguageServerHost Create(Serilog.Core.Logger logger, string pipe)
 	{
@@ -60,14 +61,27 @@ public class LanguageServerHost
 
 				await InitializeProjectAsync(workspaceUri);
 			})
+			.OnInitialized((_, _, _, _) =>
+			{
+				// Launch a preliminary analysis when a workspace is opened and initialized.
+				// We don't need to await for the task before replying to the client because this can be a long running operation.
+				// The project in this state is already ready to handle change requests.
+
+				// Shouldn't pass the cancellation token from OnInitialized as that will cancel the analysis right away.
+				_ = Workspace.EnsureAnalyzedAsync(CancellationToken.None);
+				return Task.CompletedTask;
+			})
 			.WithHandler<TextDocumentSyncHandler>()
 			.WithHandler<DidChangeWatchedFilesHandler>()
 			.WithHandler<SemanticTokensFullHandler>()
 			.WithHandler<DefinitionHandler>()
 			.WithHandler<DeclarationHandler>()
+			.WithHandler<ImplementationHandler>()
 			.WithHandler<HoverHandler>()
 			.WithHandler<DocumentSymbolHandler>()
-			.WithHandler<SignatureHelpHandler>();
+			.WithHandler<SignatureHelpHandler>()
+
+			.OnRequest<TextDocumentPositionParams, GetSyntaxTreeRequest.SyntaxTreeNode?>("surab/getSyntaxTree", p => GetSyntaxTreeRequest.HandlerAsync(p, Server));
 
 		Server = LanguageServer.Create(options, services.BuildServiceProvider());
 		_logger = Server.Services.GetRequiredService<ILogger<LanguageServerHost>>();
@@ -78,12 +92,13 @@ public class LanguageServerHost
 	private Task InitializeProjectAsync(DocumentUri workspaceUri)
 	{
 		var workspacePath = workspaceUri.GetFileSystemPath();
-		var sourceFiles = Directory
-			.GetFiles(workspacePath, "*.surab")
-			.Select(x => SourceFile.Create(x, File.ReadAllText(x)))
-			.ToList();
-		Project = SurabProject.Create(sourceFiles);
-		Project.SubscribeToFullDiagnosticsReady(HandleFullDiagnosticsReady);
+		var workspace = SurabWorkspace.Create(workspacePath);
+		Workspace = workspace;
+
+		foreach (var project in workspace.Projects)
+		{
+			project.SubscribeToFullDiagsReady(HandleFullDiagsReady);
+		}
 
 		// TODO:
 		//Project.SubscribeToAnalysis...?
@@ -101,19 +116,20 @@ public class LanguageServerHost
 		//});
 		//progress.OnCompleted();
 
-
 		return Task.CompletedTask;
 	}
 
-	private void HandleFullDiagnosticsReady(IEnumerable<FileDiagnostics> diags)
+	private void HandleFullDiagsReady(IEnumerable<FileDiags> diags)
 	{
-		foreach (var fileDiagnostics in diags)
+		_logger.LogInformation("Publishing diags");
+		foreach (var fileDiags in diags)
 		{
 			Server.PublishDiagnostics(new PublishDiagnosticsParams
 			{
-				Uri = DocumentUri.FromFileSystemPath(fileDiagnostics.SourceFile.Path!),
-				Diagnostics = Container.From(fileDiagnostics.Diagnostics.Select(d => new OmniSharp.Extensions.LanguageServer.Protocol.Models.Diagnostic
+				Uri = DocumentUri.FromFileSystemPath(fileDiags.FilePath.Value),
+				Diagnostics = Container.From(fileDiags.Diags.Select(d => new Diagnostic
 				{
+					Code = d.Id != null ? (DiagnosticCode?)new DiagnosticCode(d.Id) : null,
 					Range = ConversionHelper.FromTo(d.Span),
 					Severity = ConversionHelper.FromTo(d.Level),
 					Message = d.Message,

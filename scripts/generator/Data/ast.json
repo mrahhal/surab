@@ -1,7 +1,7 @@
 {
 	"Nodes": [
 		{
-			"Name": "File",
+			"Name": "FileNode",
 			"Members": [
 				{
 					"Name": "importsList",
@@ -9,12 +9,13 @@
 				},
 				{
 					"Name": "declsList",
-					"Type": "DeclsListNode"
+					"Type": "DeclsListNode",
+					"Optional": true
 				}
 			]
 		},
 		{
-			"Name": "ImportsList",
+			"Name": "ImportsListNode",
 			"Members": [
 				{
 					"Name": "imports",
@@ -24,16 +25,21 @@
 			]
 		},
 		{
-			"Name": "Import",
+			"Name": "ImportNode",
 			"Members": [
 				{
 					"Name": "importToken",
 					"Type": "SimpleToken"
 				},
 				{
-					"Name": "modulePath",
+					"Name": "target",
 					"Type": "ExprNode",
-					"Comment": "Well formed: String literal"
+					"Comment": "Well formed: IdentifierExpr or AccessExpr"
+				},
+				{
+					"Name": "asName",
+					"Type": "AsNameNode",
+					"Optional": true
 				},
 				{
 					"Name": "semicolonToken",
@@ -42,7 +48,7 @@
 			]
 		},
 		{
-			"Name": "ConstDecl",
+			"Name": "ConstDeclNode",
 			"Base": "DeclNode",
 			"Members": [
 				{
@@ -76,7 +82,40 @@
 			]
 		},
 		{
-			"Name": "FnDecl",
+			"Name": "VarDeclNode",
+			"Base": "DeclNode",
+			"Members": [
+				{
+					"Name": "attrs",
+					"Type": "AttrsListNode",
+					"Optional": true
+				},
+				{
+					"Name": "varToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "identifier",
+					"Type": "IdentifierToken"
+				},
+				{
+					"Name": "type",
+					"Type": "ColonTypeNode",
+					"Optional": true
+				},
+				{
+					"Name": "initializer",
+					"Type": "EqualsExprClauseNode",
+					"optional": true
+				},
+				{
+					"Name": "semicolonToken",
+					"Type": "SimpleToken"
+				}
+			]
+		},
+		{
+			"Name": "FnDeclNode",
 			"Base": "DeclNode",
 			"Members": [
 				{
@@ -106,7 +145,7 @@
 			]
 		},
 		{
-			"Name": "MethodDecl",
+			"Name": "MethodDeclNode",
 			"Base": "DeclNode",
 			"Members": [
 				{
@@ -131,7 +170,7 @@
 			]
 		},
 		{
-			"Name": "AliasDecl",
+			"Name": "AliasDeclNode",
 			"Base": "DeclNode",
 			"Members": [
 				{
@@ -144,16 +183,12 @@
 					"Type": "SimpleToken"
 				},
 				{
-					"Name": "identifier",
-					"Type": "IdentifierToken"
-				},
-				{
-					"Name": "asToken",
-					"Type": "SimpleToken"
-				},
-				{
-					"Name": "type",
+					"Name": "targetType",
 					"Type": "TypeNode"
+				},
+				{
+					"Name": "asName",
+					"Type": "AsNameNode"
 				},
 				{
 					"Name": "semicolonToken",
@@ -162,7 +197,20 @@
 			]
 		},
 		{
-			"Name": "StructDecl",
+			"Name": "AsNameNode",
+			"Members": [
+				{
+					"Name": "asToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "name",
+					"Type": "NameDefNode"
+				}
+			]
+		},
+		{
+			"Name": "StructDeclNode",
 			"Base": "DeclNode",
 			"Members": [
 				{
@@ -175,8 +223,8 @@
 					"Type": "SimpleToken"
 				},
 				{
-					"Name": "identifier",
-					"Type": "IdentifierToken"
+					"Name": "name",
+					"Type": "NameDefNode"
 				},
 				{
 					"Name": "openBraceToken",
@@ -184,7 +232,8 @@
 				},
 				{
 					"Name": "declsList",
-					"Type": "DeclsListNode"
+					"Type": "DeclsListNode",
+					"Optional": true
 				},
 				{
 					"Name": "closedBraceToken",
@@ -193,7 +242,7 @@
 			]
 		},
 		{
-			"Name": "ClassDecl",
+			"Name": "TraitDeclNode",
 			"Base": "DeclNode",
 			"Members": [
 				{
@@ -202,12 +251,12 @@
 					"Optional": true
 				},
 				{
-					"Name": "classToken",
+					"Name": "traitToken",
 					"Type": "SimpleToken"
 				},
 				{
-					"Name": "identifier",
-					"Type": "IdentifierToken"
+					"Name": "name",
+					"Type": "NameDefNode"
 				},
 				{
 					"Name": "openBraceToken",
@@ -215,7 +264,8 @@
 				},
 				{
 					"Name": "declsList",
-					"Type": "DeclsListNode"
+					"Type": "DeclsListNode",
+					"Optional": true
 				},
 				{
 					"Name": "closedBraceToken",
@@ -224,7 +274,39 @@
 			]
 		},
 		{
-			"Name": "DeclsList",
+			"Name": "ImplDeclNode",
+			"Base": "DeclNode",
+			"Members": [
+				{
+					"Name": "attrs",
+					"Type": "AttrsListNode",
+					"Optional": true
+				},
+				{
+					"Name": "implToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "name",
+					"Type": "NameNode"
+				},
+				{
+					"Name": "openBraceToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "declsList",
+					"Type": "DeclsListNode",
+					"Optional": true
+				},
+				{
+					"Name": "closedBraceToken",
+					"Type": "SimpleToken"
+				}
+			]
+		},
+		{
+			"Name": "DeclsListNode",
 			"Members": [
 				{
 					"Name": "decls",
@@ -234,7 +316,7 @@
 			]
 		},
 		{
-			"Name": "FieldDecl",
+			"Name": "FieldDeclNode",
 			"Base": "DeclNode",
 			"Members": [
 				{
@@ -263,7 +345,7 @@
 			]
 		},
 		{
-			"Name": "SkippedTokensDecl",
+			"Name": "SkippedTokensDeclNode",
 			"Base": "DeclNode",
 			"Members": [
 				{
@@ -274,35 +356,17 @@
 			]
 		},
 		{
-			"Name": "VarStmt",
+			"Name": "DeclStmtNode",
 			"Base": "StmtNode",
 			"Members": [
 				{
-					"Name": "varToken",
-					"Type": "SimpleToken"
-				},
-				{
-					"Name": "identifier",
-					"Type": "IdentifierToken"
-				},
-				{
-					"Name": "type",
-					"Type": "ColonTypeNode",
-					"Optional": true
-				},
-				{
-					"Name": "initializer",
-					"Type": "EqualsExprClauseNode",
-					"optional": true
-				},
-				{
-					"Name": "semicolonToken",
-					"Type": "SimpleToken"
+					"Name": "decl",
+					"Type": "DeclNode"
 				}
 			]
 		},
 		{
-			"Name": "ReturnStmt",
+			"Name": "ReturnStmtNode",
 			"Base": "StmtNode",
 			"Members": [
 				{
@@ -321,7 +385,7 @@
 			]
 		},
 		{
-			"Name": "ExprStmt",
+			"Name": "ExprStmtNode",
 			"Base": "StmtNode",
 			"Comment": "An expression statement (`expr();`).",
 			"Members": [
@@ -336,7 +400,7 @@
 			]
 		},
 		{
-			"Name": "BareExprStmt",
+			"Name": "BareExprStmtNode",
 			"Base": "StmtNode",
 			"Comment": "An expression statement without the trailing semicolon (`expr()`).",
 			"Members": [
@@ -347,7 +411,18 @@
 			]
 		},
 		{
-			"Name": "SkippedTokensStmt",
+			"Name": "EmptyStmtNode",
+			"Base": "StmtNode",
+			"Comment": "An extraneous semicolon.",
+			"Members": [
+				{
+					"Name": "semicolonToken",
+					"Type": "SimpleToken"
+				}
+			]
+		},
+		{
+			"Name": "SkippedTokensStmtNode",
 			"Base": "StmtNode",
 			"Members": [
 				{
@@ -358,7 +433,7 @@
 			]
 		},
 		{
-			"Name": "BlockExpr",
+			"Name": "BlockExprNode",
 			"Base": "ExprNode",
 			"Members": [
 				{
@@ -377,7 +452,7 @@
 			]
 		},
 		{
-			"Name": "AssignmentExpr",
+			"Name": "AssignmentExprNode",
 			"Base": "ExprNode",
 			"Members": [
 				{
@@ -395,7 +470,7 @@
 			]
 		},
 		{
-			"Name": "UnaryExpr",
+			"Name": "UnaryExprNode",
 			"Base": "ExprNode",
 			"Members": [
 				{
@@ -409,7 +484,7 @@
 			]
 		},
 		{
-			"Name": "BinaryExpr",
+			"Name": "BinaryExprNode",
 			"Base": "ExprNode",
 			"Members": [
 				{
@@ -427,7 +502,7 @@
 			]
 		},
 		{
-			"Name": "GroupingExpr",
+			"Name": "GroupingExprNode",
 			"Base": "ExprNode",
 			"Members": [
 				{
@@ -445,7 +520,7 @@
 			]
 		},
 		{
-			"Name": "CallExpr",
+			"Name": "CallExprNode",
 			"Base": "ExprNode",
 			"Comment": "A function/method call (`callee(args)`).",
 			"Members": [
@@ -460,7 +535,7 @@
 			]
 		},
 		{
-			"Name": "AccessExpr",
+			"Name": "AccessExprNode",
 			"Base": "ExprNode",
 			"Comment": "A member access (`target.identifier`).",
 			"Members": [
@@ -473,13 +548,32 @@
 					"Type": "SimpleToken"
 				},
 				{
-					"Name": "identifier",
-					"Type": "IdentifierToken"
+					"Name": "name",
+					"Type": "NameNode"
 				}
 			]
 		},
 		{
-			"Name": "LiteralExpr",
+			"Name": "ModuleAccessExprNode",
+			"Base": "ExprNode",
+			"Comment": "A module access (`target::identifier`).",
+			"Members": [
+				{
+					"Name": "target",
+					"Type": "ExprNode"
+				},
+				{
+					"Name": "colonColonToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "name",
+					"Type": "NameNode"
+				}
+			]
+		},
+		{
+			"Name": "LiteralExprNode",
 			"Base": "ExprNode",
 			"Members": [
 				{
@@ -489,17 +583,17 @@
 			]
 		},
 		{
-			"Name": "IdentifierExpr",
+			"Name": "NameExprNode",
 			"Base": "ExprNode",
 			"Members": [
 				{
-					"Name": "identifier",
-					"Type": "IdentifierToken"
+					"Name": "name",
+					"Type": "NameNode"
 				}
 			]
 		},
 		{
-			"Name": "ThisExpr",
+			"Name": "ThisExprNode",
 			"Base": "ExprNode",
 			"Members": [
 				{
@@ -509,27 +603,72 @@
 			]
 		},
 		{
-			"Name": "StructCreationExpr", // Should be renamed to a more general ObjectCreationExpr?
+			"Name": "TypeCreationExprNode",
 			"Base": "ExprNode",
+			"Comment": "Type.{ ... }",
 			"Members": [
 				{
-					"Name": "identifier",
-					"Type": "IdentifierToken"
+					"Name": "typeExpr",
+					"Type": "ExprNode",
+					"Comment": "Well formed: IdentifierExpr or AccessExpr"
 				},
 				{
-					"Name": "mapInitializer",
-					"Type": "MapInitializerNode"
+					"Name": "dotToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "objectInitializer",
+					"Type": "ObjectInitializerNode"
 				}
 			]
 		},
 		{
-			"Name": "MissingExpr",
+			"Name": "IfExprNode",
+			"Base": "ExprNode",
+			"Members": [
+				{
+					"Name": "ifToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "condition",
+					"Type": "ExprNode"
+				},
+				{
+					"Name": "thenBlock",
+					"Type": "BlockExprNode",
+					"Optional": true,
+					"Comment": "Well formed: Has value"
+				},
+				{
+					"Name": "elseClause",
+					"Type": "ElseClauseNode",
+					"Optional": true
+				}
+			]
+		},
+		{
+			"Name": "ElseClauseNode",
+			"Members": [
+				{
+					"Name": "elseToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "expr",
+					"Type": "ExprNode",
+					"Comment": "Well formed: IfExprNode or BlockExprNode"
+				}
+			]
+		},
+		{
+			"Name": "MissingExprNode",
 			"Base": "ExprNode",
 			"TakesSpan": true,
 			"Members": []
 		},
 		{
-			"Name": "MapInitializer",
+			"Name": "ObjectInitializerNode",
 			"Members": [
 				{
 					"Name": "openBraceToken",
@@ -537,7 +676,7 @@
 				},
 				{
 					"Name": "items",
-					"Type": "MapInitializerItemNode",
+					"Type": "ObjectInitializerItemNode",
 					"List": true
 				},
 				{
@@ -547,12 +686,19 @@
 			]
 		},
 		{
-			"Name": "MapInitializerItem",
+			"Name": "ObjectInitializerItemNode",
 			"Members": [
 				{
+					"Name": "identifier",
+					"Type": "IdentifierToken"
+				},
+				{
+					"Name": "colonToken",
+					"Type": "SimpleToken"
+				},
+				{
 					"Name": "expr",
-					"Type": "ExprNode",
-					"Comment": "Well formed: AssignmentExprNode"
+					"Type": "ExprNode"
 				},
 				{
 					"Name": "commaToken",
@@ -562,7 +708,7 @@
 			]
 		},
 		{
-			"Name": "ParamsList",
+			"Name": "ParamsListNode",
 			"Members": [
 				{
 					"Name": "openParenToken",
@@ -580,7 +726,7 @@
 			]
 		},
 		{
-			"Name": "Param",
+			"Name": "ParamNode",
 			"Members": [
 				{
 					"Name": "attrs",
@@ -610,7 +756,7 @@
 			]
 		},
 		{
-			"Name": "ParamTypesList",
+			"Name": "ParamTypesListNode",
 			"Members": [
 				{
 					"Name": "openParenToken",
@@ -628,7 +774,7 @@
 			]
 		},
 		{
-			"Name": "ParamType",
+			"Name": "ParamTypeNode",
 			"Members": [
 				{
 					"Name": "type",
@@ -642,7 +788,7 @@
 			]
 		},
 		{
-			"Name": "ArgsList",
+			"Name": "ArgsListNode",
 			"Members": [
 				{
 					"Name": "openParenToken",
@@ -660,7 +806,7 @@
 			]
 		},
 		{
-			"Name": "Arg",
+			"Name": "ArgNode",
 			"Members": [
 				{
 					"Name": "expr",
@@ -674,7 +820,101 @@
 			]
 		},
 		{
-			"Name": "ColonType",
+			"Name": "NameDefNode",
+			"Comment": "A name definition used in declarations.",
+			"Members": [
+				{
+					"Name": "identifier",
+					"Type": "IdentifierToken"
+				},
+				{
+					"Name": "genericParamsList",
+					"Type": "GenericParamsListNode",
+					"Optional": true
+				}
+			]
+		},
+		{
+			"Name": "NameNode",
+			"Comment": "A name reference.",
+			"Members": [
+				{
+					"Name": "identifier",
+					"Type": "IdentifierToken"
+				},
+				{
+					"Name": "genericArgsList",
+					"Type": "GenericArgsListNode",
+					"Optional": true
+				}
+			]
+		},
+		{
+			"Name": "GenericParamsListNode",
+			"Members": [
+				{
+					"Name": "openChevronToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "genericParams",
+					"Type": "GenericParamNode",
+					"List": true
+				},
+				{
+					"Name": "closedChevronToken",
+					"Type": "SimpleToken"
+				}
+			]
+		},
+		{
+			"Name": "GenericParamNode",
+			"Members": [
+				{
+					"Name": "identifier",
+					"Type": "IdentifierToken"
+				},
+				{
+					"Name": "commaToken",
+					"Type": "SimpleToken",
+					"Optional": true
+				}
+			]
+		},
+		{
+			"Name": "GenericArgsListNode",
+			"Members": [
+				{
+					"Name": "openChevronToken",
+					"Type": "SimpleToken"
+				},
+				{
+					"Name": "genericArgs",
+					"Type": "GenericArgNode",
+					"List": true
+				},
+				{
+					"Name": "closedChevronToken",
+					"Type": "SimpleToken"
+				}
+			]
+		},
+		{
+			"Name": "GenericArgNode",
+			"Members": [
+				{
+					"Name": "type",
+					"Type": "TypeNode"
+				},
+				{
+					"Name": "commaToken",
+					"Type": "SimpleToken",
+					"Optional": true
+				}
+			]
+		},
+		{
+			"Name": "ColonTypeNode",
 			"Members": [
 				{
 					"Name": "colonToken",
@@ -687,7 +927,23 @@
 			]
 		},
 		{
-			"Name": "PtrType",
+			"Name": "ExprTypeNode",
+			"Base": "TypeNode",
+			"Members": [
+				{
+					"Name": "attrs",
+					"Type": "AttrsListNode",
+					"Optional": true
+				},
+				{
+					"Name": "expr",
+					"Type": "ExprNode",
+					"Comment": "Well formed: NameExpr or AccessExpr or ModuleAccessExpr"
+				}
+			]
+		},
+		{
+			"Name": "PtrTypeNode",
 			"Base": "TypeNode",
 			"Members": [
 				{
@@ -707,22 +963,7 @@
 			]
 		},
 		{
-			"Name": "NamedType",
-			"Base": "TypeNode",
-			"Members": [
-				{
-					"Name": "attrs",
-					"Type": "AttrsListNode",
-					"Optional": true
-				},
-				{
-					"Name": "identifier",
-					"Type": "IdentifierToken"
-				}
-			]
-		},
-		{
-			"Name": "FnType",
+			"Name": "FnTypeNode",
 			"Base": "TypeNode",
 			"Members": [
 				{
@@ -748,7 +989,7 @@
 			]
 		},
 		{
-			"Name": "MissingType",
+			"Name": "MissingTypeNode",
 			"Base": "TypeNode",
 			"TakesSpan": true,
 			"Members": [
@@ -760,11 +1001,11 @@
 			]
 		},
 		{
-			"Name": "FnSig",
+			"Name": "FnSigNode",
 			"Members": [
 				{
-					"Name": "identifier",
-					"Type": "IdentifierToken"
+					"Name": "name",
+					"Type": "NameDefNode"
 				},
 				{
 					"Name": "paramsList",
@@ -778,7 +1019,7 @@
 			]
 		},
 		{
-			"Name": "EqualsExprClause",
+			"Name": "EqualsExprClauseNode",
 			"Members": [
 				{
 					"Name": "equalToken",
@@ -791,7 +1032,7 @@
 			]
 		},
 		{
-			"Name": "AttrsList",
+			"Name": "AttrsListNode",
 			"Members": [
 				{
 					"Name": "attrs",
@@ -801,7 +1042,7 @@
 			]
 		},
 		{
-			"Name": "Attr",
+			"Name": "AttrNode",
 			"Members": [
 				{
 					"Name": "atToken",

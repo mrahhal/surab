@@ -21,3 +21,5 @@ dotnet_diagnostic.CA1859.severity = silent
 
 # IDE1006: Naming Styles
 dotnet_diagnostic.IDE1006.severity = none
+# IDE0290: Use primary constructor
+dotnet_diagnostic.IDE0290.severity = silent

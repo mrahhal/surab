@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -17,33 +18,29 @@ public class SemanticTokensFullHandler(
 	{
 		_logger.LogInformation("[SemanticTokensParams]");
 
-		return _solver.Project.LockForRead(() =>
+		return _solver.Workspace.LockForRead(() =>
 		{
-			var sourceFile = _solver.GetSourceFile(request.TextDocument.Uri);
+			var sourceFile = _solver.GetFile(request.TextDocument.Uri);
 			if (sourceFile == null)
 				return null;
 
+			var project = _solver.Workspace.GetFileProject(sourceFile.Path);
 			var document = GetSemanticTokensDocument();
 			var builder = document.Create();
-			try
-			{
-				Tokenize(builder, sourceFile, cancellationToken);
-				return builder.Commit().GetSemanticTokens();
-			}
-			catch (OperationCanceledException)
-			{
-				return null;
-			}
+
+			Tokenize(project, builder, sourceFile, cancellationToken);
+			return builder.Commit().GetSemanticTokens();
 		});
 	}
 
 	private void Tokenize(
+		SurabProject project,
 		SemanticTokensBuilder builder,
-		SourceFile sourceFile,
+		ProjectFile file,
 		CancellationToken ct)
 	{
-		var tree = _solver.Project.GetSyntaxTree(sourceFile);
-		var reasoner = _solver.Project.GetReasoner(sourceFile);
+		var tree = project.GetSyntaxTree(file);
+		var reasoner = project.GetReasoner(file);
 
 		ct.ThrowIfCancellationRequested();
 
@@ -73,18 +70,21 @@ public class SemanticTokensFullHandler(
 				{
 					triviaTokenBuilder.Init(trivia, reasoner);
 					Process(triviaTokenBuilder);
-					yield return To(trivia.Span, triviaTokenBuilder);
+					foreach (var t in To(trivia.Span, triviaTokenBuilder))
+						yield return t;
 				}
 
 				tokenTokenBuilder.Init(childToken, reasoner);
 				Process(tokenTokenBuilder);
-				yield return To(childToken.Span, tokenTokenBuilder);
+				foreach (var t in To(childToken.Span, tokenTokenBuilder))
+					yield return t;
 
 				foreach (var trivia in childToken.TrailingTrivia)
 				{
 					triviaTokenBuilder.Init(trivia, reasoner);
 					Process(triviaTokenBuilder);
-					yield return To(trivia.Span, triviaTokenBuilder);
+					foreach (var t in To(trivia.Span, triviaTokenBuilder))
+						yield return t;
 				}
 			}
 			else if (childItem.Node != null)
@@ -96,13 +96,43 @@ public class SemanticTokensFullHandler(
 			}
 		}
 
-		static (int, int, int, SemanticTokenType?, List<SemanticTokenModifier>) To<T>(TextSpan span, TokenBuilder<T> builder)
+		IEnumerable<(int, int, int, SemanticTokenType?, List<SemanticTokenModifier>)> To<T>(TextSpan span, TokenBuilder<T> builder)
 		{
+			if (builder.Type == null)
+				yield break;
+
 			var line = span.Line.Start.Line;
 			var ch = span.Line.Start.Char;
 			var length = span.Size;
 
-			return (line, ch, length, builder.Type, builder.Modifiers);
+			var lineStart = span.Line.Start.Line;
+			var lineEnd = span.Line.End.Line;
+			if (lineStart == lineEnd)
+			{
+				// Token does not span lines.
+				yield return (line, ch, length, builder.Type, builder.Modifiers);
+				yield break;
+			}
+
+			// Accounting for multiline.
+
+			for (var i = lineStart; i < lineEnd; i++)
+			{
+				var startChar = i == lineStart ? span.Line.Start.Char : 0;
+				var charCount = 0;
+				if (reasoner.Tree.LineOffsetToCharsCount.Count >= i)
+				{
+					charCount = reasoner.Tree.LineOffsetToCharsCount[i];
+				}
+				else
+				{
+					_logger.LogWarning("Did not find LineOffsetToCharsCount entry for line '{LineOffset}'.", i);
+				}
+				yield return (i, startChar, charCount, builder.Type, builder.Modifiers);
+			}
+
+			// Last line.
+			yield return (lineEnd, 0, span.Line.End.Char, builder.Type, builder.Modifiers);
 		}
 	}
 
@@ -151,41 +181,23 @@ public class SemanticTokensFullHandler(
 
 			case IdentifierToken identifierToken:
 				{
-					if (identifierToken.Parent is IdentifierExprNode identifierExpr)
+					if (identifierToken.Parent is AttrNode)
 					{
-						var symbol = reasoner.LookupSymbol(identifierExpr);
-						builder.SetType(GetTokenType(symbol));
+						builder.SetType(SemanticTokenType.Decorator);
+						return;
 					}
-					else if (identifierToken.Parent is NamedTypeNode namedType)
-					{
-						var symbol = reasoner.LookupSymbol(namedType);
-						builder.SetType(GetTokenType(symbol));
 
-						if (symbol is TypeSymbol typeSymbol && typeSymbol.IsBuiltin())
-						{
-							builder.AddModifier(SemanticTokenModifier.DefaultLibrary);
-						}
-					}
-					else if (identifierToken.DeclaresSymbol())
+					var declaredSymbol = reasoner.GetDeclaredSymbol(identifierToken);
+					if (declaredSymbol != null)
 					{
-						var symbol = reasoner.GetDeclaredSymbol(identifierToken);
-						builder.SetType(GetTokenType(symbol));
-
+						ProcessSymbol(declaredSymbol, builder);
 						builder.AddModifier(SemanticTokenModifier.Declaration);
 					}
-					else
+
+					var symbol = reasoner.LookupSymbol(identifierToken.Parent);
+					if (symbol != null)
 					{
-						builder.SetType(identifierToken.Parent switch
-						{
-							FnSigNode sig => sig.Parent is FnDeclNode ? (SemanticTokenType?)SemanticTokenType.Function : SemanticTokenType.Method,
-							StructDeclNode or StructCreationExprNode => SemanticTokenType.Struct,
-							FieldDeclNode => SemanticTokenType.Property,
-							ParamNode => SemanticTokenType.Parameter,
-							VarStmtNode => SemanticTokenType.Variable,
-							NamedTypeNode => SemanticTokenType.Type,
-							AttrNode => SemanticTokenType.Decorator,
-							_ => null,
-						});
+						ProcessSymbol(symbol, builder);
 					}
 				}
 				break;
@@ -195,14 +207,32 @@ public class SemanticTokensFullHandler(
 		}
 	}
 
+	private static void ProcessSymbol(Symbol symbol, TokenBuilder<SyntaxToken> builder)
+	{
+		builder.SetType(GetTokenType(symbol));
+
+		if (symbol is TypeSymbol typeSymbol)
+		{
+			if (typeSymbol.IsBuiltin())
+			{
+				builder.AddModifier(SemanticTokenModifier.DefaultLibrary);
+			}
+		}
+	}
+
 	private static SemanticTokenType? GetTokenType(Symbol? symbol)
 	{
 		return symbol switch
 		{
+			AliasTypeSymbol aliasType => GetTokenType(aliasType.UnwrapTypeAliases()),
+			ModuleSymbol => SemanticTokenType.Namespace,
+			// TODO: An identifier could both be a variable and a function so can't just simply change the type to function.
+			// Need a better way to represent this in the token. Maybe use custom modifiers (rust adds callable modifier)?
+			//ISymbolHasType hasType when hasType.Type.UnwrapAliases().IsFn => SemanticTokenType.Function,
 			FieldSymbol => (SemanticTokenType?)SemanticTokenType.Property,
 			ParamSymbol => SemanticTokenType.Parameter,
 			LocalSymbol => SemanticTokenType.Variable,
-			FnSymbol => SemanticTokenType.Function,
+			FnSymbol fn => fn.IsMethod ? SemanticTokenType.Method : SemanticTokenType.Function,
 			TypeSymbol typeSymbol => GetTokenType(typeSymbol),
 			_ => null,
 		};
@@ -210,10 +240,10 @@ public class SemanticTokensFullHandler(
 
 	private static SemanticTokenType? GetTokenType(TypeSymbol typeSymbol)
 	{
-		if (typeSymbol.IsUnknown) return null;
+		if (typeSymbol.IsUnknown()) return null;
 		return typeSymbol switch
 		{
-			StructTypeSymbol => (SemanticTokenType?)SemanticTokenType.Struct,
+			NamedTypeSymbol namedType when namedType.TypeKind is TypeSymbolKind.Struct => (SemanticTokenType?)SemanticTokenType.Struct,
 			FnTypeSymbol => SemanticTokenType.Function,
 			_ => null,
 		};

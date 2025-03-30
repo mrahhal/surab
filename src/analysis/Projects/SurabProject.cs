@@ -1,9 +1,11 @@
 ﻿using System.Collections.Immutable;
+using System.Diagnostics;
 
 namespace Surab.Analysis;
 
 /// <summary>
-/// Everything that makes up a Surab project.
+/// Represents a Surab project.
+/// Multiple projects will communicate with each other and cooperate when analyzing a workspace.
 /// </summary>
 /// <remarks>
 /// This isn't thread safe in general.
@@ -11,152 +13,66 @@ namespace Surab.Analysis;
 /// </remarks>
 public class SurabProject
 {
-	private readonly List<SourceFile> _sourceFiles;
-	private readonly Dictionary<SourceFile, SourceFileState> _sourceFileToStateMap = [];
-	private readonly ReaderWriterLockSlim _rwl = new();
-	private CancellationTokenSource _cts = null!;
-	private readonly object _fullAnalysisLock = new();
-	private readonly List<Action<IEnumerable<FileDiagnostics>>> _fullDiagnosticsReadyActions = [];
+	private readonly List<Action<IEnumerable<FileDiags>>> _fullDiagsReadyActions = [];
+	private readonly Dictionary<ProjectFile, CodeFileState> _codeFileToStateMap = [];
 
-	private readonly ModuleResolver _moduleResolver;
-	private readonly ReasoningContext _reasoningContext = new();
+	private readonly List<SurabProject> _projectDependencies = [];
+	private readonly List<VFSChange> _vfsChanges = [];
 
-	private Reasoner _preludeReasoner = default!;
+	private ModuleSymbol _rootModule = null!;
 
-	private SurabProject(IEnumerable<SourceFile> sourceFiles)
+	private SurabProject(
+		SurabWorkspace workspace,
+		VFS vfs)
 	{
-		_moduleResolver = new(this);
-		_sourceFiles = sourceFiles.ToList();
+		Workspace = workspace;
+		VFS = vfs;
 	}
 
-	public static SurabProject Create(
-		IEnumerable<SourceFile> sourceFiles)
+	// We start by loading a default config since there's always a possibility a config file doesn't exist.
+	// If it exists, this config file will be overriden as the project is initializing files.
+	public SurabProjectConfig Config { get; private set; } = SurabProjectConfig.CreateDefault();
+
+	public SurabWorkspace Workspace { get; set; }
+
+	// TODO: Transitive?
+
+	public IReadOnlyList<SurabProject> ProjectDependencies => _projectDependencies;
+
+	public VFS VFS { get; }
+
+	public NormalizedPath ProjectPath => VFS.ProjectPath;
+
+	internal SymbolInterner SymbolInterner => Workspace.SymbolInterner;
+
+	public ModuleSymbol RootModule => _rootModule!;
+
+	public bool IsStdProject => this == Workspace.StdProject;
+
+	internal static SurabProject Create(
+		SurabWorkspace workspace,
+		VFS vfs)
 	{
-		var project = new SurabProject(sourceFiles);
-		project.LoadPrelude();
-		project.InitializeSourceFiles();
-		return project;
+		return new SurabProject(workspace, vfs);
 	}
 
-	public IReadOnlyList<SourceFile> SourceFiles => _sourceFiles;
-
-	internal ReasoningContext ReasoningContext => _reasoningContext;
-
-	internal Reasoner PreludeReasoner => _preludeReasoner;
-
-	internal ModuleResolver ModuleResolver => _moduleResolver;
-
-	public SourceFile? GetSourceFile(string path)
+	public void SubscribeToFullDiagsReady(Action<IEnumerable<FileDiags>> action)
 	{
-		// TODO: Optimize.
-		return _sourceFiles.FirstOrDefault(x => x.Path == path);
+		_fullDiagsReadyActions.Add(action);
 	}
 
-	public void SubscribeToFullDiagnosticsReady(Action<IEnumerable<FileDiagnostics>> action)
+	private ModuleSymbol CreateModule(ProjectFolder folder, string? name = null)
 	{
-		_fullDiagnosticsReadyActions.Add(action);
-	}
+		var moduleName = name ?? folder.Name;
+		var module = new SrcModuleSymbol(moduleName, [folder], this);
 
-	/// <summary>
-	/// Locks the project for read operations.
-	/// </summary>
-	/// <remarks>
-	/// For convenience, read/write methods won't throw if you use them without locking. It's the responsibility of
-	/// the consumer to make sure access is synchronized by locking for read or write when running in an asynchornous environment.
-	/// Methods will be marked in their doc if they need a read or write lock.
-	/// </remarks>
-	public void LockForRead(Action action)
-	{
-		LockForRead<object?>(() =>
+		foreach (var subFolder in folder.SubFolders)
 		{
-			action();
-			return null;
-		});
-	}
-
-	/// <summary>
-	/// Locks the project for read operations.
-	/// </summary>
-	/// <remarks>
-	/// For convenience, read/write methods won't throw if you use them without locking. It's the responsibility of
-	/// the consumer to make sure access is synchronized by locking for read or write when running in an asynchornous environment.
-	/// Methods will be marked in their doc if they need a read or write lock.
-	/// </remarks>
-	public T LockForRead<T>(Func<T> func)
-	{
-		_rwl.EnterReadLock();
-
-		try
-		{
-			return func();
-		}
-		finally
-		{
-			_rwl.ExitReadLock();
-		}
-	}
-
-	/// <summary>
-	/// Locks the project for write operations.
-	/// </summary>
-	/// <remarks>
-	/// For convenience, read/write methods won't throw if you use them without locking. It's the responsibility of
-	/// the consumer to make sure access is synchronized by locking for read or write when running in an asynchornous environment.
-	/// Methods will be marked in their doc if theyre a read or a write operation.
-	/// </remarks>
-	public void LockForWrite(Action action)
-	{
-		_rwl.EnterWriteLock();
-
-		try
-		{
-			action();
-		}
-		finally
-		{
-			_rwl.ExitWriteLock();
+			var childModule = CreateModule(subFolder);
+			childModule.SetParent(module);
 		}
 
-		// Do a full reanalysis outside the lock.
-		EnsureAnalyzed();
-	}
-
-	/// <summary>
-	/// Adds a <see cref="SourceFile"/> to the project.
-	/// </summary>
-	/// <remarks>
-	/// This method is a write operation.
-	/// </remarks>
-	public void AddSourceFile(SourceFile sourceFile)
-	{
-		_sourceFiles.Add(sourceFile);
-		InitializeSourceFile(sourceFile);
-		MarkChangedDependencies(sourceFile);
-	}
-
-	/// <summary>
-	/// Updates a <see cref="SourceFile"/> with new content.
-	/// </summary>
-	/// <remarks>
-	/// This method is a write operation.
-	/// </remarks>
-	public void UpdateSourceFile(SourceFile sourceFile, string text)
-	{
-		sourceFile.UpdateText(text);
-		MarkChangedDependencies(sourceFile);
-	}
-
-	/// <summary>
-	/// Removes a <see cref="SourceFile"/> from the project.
-	/// </summary>
-	/// <remarks>
-	/// This method is a write operation.
-	/// </remarks>
-	public void RemoveSourceFile(SourceFile sourceFile)
-	{
-		_sourceFiles.Remove(sourceFile);
-		_sourceFileToStateMap.Remove(sourceFile);
-		MarkChangedDependencies(sourceFile);
+		return module;
 	}
 
 	/// <summary>
@@ -165,9 +81,9 @@ public class SurabProject
 	/// <remarks>
 	/// This method is a read operation.
 	/// </remarks>
-	public SyntaxTree GetSyntaxTree(SourceFile sourceFile)
+	public SyntaxTree GetSyntaxTree(ProjectFile file)
 	{
-		return _sourceFileToStateMap[sourceFile].SyntaxTree;
+		return GetCodeFileState(file).Tree;
 	}
 
 	/// <summary>
@@ -176,178 +92,349 @@ public class SurabProject
 	/// <remarks>
 	/// This method is a read operation.
 	/// </remarks>
-	public Reasoner GetReasoner(SourceFile sourceFile)
+	public Reasoner GetReasoner(ProjectFile file)
 	{
-		return _sourceFileToStateMap[sourceFile].Reasoner;
+		return GetCodeFileState(file).Reasoner;
 	}
 
-	private IEnumerable<FileDiagnostics> GetProjectDiagnostics()
+	public IEnumerable<SurabProject> GetInvolvedProjects() => [.. ProjectDependencies, this];
+
+	public SurabProject? GetFileProject(NormalizedPath filePath)
 	{
-		foreach (var sourceFileState in _sourceFileToStateMap.Values)
+		foreach (var project in GetInvolvedProjects())
 		{
-			if (sourceFileState.FileDiagnostics != null)
-				yield return sourceFileState.FileDiagnostics;
+			if (project.IsFileInProject(filePath))
+			{
+				return project;
+			}
 		}
+		return null;
 	}
 
-	/// <summary>
-	/// Resolves a known <see cref="TypeSymbol"/> from its given name.
-	/// </summary>
-	/// <remarks>
-	/// This method is a read operation.
-	/// </remarks>
-	public TypeSymbol? ResolveKnownTypeSymbolFromName(string? name)
+	public ProjectFile? GetFile(NormalizedPath filePath)
 	{
-		var tag = KnownTypes.GetTag(name);
-		if (tag == null)
-			return null;
-
-		return ResolveKnownTypeSymbol(tag.Value);
+		Debug.Assert(IsFileInProject(filePath));
+		return VFS.GetFile(filePath);
 	}
 
-	/// <summary>
-	/// Resolves a known <see cref="TypeSymbol"/> from its given <see cref="KnownTypeTag"/>.
-	/// </summary>
-	/// <remarks>
-	/// This method is a read operation.
-	/// </remarks>
-	public TypeSymbol ResolveKnownTypeSymbol(KnownTypeTag tag)
+	public bool IsFileInProject(NormalizedPath filePath)
 	{
-		return _preludeReasoner.ResolveKnownTypeSymbol(tag);
+		return filePath.Value.StartsWith(ProjectPath.Value);
 	}
 
 	/// <summary>
-	/// Returns all <see cref="Reasoner"/>s in the project.
+	/// Returns all <see cref="Reasoner"/>s in this project and project dependencies.
 	/// </summary>
 	/// <remarks>
 	/// This method is a read operation.
 	/// </remarks>
 	public IEnumerable<Reasoner> GetAllReasoners()
 	{
-		yield return _preludeReasoner;
-
-		foreach (var sourceFileState in _sourceFileToStateMap.Values)
+		foreach (var project in GetInvolvedProjects())
 		{
-			yield return sourceFileState.Reasoner;
+			foreach (var reasoner in project.GetProjectReasoners())
+			{
+				yield return reasoner;
+			}
 		}
 	}
 
-	private void InitializeSourceFile(SourceFile sourceFile)
+	public IEnumerable<Reasoner> GetProjectReasoners()
 	{
-		var tree = Parser.ParseFile(sourceFile);
-		var reasoner = Reasoner.Create(this, tree);
-
-		_sourceFileToStateMap[sourceFile] = new SourceFileState
+		foreach (var sourceFile in VFS.EnumerateCodeFiles())
 		{
-			IsAnalyzed = false,
-			SyntaxTree = tree,
-			Reasoner = reasoner,
-		};
+			yield return GetCodeFileState(sourceFile).Reasoner;
+		}
 	}
 
-	private void MarkChangedDependencies(SourceFile sourceFile)
+	/// <summary>
+	/// Looks up the declaration symbol.
+	/// Type member (e.g. method) -> the declaration in the trait of the member.
+	/// </summary>
+	public Symbol? LookupDeclaration(Symbol? symbol)
 	{
-		// TODO: Do this properly.
-		// If the dependency only uses exported symbols that didn't change (or if exported symbols didn't change in the first place), don't mark it as changed.
+		if (symbol == null) return null;
 
-		// souceFile is the file that changed. Go to all files that have a dependency on this file and mark them to be re-analyzed.
+		if (symbol.EnclosingImpl != null)
+		{
+			var implMember = symbol.EnclosingImpl.Members.FirstOrDefault(m => m.ImplSymbol == symbol);
+			if (implMember != null)
+			{
+				return implMember.MatchingTraitSymbol;
+			}
+		}
+
+		return null;
+	}
+
+	/// <summary>
+	/// Looks up the implementation symbols.
+	/// Trait decl -> all types that implement the trait.
+	/// Trait member (e.g. method) -> all concrete implementations (definitions) of the member.
+	/// </summary>
+	public IEnumerable<Symbol> LookupImplementations(Symbol? symbol)
+	{
+		if (symbol == null) return [];
+
+		// TODO
+
+		if (SymbolFacts.IsTraitType(symbol))
+		{
+			return GetAllReasoners()
+				.SelectMany(r => r.EnumerateAllSymbols().OfType<NamedTypeSymbol>().Where(type =>
+				{
+					return type.Members.OfType<ImplSymbol>().Any(x => x.TraitType.OriginalDef == symbol.OriginalDef);
+				}));
+		}
+		else if (SymbolFacts.IsMethod(symbol) && SymbolFacts.IsTraitType(symbol.Parent))
+		{
+			var traitType = (NamedTypeSymbol)symbol.Parent;
+			return GetAllReasoners()
+				.SelectMany(r => r.EnumerateAllSymbols().OfType<ImplSymbol>().SelectMany(implSymbol =>
+				{
+					if (implSymbol.TraitType.OriginalDef == traitType.OriginalDef)
+					{
+						var implMembers = implSymbol.Members.Where(x => x.MatchingTraitSymbol?.OriginalDef == symbol.OriginalDef);
+						return implMembers.Select(x => x.ImplSymbol);
+					}
+					return [];
+				}));
+		}
+
+		return [];
+	}
+
+	// Needs a better strategy to caching symbols we go over in type checker.
+	//public IEnumerable<SyntaxNode> LookupAllReferences(Symbol? symbol)
+	//{
+	//}
+
+	internal ModuleSymbol ResolveModule(ProjectFile file)
+	{
+		Debug.Assert(IsFileInProject(file.Path));
+		var folder = VFS.GetFolder(file);
+		var module = FindModule(m => m.Folders.Contains(folder));
+		Debug.Assert(module != null);
+		return module;
+	}
+
+	internal ModuleSymbol? FindModule(Func<ModuleSymbol, bool> func)
+	{
+		Debug.Assert(_rootModule != null);
+		return FindModule(func, _rootModule);
+	}
+
+	private static ModuleSymbol? FindModule(Func<ModuleSymbol, bool> func, ModuleSymbol module)
+	{
+		if (func(module))
+			return module;
+		foreach (var childModule in module.Children)
+		{
+			var result = FindModule(func, childModule);
+			if (result != null)
+				return result;
+		}
+		return null;
+	}
+
+	internal IEnumerable<FileDiags> GetProjectDiags()
+	{
+		foreach (var file in VFS.EnumerateCodeFiles())
+		{
+			var fileDiags = GetCodeFileState(file).FileDiags;
+			if (fileDiags != null)
+			{
+				yield return fileDiags;
+			}
+		}
+	}
+
+	internal (SyntaxTree, Reasoner) CreateNewTreeAndReasoner(ProjectFile file)
+	{
+		var module = ResolveModule(file);
+		var tree = Parser.ParseFile(file);
+		var reasoner = Reasoner.Create(this, module, tree);
+		return (tree, reasoner);
 	}
 
 	/// <summary>
 	/// Analyze files that aren't analyzed.
+	/// This method acquires a read lock and returns a task that completes when all files are fully analyzed.
 	/// </summary>
-	public void EnsureAnalyzed()
+	public Task EnsureAnalyzedAsync(CancellationToken ct = default)
 	{
-		_cts?.Cancel();
-		_cts = new();
-
-		lock (_fullAnalysisLock)
+		return Task.Run(() =>
 		{
 			try
 			{
-				foreach (var sourceFile in _sourceFiles)
+				foreach (var file in VFS.EnumerateCodeFiles())
 				{
-					EnsureAnalyzeSourceFile(sourceFile, _cts.Token);
+					AnalyzeSourceFile(file, ct);
 				}
 
+				ct.ThrowIfCancellationRequested();
+
 				// REVIEW: Should this be here inside the lock?
-				foreach (var action in _fullDiagnosticsReadyActions)
-				{
-					var diags = GetProjectDiagnostics();
-					action(diags);
-				}
+				RaiseFullDiagsReady();
 			}
 			catch (OperationCanceledException)
 			{
 			}
+		}, ct);
+	}
+
+	private void RaiseFullDiagsReady()
+	{
+		var diags = GetProjectDiags();
+		foreach (var action in _fullDiagsReadyActions)
+		{
+			action(diags);
 		}
 	}
 
-	private void EnsureAnalyzeSourceFile(SourceFile sourceFile, CancellationToken ct)
+	private void AnalyzeSourceFile(ProjectFile file, CancellationToken ct)
 	{
-		// Can call AnalyzeSourceFile on other dependent files.
-
-		var state = _sourceFileToStateMap[sourceFile];
-		// Can't tell if the changed file affected others so for now we're reanalysing all files.
-		//if (state.IsAnalyzed)
-		//	return;
-
-		AnalyzeSourceFile(sourceFile, state, ct);
-	}
-
-	private void AnalyzeSourceFile(SourceFile sourceFile, SourceFileState state, CancellationToken ct)
-	{
-		// Later:
+		// Later?:
 		// reasoner.GetDependentSourceFiles() => each => EnsureAnalyzeSourceFile()
 
-		var tree = Parser.ParseFile(sourceFile);
-		ct.ThrowIfCancellationRequested();
+		var state = GetCodeFileState(file);
+		var reasoner = state.Reasoner;
+		var diags = reasoner.GetAllDiags().ToImmutableArray();
+		var highestLevel = diags.Any() ? (DiagLevel?)diags.Select(x => (int)x.Level).Max() : null;
+		state.FileDiags = new FileDiags(file.Path, diags, highestLevel);
+	}
 
-		var reasoner = Reasoner.Create(this, tree);
-		ct.ThrowIfCancellationRequested();
+	private void UpdateTreeAndReasoner(ProjectFile file)
+	{
+		var (tree, reasoner) = CreateNewTreeAndReasoner(file);
 
-		state.SyntaxTree = tree;
+		if (!_codeFileToStateMap.TryGetValue(file, out var state))
+		{
+			// TODO: LogWarning
+			return;
+		}
+
+		// TODO: SymbolInterner.CleanReasoner(state.Reasoner)
+
+		state.Tree = tree;
 		state.Reasoner = reasoner;
-
-		var diags = reasoner.GetAllDiagnostics().ToImmutableArray();
-		state.FileDiagnostics = new FileDiagnostics(sourceFile, diags);
-
-		state.IsAnalyzed = true;
 	}
 
-	private void LoadPrelude()
+	internal void Initialize()
 	{
-		var preludeFilePath = Path.GetFullPath(Path.Combine(PathHelper.GetSrcFolderPath(), "lib/prelude.surab"));
-		var preludeContent = File.ReadAllText(preludeFilePath);
-		var preludeSourceFile = SourceFile.Create(preludeFilePath, preludeContent);
-		var tree = Parser.ParseFile(preludeSourceFile);
+		PrepProjectDependencies();
+		InitializeProjectConfig();
+		CreateRootModule();
 
-		// Need to assing it before getting diags as that process might use this _preludeReasoner ref to resolve known types.
-		_preludeReasoner = Reasoner.CreatePrelude(this, tree);
-		var diags = _preludeReasoner.GetAllDiagnostics();
-
-		if (diags.Any(x => x.Level >= DiagnosticLevel.Error))
+		VFS.SubscribeToChanges(_vfsChanges.Add);
+		foreach (var file in VFS.EnumerateCodeFiles())
 		{
-			throw new Exception("Errors in prelude.");
+			InitializeSourceFile(file);
 		}
 	}
 
-	private void InitializeSourceFiles()
+	private void PrepProjectDependencies()
 	{
-		foreach (var sourceFile in _sourceFiles)
+		if (this != Workspace.StdProject)
 		{
-			InitializeSourceFile(sourceFile);
+			_projectDependencies.Add(Workspace.StdProject);
 		}
 	}
 
-	private class SourceFileState
+	private void InitializeProjectConfig()
 	{
-		public bool IsAnalyzed { get; set; }
+		var projectConfigFile = VFS.GetProjectConfigFile();
+		if (projectConfigFile != null)
+		{
+			Config = SurabProjectConfigLoader.Load(projectConfigFile);
+		}
+	}
 
-		public required SyntaxTree SyntaxTree { get; set; }
+	private void CreateRootModule()
+	{
+		_rootModule = CreateModule(VFS.GetRootFolder(), Config.Name);
+
+		if (IsStdProject)
+		{
+			Workspace.SetPreludeModule(_rootModule.Children.First(x => x.Name == "_prelude"));
+		}
+	}
+
+	internal void RunWritingHook()
+	{
+		ResetAfterWrite();
+		ProcessVFSChanges();
+	}
+
+	private void ResetAfterWrite()
+	{
+		// Reset cached/computed proj state that is stale on writes, e.g. modules
+
+		// Or, just go ahead for now and create and set the root module (containing all the modules hierarchy).
+		CreateRootModule();
+	}
+
+	private void ProcessVFSChanges()
+	{
+		foreach (var change in _vfsChanges)
+		{
+			foreach (var file in change.AddedFiles)
+			{
+				InitializeSourceFile(file);
+			}
+
+			foreach (var file in change.UpdatedFiles)
+			{
+				UpdateTreeAndReasoner(file);
+			}
+
+			foreach (var file in change.RemovedFiles)
+			{
+				_codeFileToStateMap.Remove(file);
+			}
+		}
+	}
+
+	private void InitializeSourceFile(ProjectFile file)
+	{
+		switch (file.Kind)
+		{
+			case ProjectFileKind.Code:
+				{
+					var (tree, reasoner) = CreateNewTreeAndReasoner(file);
+
+					_codeFileToStateMap[file] = new CodeFileState
+					{
+						Tree = tree,
+						Reasoner = reasoner,
+					};
+				}
+				break;
+
+			case ProjectFileKind.ProjectConfig:
+				// Processed separately.
+				break;
+
+			default:
+				throw new NotImplementedException();
+		}
+	}
+
+	private CodeFileState GetCodeFileState(ProjectFile file)
+	{
+		Debug.Assert(file.Kind is ProjectFileKind.Code);
+		// TODO: LogWarning instead?
+		Debug.Assert(_codeFileToStateMap.ContainsKey(file));
+
+		return _codeFileToStateMap[file];
+	}
+
+	public class CodeFileState
+	{
+		public required SyntaxTree Tree { get; set; }
 
 		public required Reasoner Reasoner { get; set; }
 
-		public FileDiagnostics? FileDiagnostics { get; set; }
+		public FileDiags? FileDiags { get; set; }
 	}
 }
