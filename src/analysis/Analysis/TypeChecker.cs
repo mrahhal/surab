@@ -243,6 +243,22 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		base.VisitBlockExpr(node);
 	}
 
+	public override void VisitExprStmt(ExprStmtNode node)
+	{
+		var validExprs = new[]
+		{
+			SyntaxNodeKind.CallExpr,
+			SyntaxNodeKind.TypeCreationExpr,
+			SyntaxNodeKind.AssignmentExpr,
+		};
+		if (!validExprs.Contains(node.Expr.Kind))
+		{
+			_diags.Add(CoreDiags.S0008_CannotUseThisExpressionAsAStatement, node.Expr.Span);
+		}
+
+		base.VisitExprStmt(node);
+	}
+
 	public override void VisitBareExprStmt(BareExprStmtNode node)
 	{
 		// Should only be allowed as the last stmt unless this bare is treated as a stmt (i.e. a block without

@@ -45,6 +45,17 @@ public class TypeCheckerTests
 	}
 
 	[Fact]
+	public void CannotUseAsStatement()
+	{
+		Test("""
+			fn f() {
+				var a = 42;
+				{|S0008:a|};
+			}
+			""");
+	}
+
+	[Fact]
 	public void UnknownName()
 	{
 		Test("""

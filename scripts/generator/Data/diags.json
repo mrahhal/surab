@@ -27,6 +27,10 @@
 		"Level": "Error",
 		"Message": "Expected a body or ';'."
 	},
+	"S0008": {
+		"Level": "Error",
+		"Message": "Cannot use this expression as a statement."
+	},
 	"S0100": {
 		"Level": "Error",
 		"Message": "Invalid syntax for import."

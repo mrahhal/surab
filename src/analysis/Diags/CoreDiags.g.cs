@@ -68,6 +68,14 @@ public static class CoreDiags
 		"Expected a body or ';'.");
 
 	/// <summary>
+	/// Cannot use this expression as a statement.
+	/// </summary>
+	public static readonly DiagDef S0008_CannotUseThisExpressionAsAStatement = new(
+		"S0008",
+		DiagLevel.Error,
+		"Cannot use this expression as a statement.");
+
+	/// <summary>
 	/// Invalid syntax for import.
 	/// </summary>
 	public static readonly DiagDef S0100_InvalidSyntaxForImport = new(
