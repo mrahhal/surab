@@ -15,23 +15,27 @@ public class LanguageServerHost
 {
 	private readonly Serilog.Core.Logger _serilogLogger;
 	private ILogger<LanguageServerHost> _logger = null!;
+	private readonly ITransport _transport;
 
-	private LanguageServerHost(Serilog.Core.Logger logger)
+	private LanguageServerHost(Serilog.Core.Logger logger, ITransport transport)
 	{
 		_serilogLogger = logger;
+		_transport = transport;
 	}
 
 	public LanguageServer Server { get; private set; } = null!;
 
 	public SurabWorkspace Workspace { get; private set; } = null!;
 
-	public static LanguageServerHost Create(Serilog.Core.Logger logger)
+	public static LanguageServerHost Create(Serilog.Core.Logger logger, ITransport transport)
 	{
-		return new LanguageServerHost(logger);
+		return new LanguageServerHost(logger, transport);
 	}
 
 	public async Task StartAsync()
 	{
+		await _transport.ConnectAsync();
+
 		var services = new ServiceCollection();
 		services.AddSingleton(this);
 
@@ -41,8 +45,8 @@ public class LanguageServerHost
 			{
 				services.AddSingleton<SurabSolver>();
 			})
-			.WithInput(Console.OpenStandardInput())
-			.WithOutput(Console.OpenStandardOutput())
+			.WithInput(_transport.CreateInputStream())
+			.WithOutput(_transport.CreateOutputStream())
 			.WithConfigurationItem(new ConfigurationItem
 			{
 				Section = "surab",
