@@ -40,15 +40,7 @@ public class DocumentSymbolHandler(
 	private List<Symbol>? GetFirstLevelSymbols(SurabProject project, ProjectFile file)
 	{
 		var reasoner = project.GetReasoner(file);
-		var root = reasoner.Tree.Root;
-		if (root is not FileNode fileNode)
-			return null;
-
-		return fileNode.Decls
-			.Select(reasoner.GetDeclaredSymbol)
-			.Where(s => s != null)
-			.Select(s => s!)
-			.ToList();
+		return [.. reasoner.EnumerateFirstLevelSymbols()];
 	}
 
 	private IEnumerable<DocumentSymbol> Cleanup(IEnumerable<DocumentSymbol?> symbols)
