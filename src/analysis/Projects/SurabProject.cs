@@ -259,27 +259,28 @@ public class SurabProject
 
 	/// <summary>
 	/// Analyze files that aren't analyzed.
-	/// This method acquires a read lock and returns a task that completes when all files are fully analyzed.
+	/// Returns a task that completes when all files are fully analyzed.
 	/// </summary>
 	public Task EnsureAnalyzedAsync(CancellationToken ct = default)
 	{
 		return Task.Run(() =>
 		{
-			try
+			foreach (var file in VFS.EnumerateCodeFiles())
 			{
-				foreach (var file in VFS.EnumerateCodeFiles())
+				if (ct.IsCancellationRequested)
 				{
-					AnalyzeSourceFile(file, ct);
+					return;
 				}
-
-				ct.ThrowIfCancellationRequested();
-
-				// REVIEW: Should this be here inside the lock?
-				RaiseFullDiagsReady();
+				AnalyzeSourceFile(file, ct);
 			}
-			catch (OperationCanceledException)
+
+			if (ct.IsCancellationRequested)
 			{
+				return;
 			}
+
+			// REVIEW: Should this be here inside the lock?
+			RaiseFullDiagsReady();
 		}, ct);
 	}
 
