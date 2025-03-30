@@ -16,7 +16,7 @@ public class DeclarationHandler(
 	{
 		return _solver.Workspace.LockForRead(() =>
 		{
-			return _solver.GetDefinitionRef(request.TextDocument, request.Position);
+			return _solver.GetDeclarationRef(request.TextDocument, request.Position);
 		});
 	}
 

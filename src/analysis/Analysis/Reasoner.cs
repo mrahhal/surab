@@ -161,27 +161,6 @@ public class Reasoner
 	}
 
 	/// <summary>
-	/// Gets the declaration symbol.
-	/// Type member (e.g. method) -> the declaration in the trait of the member.
-	/// </summary>
-	public Symbol? LookupDeclaration(Symbol? symbol)
-	{
-		if (symbol == null) return null;
-
-		throw new NotImplementedException();
-	}
-
-	/// <summary>
-	/// Gets the implementation symbols.
-	/// Trait decl -> all types that implement the trait.
-	/// Trait member (e.g. method) -> all concrete implementations (definitions) of the member.
-	/// </summary>
-	public IEnumerable<Symbol> LookupImplementations(Symbol? symbol)
-	{
-		throw new NotImplementedException();
-	}
-
-	/// <summary>
 	/// Gets all diags (syntax and semantic).
 	/// </summary>
 	public IEnumerable<Diag> GetAllDiags()
@@ -457,6 +436,40 @@ public class Reasoner
 		var symbol = LookupSymbol(node) as ISymbolHasType;
 		var type = symbol?.Type;
 		return type.AsTypeSymbolOrUnknown();
+	}
+
+	public IEnumerable<Symbol> EnumerateFirstLevelSymbols()
+	{
+		var root = Tree.Root;
+		if (root is not FileNode fileNode)
+			return [];
+
+		return fileNode.Decls
+			.Select(GetDeclaredSymbol)
+			.Where(s => s != null)
+			.Select(s => s!);
+	}
+
+	public IEnumerable<Symbol> EnumerateAllSymbols()
+	{
+		foreach (var firstLevelSymbol in EnumerateFirstLevelSymbols())
+		{
+			foreach (var item in EnumerateSymbolsRecursive(firstLevelSymbol))
+				yield return item;
+		}
+	}
+
+	private IEnumerable<Symbol> EnumerateSymbolsRecursive(Symbol symbol)
+	{
+		yield return symbol;
+
+		foreach (var child in symbol.Children)
+		{
+			foreach (var item in EnumerateSymbolsRecursive(child))
+			{
+				yield return item;
+			}
+		}
 	}
 
 	private TypeSymbol GetTypeOfSymbol(Symbol? symbol, bool isInstanceAccess)

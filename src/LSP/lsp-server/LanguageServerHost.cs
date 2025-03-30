@@ -72,6 +72,7 @@ public class LanguageServerHost
 			.WithHandler<SemanticTokensFullHandler>()
 			.WithHandler<DefinitionHandler>()
 			.WithHandler<DeclarationHandler>()
+			.WithHandler<ImplementationHandler>()
 			.WithHandler<HoverHandler>()
 			.WithHandler<DocumentSymbolHandler>()
 			.WithHandler<SignatureHelpHandler>()

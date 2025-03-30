@@ -147,6 +147,68 @@ public class SurabProject
 		}
 	}
 
+	/// <summary>
+	/// Looks up the declaration symbol.
+	/// Type member (e.g. method) -> the declaration in the trait of the member.
+	/// </summary>
+	public Symbol? LookupDeclaration(Symbol? symbol)
+	{
+		if (symbol == null) return null;
+
+		if (symbol.EnclosingImpl != null)
+		{
+			var implMember = symbol.EnclosingImpl.Members.FirstOrDefault(m => m.ImplSymbol == symbol);
+			if (implMember != null)
+			{
+				return implMember.MatchingTraitSymbol;
+			}
+		}
+
+		return null;
+	}
+
+	/// <summary>
+	/// Looks up the implementation symbols.
+	/// Trait decl -> all types that implement the trait.
+	/// Trait member (e.g. method) -> all concrete implementations (definitions) of the member.
+	/// </summary>
+	public IEnumerable<Symbol> LookupImplementations(Symbol? symbol)
+	{
+		if (symbol == null) return [];
+
+		// TODO
+
+		if (SymbolFacts.IsTraitType(symbol))
+		{
+			return GetAllReasoners()
+				.SelectMany(r => r.EnumerateAllSymbols().OfType<NamedTypeSymbol>().Where(type =>
+				{
+					return type.Members.OfType<ImplSymbol>().Any(x => x.TraitType.OriginalDef == symbol.OriginalDef);
+				}));
+		}
+		else if (SymbolFacts.IsMethod(symbol) && SymbolFacts.IsTraitType(symbol.Parent))
+		{
+			var traitType = (NamedTypeSymbol)symbol.Parent;
+			return GetAllReasoners()
+				.SelectMany(r => r.EnumerateAllSymbols().OfType<ImplSymbol>().SelectMany(implSymbol =>
+				{
+					if (implSymbol.TraitType.OriginalDef == traitType.OriginalDef)
+					{
+						var implMembers = implSymbol.Members.Where(x => x.MatchingTraitSymbol?.OriginalDef == symbol.OriginalDef);
+						return implMembers.Select(x => x.ImplSymbol);
+					}
+					return [];
+				}));
+		}
+
+		return [];
+	}
+
+	// Needs a better strategy to caching symbols we go over in type checker.
+	//public IEnumerable<SyntaxNode> LookupAllReferences(Symbol? symbol)
+	//{
+	//}
+
 	internal ModuleSymbol ResolveModule(ProjectFile file)
 	{
 		Debug.Assert(IsFileInProject(file.Path));
