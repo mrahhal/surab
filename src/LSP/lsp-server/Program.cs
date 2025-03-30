@@ -6,31 +6,38 @@ var logger = new LoggerConfiguration()
 	.WriteTo.File("surab-lsp-server.log")
 	.CreateLogger();
 
+ITransport? transport = default;
+
 logger.Information("[STARTED]");
+var stdioArgName = "--stdio";
 var pipeArgName = "--pipe=";
-var pipeArg = "";
 foreach (var arg in args)
 {
 	logger.Information("arg: " + arg);
 
 	if (arg.StartsWith(pipeArgName))
 	{
-		pipeArg = arg[pipeArgName.Length..];
-		pipeArg = pipeArg["\\\\.\\pipe\\".Length..];
+		var pipeName = arg[pipeArgName.Length..];
+		pipeName = pipeName["\\\\.\\pipe\\".Length..];
+		transport = new PipeTransport(pipeName);
+	}
+	else if (arg == stdioArgName)
+	{
+		transport = new StudioTransport();
 	}
 }
 
-if (string.IsNullOrEmpty(pipeArg))
+if (transport == null)
 {
-	logger.Information("No pipe arg was provided. Server exiting...");
+	logger.Warning(messageTemplate: "[NO TRANSPORT PROVIDED. EXITING]");
 	return;
 }
 else
 {
-	logger.Information("Running server on pipe: " + pipeArg);
+	logger.Information("Selected transport: " + transport.Name);
 }
 
-var host = LanguageServerHost.Create(logger, pipeArg);
+var host = LanguageServerHost.Create(logger, transport);
 await host.StartAsync();
 
 logger.Information(messageTemplate: "[WAIT FOR EXIT]");
