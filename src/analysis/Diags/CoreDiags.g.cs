@@ -76,6 +76,22 @@ public static class CoreDiags
 		"Cannot use this expression as a statement.");
 
 	/// <summary>
+	/// Unterminated char literal.
+	/// </summary>
+	public static readonly DiagDef S0009_UnterminatedCharLiteral = new(
+		"S0009",
+		DiagLevel.Error,
+		"Unterminated char literal.");
+
+	/// <summary>
+	/// Unterminated string literal.
+	/// </summary>
+	public static readonly DiagDef S0010_UnterminatedStringLiteral = new(
+		"S0010",
+		DiagLevel.Error,
+		"Unterminated string literal.");
+
+	/// <summary>
 	/// Invalid syntax for import.
 	/// </summary>
 	public static readonly DiagDef S0100_InvalidSyntaxForImport = new(

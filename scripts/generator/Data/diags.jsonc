@@ -1,4 +1,5 @@
 {
+	// General
 	"S0001": {
 		"Level": "Error",
 		"Message": "Skipped unparsed tokens."
@@ -31,6 +32,15 @@
 		"Level": "Error",
 		"Message": "Cannot use this expression as a statement."
 	},
+	"S0009": {
+		"Level": "Error",
+		"Message": "Unterminated char literal."
+	},
+	"S0010": {
+		"Level": "Error",
+		"Message": "Unterminated string literal."
+	},
+	// Import
 	"S0100": {
 		"Level": "Error",
 		"Message": "Invalid syntax for import."
@@ -39,10 +49,12 @@
 		"Level": "Error",
 		"Message": "Failed to resolve module to import."
 	},
+	//
 	"S0150": {
 		"Level": "Error",
 		"Message": "'{0}' is not allowed in this context."
 	},
+	// Traits
 	"S0200": {
 		"Level": "Error",
 		"Message": "Not a trait to implement."
