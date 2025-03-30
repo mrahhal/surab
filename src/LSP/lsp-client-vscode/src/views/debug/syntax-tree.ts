@@ -1,12 +1,17 @@
-import * as vscode from 'vscode';
+import * as path from "path";
+import * as vscode from "vscode";
 import * as lc from "vscode-languageclient";
 import { LanguageClient } from 'vscode-languageclient/node';
 
 export const getSyntaxTreeRequest = new lc.RequestType<
 	lc.TextDocumentPositionParams,
-	SyntaxTreeNode | null,
+	Response,
 	void
 >("surab/getSyntaxTree");
+
+class Response {
+	root: SyntaxTreeNode | null;
+}
 
 export class SyntaxTreeNode {
 	identifier: string | null;
@@ -58,8 +63,8 @@ export class SyntaxTreeProvider implements vscode.TreeDataProvider<SyntaxTreeNod
 			return node.children;
 		}
 
-		this.root = await this.sendRequest();
-		return this.root.children;
+		const response = await this.sendRequest();
+		return response?.root?.children || [];
 	}
 
 	// TODO:
@@ -71,9 +76,13 @@ export class SyntaxTreeProvider implements vscode.TreeDataProvider<SyntaxTreeNod
 		vscode.workspace.onDidChangeTextDocument(() => this.refresh());
 	}
 
-	private async sendRequest(): Promise<SyntaxTreeNode> {
+	private async sendRequest(): Promise<Response | undefined> {
 		const editor = vscode.window.activeTextEditor;
 		if (!editor) return;
+
+		const ext = path.extname(editor.document.fileName);
+		if (ext !== ".srb")
+			return;
 
 		const textDocument = this.client.code2ProtocolConverter.asTextDocumentIdentifier(editor.document);
 		const response = await this.client.sendRequest(getSyntaxTreeRequest, {

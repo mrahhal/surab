@@ -1,12 +1,11 @@
-import * as vscode from 'vscode';
-
+import * as vscode from "vscode";
 import {
 	LanguageClient,
 	LanguageClientOptions,
 	ServerOptions,
 	TransportKind,
 } from "vscode-languageclient/node";
-import { SyntaxTreeProvider } from './views/debug/syntax-tree';
+import { SyntaxTreeProvider } from "./views/debug/syntax-tree";
 
 let client: LanguageClient;
 

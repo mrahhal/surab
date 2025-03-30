@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Server;
 using Surab.Analysis;
@@ -7,6 +8,11 @@ namespace Surab.LSPServer.Requests;
 
 public static class GetSyntaxTreeRequest
 {
+	public class Response
+	{
+		public SyntaxTreeNode? Root { get; set; }
+	}
+
 	public class SyntaxTreeNode
 	{
 		public required string? Identifier { get; init; }
@@ -16,20 +22,22 @@ public static class GetSyntaxTreeRequest
 		public required SyntaxTreeNode[] Children { get; init; }
 	}
 
-	public static Task<SyntaxTreeNode?> HandlerAsync(TextDocumentPositionParams @params, LanguageServer server)
+	public static Task<Response> HandlerAsync(TextDocumentPositionParams @params, LanguageServer server)
 	{
 		var solver = server.Services.GetRequiredService<SurabSolver>();
 		return solver.Workspace.LockForRead(() =>
 		{
+			server.Services.GetRequiredService<ILogger<SyntaxTreeNode>>().LogInformation("Handling GetSyntaxTreeRequest: {Path}", @params.TextDocument.ToString());
 			var file = solver.GetFile(@params.TextDocument);
 			if (file != null)
 			{
 				var project = solver.Workspace.GetFileProject(file.Path);
 				var tree = project.GetSyntaxTree(file);
-				return Task.FromResult(Convert(tree));
+				var root = Convert(tree);
+				return Task.FromResult(new Response { Root = root });
 			}
 
-			return Task.FromResult((SyntaxTreeNode?)null);
+			return Task.FromResult(new Response());
 		});
 	}
 
