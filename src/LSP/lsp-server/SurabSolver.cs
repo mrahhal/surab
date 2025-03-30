@@ -145,4 +145,45 @@ public class SurabSolver(
 
 		return null;
 	}
+
+	internal LocationOrLocationLinks? GetImplementationRef(TextDocumentIdentifier textDocument, Position position)
+	{
+		var sourceFile = GetFile(textDocument);
+		if (sourceFile == null)
+			return null;
+		var project = Workspace.GetFileProject(sourceFile.Path);
+		var reasoner = project.GetReasoner(sourceFile);
+		var linePosition = ConversionHelper.FromTo(position);
+		var node = GetNodeAt(sourceFile, linePosition);
+		if (node == null)
+			return null;
+		if (node is NameDefNode nameDef)
+		{
+			var result = default(IEnumerable<Symbol>?);
+			if (nameDef.Parent is TraitDeclNode traitDecl)
+			{
+				var traitType = reasoner.GetDeclaredSymbol(traitDecl);
+				result = project.LookupImplementations(traitType);
+			}
+			else if (nameDef.Parent is FnSigNode fnSig)
+			{
+				Debug.Assert(fnSig.Parent != null);
+				var fnSymbol = reasoner.GetDeclaredSymbol(fnSig.Parent);
+				result = project.LookupImplementations(fnSymbol);
+			}
+			if (result != null)
+			{
+				var locations = new LocationOrLocationLinks(result.Select(x =>
+				{
+					return new LocationOrLocationLink(new Location
+					{
+						Uri = DocumentUri.FromFileSystemPath(x.DeclaringFile!.Path.Value!),
+						Range = ConversionHelper.FromTo(x.SelectionSpan),
+					});
+				}));
+				return locations;
+			}
+		}
+		return null;
+	}
 }
