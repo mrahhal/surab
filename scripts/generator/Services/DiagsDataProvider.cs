@@ -35,7 +35,7 @@ public class DiagsDataProvider
 
 	public DiagsDataProvider()
 	{
-		var json = File.ReadAllText("Data/diags.json");
+		var json = File.ReadAllText("Data/diags.jsonc");
 		var root = JsonConvert.DeserializeObject<Dictionary<string, DefinedDiag>>(json)!;
 		Data = Process(new Defined { Root = root });
 	}

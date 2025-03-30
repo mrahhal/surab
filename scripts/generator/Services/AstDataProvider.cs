@@ -53,7 +53,7 @@ public class AstDataProvider
 
 	public AstDataProvider()
 	{
-		var json = File.ReadAllText("Data/ast.json");
+		var json = File.ReadAllText("Data/ast.jsonc");
 		var defined = JsonConvert.DeserializeObject<Defined>(json)!;
 		Data = Process(defined);
 	}
