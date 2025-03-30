@@ -147,6 +147,31 @@ public class SurabProject
 		}
 	}
 
+	/// <summary>
+	/// Looks up the declaration symbol.
+	/// Type member (e.g. method) -> the declaration in the trait of the member.
+	/// </summary>
+	public Symbol? LookupDeclaration(Symbol? symbol)
+	{
+		if (symbol == null) return null;
+
+		if (symbol.EnclosingImpl != null)
+		{
+			var implMember = symbol.EnclosingImpl.Members.FirstOrDefault(m => m.ImplSymbol == symbol);
+			if (implMember != null)
+			{
+				return implMember.MatchingTraitSymbol;
+			}
+		}
+
+		return null;
+	}
+
+	// Needs a better strategy to caching symbols we go over in type checker.
+	//public IEnumerable<SyntaxNode> LookupAllReferences(Symbol? symbol)
+	//{
+	//}
+
 	internal ModuleSymbol ResolveModule(ProjectFile file)
 	{
 		Debug.Assert(IsFileInProject(file.Path));

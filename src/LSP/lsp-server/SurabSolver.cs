@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System;
+using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Server;
@@ -35,7 +37,9 @@ public class SurabSolver(
 
 	public (Symbol? symbol, TypeSymbol? type) GetSymbolAndTypeOfPosition(TextDocumentIdentifier textDocument, Position position)
 	{
-		var sourceFile = GetFile(textDocument)!;
+		var sourceFile = GetFile(textDocument);
+		if (sourceFile == null)
+			return (null, null);
 		var project = Workspace.GetFileProject(sourceFile.Path);
 		var reasoner = project.GetReasoner(sourceFile);
 		var linePosition = ConversionHelper.FromTo(position);
@@ -73,7 +77,9 @@ public class SurabSolver(
 
 	public LocationOrLocationLinks? GetDefinitionRef(TextDocumentIdentifier textDocument, Position position)
 	{
-		var sourceFile = GetFile(textDocument)!;
+		var sourceFile = GetFile(textDocument);
+		if (sourceFile == null)
+			return null;
 		var project = Workspace.GetFileProject(sourceFile.Path);
 		var reasoner = project.GetReasoner(sourceFile);
 		var linePosition = ConversionHelper.FromTo(position);
@@ -83,9 +89,9 @@ public class SurabSolver(
 		var node = GetNodeAt(sourceFile, linePosition);
 		if (node == null)
 			return null;
-		var token = node.GetTokenAt(linePosition);
-		if (token == null)
-			return null;
+		//var token = node.GetTokenAt(linePosition);
+		//if (token == null)
+		//	return null;
 		var symbol = reasoner.LookupSymbol(node);
 		if (symbol is ThisSymbol thisSymbol)
 		{
@@ -95,6 +101,37 @@ public class SurabSolver(
 		{
 			symbol = typeSymbol.UnwrapPointers();
 		}
+		if (symbol != null)
+		{
+			var span = symbol.DeclaringNode?.GetMainIdentifierToken()?.Span ?? symbol.DeclaringNode?.Span ?? new();
+			var locations = new LocationOrLocationLinks(new LocationOrLocationLink(new Location
+			{
+				Uri = DocumentUri.FromFileSystemPath(symbol.DeclaringFile!.Path.Value!),
+				Range = ConversionHelper.FromTo(span),
+			}));
+			return locations;
+		}
+
+		return null;
+	}
+
+	public LocationOrLocationLinks? GetDeclarationRef(TextDocumentIdentifier textDocument, Position position)
+	{
+		var sourceFile = GetFile(textDocument);
+		if (sourceFile == null)
+			return null;
+		var project = Workspace.GetFileProject(sourceFile.Path);
+		var reasoner = project.GetReasoner(sourceFile);
+		var linePosition = ConversionHelper.FromTo(position);
+		var node = GetNodeAt(sourceFile, linePosition);
+		if (node == null)
+			return null;
+		if (node is NameDefNode nameDef && nameDef.Parent is FnSigNode fnSig)
+		{
+			node = fnSig;
+		}
+		var symbol = reasoner.GetDeclaredSymbol(node) ?? reasoner.LookupSymbol(node);
+		symbol = project.LookupDeclaration(symbol);
 		if (symbol != null)
 		{
 			var span = symbol.DeclaringNode?.GetMainIdentifierToken()?.Span ?? symbol.DeclaringNode?.Span ?? new();
