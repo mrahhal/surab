@@ -499,16 +499,19 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		{
 			_diags.Add(node.Name.Identifier.Span, DiagLevel.Error, $"Unknown member access.");
 		}
-		if (candidates.Length > 1)
+		else if (candidates.Length > 1)
 		{
 			_diags.Add(node.Name.Identifier.Span, DiagLevel.Error, $"Ambiguous access. More than one member matched.");
 		}
-		var match = candidates[0];
-		if (match is FnSymbol && _reasoner.IsInstanceAccess(node))
+		else
 		{
-			if (node.Parent is not CallExprNode)
+			var match = candidates[0];
+			if (match is FnSymbol && _reasoner.IsInstanceAccess(node))
 			{
-				_diags.Add(node.Name.Identifier.Span, DiagLevel.Error, $"taking a value of a method is not allowed, call it with `()`");
+				if (node.Parent is not CallExprNode)
+				{
+					_diags.Add(node.Name.Identifier.Span, DiagLevel.Error, $"taking a value of a method is not allowed, call it with `()`");
+				}
 			}
 		}
 
