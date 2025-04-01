@@ -7,7 +7,7 @@ export const getSyntaxTreeRequest = new lc.RequestType<
 	lc.TextDocumentPositionParams,
 	Response,
 	void
->("surab/getSyntaxTree");
+>("surab/get-syntax-tree");
 
 class Response {
 	root: SyntaxTreeNode | null;

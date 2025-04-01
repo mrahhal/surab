@@ -81,7 +81,7 @@ public class LanguageServerHost
 			.WithHandler<DocumentSymbolHandler>()
 			.WithHandler<SignatureHelpHandler>()
 
-			.OnRequest<TextDocumentPositionParams, GetSyntaxTreeRequest.Response>("surab/getSyntaxTree", p => GetSyntaxTreeRequest.HandlerAsync(p, Server));
+			.OnRequest<TextDocumentPositionParams, GetSyntaxTreeRequest.Response>("surab/get-syntax-tree", p => GetSyntaxTreeRequest.HandlerAsync(p, Server));
 
 		Server = LanguageServer.Create(options, services.BuildServiceProvider());
 		_logger = Server.Services.GetRequiredService<ILogger<LanguageServerHost>>();
