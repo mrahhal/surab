@@ -89,10 +89,10 @@ public class FnTypeSymbol : TypeSymbol
 	//private readonly DeclNode? _node;
 
 	// node will be null for untyped fn types (fns and methods).
-	internal FnTypeSymbol(FnTypeKey key, SymbolInterner symbolCache)
+	internal FnTypeSymbol(FnTypeKey key, SymbolInterner symbolInterner)
 	{
 		Key = key;
-		SymbolInterner = symbolCache;
+		SymbolInterner = symbolInterner;
 	}
 
 	internal FnTypeKey Key { get; }
