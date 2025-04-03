@@ -1,7 +1,7 @@
-import * as path from "path";
 import * as vscode from "vscode";
 import * as lc from "vscode-languageclient";
 import { LanguageClient } from 'vscode-languageclient/node';
+import { isSurabEditor } from "../../util";
 
 export const getSyntaxTreeRequest = new lc.RequestType<
 	lc.TextDocumentPositionParams,
@@ -78,10 +78,10 @@ export class SyntaxTreeProvider implements vscode.TreeDataProvider<SyntaxTreeNod
 
 	private async sendRequest(): Promise<Response | undefined> {
 		const editor = vscode.window.activeTextEditor;
-		if (!editor) return;
+		if (!editor)
+			return;
 
-		const ext = path.extname(editor.document.fileName);
-		if (ext !== ".srb")
+		if (!isSurabEditor(editor))
 			return;
 
 		const textDocument = this.client.code2ProtocolConverter.asTextDocumentIdentifier(editor.document);
