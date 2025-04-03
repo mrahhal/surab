@@ -23,3 +23,6 @@ dotnet_diagnostic.CA1859.severity = silent
 dotnet_diagnostic.IDE1006.severity = none
 # IDE0290: Use primary constructor
 dotnet_diagnostic.IDE0290.severity = silent
+
+# IDE0130: Namespace does not match folder structure
+dotnet_diagnostic.IDE0130.severity = silent
