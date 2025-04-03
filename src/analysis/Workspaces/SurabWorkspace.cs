@@ -6,6 +6,13 @@ namespace Surab.Analysis;
 /// <summary>
 /// Represents a Surab workspace that contains one or more Surab projects.
 /// </summary>
+/// <remarks>
+/// As a rule, a behavior similar to a read/write lock should be implemented or followed when
+/// calling read/write operations. A write operation is any that involves updates to the VFS.
+/// After write operations, <see cref="EnsureAnalyzedAsync"/> should be called to ensure
+/// dirty modules are analyzed, but any read operation can be eagerly called too before full
+/// analysis is complete.
+/// </remarks>
 public class SurabWorkspace
 {
 	private readonly AsyncReaderWriterLock _rwl = new();
@@ -16,7 +23,7 @@ public class SurabWorkspace
 	private ModuleSymbol? _preludeModule;
 	private readonly Dictionary<KnownTypeTag, TypeSymbol> _knownTypeTagToTypeSymbolMap = [];
 	// This cancellation token will fire when a new change is being requested and just before a write lock is taken.
-	private CancellationTokenSource _ctsOnChange = null!;
+	private CancellationTokenSource _ctsEnteringWriteOperation = null!;
 
 	private SurabWorkspace(string workspacePath)
 	{
@@ -82,7 +89,6 @@ public class SurabWorkspace
 	/// <remarks>
 	/// For convenience, read/write methods won't throw if you use them without locking. It's the responsibility of
 	/// the consumer to make sure access is synchronized by locking for read or write when running in a possibly concurrent environment.
-	/// Methods will be marked in their doc if they need a read or write lock.
 	/// </remarks>
 	public void LockForRead(Action action)
 	{
@@ -99,7 +105,6 @@ public class SurabWorkspace
 	/// <remarks>
 	/// For convenience, read/write methods won't throw if you use them without locking. It's the responsibility of
 	/// the consumer to make sure access is synchronized by locking for read or write when running in a possibly concurrent environment.
-	/// Methods will be marked in their doc if they need a read or write lock.
 	/// </remarks>
 	public T LockForRead<T>(Func<T> func)
 	{
@@ -109,6 +114,13 @@ public class SurabWorkspace
 		}
 	}
 
+	/// <summary>
+	/// Locks the workspace for read operations.
+	/// </summary>
+	/// <remarks>
+	/// For convenience, read/write methods won't throw if you use them without locking. It's the responsibility of
+	/// the consumer to make sure access is synchronized by locking for read or write when running in a possibly concurrent environment.
+	/// </remarks>
 	public async Task LockForReadAsync(Func<Task> func)
 	{
 		using (await _rwl.ReaderLockAsync())
@@ -123,16 +135,15 @@ public class SurabWorkspace
 	/// <remarks>
 	/// For convenience, read/write methods won't throw if you use them without locking. It's the responsibility of
 	/// the consumer to make sure access is synchronized by locking for read or write when running in an asynchornous environment.
-	/// Methods will be marked in their doc if theyre a read or a write operation.
 	/// </remarks>
 	public void LockForWrite(Action action)
 	{
 		// Cancel in-flight read operations as they will mostly be unneeded now that a write lock is being requested.
 		// If we don't cancel, acquiring a write lock will block until all current read operations finish running.
 		// Full re-analysis also takes a read lock and this operation can take time, so this is a way to cancel that too.
-		_ctsOnChange?.Cancel();
-		_ctsOnChange = new();
-		var ct = _ctsOnChange.Token;
+		_ctsEnteringWriteOperation?.Cancel();
+		_ctsEnteringWriteOperation = new();
+		var ct = _ctsEnteringWriteOperation.Token;
 
 		using (_rwl.WriterLock())
 		{
@@ -272,6 +283,7 @@ public class SurabWorkspace
 		Debug.Assert(!string.IsNullOrEmpty(WorkspacePath.Value));
 
 		var projectPaths = FindProjects(WorkspacePath);
+		// TODO: Instead, only treat the outermost project as valid and report errors for nested projects.
 		ValidateProjectPathsDoNotOverlap(projectPaths);
 		var projects = projectPaths
 			.Select(path => CreateProjectAt(this, path))

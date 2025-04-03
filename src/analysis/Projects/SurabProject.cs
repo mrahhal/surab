@@ -7,10 +7,6 @@ namespace Surab.Analysis;
 /// Represents a Surab project.
 /// Multiple projects will communicate with each other and cooperate when analyzing a workspace.
 /// </summary>
-/// <remarks>
-/// This isn't thread safe in general.
-/// Initial plan is for concurrent queries to be thread safe, but updates can't occur at the same time (will need to use a reader/writer lock).
-/// </remarks>
 public class SurabProject
 {
 	private readonly List<Action<IEnumerable<FileDiags>>> _fullDiagsReadyActions = [];
@@ -268,16 +264,12 @@ public class SurabProject
 			foreach (var file in VFS.EnumerateCodeFiles())
 			{
 				if (ct.IsCancellationRequested)
-				{
 					return;
-				}
 				AnalyzeSourceFile(file, ct);
 			}
 
 			if (ct.IsCancellationRequested)
-			{
 				return;
-			}
 
 			// REVIEW: Should this be here inside the lock?
 			RaiseFullDiagsReady();
@@ -370,6 +362,7 @@ public class SurabProject
 	private void ResetAfterWrite()
 	{
 		// Reset cached/computed proj state that is stale on writes, e.g. modules
+		// According to _vfsChanges, do the required modules updates.
 
 		// Or, just go ahead for now and create and set the root module (containing all the modules hierarchy).
 		CreateRootModule();
