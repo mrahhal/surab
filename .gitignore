@@ -5,3 +5,4 @@ bin
 node_modules
 surab-lsp-server.log
 *.vsix
+editor-groups.json
