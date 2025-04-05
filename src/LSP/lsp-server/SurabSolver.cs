@@ -49,6 +49,76 @@ public class SurabSolver(
 		return node;
 	}
 
+	public LocationOrLocationLinks? GetDeclarationRef(TextDocumentIdentifier textDocument, Position position)
+	{
+		var sourceFile = GetFile(textDocument);
+		if (sourceFile == null)
+			return null;
+		var project = Workspace.GetFileProject(sourceFile.Path);
+		var reasoner = project.GetReasoner(sourceFile);
+		var linePosition = ConversionHelper.FromTo(position);
+		var node = GetTouchingNodeAt(sourceFile, linePosition);
+		if (node == null)
+			return null;
+		if (node is NameDefNode nameDef && nameDef.Parent is FnSigNode fnSig)
+		{
+			node = fnSig;
+		}
+		var symbol = reasoner.GetDeclaredSymbol(node) ?? reasoner.LookupSymbol(node);
+		symbol = project.LookupDeclaration(symbol);
+		if (symbol != null)
+		{
+			return GetLocation(symbol);
+		}
+		return null;
+	}
+
+	public LocationOrLocationLinks? GetDefinitionRef(TextDocumentIdentifier textDocument, Position position)
+	{
+		var sourceFile = GetFile(textDocument);
+		if (sourceFile == null)
+			return null;
+		var project = Workspace.GetFileProject(sourceFile.Path);
+		var reasoner = project.GetReasoner(sourceFile);
+		var linePosition = ConversionHelper.FromTo(position);
+		var node = GetTouchingNodeAt(sourceFile, linePosition);
+		if (node == null)
+			return null;
+		//var token = node.GetTokenAt(linePosition);
+		//if (token == null)
+		//	return null;
+		var symbol = reasoner.LookupSymbol(node);
+		if (symbol is ThisSymbol thisSymbol)
+		{
+			symbol = thisSymbol.Type;
+		}
+		if (symbol is TypeSymbol typeSymbol)
+		{
+			symbol = typeSymbol.UnwrapPointers();
+		}
+		if (symbol != null)
+		{
+			return GetLocation(symbol);
+		}
+		return null;
+	}
+
+	public LocationOrLocationLinks? GetTypeDefinitionRef(TextDocumentIdentifier textDocument, Position position)
+	{
+		var symbol = GetTouchingSymbol(textDocument, position);
+		var typeSymbol = symbol switch
+		{
+			TypeSymbol t => t,
+			ISymbolHasType hasType => hasType.Type,
+			_ => null,
+		};
+		if (typeSymbol != null)
+		{
+			return GetLocation(typeSymbol);
+		}
+		return null;
+	}
+
 	public (Symbol? symbol, TypeSymbol? type) GetSymbolAndTypeOfPosition(TextDocumentIdentifier textDocument, Position position)
 	{
 		var sourceFile = GetFile(textDocument);
@@ -89,74 +159,6 @@ public class SurabSolver(
 		return (symbol, type);
 	}
 
-	public LocationOrLocationLinks? GetDefinitionRef(TextDocumentIdentifier textDocument, Position position)
-	{
-		var sourceFile = GetFile(textDocument);
-		if (sourceFile == null)
-			return null;
-		var project = Workspace.GetFileProject(sourceFile.Path);
-		var reasoner = project.GetReasoner(sourceFile);
-		var linePosition = ConversionHelper.FromTo(position);
-		var node = GetTouchingNodeAt(sourceFile, linePosition);
-		if (node == null)
-			return null;
-		//var token = node.GetTokenAt(linePosition);
-		//if (token == null)
-		//	return null;
-		var symbol = reasoner.LookupSymbol(node);
-		if (symbol is ThisSymbol thisSymbol)
-		{
-			symbol = thisSymbol.Type;
-		}
-		if (symbol is TypeSymbol typeSymbol)
-		{
-			symbol = typeSymbol.UnwrapPointers();
-		}
-		if (symbol != null)
-		{
-			var span = symbol.DeclaringNode?.GetMainIdentifierToken()?.Span ?? symbol.DeclaringNode?.Span ?? new();
-			var locations = new LocationOrLocationLinks(new LocationOrLocationLink(new Location
-			{
-				Uri = DocumentUri.FromFileSystemPath(symbol.DeclaringFile!.Path.Value!),
-				Range = ConversionHelper.FromTo(span),
-			}));
-			return locations;
-		}
-
-		return null;
-	}
-
-	public LocationOrLocationLinks? GetDeclarationRef(TextDocumentIdentifier textDocument, Position position)
-	{
-		var sourceFile = GetFile(textDocument);
-		if (sourceFile == null)
-			return null;
-		var project = Workspace.GetFileProject(sourceFile.Path);
-		var reasoner = project.GetReasoner(sourceFile);
-		var linePosition = ConversionHelper.FromTo(position);
-		var node = GetTouchingNodeAt(sourceFile, linePosition);
-		if (node == null)
-			return null;
-		if (node is NameDefNode nameDef && nameDef.Parent is FnSigNode fnSig)
-		{
-			node = fnSig;
-		}
-		var symbol = reasoner.GetDeclaredSymbol(node) ?? reasoner.LookupSymbol(node);
-		symbol = project.LookupDeclaration(symbol);
-		if (symbol != null)
-		{
-			var span = symbol.DeclaringNode?.GetMainIdentifierToken()?.Span ?? symbol.DeclaringNode?.Span ?? new();
-			var locations = new LocationOrLocationLinks(new LocationOrLocationLink(new Location
-			{
-				Uri = DocumentUri.FromFileSystemPath(symbol.DeclaringFile!.Path.Value!),
-				Range = ConversionHelper.FromTo(span),
-			}));
-			return locations;
-		}
-
-		return null;
-	}
-
 	internal LocationOrLocationLinks? GetImplementationRef(TextDocumentIdentifier textDocument, Position position)
 	{
 		var sourceFile = GetFile(textDocument);
@@ -184,15 +186,7 @@ public class SurabSolver(
 			}
 			if (result != null)
 			{
-				var locations = new LocationOrLocationLinks(result.Select(x =>
-				{
-					return new LocationOrLocationLink(new Location
-					{
-						Uri = DocumentUri.FromFileSystemPath(x.DeclaringFile!.Path.Value!),
-						Range = ConversionHelper.FromTo(x.SelectionSpan),
-					});
-				}));
-				return locations;
+				return GetLocation(result);
 			}
 		}
 		return null;
@@ -204,16 +198,7 @@ public class SurabSolver(
 		if (symbol == null)
 			return null;
 		var references = Workspace.LookupReferences(symbol);
-#pragma warning disable IDE0306 // Simplify collection initialization
-		return new LocationContainer(references.Select(x =>
-		{
-			return new Location
-			{
-				Uri = DocumentUri.FromFileSystemPath(x.Tree.File.Path.Value!),
-				Range = ConversionHelper.FromTo(x.Span),
-			};
-		}));
-#pragma warning restore IDE0306 // Simplify collection initialization
+		return GetLocation(references);
 	}
 
 	private Symbol? GetTouchingSymbol(TextDocumentIdentifier textDocument, Position position)
@@ -243,6 +228,42 @@ public class SurabSolver(
 			return thisSymbol.Type;
 		}
 
-		return reasoner.LookupSymbol(node);
+		return reasoner.GetDeclaredSymbol(node) ?? reasoner.LookupSymbol(node);
+	}
+
+	private LocationOrLocationLinks? GetLocation(params IEnumerable<Symbol>? symbols)
+	{
+		if (symbols == null)
+			return null;
+
+#pragma warning disable IDE0306 // Simplify collection initialization
+		return new LocationOrLocationLinks(symbols.Select(symbol =>
+		{
+			//var span = symbol.DeclaringNode?.GetMainIdentifierToken()?.Span ?? symbol.DeclaringNode?.Span ?? new();
+			var span = symbol.SelectionSpan;
+			return new LocationOrLocationLink(new Location
+			{
+				Uri = DocumentUri.FromFileSystemPath(symbol.DeclaringFile!.Path.Value!),
+				Range = ConversionHelper.FromTo(span),
+			});
+		}));
+#pragma warning restore IDE0306 // Simplify collection initialization
+	}
+
+	private LocationContainer? GetLocation(params IEnumerable<SyntaxNode>? nodes)
+	{
+		if (nodes == null)
+			return null;
+
+#pragma warning disable IDE0306 // Simplify collection initialization
+		return new LocationContainer(nodes.Select(x =>
+		{
+			return new Location
+			{
+				Uri = DocumentUri.FromFileSystemPath(x.Tree.File.Path.Value!),
+				Range = ConversionHelper.FromTo(x.Span),
+			};
+		}));
+#pragma warning restore IDE0306 // Simplify collection initialization
 	}
 }

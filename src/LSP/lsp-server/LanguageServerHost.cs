@@ -74,8 +74,10 @@ public class LanguageServerHost
 			.WithHandler<TextDocumentSyncHandler>()
 			.WithHandler<DidChangeWatchedFilesHandler>()
 			.WithHandler<SemanticTokensFullHandler>()
-			.WithHandler<DefinitionHandler>()
+
 			.WithHandler<DeclarationHandler>()
+			.WithHandler<DefinitionHandler>()
+			.WithHandler<TypeDefinitionHandler>()
 			.WithHandler<ImplementationHandler>()
 			.WithHandler<ReferencesHandler>()
 			.WithHandler<HoverHandler>()
