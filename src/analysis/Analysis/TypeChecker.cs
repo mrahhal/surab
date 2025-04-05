@@ -10,6 +10,8 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 	private readonly Reasoner _reasoner = reasoner;
 	private readonly DiagBag _diags = new();
 
+	private SurabProject Project => _reasoner.Project;
+
 	public static DiagBag Analyze(Reasoner reasoner)
 	{
 		// TODO: Obj pool
@@ -599,6 +601,10 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 			.Select(x => (Item: x, Symbol: _reasoner.LookupSymbol(x)!))
 			.Where(x => x.Symbol != null)
 			.ToList();
+		foreach (var setSymbol in setSymbols)
+		{
+			Project.StoreSymbolUsage(setSymbol.Symbol, setSymbol.Item);
+		}
 		var setSymbolsMap = setSymbols.ToDictionary(x => x.Symbol!, x => x.Item);
 		var creationSymbols = namedTypeSymbol.CreationMemberSymbols.Select(x => x.Symbol).ToList();
 		var requiredSymbols = namedTypeSymbol.CreationMemberSymbols.Where(x => !x.IsOptional && !x.IsConflicting).Select(x => x.Symbol);
@@ -742,6 +748,16 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 				_diags.Add(attr.Node.Span, DiagLevel.Error, $"Invalid attribute.");
 			}
 		}
+	}
+
+	public override void VisitName(NameNode node)
+	{
+		var symbol = _reasoner.LookupSymbol(node);
+		if (symbol != null)
+		{
+			Project.StoreSymbolUsage(symbol, node);
+		}
+		base.VisitName(node);
 	}
 
 	// TODO: Things to consider adding here.

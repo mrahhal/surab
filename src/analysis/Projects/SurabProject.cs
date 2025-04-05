@@ -19,6 +19,8 @@ public class SurabProject
 	private ModuleSymbol _rootModule = null!;
 	private bool _dirty = true;
 	private Task? _fullAnalysisTask;
+	private readonly ConcurrentDictionary<Symbol, List<SyntaxNode>> _symbolToUsagesMap = new(); // filled when type checking during full analysis
+	private IReadOnlyList<FileDiags>? _projectDiags = null;
 
 	private SurabProject(
 		SurabWorkspace workspace,
@@ -241,16 +243,57 @@ public class SurabProject
 		return null;
 	}
 
-	internal IEnumerable<FileDiags> GetProjectDiags()
+	/// <summary>
+	/// Gets the project diags.
+	/// Only available after full analysis.
+	/// </summary>
+	public IEnumerable<FileDiags> GetProjectDiags()
 	{
-		foreach (var file in VFS.EnumerateCodeFiles())
+		if (_projectDiags != null)
+			return _projectDiags;
+
+		// Thread safe, doesn't matter much if we execute this more than once.
+		return _projectDiags = [.. VFS.EnumerateCodeFiles().Select(file =>
 		{
 			var fileDiags = GetCodeFileState(file).FileDiags;
-			if (fileDiags != null)
-			{
-				yield return fileDiags;
-			}
+			Debug.Assert(fileDiags != null);
+			return fileDiags;
+		})];
+	}
+
+	/// <summary>
+	/// Gets usages of the given symbol in the project.
+	/// Only availabe after full analysis.
+	/// </summary>
+	public IReadOnlyList<SyntaxNode> GetUsagesOfSymbolInProject(Symbol symbol)
+	{
+		if (_symbolToUsagesMap.TryGetValue(symbol, out var usages))
+		{
+			return usages;
 		}
+		return [];
+	}
+
+	// So far, only nodes that are associated with a symbol usage:
+	// - NameNode
+	// - ObjectInitializerItemNode
+	// This should be reflected in the type checker.
+	internal void StoreSymbolUsage(Symbol symbol, SyntaxNode usage)
+	{
+		// Always store the original def symbol. Never store a closed generic.
+		symbol = symbol.OriginalDef;
+		_symbolToUsagesMap.AddOrUpdate(symbol, s =>
+		{
+			return [usage];
+		}, (s, usages) =>
+		{
+			// REVIEW: Is this lock needed?
+			lock (usages)
+			{
+				usages.Add(usage);
+			}
+			return usages;
+		});
 	}
 
 	private (SyntaxTree, Reasoner) CreateNewTreeAndReasoner(ProjectFile file)
@@ -478,6 +521,8 @@ public class SurabProject
 
 		// Clear cache
 		_fullAnalysisTask = null;
+		_symbolToUsagesMap.Clear();
+		_projectDiags = null;
 		if (IsStdProject)
 		{
 			Workspace.ResetKnownTypeSymbols();
