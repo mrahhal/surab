@@ -68,6 +68,7 @@ public class Reasoner
 		{
 			DeclStmtNode declStmt => TryGetDeclaredSymbol(declStmt.Decl, out symbol),
 			FnSigNode sig when sig.Parent != null => TryGetDeclaredSymbol(sig.Parent, out symbol),
+			NameDefNode nameDef when nameDef.Parent != null => TryGetDeclaredSymbol(nameDef.Parent, out symbol),
 			_ => _nodeToSymbolMap.TryGetValue(node, out symbol),
 		};
 	}
