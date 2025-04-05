@@ -12,6 +12,7 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 
 	public static DiagBag Analyze(Reasoner reasoner)
 	{
+		// TODO: Obj pool
 		var analyzer = new TypeChecker(reasoner);
 		analyzer.Analyze();
 		return analyzer._diags;

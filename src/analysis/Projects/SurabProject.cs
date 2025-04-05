@@ -13,9 +13,12 @@ public class SurabProject
 	private readonly Dictionary<ProjectFile, CodeFileState> _codeFileToStateMap = [];
 
 	private readonly List<SurabProject> _projectDependencies = [];
+	private readonly List<SurabProject> _projectDependents = [];
 	private readonly List<VFSChange> _vfsChanges = [];
 
 	private ModuleSymbol _rootModule = null!;
+	private bool _dirty = true;
+	private Task? _fullAnalysisTask;
 
 	private SurabProject(
 		SurabWorkspace workspace,
@@ -34,6 +37,8 @@ public class SurabProject
 	// TODO: Transitive?
 
 	public IReadOnlyList<SurabProject> ProjectDependencies => _projectDependencies;
+
+	public IReadOnlyList<SurabProject> ProjectDependents => _projectDependents;
 
 	public VFS VFS { get; }
 
@@ -60,7 +65,7 @@ public class SurabProject
 	private ModuleSymbol CreateModule(ProjectFolder folder, string? name = null)
 	{
 		var moduleName = name ?? folder.Name;
-		var module = new SrcModuleSymbol(moduleName, [folder], this);
+		var module = new SrcModuleSymbol(moduleName, this, [folder]);
 
 		foreach (var subFolder in folder.SubFolders)
 		{
@@ -84,13 +89,16 @@ public class SurabProject
 
 	/// <summary>
 	/// Gets the <see cref="Reasoner"/> for a given <see cref="SourceFile"/>.
+	/// Ensures the reasoner is built.
 	/// </summary>
 	/// <remarks>
 	/// This method is a read operation.
 	/// </remarks>
 	public Reasoner GetReasoner(ProjectFile file)
 	{
-		return GetCodeFileState(file).Reasoner;
+		var reasoner = GetCodeFileState(file).Reasoner;
+		reasoner.EnsureBuild();
+		return reasoner;
 	}
 
 	public IEnumerable<SurabProject> GetInvolvedProjects() => [.. ProjectDependencies, this];
@@ -139,7 +147,7 @@ public class SurabProject
 	{
 		foreach (var sourceFile in VFS.EnumerateCodeFiles())
 		{
-			yield return GetCodeFileState(sourceFile).Reasoner;
+			yield return GetReasoner(sourceFile);
 		}
 	}
 
@@ -245,12 +253,31 @@ public class SurabProject
 		}
 	}
 
-	internal (SyntaxTree, Reasoner) CreateNewTreeAndReasoner(ProjectFile file)
+	private (SyntaxTree, Reasoner) CreateNewTreeAndReasoner(ProjectFile file)
 	{
 		var module = ResolveModule(file);
 		var tree = Parser.ParseFile(file);
-		var reasoner = Reasoner.Create(this, module, tree);
+		var reasoner = new Reasoner(this, module, tree);
 		return (tree, reasoner);
+	}
+
+	private void UpdateTreeAndReasoner(ProjectFile file)
+	{
+		var module = ResolveModule(file);
+		var tree = Parser.ParseFile(file);
+
+		if (!_codeFileToStateMap.TryGetValue(file, out var state))
+		{
+			// TODO: Will this ever happen? Log.
+			Debug.Assert(false);
+			return;
+		}
+
+		// TODO: SymbolInterner.CleanReasoner(state.Reasoner)
+
+		state.Version = Workspace.Version;
+		state.Tree = tree;
+		state.Reasoner.Reset(module, tree);
 	}
 
 	/// <summary>
@@ -259,21 +286,35 @@ public class SurabProject
 	/// </summary>
 	public Task EnsureAnalyzedAsync(CancellationToken ct = default)
 	{
-		return Task.Run(() =>
+		if (!_dirty)
+			return Task.CompletedTask;
+
+		if (_fullAnalysisTask != null)
+			return _fullAnalysisTask;
+
+		lock (this)
 		{
-			foreach (var file in VFS.EnumerateCodeFiles())
+			if (_fullAnalysisTask != null)
+				return _fullAnalysisTask;
+
+			_fullAnalysisTask = Task.Run(() =>
 			{
+				foreach (var file in VFS.EnumerateCodeFiles())
+				{
+					if (ct.IsCancellationRequested)
+						return;
+					AnalyzeSourceFile(file, ct);
+				}
+
 				if (ct.IsCancellationRequested)
 					return;
-				AnalyzeSourceFile(file, ct);
-			}
 
-			if (ct.IsCancellationRequested)
-				return;
+				// REVIEW: Should this be here inside the lock?
+				RaiseFullDiagsReady();
+			}, ct);
+		}
 
-			// REVIEW: Should this be here inside the lock?
-			RaiseFullDiagsReady();
-		}, ct);
+		return _fullAnalysisTask;
 	}
 
 	private void RaiseFullDiagsReady()
@@ -287,35 +328,17 @@ public class SurabProject
 
 	private void AnalyzeSourceFile(ProjectFile file, CancellationToken ct)
 	{
-		// Later?:
-		// reasoner.GetDependentSourceFiles() => each => EnsureAnalyzeSourceFile()
-
 		var state = GetCodeFileState(file);
 		var reasoner = state.Reasoner;
-		var diags = reasoner.GetAllDiags().ToImmutableArray();
+		reasoner.EnsureBuild();
+		var diags = reasoner.EnsureTypeCheckAndGetAllDiags().ToImmutableArray();
 		var highestLevel = diags.Any() ? (DiagLevel?)diags.Select(x => (int)x.Level).Max() : null;
 		state.FileDiags = new FileDiags(file.Path, diags, highestLevel);
 	}
 
-	private void UpdateTreeAndReasoner(ProjectFile file)
-	{
-		var (tree, reasoner) = CreateNewTreeAndReasoner(file);
-
-		if (!_codeFileToStateMap.TryGetValue(file, out var state))
-		{
-			// TODO: LogWarning
-			return;
-		}
-
-		// TODO: SymbolInterner.CleanReasoner(state.Reasoner)
-
-		state.Tree = tree;
-		state.Reasoner = reasoner;
-	}
-
 	internal void Initialize()
 	{
-		PrepProjectDependencies();
+		PrepProjectDependenciesAndDependents();
 		InitializeProjectConfig();
 		CreateRootModule();
 
@@ -326,11 +349,16 @@ public class SurabProject
 		}
 	}
 
-	private void PrepProjectDependencies()
+	private void PrepProjectDependenciesAndDependents()
 	{
+		// TODO: This is temporary.
 		if (this != Workspace.StdProject)
 		{
 			_projectDependencies.Add(Workspace.StdProject);
+		}
+		else
+		{
+			_projectDependents.Add(this);
 		}
 	}
 
@@ -355,17 +383,32 @@ public class SurabProject
 
 	internal void RunWritingHook()
 	{
-		ResetAfterWrite();
+		// 1. Recreate modules if needed.
+
+		var addedOrRemovedAnyFiles = _vfsChanges.Any(x => x.AddedOrRemovedAnyFiles);
+		var updatedAnyFiles = _vfsChanges.Any(x => x.UpdatedAnyFiles);
+
+		if (addedOrRemovedAnyFiles)
+		{
+			// TODO: Optimize by only changing the affected part of the module hierarchy.
+			CreateRootModule();
+		}
+
+		if (!addedOrRemovedAnyFiles && !updatedAnyFiles)
+		{
+			return;
+		}
+
+		// 2. Process for tree/reasoner.
+
 		ProcessVFSChanges();
-	}
 
-	private void ResetAfterWrite()
-	{
-		// Reset cached/computed proj state that is stale on writes, e.g. modules
-		// According to _vfsChanges, do the required modules updates.
-
-		// Or, just go ahead for now and create and set the root module (containing all the modules hierarchy).
-		CreateRootModule();
+		RunForCurrentAndDependentProjects(static p =>
+		{
+			p.MarkAsDirtyAndClearCache();
+			p.ResetAllReasoners();
+			p.EagerlyBuildNeededReasoners();
+		});
 	}
 
 	private void ProcessVFSChanges()
@@ -387,6 +430,58 @@ public class SurabProject
 				_codeFileToStateMap.Remove(file);
 			}
 		}
+		_vfsChanges.Clear();
+	}
+
+	private void ResetAllReasoners()
+	{
+		foreach (var file in VFS.EnumerateCodeFiles())
+		{
+			var state = GetCodeFileState(file);
+			if (state.Version != Workspace.Version)
+			{
+				state.Version = Workspace.Version;
+				// TODO: No need to resolve module if no modules changed.
+				//var module = changedModules ? ResolveModule(file) : state.Reasoner.Module;
+				var module = ResolveModule(file);
+				state.Reasoner.Reset(module, state.Reasoner.Tree);
+			}
+		}
+	}
+
+	/// <summary>
+	/// Builds important reasoners eagerly without waiting for analysis (i.e. prelude module).
+	/// </summary>
+	private void EagerlyBuildNeededReasoners()
+	{
+		if (!IsStdProject)
+			return;
+		foreach (var preludeCodeFile in Workspace.PreludeModule.CodeFiles)
+		{
+			// Builds it
+			_ = GetReasoner(preludeCodeFile);
+		}
+	}
+
+	private void RunForCurrentAndDependentProjects(Action<SurabProject> action)
+	{
+		action(this);
+		foreach (var dependent in ProjectDependents)
+		{
+			action(dependent);
+		}
+	}
+
+	private void MarkAsDirtyAndClearCache()
+	{
+		_dirty = true;
+
+		// Clear cache
+		_fullAnalysisTask = null;
+		if (IsStdProject)
+		{
+			Workspace.ResetKnownTypeSymbols();
+		}
 	}
 
 	private void InitializeSourceFile(ProjectFile file)
@@ -397,8 +492,14 @@ public class SurabProject
 				{
 					var (tree, reasoner) = CreateNewTreeAndReasoner(file);
 
+					if (IsStdProject && reasoner.Module == Workspace.PreludeModule)
+					{
+						reasoner.EnsureBuild();
+					}
+
 					_codeFileToStateMap[file] = new CodeFileState
 					{
+						Version = Workspace.Version,
 						Tree = tree,
 						Reasoner = reasoner,
 					};
@@ -406,6 +507,7 @@ public class SurabProject
 				break;
 
 			case ProjectFileKind.ProjectConfig:
+				// TODO?
 				// Processed separately.
 				break;
 
@@ -425,6 +527,8 @@ public class SurabProject
 
 	public class CodeFileState
 	{
+		public required uint Version { get; set; }
+
 		public required SyntaxTree Tree { get; set; }
 
 		public required Reasoner Reasoner { get; set; }

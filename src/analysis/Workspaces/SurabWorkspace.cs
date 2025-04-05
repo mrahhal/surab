@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using Nito.AsyncEx;
 
 namespace Surab.Analysis;
@@ -24,6 +25,7 @@ public class SurabWorkspace
 	private readonly Dictionary<KnownTypeTag, TypeSymbol> _knownTypeTagToTypeSymbolMap = [];
 	// This cancellation token will fire when a new change is being requested and just before a write lock is taken.
 	private CancellationTokenSource _ctsEnteringWriteOperation = null!;
+	private uint _version = 1;
 
 	private SurabWorkspace(string workspacePath)
 	{
@@ -45,14 +47,16 @@ public class SurabWorkspace
 	public ModuleSymbol PreludeModule => _preludeModule!;
 
 	/// <summary>
-	/// Gets workspace projects plus out of workspace project dependencies if any (e.g. std).
+	/// Gets workspace projects and project dependencies outside the workspace if any (e.g. std, 3rd party).
 	/// </summary>
 	public IReadOnlyList<SurabProject> Projects => _projects!;
 
 	/// <summary>
-	/// Gets workspace projects. Will not include out of workspace project dependencies.
+	/// Gets workspace projects. Will not include project dependencies outside the workspace.
 	/// </summary>
 	public IReadOnlyList<SurabProject> WorkspaceProjects => _workspaceProjects!;
+
+	internal uint Version => _version;
 
 	public static SurabWorkspace Create(string workspacePath)
 	{
@@ -147,6 +151,8 @@ public class SurabWorkspace
 
 		using (_rwl.WriterLock())
 		{
+			_version++;
+
 			action();
 			RunWritingHooks();
 		}
@@ -191,6 +197,9 @@ public class SurabWorkspace
 		return null;
 	}
 
+	/// <summary>
+	/// Ensures all projects are analyzed. Takes a read lock.
+	/// </summary>
 	public async Task EnsureAnalyzedAsync(CancellationToken ct = default)
 	{
 		await LockForReadAsync(async () =>
@@ -227,6 +236,11 @@ public class SurabWorkspace
 	internal void AddKnownTypeSymbol(KnownTypeTag tag, TypeSymbol type)
 	{
 		_knownTypeTagToTypeSymbolMap.Add(tag, type);
+	}
+
+	internal void ResetKnownTypeSymbols()
+	{
+		_knownTypeTagToTypeSymbolMap.Clear();
 	}
 
 	/// <summary>

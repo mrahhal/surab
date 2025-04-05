@@ -155,6 +155,10 @@ public class VFSChange
 	public IEnumerable<ProjectFile> UpdatedFiles { get; init; } = [];
 
 	public IEnumerable<ProjectFile> RemovedFiles { get; init; } = [];
+
+	public bool AddedOrRemovedAnyFiles => AddedFiles.Any() || UpdatedFiles.Any();
+
+	public bool UpdatedAnyFiles => UpdatedFiles.Any();
 }
 
 /// <summary>
