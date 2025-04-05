@@ -1,5 +1,4 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -163,13 +162,13 @@ public class SurabSolver(
 			if (nameDef.Parent is TraitDeclNode traitDecl)
 			{
 				var traitType = reasoner.GetDeclaredSymbol(traitDecl);
-				result = project.LookupImplementations(traitType);
+				result = Workspace.LookupImplementations(traitType);
 			}
 			else if (nameDef.Parent is FnSigNode fnSig)
 			{
 				Debug.Assert(fnSig.Parent != null);
 				var fnSymbol = reasoner.GetDeclaredSymbol(fnSig.Parent);
-				result = project.LookupImplementations(fnSymbol);
+				result = Workspace.LookupImplementations(fnSymbol);
 			}
 			if (result != null)
 			{
@@ -185,5 +184,54 @@ public class SurabSolver(
 			}
 		}
 		return null;
+	}
+
+	internal LocationContainer? GetReferencesRef(TextDocumentIdentifier textDocument, Position position)
+	{
+		var symbol = GetTouchingSymbol(textDocument, position);
+		if (symbol == null)
+			return null;
+		var references = Workspace.LookupReferences(symbol);
+#pragma warning disable IDE0306 // Simplify collection initialization
+		return new LocationContainer(references.Select(x =>
+		{
+			return new Location
+			{
+				Uri = DocumentUri.FromFileSystemPath(x.Tree.File.Path.Value!),
+				Range = ConversionHelper.FromTo(x.Span),
+			};
+		}));
+#pragma warning restore IDE0306 // Simplify collection initialization
+	}
+
+	private Symbol? GetTouchingSymbol(TextDocumentIdentifier textDocument, Position position)
+	{
+		var sourceFile = GetFile(textDocument);
+		if (sourceFile == null)
+			return null;
+		var project = Workspace.GetFileProject(sourceFile.Path);
+		var reasoner = project.GetReasoner(sourceFile);
+		var linePosition = ConversionHelper.FromTo(position);
+		// TODO: Get touching node at.
+		var node = GetNodeAt(sourceFile, linePosition);
+		if (node == null)
+			return null;
+
+		if (node is NameDefNode nameDef && nameDef.Parent != null)
+		{
+			return reasoner.GetDeclaredSymbol(nameDef.Parent);
+		}
+
+		if (node is NameNode name)
+		{
+			return reasoner.LookupSymbol(name);
+		}
+
+		if (node is ThisExprNode && reasoner.LookupSymbol(node) is ThisSymbol thisSymbol)
+		{
+			return thisSymbol.Type;
+		}
+
+		return reasoner.LookupSymbol(node);
 	}
 }

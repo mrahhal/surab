@@ -77,6 +77,7 @@ public class LanguageServerHost
 			.WithHandler<DefinitionHandler>()
 			.WithHandler<DeclarationHandler>()
 			.WithHandler<ImplementationHandler>()
+			.WithHandler<ReferencesHandler>()
 			.WithHandler<HoverHandler>()
 			.WithHandler<DocumentSymbolHandler>()
 			.WithHandler<SignatureHelpHandler>()
