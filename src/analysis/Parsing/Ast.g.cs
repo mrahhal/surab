@@ -262,7 +262,7 @@ public partial class AliasDeclNode : DeclNode
 	}
 }
 
-public partial class AsNameNode : SyntaxNode
+public partial class AsNameNode : SyntaxNode, ISyntaxNodeHasMainNameDef
 {
 	public AsNameNode(SyntaxTree tree, SimpleToken asToken, NameDefNode name)
 		: base(tree, SyntaxNodeKind.AsName)
@@ -283,7 +283,7 @@ public partial class AsNameNode : SyntaxNode
 	}
 }
 
-public partial class StructDeclNode : DeclNode
+public partial class StructDeclNode : DeclNode, ISyntaxNodeHasMainNameDef
 {
 	public StructDeclNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken structToken, NameDefNode name, SimpleToken openBraceToken, DeclsListNode? declsList, SimpleToken closedBraceToken)
 		: base(tree, SyntaxNodeKind.StructDecl)
@@ -308,7 +308,7 @@ public partial class StructDeclNode : DeclNode
 	}
 }
 
-public partial class TraitDeclNode : DeclNode
+public partial class TraitDeclNode : DeclNode, ISyntaxNodeHasMainNameDef
 {
 	public TraitDeclNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken traitToken, NameDefNode name, SimpleToken openBraceToken, DeclsListNode? declsList, SimpleToken closedBraceToken)
 		: base(tree, SyntaxNodeKind.TraitDecl)
@@ -1318,7 +1318,7 @@ public partial class MissingTypeNode : TypeNode
 	}
 }
 
-public partial class FnSigNode : SyntaxNode
+public partial class FnSigNode : SyntaxNode, ISyntaxNodeHasMainNameDef
 {
 	public FnSigNode(SyntaxTree tree, NameDefNode name, ParamsListNode paramsList, TypeNode? returnType)
 		: base(tree, SyntaxNodeKind.FnSig)

@@ -736,6 +736,11 @@ public interface ISyntaxNodeHasMainIdentifier
 	IdentifierToken Identifier { get; }
 }
 
+public interface ISyntaxNodeHasMainNameDef
+{
+	NameDefNode Name { get; }
+}
+
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
 public abstract class SyntaxNode : SyntaxEntity
 {
@@ -1104,11 +1109,18 @@ public static class SyntaxNodeKindExtensions
 
 public static class SyntaxNodeExtensions
 {
+	public static SyntaxNode GetMainNameNodeOrSelf(this SyntaxNode node)
+	{
+		var mainIdentifierToken = node.GetMainIdentifierToken();
+		return mainIdentifierToken != null ? mainIdentifierToken.Parent : node;
+	}
+
 	public static IdentifierToken? GetMainIdentifierToken(this SyntaxNode? node)
 	{
 		return node switch
 		{
 			ISyntaxNodeHasMainIdentifier n => n.Identifier,
+			ISyntaxNodeHasMainNameDef n => n.Name.Identifier,
 			FnDeclNode n => n.Sig.Name.Identifier,
 			MethodDeclNode n => n.Sig.Name.Identifier,
 			_ => null,

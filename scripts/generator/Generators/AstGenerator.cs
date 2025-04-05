@@ -43,10 +43,12 @@ public class AstGenerator(
 			}
 
 			var nodeHasMainIdentifier = node.Members.Where(x => x.Type == "IdentifierToken").Count() == 1;
+			var nodeHasMainNameDef = node.Members.Where(x => x.Type == "NameDefNode").Count() == 1;
 			var hasMainIdentifierInterface = nodeHasMainIdentifier ? ", ISyntaxNodeHasMainIdentifier" : string.Empty;
+			var hasMainNameDefInterface = nodeHasMainNameDef ? ", ISyntaxNodeHasMainNameDef" : string.Empty;
 
 			_sb.Append($$"""
-				public partial class {{node.TypeName}} : {{node.Base}}{{hasMainIdentifierInterface}}
+				public partial class {{node.TypeName}} : {{node.Base}}{{hasMainIdentifierInterface}}{{hasMainNameDefInterface}}
 				{
 					public {{node.TypeName}}({{OCtorParams(node)}})
 						: base(tree, SyntaxNodeKind.{{node.Name}})
