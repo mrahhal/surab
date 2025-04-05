@@ -1,4 +1,5 @@
-﻿using System.Collections.Immutable;
+﻿using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.Diagnostics;
 
 namespace Surab.Analysis;
@@ -9,7 +10,7 @@ namespace Surab.Analysis;
 /// </summary>
 public class SurabProject
 {
-	private readonly List<Action<IEnumerable<FileDiags>>> _fullDiagsReadyActions = [];
+	private readonly List<Action<SurabProject>> _fullAnalysisDoneActions = [];
 	private readonly Dictionary<ProjectFile, CodeFileState> _codeFileToStateMap = [];
 
 	private readonly List<SurabProject> _projectDependencies = [];
@@ -59,9 +60,9 @@ public class SurabProject
 		return new SurabProject(workspace, vfs);
 	}
 
-	public void SubscribeToFullDiagsReady(Action<IEnumerable<FileDiags>> action)
+	public void SubscribeToFullAnalysisDone(Action<SurabProject> action)
 	{
-		_fullDiagsReadyActions.Add(action);
+		_fullAnalysisDoneActions.Add(action);
 	}
 
 	private ModuleSymbol CreateModule(ProjectFolder folder, string? name = null)
@@ -172,48 +173,6 @@ public class SurabProject
 
 		return null;
 	}
-
-	/// <summary>
-	/// Looks up the implementation symbols.
-	/// Trait decl -> all types that implement the trait.
-	/// Trait member (e.g. method) -> all concrete implementations (definitions) of the member.
-	/// </summary>
-	public IEnumerable<Symbol> LookupImplementations(Symbol? symbol)
-	{
-		if (symbol == null) return [];
-
-		// TODO
-
-		if (SymbolFacts.IsTraitType(symbol))
-		{
-			return GetAllReasoners()
-				.SelectMany(r => r.EnumerateAllSymbols().OfType<NamedTypeSymbol>().Where(type =>
-				{
-					return type.Members.OfType<ImplSymbol>().Any(x => x.TraitType.OriginalDef == symbol.OriginalDef);
-				}));
-		}
-		else if (SymbolFacts.IsMethod(symbol) && SymbolFacts.IsTraitType(symbol.Parent))
-		{
-			var traitType = (NamedTypeSymbol)symbol.Parent;
-			return GetAllReasoners()
-				.SelectMany(r => r.EnumerateAllSymbols().OfType<ImplSymbol>().SelectMany(implSymbol =>
-				{
-					if (implSymbol.TraitType.OriginalDef == traitType.OriginalDef)
-					{
-						var implMembers = implSymbol.Members.Where(x => x.MatchingTraitSymbol?.OriginalDef == symbol.OriginalDef);
-						return implMembers.Select(x => x.ImplSymbol);
-					}
-					return [];
-				}));
-		}
-
-		return [];
-	}
-
-	// Needs a better strategy to caching symbols we go over in type checker.
-	//public IEnumerable<SyntaxNode> LookupAllReferences(Symbol? symbol)
-	//{
-	//}
 
 	internal ModuleSymbol ResolveModule(ProjectFile file)
 	{
@@ -326,6 +285,7 @@ public class SurabProject
 	/// <summary>
 	/// Analyze files that aren't analyzed.
 	/// Returns a task that completes when all files are fully analyzed.
+	/// Note: You can also call this method to wait for full analysis to complete if you depend on that.
 	/// </summary>
 	public Task EnsureAnalyzedAsync(CancellationToken ct = default)
 	{
@@ -352,20 +312,18 @@ public class SurabProject
 				if (ct.IsCancellationRequested)
 					return;
 
-				// REVIEW: Should this be here inside the lock?
-				RaiseFullDiagsReady();
+				RaiseFullAnalysisDone();
 			}, ct);
 		}
 
 		return _fullAnalysisTask;
 	}
 
-	private void RaiseFullDiagsReady()
+	private void RaiseFullAnalysisDone()
 	{
-		var diags = GetProjectDiags();
-		foreach (var action in _fullDiagsReadyActions)
+		foreach (var action in _fullAnalysisDoneActions)
 		{
-			action(diags);
+			action(this);
 		}
 	}
 
