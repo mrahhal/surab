@@ -80,6 +80,7 @@ public class LanguageServerHost
 			.WithHandler<TypeDefinitionHandler>()
 			.WithHandler<ImplementationHandler>()
 			.WithHandler<ReferencesHandler>()
+			.WithHandler<DocumentHighlightHandler>()
 			.WithHandler<HoverHandler>()
 			.WithHandler<DocumentSymbolHandler>()
 			.WithHandler<SignatureHelpHandler>()
