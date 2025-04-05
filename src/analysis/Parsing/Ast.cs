@@ -37,6 +37,14 @@ public class SyntaxTree
 	{
 		return Root.GetNodeAt(filePosition);
 	}
+
+	/// <summary>
+	/// Gets the token at the given position.
+	/// </summary>
+	public SyntaxToken? GetTokenAt(LinePosition linePosition)
+	{
+		return Root.GetTokenAt(linePosition);
+	}
 }
 
 public abstract class SyntaxEntity : ISyntaxTreeVisitable
@@ -923,6 +931,15 @@ public abstract class SyntaxNode : SyntaxEntity
 	/// </summary>
 	public SyntaxToken? GetTokenAt(LinePosition linePosition)
 	{
+		var deepestNode = GetNodeAt(linePosition);
+		return deepestNode?.GetDirectTokenAt(linePosition);
+	}
+
+	/// <summary>
+	/// Gets the direct (this node's children) token at the position without taking into account trivia.
+	/// </summary>
+	public SyntaxToken? GetDirectTokenAt(LinePosition linePosition)
+	{
 		foreach (var token in ChildTokens)
 		{
 			if (token.Span.Line.Contains(linePosition))
@@ -938,9 +955,9 @@ public abstract class SyntaxNode : SyntaxEntity
 	}
 
 	/// <summary>
-	/// Gets the token at the position without taking into account trivia.
+	/// Gets the direct (this node's children) token at the position without taking into account trivia.
 	/// </summary>
-	public SyntaxToken? GetTokenAt(int filePosition)
+	public SyntaxToken? GetDirectTokenAt(int filePosition)
 	{
 		foreach (var token in ChildTokens)
 		{

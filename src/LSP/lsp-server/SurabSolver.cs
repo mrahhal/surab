@@ -27,11 +27,26 @@ public class SurabSolver(
 		return Host.Workspace.GetFile(uri.GetFileSystemPath());
 	}
 
-	public SyntaxNode? GetNodeAt(ProjectFile file, LinePosition linePosition)
+	// This prefers a name like node if the caret is at the boundary between a name and non name node.
+	// e.g. foo|(args) => will return the name node for foo.
+	public SyntaxNode? GetTouchingNodeAt(ProjectFile file, LinePosition linePosition)
 	{
 		var project = Workspace.GetFileProject(file.Path);
 		var tree = project.GetSyntaxTree(file);
-		return tree.GetNodeAt(linePosition);
+		// TODO: This can be optimized by doing this in a single pass somehow.
+		var node = tree.GetNodeAt(linePosition);
+		if (linePosition.Char != 0)
+		{
+			// Check one char before the position.
+			var token = tree.GetTokenAt(new(linePosition.Line, linePosition.Char - 1));
+			if (token != null && token.Kind is SyntaxTokenKind.Identifier)
+			{
+				// Prefer the parent node of this identifier token.
+				return token.Parent;
+			}
+		}
+
+		return node;
 	}
 
 	public (Symbol? symbol, TypeSymbol? type) GetSymbolAndTypeOfPosition(TextDocumentIdentifier textDocument, Position position)
@@ -42,12 +57,12 @@ public class SurabSolver(
 		var project = Workspace.GetFileProject(sourceFile.Path);
 		var reasoner = project.GetReasoner(sourceFile);
 		var linePosition = ConversionHelper.FromTo(position);
-		var node = GetNodeAt(sourceFile, linePosition);
+		var node = GetTouchingNodeAt(sourceFile, linePosition);
 		if (node == null)
 			return (null, null);
-		var token = node.GetTokenAt(linePosition);
-		if (token == null)
-			return (null, null);
+		//var token = node.GetTokenAt(linePosition);
+		//if (token == null)
+		//	return (null, null);
 		var type = default(TypeSymbol?);
 		var symbol = reasoner.GetDeclaredSymbol(node) ?? reasoner.LookupSymbol(node);
 		if (symbol is TypeSymbol typeSymbol)
@@ -82,10 +97,7 @@ public class SurabSolver(
 		var project = Workspace.GetFileProject(sourceFile.Path);
 		var reasoner = project.GetReasoner(sourceFile);
 		var linePosition = ConversionHelper.FromTo(position);
-		// TODO: Might need another method just for Go to definition like queries becase if the caret
-		// is on the last index of the identifier it won't be treated as a "contain", but here
-		// we actually want to treat it as a hit.
-		var node = GetNodeAt(sourceFile, linePosition);
+		var node = GetTouchingNodeAt(sourceFile, linePosition);
 		if (node == null)
 			return null;
 		//var token = node.GetTokenAt(linePosition);
@@ -122,7 +134,7 @@ public class SurabSolver(
 		var project = Workspace.GetFileProject(sourceFile.Path);
 		var reasoner = project.GetReasoner(sourceFile);
 		var linePosition = ConversionHelper.FromTo(position);
-		var node = GetNodeAt(sourceFile, linePosition);
+		var node = GetTouchingNodeAt(sourceFile, linePosition);
 		if (node == null)
 			return null;
 		if (node is NameDefNode nameDef && nameDef.Parent is FnSigNode fnSig)
@@ -153,7 +165,7 @@ public class SurabSolver(
 		var project = Workspace.GetFileProject(sourceFile.Path);
 		var reasoner = project.GetReasoner(sourceFile);
 		var linePosition = ConversionHelper.FromTo(position);
-		var node = GetNodeAt(sourceFile, linePosition);
+		var node = GetTouchingNodeAt(sourceFile, linePosition);
 		if (node == null)
 			return null;
 		if (node is NameDefNode nameDef)
@@ -212,8 +224,7 @@ public class SurabSolver(
 		var project = Workspace.GetFileProject(sourceFile.Path);
 		var reasoner = project.GetReasoner(sourceFile);
 		var linePosition = ConversionHelper.FromTo(position);
-		// TODO: Get touching node at.
-		var node = GetNodeAt(sourceFile, linePosition);
+		var node = GetTouchingNodeAt(sourceFile, linePosition);
 		if (node == null)
 			return null;
 
