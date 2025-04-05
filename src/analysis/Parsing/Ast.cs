@@ -1144,6 +1144,21 @@ public static class SyntaxNodeExtensions
 		};
 	}
 
+	public static string? GetFriendlyDeclTag(this SyntaxNode? node)
+	{
+		return node?.Kind switch
+		{
+			SyntaxNodeKind.StructDecl => "struct",
+			SyntaxNodeKind.TraitDecl => "trait",
+			SyntaxNodeKind.AliasDecl => "alias",
+			SyntaxNodeKind.VarDecl => "var",
+			SyntaxNodeKind.FnDecl => "fn",
+			SyntaxNodeKind.ConstDecl => "const",
+			SyntaxNodeKind.ImplDecl => "impl",
+			_ => null,
+		};
+	}
+
 	/// <summary>
 	/// Climbs up and returns the first logical enclosure node encountered.
 	/// </summary>

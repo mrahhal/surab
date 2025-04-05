@@ -83,6 +83,7 @@ public class LanguageServerHost
 			.WithHandler<DocumentHighlightHandler>()
 			.WithHandler<HoverHandler>()
 			.WithHandler<CodeLensHandler>()
+			.WithHandler<FoldingRangeHandler>()
 			.WithHandler<DocumentSymbolHandler>()
 			.WithHandler<SignatureHelpHandler>()
 
