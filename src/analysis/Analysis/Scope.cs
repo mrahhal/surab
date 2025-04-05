@@ -199,7 +199,7 @@ internal sealed class FileScope(FileNode file, Reasoner fileReasoner, SurabProje
 
 	private Symbol? LookupInCurrentModule(string identifier)
 	{
-		var module = _fileReasoner.ResolveCurrentModule();
+		var module = _fileReasoner.Module;
 		// All exported symbols of current module are exposed to files inside the module.
 		return module.GetExportedSymbol(identifier);
 	}

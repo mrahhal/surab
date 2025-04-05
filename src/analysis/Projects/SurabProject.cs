@@ -1,4 +1,5 @@
-﻿using System.Collections.Immutable;
+﻿using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.Diagnostics;
 
 namespace Surab.Analysis;
@@ -9,13 +10,18 @@ namespace Surab.Analysis;
 /// </summary>
 public class SurabProject
 {
-	private readonly List<Action<IEnumerable<FileDiags>>> _fullDiagsReadyActions = [];
+	private readonly List<Action<SurabProject>> _fullAnalysisDoneActions = [];
 	private readonly Dictionary<ProjectFile, CodeFileState> _codeFileToStateMap = [];
 
 	private readonly List<SurabProject> _projectDependencies = [];
+	private readonly List<SurabProject> _projectDependents = [];
 	private readonly List<VFSChange> _vfsChanges = [];
 
 	private ModuleSymbol _rootModule = null!;
+	private bool _dirty = true;
+	private Task? _fullAnalysisTask;
+	private readonly ConcurrentDictionary<Symbol, List<SyntaxNode>> _symbolToUsagesMap = new(); // filled when type checking during full analysis
+	private IReadOnlyList<FileDiags>? _projectDiags = null;
 
 	private SurabProject(
 		SurabWorkspace workspace,
@@ -35,6 +41,8 @@ public class SurabProject
 
 	public IReadOnlyList<SurabProject> ProjectDependencies => _projectDependencies;
 
+	public IReadOnlyList<SurabProject> ProjectDependents => _projectDependents;
+
 	public VFS VFS { get; }
 
 	public NormalizedPath ProjectPath => VFS.ProjectPath;
@@ -52,15 +60,15 @@ public class SurabProject
 		return new SurabProject(workspace, vfs);
 	}
 
-	public void SubscribeToFullDiagsReady(Action<IEnumerable<FileDiags>> action)
+	public void SubscribeToFullAnalysisDone(Action<SurabProject> action)
 	{
-		_fullDiagsReadyActions.Add(action);
+		_fullAnalysisDoneActions.Add(action);
 	}
 
 	private ModuleSymbol CreateModule(ProjectFolder folder, string? name = null)
 	{
 		var moduleName = name ?? folder.Name;
-		var module = new SrcModuleSymbol(moduleName, [folder], this);
+		var module = new SrcModuleSymbol(moduleName, this, [folder]);
 
 		foreach (var subFolder in folder.SubFolders)
 		{
@@ -84,13 +92,16 @@ public class SurabProject
 
 	/// <summary>
 	/// Gets the <see cref="Reasoner"/> for a given <see cref="SourceFile"/>.
+	/// Ensures the reasoner is built.
 	/// </summary>
 	/// <remarks>
 	/// This method is a read operation.
 	/// </remarks>
 	public Reasoner GetReasoner(ProjectFile file)
 	{
-		return GetCodeFileState(file).Reasoner;
+		var reasoner = GetCodeFileState(file).Reasoner;
+		reasoner.EnsureBuild();
+		return reasoner;
 	}
 
 	public IEnumerable<SurabProject> GetInvolvedProjects() => [.. ProjectDependencies, this];
@@ -139,7 +150,7 @@ public class SurabProject
 	{
 		foreach (var sourceFile in VFS.EnumerateCodeFiles())
 		{
-			yield return GetCodeFileState(sourceFile).Reasoner;
+			yield return GetReasoner(sourceFile);
 		}
 	}
 
@@ -162,48 +173,6 @@ public class SurabProject
 
 		return null;
 	}
-
-	/// <summary>
-	/// Looks up the implementation symbols.
-	/// Trait decl -> all types that implement the trait.
-	/// Trait member (e.g. method) -> all concrete implementations (definitions) of the member.
-	/// </summary>
-	public IEnumerable<Symbol> LookupImplementations(Symbol? symbol)
-	{
-		if (symbol == null) return [];
-
-		// TODO
-
-		if (SymbolFacts.IsTraitType(symbol))
-		{
-			return GetAllReasoners()
-				.SelectMany(r => r.EnumerateAllSymbols().OfType<NamedTypeSymbol>().Where(type =>
-				{
-					return type.Members.OfType<ImplSymbol>().Any(x => x.TraitType.OriginalDef == symbol.OriginalDef);
-				}));
-		}
-		else if (SymbolFacts.IsMethod(symbol) && SymbolFacts.IsTraitType(symbol.Parent))
-		{
-			var traitType = (NamedTypeSymbol)symbol.Parent;
-			return GetAllReasoners()
-				.SelectMany(r => r.EnumerateAllSymbols().OfType<ImplSymbol>().SelectMany(implSymbol =>
-				{
-					if (implSymbol.TraitType.OriginalDef == traitType.OriginalDef)
-					{
-						var implMembers = implSymbol.Members.Where(x => x.MatchingTraitSymbol?.OriginalDef == symbol.OriginalDef);
-						return implMembers.Select(x => x.ImplSymbol);
-					}
-					return [];
-				}));
-		}
-
-		return [];
-	}
-
-	// Needs a better strategy to caching symbols we go over in type checker.
-	//public IEnumerable<SyntaxNode> LookupAllReferences(Symbol? symbol)
-	//{
-	//}
 
 	internal ModuleSymbol ResolveModule(ProjectFile file)
 	{
@@ -233,89 +202,144 @@ public class SurabProject
 		return null;
 	}
 
-	internal IEnumerable<FileDiags> GetProjectDiags()
+	/// <summary>
+	/// Gets the project diags.
+	/// Only available after full analysis.
+	/// </summary>
+	public IEnumerable<FileDiags> GetProjectDiags()
 	{
-		foreach (var file in VFS.EnumerateCodeFiles())
+		if (_projectDiags != null)
+			return _projectDiags;
+
+		// Thread safe, doesn't matter much if we execute this more than once.
+		return _projectDiags = [.. VFS.EnumerateCodeFiles().Select(file =>
 		{
 			var fileDiags = GetCodeFileState(file).FileDiags;
-			if (fileDiags != null)
-			{
-				yield return fileDiags;
-			}
-		}
-	}
-
-	internal (SyntaxTree, Reasoner) CreateNewTreeAndReasoner(ProjectFile file)
-	{
-		var module = ResolveModule(file);
-		var tree = Parser.ParseFile(file);
-		var reasoner = Reasoner.Create(this, module, tree);
-		return (tree, reasoner);
+			Debug.Assert(fileDiags != null);
+			return fileDiags;
+		})];
 	}
 
 	/// <summary>
-	/// Analyze files that aren't analyzed.
-	/// Returns a task that completes when all files are fully analyzed.
+	/// Gets usages of the given symbol in the project.
+	/// Only availabe after full analysis.
 	/// </summary>
-	public Task EnsureAnalyzedAsync(CancellationToken ct = default)
+	public IReadOnlyList<SyntaxNode> GetUsagesOfSymbolInProject(Symbol symbol)
 	{
-		return Task.Run(() =>
+		if (_symbolToUsagesMap.TryGetValue(symbol, out var usages))
 		{
-			foreach (var file in VFS.EnumerateCodeFiles())
-			{
-				if (ct.IsCancellationRequested)
-					return;
-				AnalyzeSourceFile(file, ct);
-			}
-
-			if (ct.IsCancellationRequested)
-				return;
-
-			// REVIEW: Should this be here inside the lock?
-			RaiseFullDiagsReady();
-		}, ct);
-	}
-
-	private void RaiseFullDiagsReady()
-	{
-		var diags = GetProjectDiags();
-		foreach (var action in _fullDiagsReadyActions)
-		{
-			action(diags);
+			return usages;
 		}
+		return [];
 	}
 
-	private void AnalyzeSourceFile(ProjectFile file, CancellationToken ct)
+	// So far, only nodes that are associated with a symbol usage:
+	// - NameNode
+	// - ObjectInitializerItemNode
+	// This should be reflected in the type checker.
+	internal void StoreSymbolUsage(Symbol symbol, SyntaxNode usage)
 	{
-		// Later?:
-		// reasoner.GetDependentSourceFiles() => each => EnsureAnalyzeSourceFile()
+		// Always store the original def symbol. Never store a closed generic.
+		symbol = symbol.OriginalDef;
+		_symbolToUsagesMap.AddOrUpdate(symbol, s =>
+		{
+			return [usage];
+		}, (s, usages) =>
+		{
+			// REVIEW: Is this lock needed?
+			lock (usages)
+			{
+				usages.Add(usage);
+			}
+			return usages;
+		});
+	}
 
-		var state = GetCodeFileState(file);
-		var reasoner = state.Reasoner;
-		var diags = reasoner.GetAllDiags().ToImmutableArray();
-		var highestLevel = diags.Any() ? (DiagLevel?)diags.Select(x => (int)x.Level).Max() : null;
-		state.FileDiags = new FileDiags(file.Path, diags, highestLevel);
+	private (SyntaxTree, Reasoner) CreateNewTreeAndReasoner(ProjectFile file)
+	{
+		var module = ResolveModule(file);
+		var tree = Parser.ParseFile(file);
+		var reasoner = new Reasoner(this, module, tree);
+		return (tree, reasoner);
 	}
 
 	private void UpdateTreeAndReasoner(ProjectFile file)
 	{
-		var (tree, reasoner) = CreateNewTreeAndReasoner(file);
+		var module = ResolveModule(file);
+		var tree = Parser.ParseFile(file);
 
 		if (!_codeFileToStateMap.TryGetValue(file, out var state))
 		{
-			// TODO: LogWarning
+			// TODO: Will this ever happen? Log.
+			Debug.Assert(false);
 			return;
 		}
 
 		// TODO: SymbolInterner.CleanReasoner(state.Reasoner)
 
+		state.Version = Workspace.Version;
 		state.Tree = tree;
-		state.Reasoner = reasoner;
+		state.Reasoner.Reset(module, tree);
+	}
+
+	/// <summary>
+	/// Analyze files that aren't analyzed.
+	/// Returns a task that completes when all files are fully analyzed.
+	/// Note: You can also call this method to wait for full analysis to complete if you depend on that.
+	/// </summary>
+	public Task EnsureAnalyzedAsync(CancellationToken ct = default)
+	{
+		if (!_dirty)
+			return Task.CompletedTask;
+
+		if (_fullAnalysisTask != null)
+			return _fullAnalysisTask;
+
+		lock (this)
+		{
+			if (_fullAnalysisTask != null)
+				return _fullAnalysisTask;
+
+			_fullAnalysisTask = Task.Run(() =>
+			{
+				foreach (var file in VFS.EnumerateCodeFiles())
+				{
+					if (ct.IsCancellationRequested)
+						return;
+					AnalyzeSourceFile(file, ct);
+				}
+
+				if (ct.IsCancellationRequested)
+					return;
+
+				RaiseFullAnalysisDone();
+			}, ct);
+		}
+
+		return _fullAnalysisTask;
+	}
+
+	private void RaiseFullAnalysisDone()
+	{
+		foreach (var action in _fullAnalysisDoneActions)
+		{
+			action(this);
+		}
+	}
+
+	private void AnalyzeSourceFile(ProjectFile file, CancellationToken ct)
+	{
+		var state = GetCodeFileState(file);
+		var reasoner = state.Reasoner;
+		reasoner.EnsureBuild();
+		var diags = reasoner.EnsureTypeCheckAndGetAllDiags().ToImmutableArray();
+		var highestLevel = diags.Any() ? (DiagLevel?)diags.Select(x => (int)x.Level).Max() : null;
+		state.FileDiags = new FileDiags(file.Path, diags, highestLevel);
 	}
 
 	internal void Initialize()
 	{
-		PrepProjectDependencies();
+		PrepProjectDependenciesAndDependents();
 		InitializeProjectConfig();
 		CreateRootModule();
 
@@ -326,11 +350,16 @@ public class SurabProject
 		}
 	}
 
-	private void PrepProjectDependencies()
+	private void PrepProjectDependenciesAndDependents()
 	{
+		// TODO: This is temporary.
 		if (this != Workspace.StdProject)
 		{
 			_projectDependencies.Add(Workspace.StdProject);
+		}
+		else
+		{
+			_projectDependents.Add(this);
 		}
 	}
 
@@ -355,17 +384,32 @@ public class SurabProject
 
 	internal void RunWritingHook()
 	{
-		ResetAfterWrite();
+		// 1. Recreate modules if needed.
+
+		var addedOrRemovedAnyFiles = _vfsChanges.Any(x => x.AddedOrRemovedAnyFiles);
+		var updatedAnyFiles = _vfsChanges.Any(x => x.UpdatedAnyFiles);
+
+		if (addedOrRemovedAnyFiles)
+		{
+			// TODO: Optimize by only changing the affected part of the module hierarchy.
+			CreateRootModule();
+		}
+
+		if (!addedOrRemovedAnyFiles && !updatedAnyFiles)
+		{
+			return;
+		}
+
+		// 2. Process for tree/reasoner.
+
 		ProcessVFSChanges();
-	}
 
-	private void ResetAfterWrite()
-	{
-		// Reset cached/computed proj state that is stale on writes, e.g. modules
-		// According to _vfsChanges, do the required modules updates.
-
-		// Or, just go ahead for now and create and set the root module (containing all the modules hierarchy).
-		CreateRootModule();
+		RunForCurrentAndDependentProjects(static p =>
+		{
+			p.MarkAsDirtyAndClearCache();
+			p.ResetAllReasoners();
+			p.EagerlyBuildNeededReasoners();
+		});
 	}
 
 	private void ProcessVFSChanges()
@@ -387,6 +431,60 @@ public class SurabProject
 				_codeFileToStateMap.Remove(file);
 			}
 		}
+		_vfsChanges.Clear();
+	}
+
+	private void ResetAllReasoners()
+	{
+		foreach (var file in VFS.EnumerateCodeFiles())
+		{
+			var state = GetCodeFileState(file);
+			if (state.Version != Workspace.Version)
+			{
+				state.Version = Workspace.Version;
+				// TODO: No need to resolve module if no modules changed.
+				//var module = changedModules ? ResolveModule(file) : state.Reasoner.Module;
+				var module = ResolveModule(file);
+				state.Reasoner.Reset(module, state.Reasoner.Tree);
+			}
+		}
+	}
+
+	/// <summary>
+	/// Builds important reasoners eagerly without waiting for analysis (i.e. prelude module).
+	/// </summary>
+	private void EagerlyBuildNeededReasoners()
+	{
+		if (!IsStdProject)
+			return;
+		foreach (var preludeCodeFile in Workspace.PreludeModule.CodeFiles)
+		{
+			// Builds it
+			_ = GetReasoner(preludeCodeFile);
+		}
+	}
+
+	private void RunForCurrentAndDependentProjects(Action<SurabProject> action)
+	{
+		action(this);
+		foreach (var dependent in ProjectDependents)
+		{
+			action(dependent);
+		}
+	}
+
+	private void MarkAsDirtyAndClearCache()
+	{
+		_dirty = true;
+
+		// Clear cache
+		_fullAnalysisTask = null;
+		_symbolToUsagesMap.Clear();
+		_projectDiags = null;
+		if (IsStdProject)
+		{
+			Workspace.ResetKnownTypeSymbols();
+		}
 	}
 
 	private void InitializeSourceFile(ProjectFile file)
@@ -397,8 +495,14 @@ public class SurabProject
 				{
 					var (tree, reasoner) = CreateNewTreeAndReasoner(file);
 
+					if (IsStdProject && reasoner.Module == Workspace.PreludeModule)
+					{
+						reasoner.EnsureBuild();
+					}
+
 					_codeFileToStateMap[file] = new CodeFileState
 					{
+						Version = Workspace.Version,
 						Tree = tree,
 						Reasoner = reasoner,
 					};
@@ -406,6 +510,7 @@ public class SurabProject
 				break;
 
 			case ProjectFileKind.ProjectConfig:
+				// TODO?
 				// Processed separately.
 				break;
 
@@ -425,6 +530,8 @@ public class SurabProject
 
 	public class CodeFileState
 	{
+		public required uint Version { get; set; }
+
 		public required SyntaxTree Tree { get; set; }
 
 		public required Reasoner Reasoner { get; set; }

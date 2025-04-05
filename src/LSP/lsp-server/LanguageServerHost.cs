@@ -97,7 +97,7 @@ public class LanguageServerHost
 
 		foreach (var project in workspace.Projects)
 		{
-			project.SubscribeToFullDiagsReady(HandleFullDiagsReady);
+			project.SubscribeToFullAnalysisDone(HandleFullAnalysisDone);
 		}
 
 		// TODO:
@@ -119,9 +119,11 @@ public class LanguageServerHost
 		return Task.CompletedTask;
 	}
 
-	private void HandleFullDiagsReady(IEnumerable<FileDiags> diags)
+	private void HandleFullAnalysisDone(SurabProject project)
 	{
 		_logger.LogInformation("Publishing diags");
+
+		var diags = project.GetProjectDiags();
 		foreach (var fileDiags in diags)
 		{
 			Server.PublishDiagnostics(new PublishDiagnosticsParams

@@ -35,7 +35,7 @@ public static class IntegrationRunner
 		var totalErrors = new List<(DiagLevel, string, string)>();
 		foreach (var reasoner in project.GetAllReasoners())
 		{
-			var diags = reasoner.GetAllDiags();
+			var diags = reasoner.EnsureTypeCheckAndGetAllDiags();
 			var src = reasoner.Tree.File.Text;
 			var errors = diags
 				.Where(x => x.Level >= DiagLevel.Error)

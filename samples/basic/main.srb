@@ -93,4 +93,12 @@ fn main() {
 
 	add(42);
 	sub::sub(42);
+
+	struct SomeRandomStruct {
+		v: i32;
+
+		impl T1 {
+			foo() i32 { this.v }
+		}
+	}
 }

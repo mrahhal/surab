@@ -41,12 +41,14 @@ public abstract class ModuleSymbol : Symbol
 
 	public override Symbol OriginalDef => this;
 
+	public abstract SurabProject Project { get; }
+
 	/// <summary>
 	/// The project folders that make up this module.
 	/// </summary>
 	public abstract ImmutableArray<ProjectFolder> Folders { get; }
 
-	protected IEnumerable<ProjectFile> CodeFiles => Folders.SelectMany(folder => folder.Files).Where(f => f.Kind is ProjectFileKind.Code);
+	internal IEnumerable<ProjectFile> CodeFiles => Folders.SelectMany(folder => folder.Files).Where(f => f.Kind is ProjectFileKind.Code);
 
 	/// <summary>
 	/// The exported symbols from this module. Anything other than private will be here.
@@ -71,20 +73,21 @@ public abstract class ModuleSymbol : Symbol
 public sealed class SrcModuleSymbol : ModuleSymbol
 {
 	private readonly string _identifier;
-	private readonly SurabProject _project;
 	private ImmutableArray<Symbol> _exportedSymbols;
 
 	internal SrcModuleSymbol(
 		string name,
-		IEnumerable<ProjectFolder> folders,
-		SurabProject project)
+		SurabProject project,
+		IEnumerable<ProjectFolder> folders)
 	{
 		_identifier = name;
-		_project = project;
-		Folders = folders.ToImmutableArray();
+		Project = project;
+		Folders = [.. folders];
 	}
 
 	public override string Identifier => _identifier;
+
+	public override SurabProject Project { get; }
 
 	public override ImmutableArray<ProjectFolder> Folders { get; }
 
@@ -105,7 +108,7 @@ public sealed class SrcModuleSymbol : ModuleSymbol
 		var builder = ImmutableArray.CreateBuilder<Symbol>();
 		foreach (var file in CodeFiles)
 		{
-			var reasoner = _project.GetReasoner(file);
+			var reasoner = Project.GetReasoner(file);
 			foreach (var symbol in reasoner.GetExportedSymbols())
 			{
 				builder.Add(symbol);
@@ -128,6 +131,8 @@ public sealed class AliasedModuleSymbol : ModuleSymbol
 	public ModuleSymbol Original { get; }
 
 	public override string Identifier => _alias;
+
+	public override SurabProject Project => Original.Project;
 
 	public override ImmutableArray<ProjectFolder> Folders => Original.Folders;
 

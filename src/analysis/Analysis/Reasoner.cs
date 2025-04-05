@@ -10,35 +10,51 @@ namespace Surab.Analysis;
 /// </summary>
 public class Reasoner
 {
-	private readonly Dictionary<SyntaxNode, Scope> _nodeToScopeMap = [];
-	private readonly Dictionary<SyntaxNode, Symbol> _nodeToSymbolMap = [];
-	private readonly ConcurrentDictionary<AttrsListNode, AttrsList> _attrsMap = [];
+	private Dictionary<SyntaxNode, Scope> _nodeToScopeMap = null!;
+	private Dictionary<SyntaxNode, Symbol> _nodeToSymbolMap = null!;
+	private ConcurrentDictionary<AttrsListNode, AttrsList> _attrsMap = null!;
+	private DiagBag? _semanticDiags = null;
 
-	private Reasoner(SurabProject project, ModuleSymbol module, SyntaxTree tree)
+	internal Reasoner(SurabProject project, ModuleSymbol module, SyntaxTree tree)
 	{
-		Tree = tree;
-		Module = module;
 		Project = project;
+		Reset(module, tree);
 	}
 
 	public SurabProject Project { get; }
 
 	public SurabWorkspace Workspace => Project.Workspace;
 
-	/// <summary>
-	/// Gets the module of this reasoner's file.
-	/// </summary>
-	public ModuleSymbol Module { get; }
+	public ModuleSymbol Module { get; private set; } = null!;
 
-	public SyntaxTree Tree { get; }
+	public SyntaxTree Tree { get; private set; } = null!;
+
+	public bool IsBuilt => _nodeToSymbolMap != null;
 
 	public ProjectFile File => Tree.File;
 
 	internal SymbolInterner SymbolInterner => Project.SymbolInterner;
 
-	internal static Reasoner Create(SurabProject project, ModuleSymbol module, SyntaxTree tree)
+	internal void Reset(ModuleSymbol module, SyntaxTree tree)
 	{
-		return Builder.Build(project, module, tree);
+		Module = module;
+		Tree = tree;
+		_nodeToScopeMap = null!;
+		_nodeToSymbolMap = null!;
+		_attrsMap = null!;
+		_semanticDiags = null;
+	}
+
+	internal void EnsureBuild()
+	{
+		if (IsBuilt)
+			return;
+		lock (this)
+		{
+			if (IsBuilt)
+				return;
+			Builder.Build(this);
+		}
 	}
 
 	/// <summary>
@@ -46,6 +62,8 @@ public class Reasoner
 	/// </summary>
 	public bool TryGetDeclaredSymbol(SyntaxNode node, [NotNullWhen(true)] out Symbol? symbol)
 	{
+		Debug.Assert(IsBuilt, "Reasoner not built.");
+
 		return node switch
 		{
 			DeclStmtNode declStmt => TryGetDeclaredSymbol(declStmt.Decl, out symbol),
@@ -163,15 +181,32 @@ public class Reasoner
 	/// <summary>
 	/// Gets all diags (syntax and semantic).
 	/// </summary>
-	public IEnumerable<Diag> GetAllDiags()
+	public IEnumerable<Diag> EnsureTypeCheckAndGetAllDiags()
 	{
+		Debug.Assert(IsBuilt, "Reasoner not built.");
+
 		// Syntax
 		var parserDiags = Tree.Diags.Diags;
 
 		// Semantic
-		var semanticDiags = TypeChecker.Analyze(this);
+		var semanticDiags = EnsureTypeCheck().Diags;
 
-		return [.. parserDiags, .. semanticDiags.Diags];
+		return [.. parserDiags, .. semanticDiags];
+	}
+
+	private DiagBag EnsureTypeCheck()
+	{
+		if (_semanticDiags != null)
+			return _semanticDiags;
+
+		lock (this)
+		{
+			if (_semanticDiags != null)
+				return _semanticDiags;
+
+			_semanticDiags = TypeChecker.Analyze(this);
+			return _semanticDiags;
+		}
 	}
 
 	/// <summary>
@@ -180,6 +215,8 @@ public class Reasoner
 	/// </summary>
 	public Symbol? LookupSymbol(SyntaxNode? node)
 	{
+		Debug.Assert(IsBuilt, "Reasoner not built.");
+
 		return node switch
 		{
 			NameExprNode n => LookupSymbol(n),
@@ -329,6 +366,8 @@ public class Reasoner
 	/// </summary>
 	public TypeSymbol LookupType(SyntaxNode? node)
 	{
+		Debug.Assert(IsBuilt, "Reasoner not built.");
+
 		return node switch
 		{
 			BareExprStmtNode n => LookupType(n),
@@ -868,12 +907,6 @@ public class Reasoner
 		return new AttrsList(attrs);
 	}
 
-	internal ModuleSymbol ResolveCurrentModule()
-	{
-		// TODO: Cache?
-		return Workspace.ResolveModule(this);
-	}
-
 	internal ResolvedImport ResolveImport(ImportNode import)
 	{
 		var path = GetModuleImportPathFromExpr(import.Target);
@@ -922,7 +955,7 @@ public class Reasoner
 		return reversePaths;
 	}
 
-	private class Builder(SurabProject project, ModuleSymbol module, SyntaxTree tree) : SyntaxTreeVisitor
+	private class Builder(Reasoner reasoner) : SyntaxTreeVisitor
 	{
 		private class TempTypeContext
 		{
@@ -930,30 +963,37 @@ public class Reasoner
 			public int GenericParamCounter = 0;
 		}
 
-		private readonly Reasoner _reasoner = new(project, module, tree);
-		private Scope? _parentScope;
-		private Symbol? _parentSymbol;
+		public Scope? _parentScope;
+		public Symbol? _parentSymbol;
 		private TempTypeContext? _typeContext;
-		private readonly bool _isPrelude = project.Workspace.PreludeModule == module;
 
-		public static Reasoner Build(SurabProject project, ModuleSymbol module, SyntaxTree tree)
+		public Reasoner Reasoner { get; } = reasoner;
+		public SyntaxTree Tree => Reasoner.Tree;
+		public SurabProject Project => Reasoner.Project;
+		public SurabWorkspace Workspace => Project.Workspace;
+		public bool IsPrelude => Workspace.PreludeModule == Reasoner.Module;
+
+		public static void Build(Reasoner reasoner)
 		{
-			var builder = new Builder(project, module, tree);
+			reasoner._nodeToScopeMap = [];
+			reasoner._nodeToSymbolMap = [];
+			reasoner._attrsMap = [];
+
+			var builder = new Builder(reasoner);
 			builder.Build();
-			return builder._reasoner;
 		}
 
 		private void Build()
 		{
-			if (_isPrelude)
+			if (IsPrelude)
 			{
 				// UPDATE: This whole block doesn't seem to be necessary. Instead, we can just add the KnownTypeTag assignment thing inside GetOrCreateSymbolOnNode.
 
 				// For the prelude, we'll especially go over the top level decls first to fill in the known type tag map first thing before doing anything else.
 				// Some places depend on these known types to be created first.
 
-				Debug.Assert(tree.Root is FileNode);
-				var fileNode = (FileNode)tree.Root;
+				Debug.Assert(Tree.Root is FileNode);
+				var fileNode = (FileNode)Tree.Root;
 				foreach (var decl in fileNode.Decls)
 				{
 					var symbol = GetOrCreateSymbolOnNode(decl);
@@ -965,13 +1005,13 @@ public class Reasoner
 						typeSymbol.KnownTypeTag = tag;
 						if (tag != null)
 						{
-							project.Workspace.AddKnownTypeSymbol(tag.Value, typeSymbol);
+							Workspace.AddKnownTypeSymbol(tag.Value, typeSymbol);
 						}
 					}
 				}
 			}
 
-			Visit(tree.Root);
+			Visit(Tree.Root);
 		}
 
 		public override void Visit(SyntaxNode node)
@@ -988,7 +1028,7 @@ public class Reasoner
 
 			if (scope != null || _parentScope != null)
 			{
-				_reasoner._nodeToScopeMap[node] = scope ?? _parentScope!;
+				Reasoner._nodeToScopeMap[node] = scope ?? _parentScope!;
 			}
 
 			var prevParentScope = _parentScope;
@@ -1028,7 +1068,7 @@ public class Reasoner
 			// REVIEW: Find a better way to handle this?
 			if (symbol != _parentSymbol)
 			{
-				var parent = _parentSymbol ?? _reasoner.Module;
+				var parent = _parentSymbol ?? Reasoner.Module;
 				Debug.Assert(parent != null); // Will be either the module or an actual parent symbol.
 				symbol?.SetParent(parent);
 			}
@@ -1037,7 +1077,7 @@ public class Reasoner
 
 		private Symbol? GetOrCreateSymbolOnNode(SyntaxNode node)
 		{
-			if (_reasoner._nodeToSymbolMap.TryGetValue(node, out var symbol))
+			if (Reasoner._nodeToSymbolMap.TryGetValue(node, out var symbol))
 				return symbol;
 
 			symbol = node switch
@@ -1064,9 +1104,9 @@ public class Reasoner
 
 			if (symbol != null)
 			{
-				_reasoner._nodeToSymbolMap[node] = symbol;
-				symbol.Reasoner = _reasoner;
-				symbol.SymbolInterner = _reasoner.SymbolInterner;
+				Reasoner._nodeToSymbolMap[node] = symbol;
+				symbol.Reasoner = Reasoner;
+				symbol.SymbolInterner = Reasoner.SymbolInterner;
 			}
 
 			return symbol;
@@ -1077,9 +1117,9 @@ public class Reasoner
 			var scope = CreateScopeOnNode(node, symbol);
 			if (scope != null)
 			{
-				scope.Reasoner = _reasoner;
+				scope.Reasoner = Reasoner;
 				scope.SetParent(_parentScope);
-				//////_reasoner._nodeToScopeMap[node] = scope;
+				//////Reasoner._nodeToScopeMap[node] = scope;
 			}
 			return scope;
 		}
@@ -1111,7 +1151,7 @@ public class Reasoner
 
 		private FileScope CreateFileScope(FileNode node)
 		{
-			return new FileScope(node, _reasoner, project);
+			return new FileScope(node, Reasoner, Project);
 		}
 
 		private static TempTypeContext? CreateTypeContext(SyntaxNode node)

@@ -117,7 +117,7 @@ var project = SurabWorkspace.CreateInMemoryProject(vfs);
 var tree = project.GetSyntaxTree(codeFile);
 var reasoner = project.GetReasoner(codeFile);
 
-var diags = reasoner.GetAllDiags();
+var diags = reasoner.EnsureTypeCheckAndGetAllDiags();
 if (diags.Any(x => x.Level >= DiagLevel.Error))
 {
 	var errors = diags.Select(d => (d, v: d.Visualize(code))).ToList();
