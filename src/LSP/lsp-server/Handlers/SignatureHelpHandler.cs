@@ -21,7 +21,7 @@ public class SignatureHelpHandler(
 			if (sourceFile == null)
 				return null;
 
-			var node = _solver.GetTouchingNodeAt(sourceFile, ConversionHelper.FromTo(request.Position));
+			var node = _solver.GetNodeAt(sourceFile, ConversionHelper.FromTo(request.Position));
 			if (node == null)
 				return null;
 

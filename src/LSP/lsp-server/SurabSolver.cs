@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Diagnostics;
-using System.Xml.Linq;
+﻿using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -9,6 +7,7 @@ using Surab.Analysis;
 
 namespace Surab.LSPServer;
 
+#pragma warning disable IDE0306 // Simplify collection initialization
 public class SurabSolver(
 	ILogger<SurabSolver> logger,
 	LanguageServerHost host)
@@ -29,26 +28,35 @@ public class SurabSolver(
 		return Host.Workspace.GetFile(uri.GetFileSystemPath());
 	}
 
-	// This prefers a name like node if the caret is at the boundary between a name and non name node.
-	// e.g. foo|(args) => will return the name node for foo.
-	public SyntaxNode? GetTouchingNodeAt(ProjectFile file, LinePosition linePosition)
+	public SyntaxNode? GetNodeAt(ProjectFile file, LinePosition linePosition)
 	{
 		var project = Workspace.GetFileProject(file.Path);
 		var tree = project.GetSyntaxTree(file);
-		// TODO: This can be optimized by doing this in a single pass somehow.
-		var node = tree.GetNodeAt(linePosition);
+		return tree.GetNodeAt(linePosition);
+	}
+
+	// This prefers an identifier token in the prev char if the caret is at the boundary between an
+	// identifier and non identifier.
+	// e.g. foo|(args) => will return the `foo` token instead of the `(` token.
+	public SyntaxToken? GetTouchingIdentifierTokenAt(ProjectFile file, LinePosition linePosition)
+	{
+		var project = Workspace.GetFileProject(file.Path);
+		var tree = project.GetSyntaxTree(file);
+		var firstToken = tree.GetTokenAt(linePosition);
+		if (firstToken != null && firstToken.Kind is SyntaxTokenKind.Identifier)
+		{
+			return firstToken;
+		}
 		if (linePosition.Char != 0)
 		{
 			// Check one char before the position.
 			var token = tree.GetTokenAt(new(linePosition.Line, linePosition.Char - 1));
 			if (token != null && token.Kind is SyntaxTokenKind.Identifier)
 			{
-				// Prefer the parent node of this identifier token.
-				return token.Parent;
+				return token;
 			}
 		}
-
-		return node;
+		return null;
 	}
 
 	public LocationOrLocationLinks? GetDeclarationRef(TextDocumentIdentifier textDocument, Position position)
@@ -59,9 +67,10 @@ public class SurabSolver(
 		var project = Workspace.GetFileProject(sourceFile.Path);
 		var reasoner = project.GetReasoner(sourceFile);
 		var linePosition = ConversionHelper.FromTo(position);
-		var node = GetTouchingNodeAt(sourceFile, linePosition);
-		if (node == null)
+		var token = GetTouchingIdentifierTokenAt(sourceFile, linePosition);
+		if (token == null)
 			return null;
+		var node = token.Parent;
 		if (node is NameDefNode nameDef && nameDef.Parent is FnSigNode fnSig)
 		{
 			node = fnSig;
@@ -83,12 +92,10 @@ public class SurabSolver(
 		var project = Workspace.GetFileProject(sourceFile.Path);
 		var reasoner = project.GetReasoner(sourceFile);
 		var linePosition = ConversionHelper.FromTo(position);
-		var node = GetTouchingNodeAt(sourceFile, linePosition);
-		if (node == null)
+		var token = GetTouchingIdentifierTokenAt(sourceFile, linePosition);
+		if (token == null)
 			return null;
-		//var token = node.GetTokenAt(linePosition);
-		//if (token == null)
-		//	return null;
+		var node = token.Parent;
 		var symbol = reasoner.LookupSymbol(node);
 		if (symbol is ThisSymbol thisSymbol)
 		{
@@ -129,9 +136,10 @@ public class SurabSolver(
 		var project = Workspace.GetFileProject(sourceFile.Path);
 		var reasoner = project.GetReasoner(sourceFile);
 		var linePosition = ConversionHelper.FromTo(position);
-		var node = GetTouchingNodeAt(sourceFile, linePosition);
-		if (node == null)
+		var token = GetTouchingIdentifierTokenAt(sourceFile, linePosition);
+		if (token == null)
 			return (null, null);
+		var node = token.Parent;
 		//var token = node.GetTokenAt(linePosition);
 		//if (token == null)
 		//	return (null, null);
@@ -169,9 +177,10 @@ public class SurabSolver(
 		var project = Workspace.GetFileProject(sourceFile.Path);
 		var reasoner = project.GetReasoner(sourceFile);
 		var linePosition = ConversionHelper.FromTo(position);
-		var node = GetTouchingNodeAt(sourceFile, linePosition);
-		if (node == null)
+		var token = GetTouchingIdentifierTokenAt(sourceFile, linePosition);
+		if (token == null)
 			return null;
+		var node = token.Parent;
 		if (node is NameDefNode nameDef)
 		{
 			var result = default(IEnumerable<Symbol>?);
@@ -199,26 +208,48 @@ public class SurabSolver(
 		var symbol = GetTouchingSymbol(textDocument, position);
 		if (symbol == null)
 			return null;
+		var refs = GetAllReferences(symbol);
+		return new LocationContainer(refs.Select(r => new Location
+		{
+			Uri = DocumentUri.FromFileSystemPath(r.File.Path.Value),
+			Range = ConversionHelper.FromTo(r.Span),
+		}));
+	}
+
+	public DocumentHighlightContainer? GetDocumentHighlightRef(TextDocumentIdentifier textDocument, Position position)
+	{
+		var sourceFile = GetFile(textDocument);
+		var symbol = GetTouchingSymbol(textDocument, position);
+		if (symbol == null)
+			return null;
+		var refs = GetAllReferences(symbol);
+		return new DocumentHighlightContainer(refs.Where(r => r.File == sourceFile).Select(r => new DocumentHighlight
+		{
+			Kind = r.Kind,
+			Range = ConversionHelper.FromTo(r.Span),
+		}));
+	}
+
+	public List<(ProjectFile File, TextSpan Span, DocumentHighlightKind Kind)> GetAllReferences(Symbol symbol)
+	{
 		var usages = Workspace.WorkspaceProjects.SelectMany(p => p.GetUsagesOfSymbolInProject(symbol));
-		var locations = new List<Location>();
+		var refs = new List<(ProjectFile, TextSpan, DocumentHighlightKind)>();
 		if (symbol.DeclaringNode != null)
 		{
 			var declaringSpan = symbol.DeclaringNode.GetMainIdentifierToken()?.Span ?? symbol.DeclaringNode.Span;
-			locations.Add(new Location
-			{
-				Uri = DocumentUri.FromFileSystemPath(symbol.DeclaringNode.Tree.File.Path.Value!),
-				Range = ConversionHelper.FromTo(declaringSpan),
-			});
+			refs.Add((symbol.DeclaringFile!, declaringSpan, DocumentHighlightKind.Text));
 		}
-		locations.AddRange(usages.Select(u =>
+		refs.AddRange(usages.Select(u =>
 		{
-			return new Location
+			var kind = u.Parent?.Kind switch
 			{
-				Uri = DocumentUri.FromFileSystemPath(u.Tree.File.Path.Value!),
-				Range = ConversionHelper.FromTo(u.Span),
+				SyntaxNodeKind.AssignmentExpr => DocumentHighlightKind.Write,
+				null => DocumentHighlightKind.Text,
+				_ => DocumentHighlightKind.Read,
 			};
+			return (u.Tree.File, u.Span, kind);
 		}));
-		return locations;
+		return refs;
 	}
 
 	private Symbol? GetTouchingSymbol(TextDocumentIdentifier textDocument, Position position)
@@ -229,9 +260,10 @@ public class SurabSolver(
 		var project = Workspace.GetFileProject(sourceFile.Path);
 		var reasoner = project.GetReasoner(sourceFile);
 		var linePosition = ConversionHelper.FromTo(position);
-		var node = GetTouchingNodeAt(sourceFile, linePosition);
-		if (node == null)
+		var token = GetTouchingIdentifierTokenAt(sourceFile, linePosition);
+		if (token == null)
 			return null;
+		var node = token.Parent;
 
 		if (node is NameDefNode nameDef && nameDef.Parent != null)
 		{
@@ -256,7 +288,6 @@ public class SurabSolver(
 		if (symbols == null)
 			return null;
 
-#pragma warning disable IDE0306 // Simplify collection initialization
 		return new LocationOrLocationLinks(symbols.Select(symbol =>
 		{
 			//var span = symbol.DeclaringNode?.GetMainIdentifierToken()?.Span ?? symbol.DeclaringNode?.Span ?? new();
@@ -267,6 +298,7 @@ public class SurabSolver(
 				Range = ConversionHelper.FromTo(span),
 			});
 		}));
-#pragma warning restore IDE0306 // Simplify collection initialization
 	}
 }
+
+#pragma warning restore IDE0306 // Simplify collection initialization
