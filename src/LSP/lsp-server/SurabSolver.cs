@@ -1,5 +1,8 @@
 ﻿using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Serialization;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Server;
@@ -14,6 +17,13 @@ public class SurabSolver(
 {
 	private readonly ILogger _logger = logger;
 	private readonly LanguageServerHost _host = host;
+	private readonly JsonSerializer _jsonSerializer = new()
+	{
+		ContractResolver = new DefaultContractResolver
+		{
+			NamingStrategy = new CamelCaseNamingStrategy()
+		},
+	};
 
 	public LanguageServerHost Host => _host;
 
@@ -26,6 +36,11 @@ public class SurabSolver(
 	public ProjectFile? GetFile(DocumentUri uri)
 	{
 		return Host.Workspace.GetFile(uri.GetFileSystemPath());
+	}
+
+	public ProjectFile? GetFile(string uri)
+	{
+		return Host.Workspace.GetFile(uri);
 	}
 
 	public SyntaxNode? GetNodeAt(ProjectFile file, LinePosition linePosition)
@@ -169,7 +184,7 @@ public class SurabSolver(
 		return (symbol, type);
 	}
 
-	internal LocationOrLocationLinks? GetImplementationRef(TextDocumentIdentifier textDocument, Position position)
+	public LocationOrLocationLinks? GetImplementationRef(TextDocumentIdentifier textDocument, Position position)
 	{
 		var sourceFile = GetFile(textDocument);
 		if (sourceFile == null)
@@ -203,7 +218,7 @@ public class SurabSolver(
 		return null;
 	}
 
-	internal LocationContainer? GetReferencesRef(TextDocumentIdentifier textDocument, Position position)
+	public LocationContainer? GetReferencesRef(TextDocumentIdentifier textDocument, Position position)
 	{
 		var symbol = GetTouchingSymbol(textDocument, position);
 		if (symbol == null)
@@ -250,6 +265,84 @@ public class SurabSolver(
 			return (u.Tree.File, u.Span, kind);
 		}));
 		return refs;
+	}
+
+	private class CodeLensData
+	{
+		public required DocumentUri Uri { get; init; }
+		public required LinePosition Position { get; init; }
+	}
+
+	public CodeLensContainer? GetCodeLens(TextDocumentIdentifier textDocument)
+	{
+		var sourceFile = GetFile(textDocument);
+		if (sourceFile == null)
+			return null;
+		var project = Workspace.GetFileProject(sourceFile.Path);
+		var reasoner = project.GetReasoner(sourceFile);
+		List<CodeLens> codeLenses = [];
+		foreach (var symbol in reasoner.EnumerateAllSymbols().Where(x => x.Kind is Analysis.SymbolKind.Type))
+		{
+			var type = (TypeSymbol)symbol;
+			if (type.TypeKind is TypeSymbolKind.Trait)
+			{
+				var data = new CodeLensData { Uri = textDocument.Uri, Position = symbol.SelectionSpan.Line.Start };
+				codeLenses.Add(new CodeLens
+				{
+					Range = ConversionHelper.FromTo(symbol.SelectionSpan),
+					Data = JObject.FromObject(data),
+				});
+			}
+		}
+		return new CodeLensContainer(codeLenses);
+	}
+
+	public CodeLens ResolveCodeLens(CodeLens codeLens)
+	{
+		var data = codeLens.Data?.ToObject<CodeLensData>();
+		if (data == null)
+			return codeLens;
+		var sourceFile = GetFile(data.Uri);
+		if (sourceFile == null)
+			return codeLens;
+		var project = Workspace.GetFileProject(sourceFile.Path);
+		var reasoner = project.GetReasoner(sourceFile);
+		var node = GetNodeAt(sourceFile, data.Position);
+		if (node == null)
+			return codeLens;
+		var symbol = reasoner.GetDeclaredSymbol(node);
+		if (symbol == null || symbol is not TypeSymbol type)
+			return codeLens;
+
+		if (type.TypeKind is TypeSymbolKind.Trait)
+		{
+			var impls = Workspace.LookupImplementations(type).ToList();
+			var implsCount = impls.Count;
+			var text = implsCount == 1 ? "implementation" : "implementations";
+			var command = new Command
+			{
+				Title = $"{implsCount} {text}",
+				Name = "surab-lsp-client-vscode.showImplementations",
+				Arguments = JArray.FromObject(new object[]
+				{
+					data.Uri,
+					ConversionHelper.FromTo(symbol.SelectionSpan.Line.Start),
+					impls.Select(x => new Location
+					{
+						Uri = DocumentUri.FromFileSystemPath(symbol.DeclaringFile!.Path.Value!),
+						Range = ConversionHelper.FromTo(x.SelectionSpan),
+					}),
+				}, jsonSerializer: _jsonSerializer),
+			};
+			return new CodeLens
+			{
+				Range = codeLens.Range,
+				Data = codeLens.Data,
+				Command = command,
+			};
+		}
+
+		return codeLens;
 	}
 
 	private Symbol? GetTouchingSymbol(TextDocumentIdentifier textDocument, Position position)

@@ -82,6 +82,7 @@ public class LanguageServerHost
 			.WithHandler<ReferencesHandler>()
 			.WithHandler<DocumentHighlightHandler>()
 			.WithHandler<HoverHandler>()
+			.WithHandler<CodeLensHandler>()
 			.WithHandler<DocumentSymbolHandler>()
 			.WithHandler<SignatureHelpHandler>()
 
