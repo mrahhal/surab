@@ -1,4 +1,6 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Generic;
+using System.Diagnostics;
+using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -197,8 +199,26 @@ public class SurabSolver(
 		var symbol = GetTouchingSymbol(textDocument, position);
 		if (symbol == null)
 			return null;
-		var references = Workspace.LookupReferences(symbol);
-		return GetLocation(references);
+		var usages = Workspace.WorkspaceProjects.SelectMany(p => p.GetUsagesOfSymbolInProject(symbol));
+		var locations = new List<Location>();
+		if (symbol.DeclaringNode != null)
+		{
+			var declaringSpan = symbol.DeclaringNode.GetMainIdentifierToken()?.Span ?? symbol.DeclaringNode.Span;
+			locations.Add(new Location
+			{
+				Uri = DocumentUri.FromFileSystemPath(symbol.DeclaringNode.Tree.File.Path.Value!),
+				Range = ConversionHelper.FromTo(declaringSpan),
+			});
+		}
+		locations.AddRange(usages.Select(u =>
+		{
+			return new Location
+			{
+				Uri = DocumentUri.FromFileSystemPath(u.Tree.File.Path.Value!),
+				Range = ConversionHelper.FromTo(u.Span),
+			};
+		}));
+		return locations;
 	}
 
 	private Symbol? GetTouchingSymbol(TextDocumentIdentifier textDocument, Position position)
@@ -246,23 +266,6 @@ public class SurabSolver(
 				Uri = DocumentUri.FromFileSystemPath(symbol.DeclaringFile!.Path.Value!),
 				Range = ConversionHelper.FromTo(span),
 			});
-		}));
-#pragma warning restore IDE0306 // Simplify collection initialization
-	}
-
-	private LocationContainer? GetLocation(params IEnumerable<SyntaxNode>? nodes)
-	{
-		if (nodes == null)
-			return null;
-
-#pragma warning disable IDE0306 // Simplify collection initialization
-		return new LocationContainer(nodes.Select(x =>
-		{
-			return new Location
-			{
-				Uri = DocumentUri.FromFileSystemPath(x.Tree.File.Path.Value!),
-				Range = ConversionHelper.FromTo(x.Span),
-			};
 		}));
 #pragma warning restore IDE0306 // Simplify collection initialization
 	}

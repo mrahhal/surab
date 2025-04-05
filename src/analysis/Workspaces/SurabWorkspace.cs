@@ -352,19 +352,6 @@ public class SurabWorkspace
 			});
 	}
 
-	public IEnumerable<SyntaxNode> LookupReferences(Symbol? symbol)
-	{
-		if (symbol == null)
-			return [];
-
-		List<SyntaxNode> references = symbol.DeclaringNode != null ? [symbol.DeclaringNode.GetMainNameNodeOrSelf()] : [];
-
-		references.AddRange(
-			WorkspaceProjects.SelectMany(p => p.GetUsagesOfSymbolInProject(symbol)));
-
-		return references;
-	}
-
 	// ---
 
 	private void Initialize()
