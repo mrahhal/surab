@@ -1152,7 +1152,7 @@ internal class ParserImpl
 	{
 		// In an access expr, we always parse one identifier, so we don't pass the precedence.
 		var dotToken = EatAssertedSimpleToken(TokenKind.Dot);
-		var name = ParseName();
+		var name = ParseName(true);
 
 		return new AccessExprNode(_tree, left, dotToken, name);
 	}
@@ -1160,7 +1160,7 @@ internal class ParserImpl
 	private ExprNode ParseModuleAccessExpr(ExprNode left)
 	{
 		var colonColonToken = EatAssertedSimpleToken(TokenKind.ColonColon);
-		var name = ParseName();
+		var name = ParseName(true);
 
 		return new ModuleAccessExprNode(_tree, left, colonColonToken, name);
 	}
@@ -1719,9 +1719,9 @@ internal class ParserImpl
 		return new NameNode(_tree, identifier, genericArgsList);
 	}
 
-	private NameNode ParseName()
+	private NameNode ParseName(bool startMissingFromLeadingTrivia = false)
 	{
-		var identifier = ParseIdentifier();
+		var identifier = ParseIdentifier(startMissingFromLeadingTrivia);
 		var genericArgsList = ParseOptionalGenericArgsList();
 
 		return new NameNode(_tree, identifier, genericArgsList);
@@ -1751,14 +1751,14 @@ internal class ParserImpl
 		return ParseOptionalIdentifier();
 	}
 
-	private IdentifierToken ParseIdentifier()
+	private IdentifierToken ParseIdentifier(bool startMissingFromLeadingTrivia = false)
 	{
-		return ParseOptionalIdentifier() ?? CreateMissingIdentifierToken();
+		return ParseOptionalIdentifier() ?? CreateMissingIdentifierToken(startMissingFromLeadingTrivia);
 	}
 
-	private IdentifierToken CreateMissingIdentifierToken()
+	private IdentifierToken CreateMissingIdentifierToken(bool startFromLeadingTrivia = false)
 	{
-		var token = IdentifierToken.CreateMissing(_tree, GetProperSpanForMissingThingAtCurrent(startFromLeadingTrivia: false));
+		var token = IdentifierToken.CreateMissing(_tree, GetProperSpanForMissingThingAtCurrent(startFromLeadingTrivia));
 		_diags.Add(CoreDiags.S0005_ExpectedAnIdentifier, token.Span);
 		return token;
 	}
