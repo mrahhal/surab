@@ -245,15 +245,15 @@ public class ParserTests
 			}
 			""";
 		var node = ParseDecl(code).Should().BeOfType<StructDeclNode>().Subject;
-		node.Members.Should().HaveCount(5);
-		node.Members.ElementAt(0).Should().BeOfType<FieldDeclNode>();
-		node.Members.ElementAt(1).Should().BeOfType<MethodDeclNode>().Subject
+		node.Decls.Should().HaveCount(5);
+		node.Decls.ElementAt(0).Should().BeOfType<FieldDeclNode>();
+		node.Decls.ElementAt(1).Should().BeOfType<MethodDeclNode>().Subject
 			.IsInitializer.Should().BeTrue();
-		node.Members.ElementAt(2).Should().BeOfType<MethodDeclNode>().Subject
+		node.Decls.ElementAt(2).Should().BeOfType<MethodDeclNode>().Subject
 			.IsMethodOp.Should().BeTrue();
-		node.Members.ElementAt(3).Should().BeOfType<MethodDeclNode>().Subject
+		node.Decls.ElementAt(3).Should().BeOfType<MethodDeclNode>().Subject
 			.IsNormallyCallable.Should().BeTrue();
-		node.Members.ElementAt(4).Should().BeOfType<FnDeclNode>();
+		node.Decls.ElementAt(4).Should().BeOfType<FnDeclNode>();
 	}
 
 	[Fact]
@@ -283,7 +283,7 @@ public class ParserTests
 	{
 		var code = "struct S1 { a: u32; f() {} }";
 		var node = ParseDecl(code).Should().BeOfType<StructDeclNode>().Subject;
-		node.Members.Should().HaveCount(2);
+		node.Decls.Should().HaveCount(2);
 	}
 
 	[Fact]
@@ -299,10 +299,10 @@ public class ParserTests
 			}
 			""";
 		var node = ParseDecl(code).Should().BeOfType<StructDeclNode>().Subject;
-		node.Members.Should().HaveCount(2);
-		var implDecl = node.Members.ElementAt(1).Should().BeOfType<ImplDeclNode>().Subject;
-		implDecl.Members.Should().HaveCount(1);
-		implDecl.Members.ElementAt(0).Should().BeOfType<MethodDeclNode>();
+		node.Decls.Should().HaveCount(2);
+		var implDecl = node.Decls.ElementAt(1).Should().BeOfType<ImplDeclNode>().Subject;
+		implDecl.Decls.Should().HaveCount(1);
+		implDecl.Decls.ElementAt(0).Should().BeOfType<MethodDeclNode>();
 	}
 
 	[Fact]
@@ -792,8 +792,8 @@ public class ParserTests
 		node.Name.GenericParamsList.Should().NotBeNull();
 		node.Name.GenericParamsList!.GenericParams.Should().HaveCount(1);
 		node.Name.GenericParamsList!.GenericParams.ElementAt(0).Identifier.Value.Should().Be("T1");
-		node.Members.Should().HaveCount(1);
-		var fMethodNode = node.Members.ElementAt(0).Should().BeOfType<MethodDeclNode>().Subject;
+		node.Decls.Should().HaveCount(1);
+		var fMethodNode = node.Decls.ElementAt(0).Should().BeOfType<MethodDeclNode>().Subject;
 		fMethodNode.Sig.Name.GenericParamsList.Should().NotBeNull();
 		fMethodNode.Sig.Name.GenericParamsList!.GenericParams.Should().HaveCount(2);
 		fMethodNode.Sig.Name.GenericParamsList!.GenericParams.ElementAt(0).Identifier.Value.Should().Be("T2");
@@ -913,7 +913,7 @@ public class ParserTests
 		f2Stmts.Should().HaveCount(2);
 		f2Stmts.ElementAt(0).Should().BeOfType<DeclStmtNode>().Subject.Decl.Should().BeOfType<FnDeclNode>();
 		var sStructDecl = fStmts.ElementAt(2).Should().BeOfType<DeclStmtNode>().Subject.Decl.Should().BeOfType<StructDeclNode>().Subject;
-		var sMembers = sStructDecl.Members;
+		var sMembers = sStructDecl.Decls;
 		sMembers.Should().HaveCount(2);
 		sMembers.ElementAt(0).Should().BeOfType<FieldDeclNode>();
 		sMembers.ElementAt(1).Should().BeOfType<StructDeclNode>();

@@ -26,6 +26,15 @@ public static class SymbolFacts
 			typeSymbol.TypeKind is TypeSymbolKind.Struct;
 	}
 
+	public static bool IsClassType([NotNullWhen(true)] Symbol? symbol)
+	{
+		return false;
+		// TODO:
+		//return
+		//	symbol is TypeSymbol typeSymbol &&
+		//	typeSymbol.TypeKind is TypeSymbolKind.Class;
+	}
+
 	public static bool IsTraitType([NotNullWhen(true)] Symbol? symbol)
 	{
 		return
@@ -38,9 +47,9 @@ public static class SymbolFacts
 		return symbol?.Kind is SymbolKind.Impl;
 	}
 
-	public static bool CanContainImpl(Symbol symbol)
+	public static bool CanContainIndirectMembers(Symbol symbol)
 	{
-		return IsStructType(symbol);
+		return IsStructType(symbol) || IsClassType(symbol);
 	}
 
 	public static bool IsAllowedInTrait(Symbol symbol)
@@ -57,12 +66,15 @@ public static class SymbolFacts
 	{
 		if (symbol.IsInitializerMethod)
 		{
-			return IsStructType(symbol.Parent);
+			return IsStructType(symbol.Parent) || IsClassType(symbol.Parent);
 		}
 
 		if (symbol.IsMethod)
 		{
-			return IsStructType(symbol.Parent) || IsTraitType(symbol.Parent) || IsImpl(symbol.Parent);
+			return
+				IsStructType(symbol.Parent) || IsClassType(symbol.Parent) ||
+				IsTraitType(symbol.Parent) ||
+				IsImpl(symbol.Parent);
 		}
 
 		return true;

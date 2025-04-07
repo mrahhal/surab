@@ -164,7 +164,7 @@ public class SurabProject
 
 		if (symbol.EnclosingImpl != null)
 		{
-			var implMember = symbol.EnclosingImpl.Members.FirstOrDefault(m => m.ImplSymbol == symbol);
+			var implMember = symbol.EnclosingImpl.ProcessedMembers.FirstOrDefault(m => m.ImplSymbol == symbol);
 			if (implMember != null)
 			{
 				return implMember.MatchingTraitSymbol;

@@ -21,8 +21,17 @@ public abstract class FnSymbol : Symbol, ISymbolHasType, ISymbolHasExternAttr, I
 		}
 	}
 
-	// TODO: Children
-	public override IEnumerable<Symbol> Children => _children ??= FnChildrenComputer.Compute(this);
+	public override IEnumerable<Symbol> Children
+	{
+		get
+		{
+			if (_children == null)
+			{
+				Interlocked.CompareExchange(ref _children, FnChildrenComputer.Compute(this), default);
+			}
+			return _children;
+		}
+	}
 
 	// TODO: Remove?
 	public abstract FnSigNode SigNode { get; }

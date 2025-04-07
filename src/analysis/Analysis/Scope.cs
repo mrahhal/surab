@@ -6,6 +6,10 @@ namespace Surab.Analysis;
 /// <summary>
 /// A scope is responsible for binding identifiers to symbols and exposing these symbols at certain scopes so lookups can be done on them.
 /// </summary>
+/// <remarks>
+/// When looking up a symbol in a scope, it's important to be careful what properties are accessed
+/// on symbols as that can cause cylic references (e.g. prefer TypeSymbol.Children over TypeSymbol.Members).
+/// </remarks>
 internal abstract class Scope
 {
 	public Scope? Parent { get; private set; }
@@ -326,12 +330,16 @@ internal sealed class NamedTypeDeclScope(NamedTypeSymbol symbol) : Scope
 
 		var builder = ImmutableArray.CreateBuilder<Symbol>();
 
-		foreach (var member in _symbol.Members)
+		// Careful, accessing Members here causes an infinite cycle.
+		// Members is not needed for building the scope. Only symbols to be added to the scope:
+		// - Local fn
+		// - Local type
+		// Traits will not contribute to this, so Children is what we need.
+		foreach (var member in _symbol.Children)
 		{
 			switch (member.Kind)
 			{
 				case SymbolKind.Fn:
-					// Only fns are locally visible, methods are access through `this`.
 					if (!((FnSymbol)member).IsMethod)
 					{
 						builder.Add(member);

@@ -117,8 +117,9 @@ public class FnTypeSymbol : TypeSymbol
 	// TODO: If it's a named fn type (alias), display that instead?
 	public override string Name => Key.ToString();
 
-	// TODO: Should we return an empty list instead?
-	public override ImmutableArray<Symbol> Members => throw new NotImplementedException();
+	public override ImmutableArray<Symbol> Members => [];
+
+	public override ImmutableArray<Symbol> AccessibleMembers => [];
 
 	protected override bool IsAssignableFromCore(TypeSymbol to, TypeSymbol from, bool allowCoercion)
 	{

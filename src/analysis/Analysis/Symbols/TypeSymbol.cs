@@ -65,78 +65,71 @@ public abstract class TypeSymbol : Symbol
 	public KnownTypeTag? KnownTypeTag { get; internal set; }
 
 	/// <summary>
-	/// Members include fields, initializers, methods, nested declarations, impl blocks, etc.
-	/// It does not include non-direct symbols such as methods inside an impl block.
-	/// To find accessible symbols including non-direct ones, use <see cref="LookupSingleAccessibleSymbol"/>.
+	/// Members that make up this type. Includes implemented/inherited symbols, initializers, etc.
+	/// Note that this is different from AST type members which are closer to <see cref="Children"/>.
 	/// </summary>
 	public abstract ImmutableArray<Symbol> Members { get; }
 
 	/// <summary>
-	/// This only includes direct symbols that have identifiable names (impl symbols are not returned).
+	/// Members that can be accessed when the type is dotted into. This excludes symbols with no
+	/// identifier, operator symbols, etc.
 	/// </summary>
-	private Symbol? GetDirectIdentifiableMember(string identifier)
-	{
-		// REVIEW: Some duplication between symbols and scopes here (and GetCreationMember, and ImplSymbol.GetMember)?
+	public abstract ImmutableArray<Symbol> AccessibleMembers { get; }
 
-		// Move from bottom to top trying to match the identifier.
-		for (var i = Members.Length - 1; i >= 0; i--)
-		{
-			var member = Members[i];
-			if (member.Kind is SymbolKind.Impl)
-			{
-				continue;
-			}
-			if (member.IdentifierMatches(identifier))
-			{
-				return member;
-			}
-		}
-		return null;
-	}
+	/// <summary>
+	/// Direct accessible members are those under the type directly.
+	/// </summary>
+	public virtual IEnumerable<Symbol> DirectAccessibleMembers => AccessibleMembers.Where(m => m.Parent == this);
+	
+	/// <summary>
+	/// Indirect accessible members are implemented members (inside impl blocks), etc.
+	/// </summary>
+	public virtual IEnumerable<Symbol> IndirectAccessibleMembers => AccessibleMembers.Where(m => m.Parent != this);
 
 	/// <summary>
 	/// Looks up a single symbol accessible on the type that match the given identifier.
 	/// If no or more than one symbol match, an exception is thrown.
 	/// This method is only provided for convenience.
 	/// </summary>
-	internal Symbol LookupSingleAccessibleSymbol(string identifier)
+	internal Symbol GetSingleAccessibleMember(string identifier)
 	{
-		return LookupAccessibleSymbols(identifier).Single();
+		return GetAccessibleMembers(identifier).Single();
 	}
 
-	// TODO: Make use of AccessMode in callers?
 	/// <summary>
 	/// Looks up all symbols accessible on the type that match the given identifier.
 	/// </summary>
-	public ImmutableArray<Symbol> LookupAccessibleSymbols(string identifier)
+	public IReadOnlyList<Symbol> GetAccessibleMembers(string identifier)
 	{
-		// TODO: Store and use a lookup table?
+		// Prioritize direct members first, then look into indirect members (impl, etc).
+		// This is similar to languages like rust, where a direct member is always selected if it
+		// matches, and no ambiguity is detected if a direct member conflicts with a trait member.
 
-		// Prioritize direct members first, then look into impl members.
-
-		var directMember = GetDirectIdentifiableMember(identifier);
-		if (directMember != null)
+		var list = new List<Symbol>();
+		foreach (var m in DirectAccessibleMembers)
 		{
-			// This replicates languages like rust, where a direct member is always selected if it matches, and no ambiguity is detected.
-			return [directMember];
-		}
-
-		// A bit of an optimization.
-		if (!SymbolFacts.CanContainImpl(this))
-		{
-			return [];
-		}
-
-		var builder = ImmutableArray.CreateBuilder<Symbol>();
-		foreach (var impl in Members.OfType<ImplSymbol>())
-		{
-			var member = impl.GetMember(identifier);
-			if (member != null)
+			if (m.IdentifierMatches(identifier))
 			{
-				builder.Add(member.ImplSymbol);
+				list.Add(m);
 			}
 		}
-		return builder.ToImmutable();
+
+		if (list.Count != 0)
+			return list;
+
+		// A bit of an optimization.
+		if (!SymbolFacts.CanContainIndirectMembers(this))
+			return [];
+
+		foreach (var m in IndirectAccessibleMembers)
+		{
+			if (m.IdentifierMatches(identifier))
+			{
+				list.Add(m);
+			}
+		}
+
+		return list;
 	}
 
 	/// <summary>

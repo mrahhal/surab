@@ -317,20 +317,20 @@ public class Reasoner
 		// REVIEW: PtrTypeSymbol's GetMember already does pass through, so this isn't really needed?
 		targetType = targetType.UnwrapPointers();
 
-		var candidates = targetType?.LookupAccessibleSymbols(node.Name.Identifier.Value);
-		if (candidates == null || candidates.Value.Length == 0)
+		var candidates = targetType?.GetAccessibleMembers(node.Name.Identifier.Value);
+		if (candidates == null || candidates.Count == 0)
 		{
 			return null;
 		}
 		// Always taking the first candidate here is fine. An error diag will be added by the type checker because of ambiguity.
-		var match = candidates.Value[0];
+		var match = candidates[0];
 		return ResolveSymbolWithName(match, node.Name);
 	}
 
 	private Symbol? LookupSymbol(ModuleAccessExprNode node)
 	{
-		var targetSymbol = LookupModule(node.Target);
-		if (targetSymbol is not ModuleSymbol module)
+		var targetModule = LookupModule(node.Target);
+		if (targetModule is not ModuleSymbol module)
 		{
 			return null;
 		}

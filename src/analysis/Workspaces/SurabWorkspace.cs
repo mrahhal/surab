@@ -318,7 +318,7 @@ public class SurabWorkspace
 				{
 					if (implSymbol.TraitType.OriginalDef == traitType.OriginalDef)
 					{
-						var implMembers = implSymbol.Members.Where(x => x.MatchingTraitSymbol?.OriginalDef == symbol.OriginalDef);
+						var implMembers = implSymbol.ProcessedMembers.Where(x => x.MatchingTraitSymbol?.OriginalDef == symbol.OriginalDef);
 						return implMembers.Select(x => x.ImplSymbol);
 					}
 					return [];

@@ -68,6 +68,12 @@ public class PtrTypeSymbol : TypeSymbol
 
 	public override ImmutableArray<Symbol> Members => InnerType?.Members ?? [];
 
+	public override ImmutableArray<Symbol> AccessibleMembers => InnerType?.AccessibleMembers ?? [];
+
+	public override IEnumerable<Symbol> DirectAccessibleMembers => InnerType?.DirectAccessibleMembers ?? [];
+
+	public override IEnumerable<Symbol> IndirectAccessibleMembers => InnerType?.IndirectAccessibleMembers ?? [];
+
 	public override string ToString() => Key.ToString();
 
 	internal override TypeSymbol SubstituteCore(SubstitutionMap smap)
