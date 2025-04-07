@@ -65,7 +65,7 @@ public class SurabSolver(
 		if (linePosition.Char != 0)
 		{
 			// Check one char before the position.
-			var token = tree.GetTokenAt(new(linePosition.Line, linePosition.Char - 1));
+			var token = tree.GetTokenAt(linePosition.GetCharJustBefore());
 			if (token != null && token.Kind is SyntaxTokenKind.Identifier)
 			{
 				return token;

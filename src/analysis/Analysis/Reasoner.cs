@@ -179,6 +179,34 @@ public class Reasoner
 		return null;
 	}
 
+	public IEnumerable<Symbol> CollectAllReferencableSymbolsFromNode(SyntaxNode? node)
+	{
+		var scope = GetEnclosingScope(node);
+		if (scope == null)
+			return [];
+
+		// TODO: Take in order param: order types last, etc?
+
+		// TODO:
+		// Add this?
+		// Hide main?
+
+		var set = new HashSet<(string Identifier, SymbolKind Kind)>();
+		var list = new List<Symbol>();
+		scope.DoWalkingUp(scope =>
+		{
+			foreach (var symbol in scope.ExposedSymbols)
+			{
+				var key = (symbol.Identifier,  symbol.Kind);
+				if (set.Contains(key))
+					continue;
+				set.Add(key);
+				list.Add(symbol);
+			}
+		});
+		return list;
+	}
+
 	/// <summary>
 	/// Gets all diags (syntax and semantic).
 	/// </summary>

@@ -16,6 +16,9 @@ internal abstract class Scope
 
 	public Reasoner Reasoner { get; internal set; } = default!;
 
+	// Mostly for usage in LSP.
+	public abstract IEnumerable<Symbol> ExposedSymbols { get; }
+
 	/// <summary>
 	/// Sets the parent scope of this scope.
 	/// </summary>
@@ -29,7 +32,7 @@ internal abstract class Scope
 	/// </summary>
 	public Symbol? LookupIdentifier(IdentifierToken identifier)
 	{
-		return LookupWalkingUp(b => b.LookupIdentifierHere(identifier));
+		return LookupWalkingUp(b => b.LookupIdentifierHere(identifier.Value));
 	}
 
 	/// <summary>
@@ -65,6 +68,16 @@ internal abstract class Scope
 		return default;
 	}
 
+	public void DoWalkingUp(Action<Scope> action)
+	{
+		var current = this;
+		while (current != null)
+		{
+			action(current);
+			current = current.Parent;
+		}
+	}
+
 	/// <summary>
 	/// Looks up an identifier in this scope.
 	/// </summary>
@@ -74,8 +87,6 @@ internal abstract class Scope
 	/// Looks up an identifier that's exported in this scope. Currently only applies to <see cref="FileScope"/>.
 	/// </summary>
 	public virtual Symbol? LookupExportedIdentifier(string identifier) => null;
-
-	public Symbol? LookupIdentifierHere(IdentifierToken identifier) => LookupIdentifierHere(identifier.Value);
 
 	/// <summary>
 	/// Looks up `this` in this scope.
@@ -192,6 +203,14 @@ internal sealed class FileScope(FileNode file, Reasoner fileReasoner, SurabProje
 		}
 	}
 
+	public override IEnumerable<Symbol> ExposedSymbols =>
+	[
+		..Decls,
+		..GetExposedSymbolsInCurrentModule(),
+		..GetExposedSymbolsInImports(),
+		..GetExposedSymbolsInPrelude(),
+	];
+
 	public override Symbol? LookupIdentifierHere(string identifier)
 	{
 		return
@@ -206,6 +225,12 @@ internal sealed class FileScope(FileNode file, Reasoner fileReasoner, SurabProje
 		var module = _fileReasoner.Module;
 		// All exported symbols of current module are exposed to files inside the module.
 		return module.GetExportedSymbol(identifier);
+	}
+
+	private IEnumerable<Symbol> GetExposedSymbolsInCurrentModule()
+	{
+		var module = _fileReasoner.Module;
+		return module.ExportedSymbols;
 	}
 
 	private Symbol? LookupInImports(string identifier)
@@ -224,6 +249,18 @@ internal sealed class FileScope(FileNode file, Reasoner fileReasoner, SurabProje
 		return null;
 	}
 
+	private IEnumerable<Symbol> GetExposedSymbolsInImports()
+	{
+		var list = new List<Symbol>();
+		var imports = _file.Imports.ToList();
+		foreach (var import in imports)
+		{
+			var resolvedImport = _fileReasoner.ResolveImport(import);
+			list.AddRange(resolvedImport.ExposedSymbols);
+		}
+		return list;
+	}
+
 	private Symbol? LookupInPrelude(string identifier)
 	{
 		var preludeModule = _project.Workspace.PreludeModule;
@@ -236,6 +273,16 @@ internal sealed class FileScope(FileNode file, Reasoner fileReasoner, SurabProje
 			preludeModule,
 			preludeModule.ExportedSymbols);
 		return LookupInResolvedModule(preludeImport, identifier);
+	}
+
+	private IEnumerable<Symbol> GetExposedSymbolsInPrelude()
+	{
+		var preludeModule = _project.Workspace.PreludeModule;
+		if (_fileReasoner.Module == preludeModule)
+		{
+			return [];
+		}
+		return preludeModule.ExportedSymbols;
 	}
 
 	private Symbol? LookupInResolvedModule(ResolvedImport resolvedImport, string identifier)
@@ -284,6 +331,12 @@ internal sealed class NamedTypeDeclScope(NamedTypeSymbol symbol) : Scope
 
 	private ImmutableArray<Symbol> _localDecls;
 
+	public override IEnumerable<Symbol> ExposedSymbols =>
+	[
+		..LocalDecls,
+		..GetExposedSymbolsInGenericParams(),
+	];
+
 	public ImmutableArray<Symbol> LocalDecls
 	{
 		get
@@ -312,6 +365,13 @@ internal sealed class NamedTypeDeclScope(NamedTypeSymbol symbol) : Scope
 		if (!_symbol.TryGetGenericParams(out var genericParams))
 			return null;
 		return LookupIdentifierIn(genericParams, identifier);
+	}
+
+	private IEnumerable<Symbol> GetExposedSymbolsInGenericParams()
+	{
+		if (!_symbol.TryGetGenericParams(out var genericParams))
+			return [];
+		return genericParams;
 	}
 
 	public override TypeSymbol? LookupThisHere()
@@ -365,6 +425,11 @@ internal sealed class AliasTypeDeclScope(AliasTypeSymbol symbol) : Scope
 {
 	private readonly AliasTypeSymbol _symbol = symbol;
 
+	public override IEnumerable<Symbol> ExposedSymbols =>
+	[
+		..GetExposedSymbolsInGenericParams(),
+	];
+
 	public override Symbol? LookupIdentifierHere(string identifier)
 	{
 		return LookupIdentifierInGenericParams(identifier);
@@ -375,6 +440,13 @@ internal sealed class AliasTypeDeclScope(AliasTypeSymbol symbol) : Scope
 		if (!_symbol.TryGetGenericParams(out var genericParams))
 			return null;
 		return LookupIdentifierIn(genericParams, identifier);
+	}
+
+	private IEnumerable<Symbol> GetExposedSymbolsInGenericParams()
+	{
+		if (!_symbol.TryGetGenericParams(out var genericParams))
+			return [];
+		return genericParams;
 	}
 
 	public override TypeSymbol? LookupTypeDeclHere()
@@ -390,6 +462,12 @@ internal sealed class FnScope(FnSymbol symbol) : Scope
 {
 	private readonly FnSymbol _symbol = symbol;
 
+	public override IEnumerable<Symbol> ExposedSymbols =>
+	[
+		.._symbol.Params,
+		..GetExposedSymbolsInGenericParams(),
+	];
+
 	public override Symbol? LookupIdentifierHere(string identifier)
 	{
 		return
@@ -403,6 +481,13 @@ internal sealed class FnScope(FnSymbol symbol) : Scope
 			return null;
 		return LookupIdentifierIn(genericParams, identifier);
 	}
+
+	private IEnumerable<Symbol> GetExposedSymbolsInGenericParams()
+	{
+		if (!_symbol.TryGetGenericParams(out var genericParams))
+			return [];
+		return [.. genericParams];
+	}
 }
 
 /// <summary>
@@ -414,6 +499,8 @@ internal sealed class FnScope(FnSymbol symbol) : Scope
 internal sealed class LocalScope(LocalSymbol symbol) : Scope
 {
 	private readonly LocalSymbol _symbol = symbol;
+
+	public override IEnumerable<Symbol> ExposedSymbols => [_symbol];
 
 	public override Symbol? LookupIdentifierHere(string identifier)
 	{
@@ -434,6 +521,8 @@ internal sealed class LocalScope(LocalSymbol symbol) : Scope
 internal sealed class BlockScope(BlockExprNode blockExprNode) : Scope
 {
 	private ImmutableArray<Symbol> _localDecls;
+
+	public override IEnumerable<Symbol> ExposedSymbols => LocalDecls;
 
 	public BlockExprNode BlockExprNode { get; } = blockExprNode;
 
