@@ -48,15 +48,25 @@ public class FoldingRangeHandler(
 
 		public override void Visit(SyntaxNode node)
 		{
-			// TODO: Currently a decl fold range starts from the attrs list, which when collapsed
-			// obscures the decl type and name. vscode also doesn't support collapsed text.
-			// Maybe try and calculate a starting span that skips the attrs list for visibility.
-
-			var span = node.Span.Line;
-			if (!IgnoreFold(node.Kind) && span.Start.Line != span.End.Line)
+			if (node is ImportsListNode)
 			{
-				var collapsedText = ComputeCollapsedText(node);
-				Fold(span, collapsedText: collapsedText);
+				Fold(node, FoldingRangeKind.Imports);
+			}
+			else if (node is StructDeclNode structDecl)
+			{
+				Fold(structDecl.OpenBraceToken.Span.Line.Start, structDecl.ClosedBraceToken.Span.Line.End);
+			}
+			else if (node is TraitDeclNode traitDecl)
+			{
+				Fold(traitDecl.OpenBraceToken.Span.Line.Start, traitDecl.ClosedBraceToken.Span.Line.End);
+			}
+			else if (node is ImplDeclNode implDecl)
+			{
+				Fold(implDecl.OpenBraceToken.Span.Line.Start, implDecl.ClosedBraceToken.Span.Line.End);
+			}
+			else if (!IgnoreFold(node.Kind))
+			{
+				Fold(node.Span.Line);
 			}
 
 			base.Visit(node);
@@ -64,30 +74,61 @@ public class FoldingRangeHandler(
 
 		public override void Visit(SyntaxToken token)
 		{
-			foreach (var trivia in token.LeadingTrivia)
-			{
-				ProcessTrivia(trivia);
-			}
-			foreach (var trivia in token.TrailingTrivia)
-			{
-				ProcessTrivia(trivia);
-			}
-
-			base.Visit(token);
+			ProcessTriviaList(token.LeadingTrivia);
+			ProcessTriviaList(token.TrailingTrivia);
 		}
 
-		public override void VisitImportsList(ImportsListNode node)
+		private void ProcessTriviaList(IEnumerable<SyntaxTrivia> triviaList)
 		{
-			Fold(node, FoldingRangeKind.Imports);
+			// Fold block comments.
+			// Fold continuous list of line comments only separated by whitespace.
 
-			base.VisitImportsList(node);
-		}
+			// TODO: The logic here sucks. Redo later.
+			var lineCommentStartSpan = default(LinePosition?);
+			var lineCommentEndSpanTentative = default(LinePosition?);
 
-		private void ProcessTrivia(SyntaxTrivia trivia)
-		{
-			if (trivia.Kind is SyntaxTriviaKind.BlockComment)
+			foreach (var trivia in triviaList)
 			{
-				Fold(trivia.Span.Line, FoldingRangeKind.Comment);
+				if (trivia.Kind is SyntaxTriviaKind.LineComment)
+				{
+					if (lineCommentStartSpan == null)
+					{
+						lineCommentStartSpan = lineCommentEndSpanTentative = trivia.Span.Line.Start;
+					}
+					else if (IsContinuous(lineCommentEndSpanTentative, trivia.Span.Line.Start))
+					{
+						lineCommentEndSpanTentative = trivia.Span.Line.Start;
+					}
+					else
+					{
+						TryFoldLineTriviaAndReset();
+						lineCommentStartSpan = lineCommentEndSpanTentative = trivia.Span.Line.Start;
+					}
+				}
+
+				if (trivia.Kind is SyntaxTriviaKind.BlockComment)
+				{
+					TryFoldLineTriviaAndReset();
+					Fold(trivia.Span.Line, FoldingRangeKind.Comment);
+				}
+			}
+
+			TryFoldLineTriviaAndReset();
+
+			void TryFoldLineTriviaAndReset()
+			{
+				if (lineCommentStartSpan != null && lineCommentEndSpanTentative != null)
+				{
+					Fold(lineCommentStartSpan.Value, lineCommentEndSpanTentative.Value, FoldingRangeKind.Comment);
+					lineCommentStartSpan = lineCommentEndSpanTentative = null;
+				}
+			}
+
+			static bool IsContinuous(LinePosition? pos1, LinePosition? pos2)
+			{
+				if (pos1 == null || pos2 == null)
+					return false;
+				return pos1.Value.Line == pos2.Value.Line || pos1.Value.Line + 1 == pos2.Value.Line;
 			}
 		}
 
@@ -98,12 +139,22 @@ public class FoldingRangeHandler(
 
 		private void Fold(LineSpan span, FoldingRangeKind? kind = null, string? collapsedText = null)
 		{
+			Fold(span.Start, span.End, kind, collapsedText);
+		}
+
+		private void Fold(LinePosition start, LinePosition end, FoldingRangeKind? kind = null, string? collapsedText = null)
+		{
+			if (start.Line == end.Line)
+			{
+				return;
+			}
+
 			ranges.Add(new FoldingRange
 			{
-				StartLine = span.Start.Line,
-				StartCharacter = span.Start.Char,
-				EndLine = span.End.Line,
-				EndCharacter = span.End.Char,
+				StartLine = start.Line,
+				StartCharacter = start.Char,
+				EndLine = end.Line,
+				EndCharacter = end.Char,
 				Kind = kind ?? new FoldingRangeKind("node"),
 				CollapsedText = collapsedText,
 			});
@@ -111,18 +162,20 @@ public class FoldingRangeHandler(
 
 		private bool IgnoreFold(SyntaxNodeKind kind) => kind is
 			SyntaxNodeKind.File or
-			SyntaxNodeKind.DeclsList;
-
-		private string? ComputeCollapsedText(SyntaxNode node)
-		{
-			// vscode currently doesn't support this capability. It's safe to set but will be ignored.
-			var mainIdentifier = node.GetMainIdentifierToken();
-			if (mainIdentifier != null)
-			{
-				var tag = node.GetFriendlyDeclTag();
-				return $"{tag} {mainIdentifier.Value}";
-			}
-			return mainIdentifier?.Value;
-		}
+			SyntaxNodeKind.DeclsList or
+			SyntaxNodeKind.ConstDecl or
+			SyntaxNodeKind.VarDecl or
+			SyntaxNodeKind.MethodDecl or
+			SyntaxNodeKind.FnDecl or
+			SyntaxNodeKind.AliasDecl or
+			SyntaxNodeKind.FieldDecl or
+			SyntaxNodeKind.Param or
+			SyntaxNodeKind.Arg or
+			SyntaxNodeKind.NameDef or
+			SyntaxNodeKind.Name or
+			SyntaxNodeKind.GenericParam or
+			SyntaxNodeKind.GenericArg or
+			SyntaxNodeKind.ExprType or
+			SyntaxNodeKind.PtrType;
 	}
 }
