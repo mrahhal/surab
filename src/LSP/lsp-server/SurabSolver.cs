@@ -325,13 +325,14 @@ public class SurabSolver(
 				Name = "surab-lsp-client-vscode.showImplementations",
 				Arguments = JArray.FromObject(new object[]
 				{
-					data.Uri,
+					// Commented out is old way. Not needed but kept for reference.
+					//data.Uri,
 					ConversionHelper.FromTo(symbol.SelectionSpan.Line.Start),
-					impls.Select(x => new Location
-					{
-						Uri = DocumentUri.FromFileSystemPath(symbol.DeclaringFile!.Path.Value!),
-						Range = ConversionHelper.FromTo(x.SelectionSpan),
-					}),
+					//impls.Select(x => new Location
+					//{
+					//	Uri = DocumentUri.FromFileSystemPath(symbol.DeclaringFile!.Path.Value!),
+					//	Range = ConversionHelper.FromTo(x.SelectionSpan),
+					//}),
 				}, jsonSerializer: _jsonSerializer),
 			};
 			return new CodeLens

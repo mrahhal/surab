@@ -40,13 +40,20 @@ export async function activate(context: vscode.ExtensionContext) {
 	await client.start();
 
 	// Only add these after server inits? And disable when disconnected?
-	context.subscriptions.push(vscode.commands.registerCommand("surab-lsp-client-vscode.showImplementations", async (uri, position, locations) => {
-		await vscode.commands.executeCommand(
-			"editor.action.showReferences",
-			vscode.Uri.parse(uri),
-			client.protocol2CodeConverter.asPosition(position),
-			locations.map(client.protocol2CodeConverter.asLocation),
-		);
+	context.subscriptions.push(vscode.commands.registerCommand("surab-lsp-client-vscode.showImplementations", async (position) => {
+		const pos = client.protocol2CodeConverter.asPosition(position);
+		const editor = vscode.window.activeTextEditor;
+		editor.selection = new vscode.Selection(pos, pos);
+		await vscode.commands.executeCommand("editor.action.goToImplementation");
+
+		// Old way that required sending data from lsp. The above way is better as it just moves
+		// the cursor and tells vscode to go through the motions of asking for impls.
+		// await vscode.commands.executeCommand(
+		// 	"editor.action.showReferences",
+		// 	vscode.Uri.parse(uri),
+		// 	client.protocol2CodeConverter.asPosition(position),
+		// 	locations.map(client.protocol2CodeConverter.asLocation),
+		// );
 	}));
 
 	const workspace =
