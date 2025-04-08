@@ -122,7 +122,7 @@ public abstract class FnSymbol : Symbol, ISymbolHasType, ISymbolHasExternAttr, I
 
 	public override string ToString()
 	{
-		return $"{IdentifierToken!.Value}({string.Join(", ", Params.Select(p => $"{p.Name}: {p.Type.Name}"))}) {ReturnType.Name}";
+		return $"{Name}({string.Join(", ", Params.Select(p => $"{p.Name}: {p.Type.Name}"))}) {ReturnType.Name}";
 	}
 
 	internal override Symbol SubstituteCore(SubstitutionMap smap)

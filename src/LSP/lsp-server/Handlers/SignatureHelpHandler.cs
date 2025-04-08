@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Diagnostics;
+using System.Text;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -17,96 +19,162 @@ public class SignatureHelpHandler(
 	{
 		return _solver.Workspace.LockForRead(() =>
 		{
-			var sourceFile = _solver.GetFile(request.TextDocument);
-			if (sourceFile == null)
+			var file = _solver.GetFile(request.TextDocument);
+			if (file == null)
 				return null;
+			var project = _solver.Workspace.GetFileProject(file.Path);
+			var reasoner = project.GetReasoner(file);
 
-			var node = _solver.GetNodeAt(sourceFile, ConversionHelper.FromTo(request.Position));
+			var node = _solver.GetNodeAt(file, ConversionHelper.FromTo(request.Position));
 			if (node == null)
 				return null;
 
-			CallExprNode callExpr;
-			var argIndex = (int?)null;
+			// 1. If token is closed paren of an ArgsListNode, get args count to know index. `(|)` or `(..., |)`
+			//	  - If there's no comma, index is last arg. If there's comma, index is last + 1.
+			// 2. If any other token, find first ArgNode in ancestors and self.
 
-			// Quick hack so that if caret is at start `(...|)` treat last arg as the active one.
-			if (node is ArgsListNode argsList &&
-				argsList.Parent is CallExprNode callExpr_)
+			ArgsListNode? argsList = null;
+			var index = -1;
+
+			var pos = ConversionHelper.FromTo(request.Position);
+			var tokenAtPos = reasoner.Tree.GetTokenAtWithTrivia(pos);
+			if (tokenAtPos == null)
+				return null;
+
 			{
-				callExpr = callExpr_;
-
-				if (argsList.ClosedParenToken.Span.Line.Start == ConversionHelper.FromTo(request.Position))
+				if (tokenAtPos.IsSimpleTokenOfKind(SimpleTokenKind.ClosedParen, out _) && tokenAtPos.Parent is ArgsListNode n)
 				{
-					var lastArgIndex = argsList.Args.Count() - 1;
-					if (lastArgIndex >= 0)
+					argsList = n;
+					var lastArg = argsList.Args.LastOrDefault();
+					if (lastArg == null)
 					{
-						argIndex = lastArgIndex;
+						index = 0;
+					}
+					else if (lastArg.CommaToken != null)
+					{
+						index = argsList.Args.Count();
+					}
+					else
+					{
+						index = argsList.Args.Count() - 1;
 					}
 				}
 				else
 				{
-					return null;
+					var argNode = tokenAtPos.Parent.AncestorsAndSelf().OfType<ArgNode>().FirstOrDefault();
+					if (argNode == null)
+						return null;
+					argsList = (ArgsListNode)argNode.Parent!;
+					index = argsList.Args.ToList().IndexOf(argNode);
 				}
 			}
-			// TODO: Should be scoped better otherwise this will find args list of outer fn calls.
-			else if (node.AncestorsAndSelf().OfType<ArgNode>().FirstOrDefault() is ArgNode arg &&
-				arg.Parent is ArgsListNode argsList2 &&
-				argsList2.Parent is CallExprNode callExpr_2)
-			{
-				callExpr = callExpr_2;
 
-				var args = argsList2.Args.ToList();
-				argIndex = arg == null ? null : args.IndexOf(arg);
-			}
-			else
-			{
+			Debug.Assert(argsList != null);
+			Debug.Assert(index >= 0);
+
+			// TODO: Support args list in AttrNode?
+
+			if (argsList.Parent is not CallExprNode callExpr)
 				return null;
-			}
 
-			var project = _solver.Workspace.GetFileProject(sourceFile.Path);
-			var reasoner = project.GetReasoner(sourceFile);
 			var (fn, fnType) = reasoner.LookupFnSymbolOrType(callExpr);
 			if (fnType == null)
 				return null;
 
+			_logger.LogInformation("Index = {Index}", index);
+
 			if (fn != null)
 			{
-				IEnumerable<ParameterInformation> @params = fn.Params.Select(p => new ParameterInformation
+				var b = new SigAndLabelRangeBuilder();
+				if (!fn.IsMethod)
 				{
-					Label = new(p.Name ?? string.Empty),
-					//Documentation =
-				});
+					b.AddNormal("fn ");
+				}
+				b.AddNormal(fn.Name);
+				b.AddNormal("(");
+				for (var i = 0; i < fn.Params.Length; i++)
+				{
+					var last = i == fn.Params.Length - 1;
+					var p = fn.Params[i];
+					var paramLabel = $"{p.Name}: {p.Type.Name}{(last ? string.Empty : ", ")}";
+					b.AddParam(paramLabel, documentation: string.Empty);
+				}
+				b.AddNormal(")");
+				if (fn.ReturnType.KnownTypeTag is not KnownTypeTag.@void)
+				{
+					b.AddNormal(" ");
+					b.AddNormal(fnType.ReturnType.Name);
+				}
 
 				return new SignatureHelp
 				{
-					ActiveParameter = argIndex,
+					ActiveParameter = index,
 					//ActiveSignature =
 					Signatures = new(new SignatureInformation
 					{
-						//ActiveParameter =
+						Label = b.SigLabel,
 						//Documentation =
-						Label = fn.ToString(),
-						Parameters = new(@params),
+						Parameters = new(b.Params),
 					}),
 				};
 			}
 			else
 			{
-				IEnumerable<ParameterInformation> @params = fnType.ParamTypes.Select(p => new ParameterInformation
+				var b = new SigAndLabelRangeBuilder();
+				b.AddNormal("fn (");
+				for (var i = 0; i < fnType.ParamTypes.Length; i++)
 				{
-					Label = new(p.Name ?? string.Empty),
-				});
+					var last = i == fnType.ParamTypes.Length - 1;
+					var p = fnType.ParamTypes[i];
+					var paramLabel = $"{p.Name}{(last ? string.Empty : ", ")}";
+					b.AddParam(paramLabel, documentation: string.Empty);
+				}
+				b.AddNormal(")");
+				if(fnType.ReturnType.KnownTypeTag is not KnownTypeTag.@void)
+				{
+					b.AddNormal(" ");
+					b.AddNormal(fnType.ReturnType.Name);
+				}
 
 				return new SignatureHelp
 				{
-					ActiveParameter = argIndex,
+					ActiveParameter = index,
+					//ActiveSignature =
 					Signatures = new(new SignatureInformation
 					{
-						Label = fnType.ToString(),
-						Parameters = new(@params),
+						Label = b.SigLabel,
+						//Documentation =
+						Parameters = new(b.Params),
 					}),
 				};
 			}
 		});
+	}
+
+	private class SigAndLabelRangeBuilder
+	{
+		private readonly StringBuilder _sb = new();
+		private readonly List<ParameterInformation> _params = [];
+
+		public string SigLabel => _sb.ToString();
+		public List<ParameterInformation> Params => _params;
+
+		public void AddNormal(string v)
+		{
+			_sb.Append(v);
+		}
+
+		public void AddParam(string label, string documentation)
+		{
+			var start = _sb.Length;
+			var end = start + label.Length;
+			_sb.Append(label);
+			_params.Add(new ParameterInformation
+			{
+				Label = new ParameterInformationLabel((start, end)),
+				Documentation = documentation,
+			});
+		}
 	}
 
 	protected override SignatureHelpRegistrationOptions CreateRegistrationOptions(SignatureHelpCapability capability, ClientCapabilities clientCapabilities)

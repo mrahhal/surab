@@ -327,6 +327,10 @@ public class CompletionHandler(
 				name = n;
 			}
 
+			// TODO: If we're directly inside an ArgNode, should infer type of arg and suggest
+			// possible completion items (like for enums). Use logic from SignatureHelpHandler to
+			// know which arg index is active.
+
 			if (name != null)
 			{
 				if (!IsApplicable(TreatTokenAs.TargetTokenKind))
