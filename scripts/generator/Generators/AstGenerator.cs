@@ -42,13 +42,15 @@ public class AstGenerator(
 				_sb.Append(comment.NL());
 			}
 
+			var nodeHasAttrs = node.Members.Where(x => x.Type == "AttrsListNode").Count() == 1;
 			var nodeHasMainIdentifier = node.Members.Where(x => x.Type == "IdentifierToken").Count() == 1;
 			var nodeHasMainNameDef = node.Members.Where(x => x.Type == "NameDefNode").Count() == 1;
+			var hasAttrsInterface = nodeHasAttrs ? ", ISyntaxNodeHasAttrs" : string.Empty;
 			var hasMainIdentifierInterface = nodeHasMainIdentifier ? ", ISyntaxNodeHasMainIdentifier" : string.Empty;
 			var hasMainNameDefInterface = nodeHasMainNameDef ? ", ISyntaxNodeHasMainNameDef" : string.Empty;
 
 			_sb.Append($$"""
-				public partial class {{node.TypeName}} : {{node.Base}}{{hasMainIdentifierInterface}}{{hasMainNameDefInterface}}
+				public partial class {{node.TypeName}} : {{node.Base}}{{hasAttrsInterface}}{{hasMainIdentifierInterface}}{{hasMainNameDefInterface}}
 				{
 					public {{node.TypeName}}({{OCtorParams(node)}})
 						: base(tree, SyntaxNodeKind.{{node.Name}})

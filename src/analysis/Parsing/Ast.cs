@@ -821,6 +821,11 @@ public interface ISyntaxNodeHasMainNameDef
 	NameDefNode Name { get; }
 }
 
+public interface ISyntaxNodeHasAttrs
+{
+	AttrsListNode? Attrs { get; }
+}
+
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
 public abstract class SyntaxNode : SyntaxEntity
 {
