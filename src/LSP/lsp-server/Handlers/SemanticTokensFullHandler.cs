@@ -15,8 +15,6 @@ public class SemanticTokensFullHandler(
 
 	public override async Task<SemanticTokens?> Handle(SemanticTokensParams request, CancellationToken cancellationToken)
 	{
-		_logger.LogInformation("[SemanticTokensParams]");
-
 		return _solver.Workspace.LockForRead(() =>
 		{
 			var sourceFile = _solver.GetFile(request.TextDocument.Uri);

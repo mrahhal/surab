@@ -24,8 +24,6 @@ public class TextDocumentSyncHandler(
 
 	public override Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken token)
 	{
-		_logger.LogInformation("[DidChangeTextDocumentParams]");
-
 		_solver.Workspace.LockForWrite(() =>
 		{
 			var path = (NormalizedPath)notification.TextDocument.Uri.GetFileSystemPath();

@@ -438,6 +438,7 @@ public class CompletionHandler(
 	{
 		return symbol.Kind switch
 		{
+			Analysis.SymbolKind.Const => CompletionItemKind.Constant,
 			Analysis.SymbolKind.Fn => ((FnSymbol)symbol).IsMethod ? CompletionItemKind.Method : CompletionItemKind.Function,
 			Analysis.SymbolKind.Field => CompletionItemKind.Field,
 			Analysis.SymbolKind.Local => CompletionItemKind.Variable,
