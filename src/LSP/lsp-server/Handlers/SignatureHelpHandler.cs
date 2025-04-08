@@ -114,6 +114,8 @@ public class SignatureHelpHandler(
 		return new()
 		{
 			DocumentSelector = LanguageServerHelper.CreateSurabDocumentSelector(),
+			TriggerCharacters = new Container<string>("("),
+			RetriggerCharacters = new Container<string>(","),
 		};
 	}
 }
