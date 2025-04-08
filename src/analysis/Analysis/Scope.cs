@@ -205,10 +205,10 @@ internal sealed class FileScope(FileNode file, Reasoner fileReasoner, SurabProje
 
 	public override IEnumerable<Symbol> ExposedSymbols =>
 	[
-		..Decls,
-		..GetExposedSymbolsInCurrentModule(),
-		..GetExposedSymbolsInImports(),
-		..GetExposedSymbolsInPrelude(),
+		.. Decls,
+		.. GetExposedSymbolsInCurrentModule(),
+		.. GetExposedSymbolsInImports(),
+		.. GetExposedSymbolsInPrelude(),
 	];
 
 	public override Symbol? LookupIdentifierHere(string identifier)
@@ -333,8 +333,8 @@ internal sealed class NamedTypeDeclScope(NamedTypeSymbol symbol) : Scope
 
 	public override IEnumerable<Symbol> ExposedSymbols =>
 	[
-		..LocalDecls,
-		..GetExposedSymbolsInGenericParams(),
+		.. LocalDecls,
+		.. GetExposedSymbolsInGenericParams(),
 	];
 
 	public ImmutableArray<Symbol> LocalDecls
@@ -427,7 +427,7 @@ internal sealed class AliasTypeDeclScope(AliasTypeSymbol symbol) : Scope
 
 	public override IEnumerable<Symbol> ExposedSymbols =>
 	[
-		..GetExposedSymbolsInGenericParams(),
+		.. GetExposedSymbolsInGenericParams(),
 	];
 
 	public override Symbol? LookupIdentifierHere(string identifier)
@@ -464,8 +464,8 @@ internal sealed class FnScope(FnSymbol symbol) : Scope
 
 	public override IEnumerable<Symbol> ExposedSymbols =>
 	[
-		.._symbol.Params,
-		..GetExposedSymbolsInGenericParams(),
+		.. _symbol.Params,
+		.. GetExposedSymbolsInGenericParams(),
 	];
 
 	public override Symbol? LookupIdentifierHere(string identifier)

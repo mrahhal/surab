@@ -14,8 +14,6 @@ public class CodeLensHandler(
 
 	public override Task<CodeLensContainer?> Handle(CodeLensParams request, CancellationToken cancellationToken)
 	{
-		_logger.LogInformation("[CodeLensHandler] {Uri}", request.TextDocument);
-
 		return _solver.Workspace.LockForRead(() =>
 		{
 			return Task.FromResult(_solver.GetCodeLens(request.TextDocument));
@@ -24,8 +22,6 @@ public class CodeLensHandler(
 
 	public override Task<CodeLens> Handle(CodeLens request, CancellationToken cancellationToken)
 	{
-		_logger.LogInformation("[CodeLensHandler Resolve] {Range}", request.Range);
-
 		return _solver.Workspace.LockForRead(() =>
 		{
 			return Task.FromResult(_solver.ResolveCodeLens(request));

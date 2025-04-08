@@ -25,12 +25,27 @@ public class CompletionHandler(
 	private enum CaretPos
 	{
 		None,
-		Inside, // |token or tok|en
+
+		Before, // | token
+
+		// Note: Touching == Inside or TouchingEnd
+		Inside, // |token to toke|n
 		TouchingEnd, // token|
+
 		After, // token |
 	}
 
-	private record struct TokenCaretData(SyntaxToken Token, CaretPos Caret);
+	private enum TreatTokenAs
+	{
+		// One of the other two options depending on the target token kind.
+		TargetTokenKind,
+
+		// Completion applicable when touching. Replaces the whole token with new text.
+		Identifier,
+
+		// Completion applicable when touching end or after. Insert new text at caret pos.
+		TriggerOp,
+	}
 
 	private CompletionList GetCompletionListCore(CompletionParams request)
 	{
@@ -41,78 +56,128 @@ public class CompletionHandler(
 		var reasoner = project.GetReasoner(file);
 
 		var pos = ConversionHelper.FromTo(request.Position);
-		var posMinusOne = pos.GetCharJustBefore();
-		var token = reasoner.Tree.GetTokenAtWithTrivia(posMinusOne);
-		if (token == null)
-			return [];
 
-		CaretPos caretPos;
+		// We're going to pick the target token around which we'll test patterns.
+		// CaretPos will hold the info about the caret's actual pos relative to the picked token.
+		//
+		// Steps to pick target token:
+		// 1. If caret is inside a comment trivia, exit.
+		// 2. If caret touches an identifier, that will always be picked.
+		// 3. Otherwise pick the first token preceding the pos.
+		//
+		// If target token is identifier and is not on same line as pos, exit. (possible because we use span with trivia to locate tokens)
+		//
+		// Some examples (`foo` represents an identifier token, `.` represents a simple token):
+		// `.|foo` => `foo` // 2
+		// `.foo|` => `foo` // 2
+		// `.| ` => `.` // 3
+		// `. | ` => `.` // 3
+		// `foo|.` => `foo` // 2
+		// `foo |` => `foo` // 3
+		// `foo |.` => `foo` // 3
+		// `= |;` => `foo` // 3
 
-		if (token.IsPositionInTrivia(pos, out var trivia, out var leading))
+		var target = default(SyntaxToken?);
+		var caretPos = default(CaretPos);
+
 		{
-			// Inside comment trivia.
-			// // |
-			// /* | */
-			if (trivia.Value.Kind is SyntaxTriviaKind.LineComment or SyntaxTriviaKind.BlockComment)
-			{
+			var tokenAtPos = reasoner.Tree.GetTokenAtWithTrivia(pos);
+			if (tokenAtPos == null)
 				return [];
-			}
-			if (leading)
+
+			if (tokenAtPos.IsPositionInTrivia(pos, out var trivia, out var leading))
 			{
-				// Adjust to preceeding token and set caretPos.
-				// adjustedToken | token
-				token = reasoner.Tree.GetTokenAt(token.SpanWithTrivia.Line.Start.GetCharJustBefore());
-				if (token == null)
+				if (trivia.Value.Kind is SyntaxTriviaKind.LineComment or SyntaxTriviaKind.BlockComment)
+				{
+					// 1
 					return [];
-				caretPos = CaretPos.After;
+				}
+
+				// 3
+				if (leading)
+				{
+					// In leading whitespace, pick the preceding token.
+					target = reasoner.Tree.GetTokenAtWithTrivia(tokenAtPos.SpanWithTrivia.Line.Start.GetCharJustBefore());
+				}
+				else
+				{
+					// In trailing whitespace, pick this token.
+					target = tokenAtPos;
+				}
 			}
 			else
 			{
-				// token |
+				if (tokenAtPos.Kind is SyntaxTokenKind.Identifier)
+				{
+					// 2
+					target = tokenAtPos;
+				}
+				else
+				{
+					// 3
+					target = reasoner.Tree.GetTokenAtWithTrivia(tokenAtPos.SpanWithTrivia.Line.Start.GetCharJustBefore());
+				}
+			}
+
+			if (target == null)
+				return [];
+
+			if (target.Span.Line.Start > pos)
+			{
+				caretPos = CaretPos.Before;
+			}
+			else if (target.Span.Line.Contains(pos))
+			{
+				caretPos = CaretPos.Inside;
+			}
+			else if (target.Span.Line.End == pos)
+			{
+				caretPos = CaretPos.TouchingEnd;
+			}
+			else if (target.Span.Line.End < pos)
+			{
 				caretPos = CaretPos.After;
 			}
 		}
-		else
-		{
-			caretPos = token.Span.Line.End == posMinusOne ?
-				CaretPos.TouchingEnd :
-				CaretPos.Inside;
-		}
 
-		Debug.Assert(caretPos != default);
+		Debug.Assert(target != null && caretPos != default);
 
 		_logger.LogInformation(
-			"[CompletionHandler] {Position} {TokenKind} = {Token} ({CaretPos})",
-			request.Position, token?.Kind, token, caretPos);
+			"{Position} {TokenKind} = {Token} ({CaretPos})",
+			pos, target.Kind, target, caretPos);
 
-		var identifier = default(IdentifierToken?);
 		var textEditSpan = new LineSpan(pos, pos);
+		var isApplicableCalled = false;
+
+		{
+			// TODO: Attributes.
+			// @|
+			// @foo|
+		}
 
 		{
 			// foo.|
 			// foo.bar|
 			AccessExprNode? accessExpr = null;
-			if (token.IsSimpleTokenOfKind(SimpleTokenKind.Dot, out _) && token.Parent is AccessExprNode n)
+			if (target.IsSimpleTokenOfKind(SimpleTokenKind.Dot, out _) && target.Parent is AccessExprNode n)
 			{
 				accessExpr = n;
 			}
-			else if (token is IdentifierToken t && token.Parent is NameNode && token.Parent.Parent is AccessExprNode n2)
+			else if (target is IdentifierToken && target.Parent is NameNode && target.Parent.Parent is AccessExprNode n2)
 			{
 				accessExpr = n2;
-				SetIdentifier(t);
 			}
 
 			if (accessExpr != null)
 			{
-				if (identifier != null && caretPos is CaretPos.After)
-					// foo.bar |
+				if (!IsApplicable(TreatTokenAs.TargetTokenKind))
 					return [];
 
 				var targetType = reasoner.LookupType(accessExpr.Target);
-				_logger.LogInformation("[CompletionHandler] AccessExpr ;; Incomplete Text: {Text} ;; Resolved type to {Type}.", identifier?.Value, targetType.Name);
+				_logger.LogInformation("Matched: AccessExpr. Resolved type to {Type}.", targetType.Name);
 				if (targetType != null)
 				{
-					return CreateCompletion(targetType.AccessibleMembers);
+					return CreateCompletionFromSymbols(targetType.AccessibleMembers);
 				}
 			}
 		}
@@ -121,27 +186,25 @@ public class CompletionHandler(
 			// foo::|
 			// foo::bar|
 			ModuleAccessExprNode? moduleAccessExpr = null;
-			if (token.IsSimpleTokenOfKind(SimpleTokenKind.ColonColon, out _) && token.Parent is ModuleAccessExprNode n)
+			if (target.IsSimpleTokenOfKind(SimpleTokenKind.ColonColon, out _) && target.Parent is ModuleAccessExprNode n)
 			{
 				moduleAccessExpr = n;
 			}
-			else if (token is IdentifierToken t && token.Parent is NameNode && token.Parent.Parent is ModuleAccessExprNode n2)
+			else if (target is IdentifierToken && target.Parent is NameNode && target.Parent.Parent is ModuleAccessExprNode n2)
 			{
 				moduleAccessExpr = n2;
-				SetIdentifier(t);
 			}
 
 			if (moduleAccessExpr != null)
 			{
-				if (identifier != null && caretPos is CaretPos.After)
-					// foo::bar |
+				if (!IsApplicable(TreatTokenAs.TargetTokenKind))
 					return [];
 
 				var targetModule = reasoner.LookupSymbol(moduleAccessExpr.Target) as ModuleSymbol;
-				_logger.LogInformation("[CompletionHandler] ModuleAccessExpr ;; Incomplete Text: {Text} ;; Resolved module to {Module}.", identifier?.Value, targetModule?.Name);
+				_logger.LogInformation("Matched: ModuleAccessExpr. Resolved module to {Module}.", targetModule?.Name);
 				if (targetModule != null)
 				{
-					return CreateCompletion(targetModule.ExportedSymbols);
+					return CreateCompletionFromSymbols(targetModule.ExportedSymbols);
 				}
 			}
 		}
@@ -150,37 +213,80 @@ public class CompletionHandler(
 			// a = |
 			// a = ident|
 			AssignmentExprNode? assignmentExpr = null;
-			if (token.IsSimpleTokenOfKind(SimpleTokenKind.Equal, out _) && token.Parent is AssignmentExprNode n)
+			if (target.IsSimpleTokenOfKind(SimpleTokenKind.Equal, out _) && target.Parent is AssignmentExprNode n)
 			{
 				assignmentExpr = n;
 			}
-			else if (token is IdentifierToken t && token.Parent is NameNode && token.Parent.Parent is NameExprNode && token.Parent.Parent.Parent is AssignmentExprNode n2)
+			else if (target is IdentifierToken && target.Parent is NameNode && target.Parent.Parent is NameExprNode && target.Parent.Parent.Parent is AssignmentExprNode n2)
 			{
 				assignmentExpr = n2;
-				SetIdentifier(t);
 			}
 
 			if (assignmentExpr != null)
 			{
-				if (identifier != null && caretPos is CaretPos.After)
-					// a = ident |
+				if (!IsApplicable(TreatTokenAs.TargetTokenKind))
 					return [];
 
 				var targetType = reasoner.LookupType(assignmentExpr.Lhs);
-				_logger.LogInformation("[CompletionHandler] AccessExpr ;; Incomplete Text: {Text} ;; Resolved type to {Type}.", identifier?.Value, targetType.Name);
+				_logger.LogInformation("Matched: AccessExpr. Resolved type to {Type}.", targetType.Name);
 				if (targetType != null)
 				{
 					// TODO: If type is enum, we should offer the enum's variants (if identifier is empty or starts with .) + the usual local symbols.
 
-					return CreateCompletion(GetReferencableSymbolsFromNode(assignmentExpr));
+					return CreateCompletion(assignmentExpr, ReferencableSymbolKind.Any);
 				}
 			}
 		}
 
 		{
+			// EqualsExprClauseNode
 			// var a = |
 			// var a = ident|
-			// Very similar to above? Factor out and share.
+			EqualsExprClauseNode? equalsExprClause = null;
+			if (target.IsSimpleTokenOfKind(SimpleTokenKind.Equal, out _) && target.Parent is EqualsExprClauseNode n)
+			{
+				equalsExprClause = n;
+			}
+			else if (target is IdentifierToken && target.Parent is NameNode && target.Parent.Parent is NameExprNode && target.Parent.Parent.Parent is EqualsExprClauseNode n2)
+			{
+				equalsExprClause = n2;
+			}
+
+			if (equalsExprClause != null)
+			{
+				if (!IsApplicable(TreatTokenAs.TargetTokenKind))
+					return [];
+
+				return CreateCompletion(equalsExprClause, ReferencableSymbolKind.Any);
+			}
+		}
+
+		{
+			// ColonTypeNode or ExprTypeNode
+			// : |
+			// : ident|
+			SyntaxNode? node = null;
+			if (target.IsSimpleTokenOfKind(SimpleTokenKind.Colon, out _) && target.Parent is ColonTypeNode n)
+			{
+				node = n;
+			}
+			else if (target is IdentifierToken && target.Parent is NameNode && target.Parent.Parent is NameExprNode && target.Parent.Parent.Parent is ExprTypeNode n2)
+			{
+				node = n2;
+			}
+
+			if (node != null)
+			{
+				if (!IsApplicable(TreatTokenAs.TargetTokenKind))
+					return [];
+
+				return CreateCompletion(node, ReferencableSymbolKind.Type);
+			}
+		}
+
+		{
+			// TODO: Inside fn args
+			// f(|)
 		}
 
 		{
@@ -214,33 +320,78 @@ public class CompletionHandler(
 		}
 
 		{
-			//// ident|
-			//if (node is NameNode name)
-			//{
-			//	Debug.Assert(name.Parent?.Kind is not SyntaxNodeKind.AccessExpr and not SyntaxNodeKind.ModuleAccessExpr);
-			//	var identifier = name.Identifier;
-			//}
-		}
+			// ident|
+			NameNode? name = null;
+			if (target is IdentifierToken && target.Parent is NameNode n)
+			{
+				name = n;
+			}
 
-		// keywords (var, struct, trait, etc)
-		// Some of these need to be processed as part of the above sections.
+			if (name != null)
+			{
+				if (!IsApplicable(TreatTokenAs.TargetTokenKind))
+					return [];
+
+				return CreateCompletion(name, ReferencableSymbolKind.Any);
+			}
+		}
 
 		return [];
 
-		IEnumerable<Symbol> GetReferencableSymbolsFromNode(SyntaxNode node)
+		// Should be called before processing the completion list.
+		bool IsApplicable(TreatTokenAs treatAs)
 		{
-			return reasoner.CollectAllReferencableSymbolsFromNode(node);
+			isApplicableCalled = true;
+			treatAs = treatAs switch
+			{
+				TreatTokenAs.TargetTokenKind => target.Kind is SyntaxTokenKind.Identifier ?
+					TreatTokenAs.Identifier :
+					TreatTokenAs.TriggerOp,
+				_ => treatAs,
+			};
+
+			if (treatAs is TreatTokenAs.Identifier)
+			{
+				textEditSpan = target.Span.Line;
+			}
+
+			return treatAs switch
+			{
+				TreatTokenAs.Identifier => caretPos is CaretPos.Inside or CaretPos.TouchingEnd,
+				TreatTokenAs.TriggerOp => caretPos is CaretPos.TouchingEnd or CaretPos.After,
+				_ => throw new UnreachableException(),
+			};
 		}
 
-		void SetIdentifier(IdentifierToken it)
+		CompletionList CreateCompletion(SyntaxNode node, ReferencableSymbolKind kind)
 		{
-			identifier = it;
-			textEditSpan = it.Span.Line;
+			Debug.Assert(isApplicableCalled);
+
+			var referencable = reasoner
+				.CollectAllReferencableSymbolsFromNode(node, kind)
+				.Select(CreateUnresolvedCompletionItem);
+
+			// TODO: Add more reserved/contextual keywords based on context. (else, impl, as, etc)
+
+			IEnumerable<CompletionItem> keywords = [];
+			if (kind == ReferencableSymbolKind.Any)
+			{
+				keywords = new[] { "var", "struct", "trait", "alias" }.Select(x => new CompletionItem
+				{
+					Label = x,
+					Kind = CompletionItemKind.Keyword,
+					TextEdit = new(new TextEdit { Range = ConversionHelper.FromTo(textEditSpan), NewText = x }),
+				});
+			}
+
+			return Wrap([.. referencable, .. keywords]);
 		}
 
-		CompletionList CreateCompletion(IEnumerable<Symbol> symbols)
+		CompletionList CreateCompletionFromSymbols(IEnumerable<Symbol> symbols)
 		{
-			return new(symbols.Select(CreateUnresolvedCompletionItem));
+			Debug.Assert(isApplicableCalled);
+
+			return Wrap(symbols.Select(CreateUnresolvedCompletionItem));
 		}
 
 		CompletionItem CreateUnresolvedCompletionItem(Symbol symbol)
@@ -250,11 +401,7 @@ public class CompletionHandler(
 				Label = symbol.Name,
 				Kind = GetCompletionItemKind(symbol),
 				TextEdit = new(new TextEdit { Range = ConversionHelper.FromTo(textEditSpan), NewText = GetNewText() }),
-				Documentation = new MarkupContent
-				{
-					Kind = MarkupKind.Markdown,
-					Value = $"### This is just to test markup for {symbol.Name}\n\nYes that's how:\n- One\n- two",
-				},
+				Command = GetCommand(),
 				//Data = for resolve
 			};
 
@@ -266,6 +413,24 @@ public class CompletionHandler(
 					_ => symbol.Name,
 				};
 			}
+
+			Command? GetCommand()
+			{
+				return symbol switch
+				{
+					ModuleSymbol => new Command
+					{
+						Name = "editor.action.triggerSuggest"
+					},
+					_ => null,
+				};
+			}
+		}
+
+		static CompletionList Wrap(IEnumerable<CompletionItem> completionItems)
+		{
+			var list = new CompletionList(completionItems);
+			return list;
 		}
 	}
 
@@ -285,8 +450,8 @@ public class CompletionHandler(
 				//TypeSymbolKind.Class => CompletionItemKind.Class,
 				TypeSymbolKind.Trait => CompletionItemKind.Interface,
 				TypeSymbolKind.GenericParam => CompletionItemKind.TypeParameter,
-				TypeSymbolKind.Fn => CompletionItemKind.Function,
-				TypeSymbolKind.Alias => CompletionItemKind.Value,
+				TypeSymbolKind.Fn => CompletionItemKind.Struct, // Is there no better one for an fn type?
+				TypeSymbolKind.Alias => GetCompletionItemKind(((AliasTypeSymbol)symbol).UnwrapTypeAliases()),
 				_ => CompletionItemKind.Text,
 			},
 			_ => CompletionItemKind.Text,
@@ -300,6 +465,13 @@ public class CompletionHandler(
 			// Detail
 			// LabelDetails
 			// Documentation
+
+			//Documentation = new MarkupContent
+			//{
+			//	Kind = MarkupKind.Markdown,
+			//	Value = $"### This is just to test markup for {symbol.Name}\n\nYes that's how:\n- One\n- two",
+			//},
+
 			return Task.FromResult(request);
 		});
 	}
@@ -314,7 +486,7 @@ public class CompletionHandler(
 			{
 				LabelDetailsSupport = true,
 			},
-			TriggerCharacters = new Container<string>(".", ":"),
+			TriggerCharacters = new Container<string>(" ", "@", ".", ":", "("),
 		};
 	}
 }

@@ -9,9 +9,14 @@ public static class SymbolFacts
 		return symbol?.Kind is SymbolKind.Type;
 	}
 
-	public static bool IsMethod([NotNullWhen(true)] Symbol? symbol)
+	public static bool IsModule([NotNullWhen(true)] Symbol? symbol)
 	{
-		return symbol?.Kind is SymbolKind.Fn && ((FnSymbol)symbol).IsMethod;
+		return symbol?.Kind is SymbolKind.Module;
+	}
+
+	public static bool CanStartType([NotNullWhen(true)] Symbol? symbol)
+	{
+		return IsType(symbol) || IsModule(symbol);
 	}
 
 	public static bool IsInitializer([NotNullWhen(true)] Symbol? symbol)
@@ -60,6 +65,16 @@ public static class SymbolFacts
 	public static bool IsFieldInAllowedContext(FieldSymbol symbol)
 	{
 		return symbol.EnclosingType.TypeKind is TypeSymbolKind.Struct;
+	}
+
+	public static bool IsMethod([NotNullWhen(true)] Symbol? symbol)
+	{
+		return symbol is FnSymbol fn && fn.IsMethod;
+	}
+
+	public static bool IsMainFn([NotNullWhen(true)] Symbol? symbol)
+	{
+		return symbol is FnSymbol fn && fn.IsMain;
 	}
 
 	public static bool IsFnInAllowedContext(FnSymbol symbol)

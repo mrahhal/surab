@@ -3,7 +3,8 @@ using Surab.LSPServer;
 
 var logger = new LoggerConfiguration()
 	.Enrich.FromLogContext()
-	.WriteTo.File("surab-lsp-server.log")
+	.Enrich.WithComputed("SourceContextName", "Substring(SourceContext, LastIndexOf(SourceContext, '.') + 1)")
+	.WriteTo.File("surab-lsp-server.log", outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level}] [{SourceContextName}] {Message}{NewLine}{Exception}")
 	.CreateLogger();
 
 ITransport? transport = default;

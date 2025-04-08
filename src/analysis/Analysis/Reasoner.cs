@@ -179,17 +179,13 @@ public class Reasoner
 		return null;
 	}
 
-	public IEnumerable<Symbol> CollectAllReferencableSymbolsFromNode(SyntaxNode? node)
+	public IEnumerable<Symbol> CollectAllReferencableSymbolsFromNode(SyntaxNode? node, ReferencableSymbolKind kind)
 	{
 		var scope = GetEnclosingScope(node);
 		if (scope == null)
 			return [];
 
 		// TODO: Take in order param: order types last, etc?
-
-		// TODO:
-		// Add this?
-		// Hide main?
 
 		var set = new HashSet<(string Identifier, SymbolKind Kind)>();
 		var list = new List<Symbol>();
@@ -198,12 +194,20 @@ public class Reasoner
 			foreach (var symbol in scope.ExposedSymbols)
 			{
 				var key = (symbol.Identifier,  symbol.Kind);
-				if (set.Contains(key))
+				if (set.Contains(key) || SymbolFacts.IsMainFn(symbol))
+					continue;
+				if (kind is ReferencableSymbolKind.Type && !SymbolFacts.CanStartType(symbol))
 					continue;
 				set.Add(key);
 				list.Add(symbol);
 			}
 		});
+
+		if (scope.LookupThis() is { } thisType)
+		{
+			list.Add(GetThisSymbol(thisType));
+		}
+
 		return list;
 	}
 
@@ -747,6 +751,14 @@ public class Reasoner
 		return SymbolInterner.GetThis(type);
 	}
 
+	private ThisSymbol GetThisSymbol(TypeSymbol type)
+	{
+		// TODO: Account for @receiver_by_val.
+		type = SymbolInterner.GetPtrType(type);
+		//if (type is StructTypeSymbol) { create ptr }
+		return SymbolInterner.GetThis(type);
+	}
+
 	internal PtrTypeSymbol GetPtrType(PtrTypeNode node)
 	{
 		var type = node.InnerType == null ? null : LookupSymbol(node.InnerType).AsTypeSymbolOrUnknown();
@@ -1207,4 +1219,10 @@ public static class ReasonerExtensions
 		var targetSymbol = reasoner.LookupSymbol(accessExpr.Target);
 		return !SymbolFacts.IsType(targetSymbol);
 	}
+}
+
+public enum ReferencableSymbolKind
+{
+	Any,
+	Type,
 }
