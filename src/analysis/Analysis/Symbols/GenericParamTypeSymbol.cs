@@ -9,6 +9,8 @@ public abstract class GenericParamTypeSymbol : TypeSymbol
 	// TODO: If the generic type has constraints, members will be available.
 	public override ImmutableArray<Symbol> Members => [];
 
+	public override ImmutableArray<Symbol> AccessibleMembers => [];
+
 	internal override TypeSymbol SubstituteCore(SubstitutionMap smap)
 	{
 		// This is kind of the *base* case in the substitution.

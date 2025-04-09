@@ -68,6 +68,7 @@ public class Reasoner
 		{
 			DeclStmtNode declStmt => TryGetDeclaredSymbol(declStmt.Decl, out symbol),
 			FnSigNode sig when sig.Parent != null => TryGetDeclaredSymbol(sig.Parent, out symbol),
+			NameDefNode nameDef when nameDef.Parent != null => TryGetDeclaredSymbol(nameDef.Parent, out symbol),
 			_ => _nodeToSymbolMap.TryGetValue(node, out symbol),
 		};
 	}
@@ -176,6 +177,38 @@ public class Reasoner
 			}
 		}
 		return null;
+	}
+
+	public IEnumerable<Symbol> CollectAllReferencableSymbolsFromNode(SyntaxNode? node, ReferencableSymbolKind kind)
+	{
+		var scope = GetEnclosingScope(node);
+		if (scope == null)
+			return [];
+
+		// TODO: Take in order param: order types last, etc?
+
+		var set = new HashSet<(string Identifier, SymbolKind Kind)>();
+		var list = new List<Symbol>();
+		scope.DoWalkingUp(scope =>
+		{
+			foreach (var symbol in scope.ExposedSymbols)
+			{
+				var key = (symbol.Identifier,  symbol.Kind);
+				if (set.Contains(key) || SymbolFacts.IsMainFn(symbol))
+					continue;
+				if (kind is ReferencableSymbolKind.Type && !SymbolFacts.CanStartType(symbol))
+					continue;
+				set.Add(key);
+				list.Add(symbol);
+			}
+		});
+
+		if (scope.LookupThis() is { } thisType)
+		{
+			list.Add(GetThisSymbol(thisType));
+		}
+
+		return list;
 	}
 
 	/// <summary>
@@ -316,20 +349,20 @@ public class Reasoner
 		// REVIEW: PtrTypeSymbol's GetMember already does pass through, so this isn't really needed?
 		targetType = targetType.UnwrapPointers();
 
-		var candidates = targetType?.LookupAccessibleSymbols(node.Name.Identifier.Value);
-		if (candidates == null || candidates.Value.Length == 0)
+		var candidates = targetType?.GetAccessibleMembers(node.Name.Identifier.Value);
+		if (candidates == null || candidates.Count == 0)
 		{
 			return null;
 		}
 		// Always taking the first candidate here is fine. An error diag will be added by the type checker because of ambiguity.
-		var match = candidates.Value[0];
+		var match = candidates[0];
 		return ResolveSymbolWithName(match, node.Name);
 	}
 
 	private Symbol? LookupSymbol(ModuleAccessExprNode node)
 	{
-		var targetSymbol = LookupModule(node.Target);
-		if (targetSymbol is not ModuleSymbol module)
+		var targetModule = LookupModule(node.Target);
+		if (targetModule is not ModuleSymbol module)
 		{
 			return null;
 		}
@@ -712,6 +745,14 @@ public class Reasoner
 		//thisSymbol.Type
 
 		var type = GetEnclosingScope(node)?.LookupThis() ?? UnknownTypeSymbol.Create();
+		// TODO: Account for @receiver_by_val.
+		type = SymbolInterner.GetPtrType(type);
+		//if (type is StructTypeSymbol) { create ptr }
+		return SymbolInterner.GetThis(type);
+	}
+
+	private ThisSymbol GetThisSymbol(TypeSymbol type)
+	{
 		// TODO: Account for @receiver_by_val.
 		type = SymbolInterner.GetPtrType(type);
 		//if (type is StructTypeSymbol) { create ptr }
@@ -1178,4 +1219,10 @@ public static class ReasonerExtensions
 		var targetSymbol = reasoner.LookupSymbol(accessExpr.Target);
 		return !SymbolFacts.IsType(targetSymbol);
 	}
+}
+
+public enum ReferencableSymbolKind
+{
+	Any,
+	Type,
 }

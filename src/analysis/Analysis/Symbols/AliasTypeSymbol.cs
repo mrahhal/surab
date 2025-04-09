@@ -33,6 +33,12 @@ public abstract class AliasTypeSymbol : TypeSymbol, IPossiblyGenericSymbol
 
 	public override ImmutableArray<Symbol> Members => TargetType.Members;
 
+	public override ImmutableArray<Symbol> AccessibleMembers => TargetType.AccessibleMembers;
+
+	public override IEnumerable<Symbol> DirectAccessibleMembers => TargetType.DirectAccessibleMembers;
+
+	public override IEnumerable<Symbol> IndirectAccessibleMembers => TargetType.IndirectAccessibleMembers;
+
 	internal override AliasTypeSymbol SubstituteCore(SubstitutionMap smap)
 	{
 		return new SubstitutedAliasTypeSymbol(this, [], smap);

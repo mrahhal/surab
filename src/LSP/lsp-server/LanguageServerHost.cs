@@ -73,12 +73,19 @@ public class LanguageServerHost
 			})
 			.WithHandler<TextDocumentSyncHandler>()
 			.WithHandler<DidChangeWatchedFilesHandler>()
-			.WithHandler<SemanticTokensFullHandler>()
-			.WithHandler<DefinitionHandler>()
+
 			.WithHandler<DeclarationHandler>()
+			.WithHandler<DefinitionHandler>()
+			.WithHandler<TypeDefinitionHandler>()
 			.WithHandler<ImplementationHandler>()
+			.WithHandler<ReferencesHandler>()
+			.WithHandler<DocumentHighlightHandler>()
 			.WithHandler<HoverHandler>()
+			.WithHandler<CodeLensHandler>()
+			.WithHandler<FoldingRangeHandler>()
 			.WithHandler<DocumentSymbolHandler>()
+			.WithHandler<SemanticTokensFullHandler>()
+			.WithHandler<CompletionHandler>()
 			.WithHandler<SignatureHelpHandler>()
 
 			.OnRequest<TextDocumentPositionParams, GetSyntaxTreeRequest.Response>("surab/get-syntax-tree", p => GetSyntaxTreeRequest.HandlerAsync(p, Server));

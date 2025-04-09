@@ -133,7 +133,7 @@ public class Token(TokenKind kind, TextSpan span, object? data)
 			This => "this",
 			True => "true",
 			False => "false",
-			Var => "let",
+			Var => "var",
 			Const => "const",
 			Return => "return",
 

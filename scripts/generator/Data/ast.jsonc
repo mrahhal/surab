@@ -34,7 +34,7 @@
 				{
 					"Name": "target",
 					"Type": "ExprNode",
-					"Comment": "Well formed: IdentifierExpr or AccessExpr"
+					"Comment": "Well formed: NameExpr or AccessExpr"
 				},
 				{
 					"Name": "asName",
@@ -610,7 +610,7 @@
 				{
 					"Name": "typeExpr",
 					"Type": "ExprNode",
-					"Comment": "Well formed: IdentifierExpr or AccessExpr"
+					"Comment": "Well formed: NameExpr or AccessExpr"
 				},
 				{
 					"Name": "dotToken",

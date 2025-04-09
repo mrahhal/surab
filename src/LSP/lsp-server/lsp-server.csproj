@@ -13,6 +13,7 @@
 	<ItemGroup>
 		<PackageReference Include="OmniSharp.Extensions.LanguageServer" Version="0.19.9" />
 		<PackageReference Include="Serilog.Extensions.Logging.File" Version="3.0.0" />
+		<PackageReference Include="Serilog.Expressions" Version="5.0.0" />
 	</ItemGroup>
 
 </Project>

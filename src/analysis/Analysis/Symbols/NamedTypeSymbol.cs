@@ -8,6 +8,8 @@ namespace Surab.Analysis;
 /// </summary>
 public abstract class NamedTypeSymbol : TypeSymbol, ISymbolHasExternAttr, IPossiblyGenericSymbol
 {
+	private ImmutableArray<Symbol> _members;
+	private ImmutableArray<Symbol> _accessibleMembers;
 	private InitializerMethodWrapper? _initializerMethodWrapper = default;
 	private ImmutableArray<TypeCreationMemberSymbol> _creationMemberSymbols;
 	private string? _name;
@@ -22,8 +24,6 @@ public abstract class NamedTypeSymbol : TypeSymbol, ISymbolHasExternAttr, IPossi
 
 	public override abstract NamedTypeSymbol OriginalDef { get; }
 
-	public override IEnumerable<Symbol> Children => [.. Members];
-
 	public abstract bool IsExtern { get; }
 
 	public abstract AttrsList AttrsList { get; }
@@ -31,6 +31,78 @@ public abstract class NamedTypeSymbol : TypeSymbol, ISymbolHasExternAttr, IPossi
 	public abstract ImmutableArray<GenericParamTypeSymbol> GenericParams { get; }
 
 	public abstract ImmutableArray<TypeSymbol> GenericArgs { get; }
+
+	public override ImmutableArray<Symbol> Members
+	{
+		get
+		{
+			if (_members.IsDefault)
+			{
+				ImmutableInterlocked.InterlockedCompareExchange(ref _members, BuildMembers(), default);
+			}
+			return _members;
+		}
+	}
+
+	private ImmutableArray<Symbol> BuildMembers()
+	{
+		var builder = ImmutableArray.CreateBuilder<Symbol>();
+
+		foreach (var child in Children)
+		{
+			if (IsTypeMember(child))
+			{
+				builder.Add(child);
+			}
+			else if (child is ImplSymbol impl)
+			{
+				foreach (var implMember in impl.Members)
+				{
+					if (IsTypeMember(implMember))
+					{
+						builder.Add(implMember);
+					}
+				}
+			}
+		}
+
+		return builder.ToImmutable();
+
+		static bool IsTypeMember(Symbol symbol)
+		{
+			// Only need to account for decl symbols.
+			return !(symbol.Kind is SymbolKind.Impl);
+		}
+	}
+
+	public override ImmutableArray<Symbol> AccessibleMembers
+	{
+		get
+		{
+			if (_accessibleMembers.IsDefault)
+			{
+				ImmutableInterlocked.InterlockedCompareExchange(ref _accessibleMembers, BuildAccessibleMembers(), default);
+			}
+			return _accessibleMembers;
+		}
+	}
+
+	private ImmutableArray<Symbol> BuildAccessibleMembers()
+	{
+		var builder = ImmutableArray.CreateBuilder<Symbol>();
+
+		foreach (var member in Members)
+		{
+			if (member.IdentifierToken != null &&
+				!member.IdentifierToken.IsMissing &&
+				!member.IdentifierToken.IsOp())
+			{
+				builder.Add(member);
+			}
+		}
+
+		return builder.ToImmutable();
+	}
 
 	public FnSymbol? InitializerMethod
 	{
@@ -128,7 +200,7 @@ public abstract class NamedTypeSymbol : TypeSymbol, ISymbolHasExternAttr, IPossi
 public class SrcNamedTypeSymbol : NamedTypeSymbol
 {
 	private readonly SyntaxNode _node;
-	private ImmutableArray<Symbol> _members;
+	private ImmutableArray<Symbol> _children;
 	private ImmutableArray<GenericParamTypeSymbol> _genericParams;
 	private AttrsList? _attrsList;
 
@@ -197,22 +269,22 @@ public class SrcNamedTypeSymbol : NamedTypeSymbol
 		_ => throw new UnreachableException(),
 	};
 
-	public override ImmutableArray<Symbol> Members
+	public override IEnumerable<Symbol> Children
 	{
 		get
 		{
-			if (_members.IsDefault)
+			if (_children.IsDefault)
 			{
-				ImmutableInterlocked.InterlockedCompareExchange(ref _members, BuildMembers(), default);
+				ImmutableInterlocked.InterlockedCompareExchange(ref _children, BuildChildren(), default);
 			}
-			return _members;
+			return _children;
 		}
 	}
 
-	private ImmutableArray<Symbol> BuildMembers()
+	private ImmutableArray<Symbol> BuildChildren()
 	{
 		var builder = ImmutableArray.CreateBuilder<Symbol>();
-		foreach (var node in EnumerateMemberNodes())
+		foreach (var node in EnumerateChildrenDecls())
 		{
 			if (Reasoner.TryGetDeclaredSymbol(node, out var symbol))
 			{
@@ -222,12 +294,12 @@ public class SrcNamedTypeSymbol : NamedTypeSymbol
 		return builder.ToImmutable();
 	}
 
-	private IEnumerable<SyntaxNode> EnumerateMemberNodes()
+	private IEnumerable<SyntaxNode> EnumerateChildrenDecls()
 	{
 		return _node switch
 		{
-			StructDeclNode structDecl => structDecl.Members,
-			TraitDeclNode traitDecl => traitDecl.Members,
+			StructDeclNode structDecl => structDecl.Decls,
+			TraitDeclNode traitDecl => traitDecl.Decls,
 			_ => throw new UnreachableException(),
 		};
 	}
@@ -237,8 +309,7 @@ internal class SubstitutedNamedTypeSymbol : NamedTypeSymbol
 {
 	private readonly NamedTypeSymbol _original;
 	private readonly SubstitutionMap _smap;
-
-	private ImmutableArray<Symbol>? _members;
+	private ImmutableArray<Symbol> _children;
 
 	public SubstitutedNamedTypeSymbol(
 		NamedTypeSymbol original,
@@ -252,8 +323,6 @@ internal class SubstitutedNamedTypeSymbol : NamedTypeSymbol
 	}
 
 	public override NamedTypeSymbol OriginalDef => _original.OriginalDef;
-
-	public override IEnumerable<Symbol> Children => [.. Members];
 
 	public override TypeSymbolKind TypeKind => _original.TypeKind;
 
@@ -269,13 +338,20 @@ internal class SubstitutedNamedTypeSymbol : NamedTypeSymbol
 
 	public override ImmutableArray<TypeSymbol> GenericArgs { get; }
 
-	public override ImmutableArray<Symbol> Members
+	public override IEnumerable<Symbol> Children
 	{
 		get
 		{
-			if (_members != null)
-				return _members.Value;
-			return _members ??= _original.Members.Select(x => x.SubstituteAndSetParent(this, _smap)).ToImmutableArray();
+			if (_children.IsDefault)
+			{
+				ImmutableInterlocked.InterlockedCompareExchange(ref _children, BuildChildren(), default);
+			}
+			return _children;
 		}
+	}
+
+	private ImmutableArray<Symbol> BuildChildren()
+	{
+		return _original.Children.Select(x => x.SubstituteAndSetParent(this, _smap)).ToImmutableArray();
 	}
 }

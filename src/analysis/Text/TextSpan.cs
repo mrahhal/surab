@@ -144,6 +144,13 @@ public readonly record struct LinePosition(
 		return Equals(p1, p2) || p1 < p2;
 	}
 
+	public LinePosition GetCharJustBefore()
+	{
+		if (Char == 0)
+			return this;
+		return new(Line, Char - 1);
+	}
+
 	public override string ToString()
 	{
 		return $"{{{Line}:{Char}}}";

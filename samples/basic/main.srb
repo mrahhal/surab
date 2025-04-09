@@ -6,6 +6,17 @@ alias @extern fn (S2) as Delegate1;
 /* c */ const /* c */ /* c */ a /* c */ = /* c */ 2 /* c */; // c
 */
 
+/// A trait that does something.
+///
+/// Here's an **example**:
+///
+/// ```
+/// var a = 2;
+/// ```
+///
+/// Here's a list:
+/// - foo
+/// - bar
 trait T1 {
 	foo() i32;
 }

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Nito.AsyncEx;
 
 namespace Surab.Analysis;
@@ -152,7 +151,6 @@ public class SurabWorkspace
 		using (_rwl.WriterLock())
 		{
 			_version++;
-
 			action();
 			RunWritingHooks();
 		}
@@ -288,6 +286,69 @@ public class SurabWorkspace
 			return null;
 		}
 		return current;
+	}
+
+	// TODO: Move to some other place?
+
+	/// <summary>
+	/// Looks up the implementation symbols.
+	/// Trait decl -> all types that implement the trait.
+	/// Trait member (e.g. method) -> all concrete implementations (definitions) of the member.
+	/// </summary>
+	public IEnumerable<Symbol> LookupImplementations(Symbol? symbol)
+	{
+		if (symbol == null)
+			return [];
+
+		// All types will be referenced through the original def.
+		symbol = symbol.OriginalDef;
+
+		if (SymbolFacts.IsTraitType(symbol))
+		{
+			return LookupImplSymbolsOfTrait(symbol)
+				.Where(x => x.Parent is NamedTypeSymbol)
+				.Select(x => x.Parent!);
+		}
+		else if (SymbolFacts.IsMethod(symbol) && SymbolFacts.IsTraitType(symbol.Parent))
+		{
+			var traitType = (NamedTypeSymbol)symbol.Parent;
+			return LookupImplSymbolsOfTrait(symbol.Parent)
+				.SelectMany(implSymbol =>
+				{
+					if (implSymbol.TraitType.OriginalDef == traitType.OriginalDef)
+					{
+						var implMembers = implSymbol.ProcessedMembers.Where(x => x.MatchingTraitSymbol?.OriginalDef == symbol.OriginalDef);
+						return implMembers.Select(x => x.ImplSymbol);
+					}
+					return [];
+				});
+		}
+
+		return [];
+	}
+
+	public IEnumerable<ImplSymbol> LookupImplSymbolsOfTrait(Symbol? symbol)
+	{
+		if (symbol == null)
+			return [];
+
+		if (!SymbolFacts.IsTraitType(symbol))
+		{
+			throw new ArgumentException($"Expected a trait symbol.", nameof(symbol));
+		}
+
+		return WorkspaceProjects
+			.Select(p => (Project: p, Usages: p.GetUsagesOfSymbolInProject(symbol)))
+			.SelectMany(t =>
+			{
+				return t.Usages
+					.Where(n => n.Parent is ImplDeclNode) // Used in a `impl Target`
+					.Select(n =>
+					{
+						var reasoner = t.Project.GetReasoner(n.Tree.File);
+						return (ImplSymbol)reasoner.GetDeclaredSymbol(n.Parent!)!;
+					});
+			});
 	}
 
 	// ---

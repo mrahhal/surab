@@ -53,8 +53,8 @@ public static class GetSyntaxTreeRequest
 		{
 			Identifier = mainIdentifier,
 			Kind = node.Kind.ToString(),
-			Span = ConversionHelper.FromTo(node.Span.Line),
-			SpanLabel = node.Span.File.ToString(),
+			Span = ConversionHelper.FromTo(node.SpanWithTrivia.Line),
+			SpanLabel = node.SpanWithTrivia.File.ToString(),
 			Children = [.. node.ChildNodes.Select(Convert)],
 		};
 	}

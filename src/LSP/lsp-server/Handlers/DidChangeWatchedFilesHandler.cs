@@ -16,8 +16,6 @@ public class DidChangeWatchedFilesHandler(
 
 	public override Task<Unit> Handle(DidChangeWatchedFilesParams request, CancellationToken cancellationToken)
 	{
-		_logger.LogInformation("[DidChangeWatchedFilesParams]");
-
 		_solver.Workspace.LockForWrite(() =>
 		{
 			foreach (var change in request.Changes)

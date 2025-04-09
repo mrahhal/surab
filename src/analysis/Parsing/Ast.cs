@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace Surab.Analysis;
@@ -33,9 +34,41 @@ public class SyntaxTree
 	/// <summary>
 	/// Gets the deepest node at the given position.
 	/// </summary>
+	public SyntaxNode? GetNodeAtWithTrivia(LinePosition linePosition)
+	{
+		return Root.GetNodeAtWithTrivia(linePosition);
+	}
+
+	/// <summary>
+	/// Gets the deepest node at the given position.
+	/// </summary>
 	public SyntaxNode? GetNodeAt(int filePosition)
 	{
 		return Root.GetNodeAt(filePosition);
+	}
+
+	/// <summary>
+	/// Gets the deepest node at the given position.
+	/// </summary>
+	public SyntaxNode? GetNodeAtWithTrivia(int filePosition)
+	{
+		return Root.GetNodeAtWithTrivia(filePosition);
+	}
+
+	/// <summary>
+	/// Gets the token at the given position.
+	/// </summary>
+	public SyntaxToken? GetTokenAt(LinePosition linePosition)
+	{
+		return Root.GetTokenAt(linePosition);
+	}
+
+	/// <summary>
+	/// Gets the token at the given position.
+	/// </summary>
+	public SyntaxToken? GetTokenAtWithTrivia(LinePosition linePosition)
+	{
+		return Root.GetTokenAtWithTrivia(linePosition);
 	}
 }
 
@@ -107,6 +140,48 @@ public abstract class SyntaxToken : SyntaxEntity
 	/// The trailing trivia. Usually empty except for the last token in a file.
 	/// </summary>
 	public IEnumerable<SyntaxTrivia> TrailingTrivia => _trailingTrivia;
+
+	public bool IsPositionInTrivia(LinePosition pos, [NotNullWhen(true)] out SyntaxTrivia? trivia, out bool leading)
+	{
+		leading = false;
+		if (!Span.Line.Contains(pos) && SpanWithTrivia.Line.Contains(pos))
+		{
+			foreach (var t in _leadingTrivia)
+			{
+				if (t.Span.Line.Contains(pos))
+				{
+					leading = true;
+					trivia = t;
+					return true;
+				}
+			}
+			foreach (var t in _trailingTrivia)
+			{
+				if (t.Span.Line.Contains(pos))
+				{
+					leading = false;
+					trivia = t;
+					return true;
+				}
+			}
+		}
+		trivia = null;
+		return false;
+	}
+}
+
+public static class SyntaxTokenExtensions
+{
+	public static bool IsSimpleTokenOfKind([NotNullWhen(true)] this SyntaxToken? token, SimpleTokenKind kind, [NotNullWhen(true)] out SimpleToken? simpleToken)
+	{
+		if (token?.Kind is SyntaxTokenKind.Simple)
+		{
+			simpleToken = (SimpleToken)token;
+			return simpleToken.SimpleTokenKind == kind;
+		}
+		simpleToken = null;
+		return false;
+	}
 }
 
 public enum ContextualKeyword
@@ -326,12 +401,15 @@ public sealed class SimpleToken : SyntaxToken
 			SimpleTokenKind.This => "this",
 			SimpleTokenKind.True => "true",
 			SimpleTokenKind.False => "false",
-			SimpleTokenKind.Var => "let",
+			SimpleTokenKind.Var => "var",
 			SimpleTokenKind.Const => "const",
 			SimpleTokenKind.Return => "return",
 
 			SimpleTokenKind.If => "if",
 			SimpleTokenKind.Else => "else",
+
+			SimpleTokenKind.AsKeyword => "as",
+			SimpleTokenKind.ImportKeyword => "import",
 
 			_ => throw new NotImplementedException(),
 		};
@@ -503,6 +581,11 @@ public sealed class IdentifierToken : SyntaxToken
 	public override void Accept(SyntaxTreeVisitor visitor)
 	{
 		visitor.VisitIdentifierToken(this);
+	}
+
+	public bool IsOp()
+	{
+		return Value != null && Value.Length != 0 && !Chars.IsIdentifierStart(Value[0]);
 	}
 
 	public override string ToString() => Value;
@@ -741,6 +824,11 @@ public interface ISyntaxNodeHasMainNameDef
 	NameDefNode Name { get; }
 }
 
+public interface ISyntaxNodeHasAttrs
+{
+	AttrsListNode? Attrs { get; }
+}
+
 [DebuggerDisplay("\\{{GetType().Name,nq}\\} {ToString()}")]
 public abstract class SyntaxNode : SyntaxEntity
 {
@@ -889,18 +977,46 @@ public abstract class SyntaxNode : SyntaxEntity
 	/// <summary>
 	/// Gets the deepest node at the given position.
 	/// </summary>
+	public SyntaxNode? GetNodeAtWithTrivia(LinePosition linePosition)
+	{
+		return GetNodeAtRecursiveWithTrivia(this, linePosition);
+	}
+
+	/// <summary>
+	/// Gets the deepest node at the given position.
+	/// </summary>
 	public SyntaxNode? GetNodeAt(int filePosition)
 	{
 		return GetNodeAtRecursive(this, filePosition);
+	}
+
+	/// <summary>
+	/// Gets the deepest node at the given position.
+	/// </summary>
+	public SyntaxNode? GetNodeAtWithTrivia(int filePosition)
+	{
+		return GetNodeAtRecursiveWithTrivia(this, filePosition);
 	}
 
 	private static SyntaxNode? GetNodeAtRecursive(SyntaxNode node, LinePosition linePosition)
 	{
 		foreach (var childNode in node.ChildNodes)
 		{
-			if (childNode.SpanWithTrivia.Line.Contains(linePosition))
+			if (childNode.Span.Line.Contains(linePosition))
 			{
 				return GetNodeAtRecursive(childNode, linePosition);
+			}
+		}
+		return node;
+	}
+
+	private static SyntaxNode? GetNodeAtRecursiveWithTrivia(SyntaxNode node, LinePosition linePosition)
+	{
+		foreach (var childNode in node.ChildNodes)
+		{
+			if (childNode.SpanWithTrivia.Line.Contains(linePosition))
+			{
+				return GetNodeAtRecursiveWithTrivia(childNode, linePosition);
 			}
 		}
 		return node;
@@ -910,7 +1026,7 @@ public abstract class SyntaxNode : SyntaxEntity
 	{
 		foreach (var childNode in node.ChildNodes)
 		{
-			if (childNode.SpanWithTrivia.File.Contains(filePosition))
+			if (childNode.Span.File.Contains(filePosition))
 			{
 				return GetNodeAtRecursive(childNode, filePosition);
 			}
@@ -918,10 +1034,40 @@ public abstract class SyntaxNode : SyntaxEntity
 		return node;
 	}
 
+	private static SyntaxNode? GetNodeAtRecursiveWithTrivia(SyntaxNode node, int filePosition)
+	{
+		foreach (var childNode in node.ChildNodes)
+		{
+			if (childNode.SpanWithTrivia.File.Contains(filePosition))
+			{
+				return GetNodeAtRecursiveWithTrivia(childNode, filePosition);
+			}
+		}
+		return node;
+	}
+
 	/// <summary>
-	/// Gets the token at the position without taking into account trivia.
+	/// Gets the token at the position.
 	/// </summary>
 	public SyntaxToken? GetTokenAt(LinePosition linePosition)
+	{
+		var deepestNode = GetNodeAt(linePosition);
+		return deepestNode?.GetDirectTokenAt(linePosition);
+	}
+
+	/// <summary>
+	/// Gets the token at the position.
+	/// </summary>
+	public SyntaxToken? GetTokenAtWithTrivia(LinePosition linePosition)
+	{
+		var deepestNode = GetNodeAtWithTrivia(linePosition);
+		return deepestNode?.GetDirectTokenAtWithTrivia(linePosition);
+	}
+
+	/// <summary>
+	/// Gets the direct (this node's children) token at the position.
+	/// </summary>
+	public SyntaxToken? GetDirectTokenAt(LinePosition linePosition)
 	{
 		foreach (var token in ChildTokens)
 		{
@@ -938,9 +1084,28 @@ public abstract class SyntaxNode : SyntaxEntity
 	}
 
 	/// <summary>
-	/// Gets the token at the position without taking into account trivia.
+	/// Gets the direct (this node's children) token at the position.
 	/// </summary>
-	public SyntaxToken? GetTokenAt(int filePosition)
+	public SyntaxToken? GetDirectTokenAtWithTrivia(LinePosition linePosition)
+	{
+		foreach (var token in ChildTokens)
+		{
+			if (token.SpanWithTrivia.Line.Contains(linePosition))
+			{
+				return token;
+			}
+			else if (token.SpanWithTrivia.Line.Start > linePosition)
+			{
+				break;
+			}
+		}
+		return null;
+	}
+
+	/// <summary>
+	/// Gets the direct (this node's children) token at the position.
+	/// </summary>
+	public SyntaxToken? GetDirectTokenAt(int filePosition)
 	{
 		foreach (var token in ChildTokens)
 		{
@@ -949,6 +1114,25 @@ public abstract class SyntaxNode : SyntaxEntity
 				return token;
 			}
 			else if (token.Span.File.Start > filePosition)
+			{
+				break;
+			}
+		}
+		return null;
+	}
+
+	/// <summary>
+	/// Gets the direct (this node's children) token at the position.
+	/// </summary>
+	public SyntaxToken? GetDirectTokenAtWithTrivia(int filePosition)
+	{
+		foreach (var token in ChildTokens)
+		{
+			if (token.SpanWithTrivia.File.Contains(filePosition))
+			{
+				return token;
+			}
+			else if (token.SpanWithTrivia.File.Start > filePosition)
 			{
 				break;
 			}
@@ -1058,20 +1242,17 @@ public partial class ConstDeclNode
 
 public partial class StructDeclNode
 {
-	// REVIEW: Decls might be a better name. Not all these decls are members (e.g. local decl).
-	public IEnumerable<DeclNode> Members => DeclsList?.Decls ?? [];
+	public IEnumerable<DeclNode> Decls => DeclsList?.Decls ?? [];
 }
 
 public partial class TraitDeclNode
 {
-	// REVIEW: same as above
-	public IEnumerable<DeclNode> Members => DeclsList?.Decls ?? [];
+	public IEnumerable<DeclNode> Decls => DeclsList?.Decls ?? [];
 }
 
 public partial class ImplDeclNode
 {
-	// REVIEW: same as above
-	public IEnumerable<DeclNode> Members => DeclsList?.Decls ?? [];
+	public IEnumerable<DeclNode> Decls => DeclsList?.Decls ?? [];
 }
 
 public partial class CallExprNode
@@ -1123,6 +1304,21 @@ public static class SyntaxNodeExtensions
 			ISyntaxNodeHasMainNameDef n => n.Name.Identifier,
 			FnDeclNode n => n.Sig.Name.Identifier,
 			MethodDeclNode n => n.Sig.Name.Identifier,
+			_ => null,
+		};
+	}
+
+	public static string? GetFriendlyDeclTag(this SyntaxNode? node)
+	{
+		return node?.Kind switch
+		{
+			SyntaxNodeKind.StructDecl => "struct",
+			SyntaxNodeKind.TraitDecl => "trait",
+			SyntaxNodeKind.AliasDecl => "alias",
+			SyntaxNodeKind.VarDecl => "var",
+			SyntaxNodeKind.FnDecl => "fn",
+			SyntaxNodeKind.ConstDecl => "const",
+			SyntaxNodeKind.ImplDecl => "impl",
 			_ => null,
 		};
 	}

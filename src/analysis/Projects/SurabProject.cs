@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Text;
 
 namespace Surab.Analysis;
 
@@ -21,6 +22,7 @@ public class SurabProject
 	private bool _dirty = true;
 	private Task? _fullAnalysisTask;
 	private readonly ConcurrentDictionary<Symbol, List<SyntaxNode>> _symbolToUsagesMap = new(); // filled when type checking during full analysis
+	private readonly ConcurrentDictionary<Symbol, string?> _symbolToDocumentation = [];
 	private IReadOnlyList<FileDiags>? _projectDiags = null;
 
 	private SurabProject(
@@ -164,7 +166,7 @@ public class SurabProject
 
 		if (symbol.EnclosingImpl != null)
 		{
-			var implMember = symbol.EnclosingImpl.Members.FirstOrDefault(m => m.ImplSymbol == symbol);
+			var implMember = symbol.EnclosingImpl.ProcessedMembers.FirstOrDefault(m => m.ImplSymbol == symbol);
 			if (implMember != null)
 			{
 				return implMember.MatchingTraitSymbol;
@@ -253,6 +255,102 @@ public class SurabProject
 			}
 			return usages;
 		});
+	}
+
+	public string? GetDocumentationOfSymbol(Symbol? symbol)
+	{
+		if (symbol == null)
+			return null;
+
+		return _symbolToDocumentation.GetOrAdd(symbol, ComputeDocumentation);
+	}
+
+	private string? ComputeDocumentation(Symbol symbol)
+	{
+		var node = symbol.DeclaringNode;
+		if (node == null)
+			return null;
+
+		var firstToken = node.GetTokenAtWithTrivia(node.Span.Line.Start);
+		if (firstToken == null)
+			return null;
+
+		var leadingTrivia = firstToken.LeadingTrivia.ToList();
+		if (leadingTrivia.Count == 0)
+			return null;
+
+		// Documentation starts with exactly: `///`
+		// Module documentation starts with exactly: `//!` and should be located in the main module file (same name as module folder).
+
+		if (symbol is ModuleSymbol)
+		{
+			// TODO
+		}
+
+		var indexStart = -1;
+		// Walk up until we hit a documentation line. Mark as started. Keep walking up until we hit
+		// a non documentation line.
+		// Walk up until we hit a non documentation line storing the index of lines to be added, until we hit a non document line.
+		for (var i = leadingTrivia.Count - 1; i >= 0; i--)
+		{
+			var trivia = leadingTrivia[i];
+			if (indexStart == -1)
+			{
+				if (trivia.Kind is SyntaxTriviaKind.Whitespace)
+				{
+					continue;
+				}
+				else if (IsDocumentationTrivia(trivia))
+				{
+					indexStart = i;
+					continue;
+				}
+				else
+				{
+					break;
+				}
+			}
+			else
+			{
+				if (IsDocumentationTrivia(trivia) || IsWhitespaceWithOneNewLine(trivia))
+				{
+					indexStart = i;
+				}
+				else
+				{
+					break;
+				}
+			}
+		}
+
+		if (indexStart < 0)
+			return null;
+
+		var sb = new StringBuilder();
+
+		for (var i = indexStart; i < leadingTrivia.Count; i++)
+		{
+			var trivia = leadingTrivia[i];
+			if (trivia.Kind is SyntaxTriviaKind.LineComment)
+			{
+				sb.Append(GetLexeme(trivia)[3..].Trim());
+			}
+			else if (trivia.Kind is SyntaxTriviaKind.Whitespace)
+			{
+				sb.AppendLine();
+			}
+		}
+
+		return sb.ToString();
+
+		static bool IsDocumentationTrivia(SyntaxTrivia trivia) =>
+			trivia.Kind is SyntaxTriviaKind.LineComment && GetLexeme(trivia).StartsWith("///");
+
+		static ReadOnlySpan<char> GetLexeme(SyntaxTrivia trivia) =>
+			trivia.Token.Tree.File.Text.AsSpan()[trivia.Span.File.GetRange()];
+
+		static bool IsWhitespaceWithOneNewLine(SyntaxTrivia trivia) =>
+			trivia.Kind is SyntaxTriviaKind.Whitespace && GetLexeme(trivia).Count('\n') == 1;
 	}
 
 	private (SyntaxTree, Reasoner) CreateNewTreeAndReasoner(ProjectFile file)
@@ -478,8 +576,9 @@ public class SurabProject
 		_dirty = true;
 
 		// Clear cache
-		_fullAnalysisTask = null;
 		_symbolToUsagesMap.Clear();
+		_symbolToDocumentation.Clear();
+		_fullAnalysisTask = null;
 		_projectDiags = null;
 		if (IsStdProject)
 		{

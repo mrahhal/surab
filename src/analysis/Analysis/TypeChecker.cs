@@ -99,13 +99,13 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 			// Ensure trait is implemented fully (no missing members, no invalid members).
 
 			var traitMembers = implSymbol.TraitType.Members;
-			var implMembers = implSymbol.Members;
-			var rawMembers = implSymbol.RawMembers;
+			var implProcessedMembers = implSymbol.ProcessedMembers;
+			var children = implSymbol.Children;
 
-			var missingMembers = implMembers.Where(x => !x.HasMatch).ToList();
-			var invalidMembers = rawMembers.Where(rawMember =>
+			var missingMembers = implProcessedMembers.Where(x => !x.HasMatch).ToList();
+			var invalidMembers = children.Where(child =>
 			{
-				return !implMembers.Any(implMember => implMember.ImplSymbol == rawMember);
+				return !implProcessedMembers.Any(implMember => implMember.ImplSymbol == child);
 			}).ToList();
 
 			if (missingMembers.Count != 0)
@@ -497,12 +497,12 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 		//    return; // Should we return?
 		//}
 
-		var candidates = targetType.LookupAccessibleSymbols(node.Name.Identifier.Value);
-		if (candidates.Length == 0)
+		var candidates = targetType.GetAccessibleMembers(node.Name.Identifier.Value);
+		if (candidates.Count == 0)
 		{
 			_diags.Add(node.Name.Identifier.Span, DiagLevel.Error, $"Unknown member access.");
 		}
-		else if (candidates.Length > 1)
+		else if (candidates.Count > 1)
 		{
 			_diags.Add(node.Name.Identifier.Span, DiagLevel.Error, $"Ambiguous access. More than one member matched.");
 		}
@@ -523,8 +523,8 @@ internal class TypeChecker(Reasoner reasoner) : SyntaxTreeVisitor
 
 	public override void VisitModuleAccessExpr(ModuleAccessExprNode node)
 	{
-		var targetSymbol = _reasoner.LookupModule(node.Target);
-		if (targetSymbol is not ModuleSymbol module)
+		var targetModule = _reasoner.LookupModule(node.Target);
+		if (targetModule is not ModuleSymbol module)
 		{
 			_diags.Add(TextSpan.FromTo(node.Target.Span, node.ColonColonToken.Span), DiagLevel.Error, $"not a module");
 			return;

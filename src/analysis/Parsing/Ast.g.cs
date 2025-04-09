@@ -123,7 +123,7 @@ public partial class ImportNode : SyntaxNode
 
 	public SimpleToken ImportToken => (SimpleToken)_childTokens[0]!;
 	/// <summary>
-	/// Well formed: IdentifierExpr or AccessExpr
+	/// Well formed: NameExpr or AccessExpr
 	/// </summary>
 	public ExprNode Target => (ExprNode)_childNodes[0]!;
 	public AsNameNode? AsName => (AsNameNode?)_childNodes[1]!;
@@ -135,7 +135,7 @@ public partial class ImportNode : SyntaxNode
 	}
 }
 
-public partial class ConstDeclNode : DeclNode, ISyntaxNodeHasMainIdentifier
+public partial class ConstDeclNode : DeclNode, ISyntaxNodeHasAttrs, ISyntaxNodeHasMainIdentifier
 {
 	public ConstDeclNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken constToken, IdentifierToken identifier, ColonTypeNode? type, EqualsExprClauseNode? initializer, SimpleToken semicolonToken)
 		: base(tree, SyntaxNodeKind.ConstDecl)
@@ -163,7 +163,7 @@ public partial class ConstDeclNode : DeclNode, ISyntaxNodeHasMainIdentifier
 	}
 }
 
-public partial class VarDeclNode : DeclNode, ISyntaxNodeHasMainIdentifier
+public partial class VarDeclNode : DeclNode, ISyntaxNodeHasAttrs, ISyntaxNodeHasMainIdentifier
 {
 	public VarDeclNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken varToken, IdentifierToken identifier, ColonTypeNode? type, EqualsExprClauseNode? initializer, SimpleToken semicolonToken)
 		: base(tree, SyntaxNodeKind.VarDecl)
@@ -188,7 +188,7 @@ public partial class VarDeclNode : DeclNode, ISyntaxNodeHasMainIdentifier
 	}
 }
 
-public partial class FnDeclNode : DeclNode
+public partial class FnDeclNode : DeclNode, ISyntaxNodeHasAttrs
 {
 	public FnDeclNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken fnToken, FnSigNode sig, BlockExprNode? body, SimpleToken? semicolonToken)
 		: base(tree, SyntaxNodeKind.FnDecl)
@@ -215,7 +215,7 @@ public partial class FnDeclNode : DeclNode
 	}
 }
 
-public partial class MethodDeclNode : DeclNode
+public partial class MethodDeclNode : DeclNode, ISyntaxNodeHasAttrs
 {
 	public MethodDeclNode(SyntaxTree tree, AttrsListNode? attrs, FnSigNode sig, BlockExprNode? body, SimpleToken? semicolonToken)
 		: base(tree, SyntaxNodeKind.MethodDecl)
@@ -238,7 +238,7 @@ public partial class MethodDeclNode : DeclNode
 	}
 }
 
-public partial class AliasDeclNode : DeclNode
+public partial class AliasDeclNode : DeclNode, ISyntaxNodeHasAttrs
 {
 	public AliasDeclNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken aliasToken, TypeNode targetType, AsNameNode asName, SimpleToken semicolonToken)
 		: base(tree, SyntaxNodeKind.AliasDecl)
@@ -283,7 +283,7 @@ public partial class AsNameNode : SyntaxNode, ISyntaxNodeHasMainNameDef
 	}
 }
 
-public partial class StructDeclNode : DeclNode, ISyntaxNodeHasMainNameDef
+public partial class StructDeclNode : DeclNode, ISyntaxNodeHasAttrs, ISyntaxNodeHasMainNameDef
 {
 	public StructDeclNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken structToken, NameDefNode name, SimpleToken openBraceToken, DeclsListNode? declsList, SimpleToken closedBraceToken)
 		: base(tree, SyntaxNodeKind.StructDecl)
@@ -308,7 +308,7 @@ public partial class StructDeclNode : DeclNode, ISyntaxNodeHasMainNameDef
 	}
 }
 
-public partial class TraitDeclNode : DeclNode, ISyntaxNodeHasMainNameDef
+public partial class TraitDeclNode : DeclNode, ISyntaxNodeHasAttrs, ISyntaxNodeHasMainNameDef
 {
 	public TraitDeclNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken traitToken, NameDefNode name, SimpleToken openBraceToken, DeclsListNode? declsList, SimpleToken closedBraceToken)
 		: base(tree, SyntaxNodeKind.TraitDecl)
@@ -333,7 +333,7 @@ public partial class TraitDeclNode : DeclNode, ISyntaxNodeHasMainNameDef
 	}
 }
 
-public partial class ImplDeclNode : DeclNode
+public partial class ImplDeclNode : DeclNode, ISyntaxNodeHasAttrs
 {
 	public ImplDeclNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken implToken, NameNode name, SimpleToken openBraceToken, DeclsListNode? declsList, SimpleToken closedBraceToken)
 		: base(tree, SyntaxNodeKind.ImplDecl)
@@ -378,7 +378,7 @@ public partial class DeclsListNode : SyntaxNode
 	}
 }
 
-public partial class FieldDeclNode : DeclNode, ISyntaxNodeHasMainIdentifier
+public partial class FieldDeclNode : DeclNode, ISyntaxNodeHasAttrs, ISyntaxNodeHasMainIdentifier
 {
 	public FieldDeclNode(SyntaxTree tree, AttrsListNode? attrs, IdentifierToken identifier, ColonTypeNode? type, EqualsExprClauseNode? initializer, SimpleToken semicolonToken)
 		: base(tree, SyntaxNodeKind.FieldDecl)
@@ -813,7 +813,7 @@ public partial class TypeCreationExprNode : ExprNode
 	}
 
 	/// <summary>
-	/// Well formed: IdentifierExpr or AccessExpr
+	/// Well formed: NameExpr or AccessExpr
 	/// </summary>
 	public ExprNode TypeExpr => (ExprNode)_childNodes[0]!;
 	public SimpleToken DotToken => (SimpleToken)_childTokens[0]!;
@@ -961,7 +961,7 @@ public partial class ParamsListNode : SyntaxNode
 	}
 }
 
-public partial class ParamNode : SyntaxNode, ISyntaxNodeHasMainIdentifier
+public partial class ParamNode : SyntaxNode, ISyntaxNodeHasAttrs, ISyntaxNodeHasMainIdentifier
 {
 	public ParamNode(SyntaxTree tree, AttrsListNode? attrs, IdentifierToken identifier, ColonTypeNode? type, EqualsExprClauseNode? initializer, SimpleToken? commaToken)
 		: base(tree, SyntaxNodeKind.Param)
@@ -1229,7 +1229,7 @@ public partial class ColonTypeNode : SyntaxNode
 	}
 }
 
-public partial class ExprTypeNode : TypeNode
+public partial class ExprTypeNode : TypeNode, ISyntaxNodeHasAttrs
 {
 	public ExprTypeNode(SyntaxTree tree, AttrsListNode? attrs, ExprNode expr)
 		: base(tree, SyntaxNodeKind.ExprType)
@@ -1253,7 +1253,7 @@ public partial class ExprTypeNode : TypeNode
 	}
 }
 
-public partial class PtrTypeNode : TypeNode
+public partial class PtrTypeNode : TypeNode, ISyntaxNodeHasAttrs
 {
 	public PtrTypeNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken asteriskToken, TypeNode? innerType)
 		: base(tree, SyntaxNodeKind.PtrType)
@@ -1275,7 +1275,7 @@ public partial class PtrTypeNode : TypeNode
 	}
 }
 
-public partial class FnTypeNode : TypeNode
+public partial class FnTypeNode : TypeNode, ISyntaxNodeHasAttrs
 {
 	public FnTypeNode(SyntaxTree tree, AttrsListNode? attrs, SimpleToken fnToken, ParamTypesListNode? paramTypesList, TypeNode? returnType)
 		: base(tree, SyntaxNodeKind.FnType)
@@ -1298,7 +1298,7 @@ public partial class FnTypeNode : TypeNode
 	}
 }
 
-public partial class MissingTypeNode : TypeNode
+public partial class MissingTypeNode : TypeNode, ISyntaxNodeHasAttrs
 {
 	public MissingTypeNode(SyntaxTree tree, TextSpan span, AttrsListNode? attrs)
 		: base(tree, SyntaxNodeKind.MissingType)

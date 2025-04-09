@@ -21,6 +21,8 @@ public abstract class UnknownTypeSymbol : TypeSymbol
 
 	public override ImmutableArray<Symbol> Members => [];
 
+	public override ImmutableArray<Symbol> AccessibleMembers => [];
+
 	internal override IdentifierToken? IdentifierToken => null;
 
 	public static UnknownTypeSymbol Create() => new SimpleUnknownTypeSymbol();
