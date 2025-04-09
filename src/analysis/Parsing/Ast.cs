@@ -408,6 +408,9 @@ public sealed class SimpleToken : SyntaxToken
 			SimpleTokenKind.If => "if",
 			SimpleTokenKind.Else => "else",
 
+			SimpleTokenKind.AsKeyword => "as",
+			SimpleTokenKind.ImportKeyword => "import",
+
 			_ => throw new NotImplementedException(),
 		};
 	}
