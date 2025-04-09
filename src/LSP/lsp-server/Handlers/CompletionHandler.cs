@@ -400,13 +400,17 @@ public class CompletionHandler(
 
 		CompletionItem CreateUnresolvedCompletionItem(Symbol symbol)
 		{
+			var documentation = project.GetDocumentationOfSymbol(symbol) is { } str ? new StringOrMarkupContent(new MarkupContent { Kind = MarkupKind.Markdown, Value = str }) : null;
 			return new CompletionItem
 			{
 				Label = symbol.Name,
 				Kind = GetCompletionItemKind(symbol),
 				TextEdit = new(new TextEdit { Range = ConversionHelper.FromTo(textEditSpan), NewText = GetNewText() }),
 				Command = GetCommand(),
-				//Data = for resolve
+				//Data = JToken.FromObject(new CompletionData()),
+
+				// TODO: This should be in resolve instead.
+				Documentation = documentation,
 			};
 
 			string GetNewText()
@@ -463,21 +467,30 @@ public class CompletionHandler(
 		};
 	}
 
+	//private record class CompletionData(NormalizedPath Uri, LinePosition Position);
+
 	public override Task<CompletionItem> Handle(CompletionItem request, CancellationToken cancellationToken)
 	{
 		return _solver.Workspace.LockForRead(() =>
 		{
-			// Detail
-			// LabelDetails
-			// Documentation
-
-			//Documentation = new MarkupContent
-			//{
-			//	Kind = MarkupKind.Markdown,
-			//	Value = $"### This is just to test markup for {symbol.Name}\n\nYes that's how:\n- One\n- two",
-			//},
-
 			return Task.FromResult(request);
+
+			//var data = request.Data.ToObject<CompletionData>();
+			//var resolved = new CompletionItem
+			//{
+			//	Label = request.Label,
+			//	Kind = request.Kind,
+			//	TextEdit = request.TextEdit,
+			//	Command = request.Command,
+
+			//	// Detail
+			//	// Documentation
+
+			//	// additional:
+			//	// LabelDetails?
+			//};
+
+			//return Task.FromResult(request);
 		});
 	}
 
