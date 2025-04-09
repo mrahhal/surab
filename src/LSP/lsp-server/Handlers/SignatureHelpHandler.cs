@@ -113,7 +113,11 @@ public class SignatureHelpHandler(
 					Signatures = new(new SignatureInformation
 					{
 						Label = b.SigLabel,
-						//Documentation =
+						//Documentation = new MarkupContent
+						//{
+						//	Kind = MarkupKind.Markdown,
+						//	Value = ,
+						//},
 						Parameters = new(b.Params),
 					}),
 				};
