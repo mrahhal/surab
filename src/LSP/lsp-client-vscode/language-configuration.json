@@ -117,6 +117,20 @@
 			"action": {
 				"indent": "outdent"
 			}
+		},
+		{
+			"beforeText": "^\\s*///.*\\s*$",
+			"action": {
+				"indent": "none",
+				"appendText": "/// "
+			}
+		},
+		{
+			"beforeText": "^\\s*//!.*\\s*$",
+			"action": {
+				"indent": "none",
+				"appendText": "//! "
+			}
 		}
 	],
 	"folding": {
