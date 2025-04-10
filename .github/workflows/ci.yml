@@ -35,21 +35,14 @@ jobs:
         shell: bash
         run: |
           clang --version
-          find LLVM-C.dll
+          ls ${{ env.LLVM_PATH }}
+          ls ${{ env.LLVM_PATH }}/lib
           find libLLVM
         continue-on-error: true
 
       - name: Add LLVM libs to path
         shell: bash
         run: echo "${{ env.LLVM_PATH }}/lib" >> $GITHUB_PATH
-
-      - name: Test LLVM 2
-        shell: bash
-        run: |
-          clang --version
-          find LLVM-C.dll
-          find libLLVM
-        continue-on-error: true
 
       - name: Build rust
         run: cargo build --verbose
@@ -62,7 +55,6 @@ jobs:
         continue-on-error: true
       - name: Test compilation
         run: dotnet test ./test/compilation-tests/
-        continue-on-error: true
       # - name: Test integration
       #   run: dotnet test ./test/integration-tests/
 
