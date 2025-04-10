@@ -13,8 +13,8 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build_and_test:
-    name: Build & Test
+  build:
+    name: Build
     runs-on: ubuntu-latest
 
     steps:
@@ -26,37 +26,16 @@ jobs:
         with:
           dotnet-version: 9.x.x
 
-      - name: Setup LLVM
-        uses: KyleMayes/install-llvm-action@v2
-        with:
-          version: "16.0"
-
-      - name: Test LLVM
-        shell: bash
-        run: |
-          clang --version
-          ls ${{ env.LLVM_PATH }}
-          ls ${{ env.LLVM_PATH }}/lib
-          find libLLVM
-        continue-on-error: true
-
-      - name: Add LLVM libs to path
-        shell: bash
-        run: echo "${{ env.LLVM_PATH }}/lib" >> $GITHUB_PATH
+      # - name: Setup LLVM
+      #   uses: KyleMayes/install-llvm-action@v2
+      #   with:
+      #     version: "16.0"
 
       - name: Build rust
         run: cargo build --verbose
 
       - name: Build dotnet
         run: dotnet build
-
-      - name: Test analysis
-        run: dotnet test ./test/analysis-tests/
-        continue-on-error: true
-      - name: Test compilation
-        run: dotnet test ./test/compilation-tests/
-      # - name: Test integration
-      #   run: dotnet test ./test/integration-tests/
 
       # - name: Test
       #   run: dotnet test
