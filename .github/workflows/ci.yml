@@ -34,7 +34,7 @@ jobs:
         run: cargo build --verbose
 
       - name: Build dotnet
-        run: dotnet build --verbose
+        run: dotnet build
 
       - name: Test
         run: dotnet test
