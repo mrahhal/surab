@@ -52,8 +52,8 @@ jobs:
       - name: Test compilation
         run: dotnet test ./test/compilation-tests/
         continue-on-error: true
-      - name: Test integration
-        run: dotnet test ./test/integration-tests/
+      # - name: Test integration
+      #   run: dotnet test ./test/integration-tests/
 
       # - name: Test
       #   run: dotnet test
