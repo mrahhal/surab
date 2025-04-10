@@ -26,15 +26,19 @@ jobs:
         with:
           dotnet-version: 9.x.x
 
-      # - name: Setup LLVM
-      #   uses: KyleMayes/install-llvm-action@v2
-      #   with:
-      #     version: "16.0"
+      - name: Setup LLVM
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "16.0"
 
-      # - name: Test LLVM
-      #   shell: bash
-      #   run: clang --version
-      #   continue-on-error: true
+      - name: Test LLVM
+        shell: bash
+        run: clang --version
+        continue-on-error: true
+
+      - name: Add LLVM libs to path
+        shell: bash
+        run: echo "${{ env.LLVM_PATH }}/lib" >> $GITHUB_PATH
 
       - name: Build rust
         run: cargo build --verbose
