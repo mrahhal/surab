@@ -14,6 +14,7 @@ env:
 
 jobs:
   build_and_test:
+    name: Build & Test
     runs-on: ubuntu-latest
 
     steps:
