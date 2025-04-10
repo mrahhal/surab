@@ -3,7 +3,6 @@
 	<PropertyGroup>
 		<RootNamespace>Surab.Compilation</RootNamespace>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifier>
 	</PropertyGroup>
 
 	<ItemGroup>
