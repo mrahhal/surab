@@ -33,12 +33,23 @@ jobs:
 
       - name: Test LLVM
         shell: bash
-        run: clang --version
+        run: |
+          clang --version
+          find LLVM-C.dll
+          find libLLVM
         continue-on-error: true
 
       - name: Add LLVM libs to path
         shell: bash
         run: echo "${{ env.LLVM_PATH }}/lib" >> $GITHUB_PATH
+
+      - name: Test LLVM 2
+        shell: bash
+        run: |
+          clang --version
+          find LLVM-C.dll
+          find libLLVM
+        continue-on-error: true
 
       - name: Build rust
         run: cargo build --verbose
