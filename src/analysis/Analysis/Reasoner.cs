@@ -59,6 +59,8 @@ public class Reasoner
 
 	/// <summary>
 	/// Tries getting a <see cref="Symbol"/> that is declared on the given node.
+	/// This is fuzzy in that it will try to resolve the declared symbol even if it's not the
+	/// exact node the symbol was declared on (e.g. NameDefNode will resolve to the right symbol).
 	/// </summary>
 	public bool TryGetDeclaredSymbol(SyntaxNode node, [NotNullWhen(true)] out Symbol? symbol)
 	{
@@ -69,6 +71,7 @@ public class Reasoner
 			DeclStmtNode declStmt => TryGetDeclaredSymbol(declStmt.Decl, out symbol),
 			FnSigNode sig when sig.Parent != null => TryGetDeclaredSymbol(sig.Parent, out symbol),
 			NameDefNode nameDef when nameDef.Parent != null => TryGetDeclaredSymbol(nameDef.Parent, out symbol),
+			AsNameNode asName when asName.Parent != null => TryGetDeclaredSymbol(asName.Parent, out symbol),
 			_ => _nodeToSymbolMap.TryGetValue(node, out symbol),
 		};
 	}
@@ -130,8 +133,7 @@ public class Reasoner
 
 	public Symbol? GetDeclaredSymbol(IdentifierToken identifierToken)
 	{
-		var node = identifierToken.GetParentNodeThatDeclaresSymbol();
-		return node == null ? null : GetDeclaredSymbol(node);
+		return GetDeclaredSymbol(identifierToken.Parent);
 	}
 
 	/// <summary>

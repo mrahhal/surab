@@ -589,26 +589,6 @@ public sealed class IdentifierToken : SyntaxToken
 	}
 
 	public override string ToString() => Value;
-
-	public bool DeclaresSymbol()
-	{
-		return (Parent?.DeclaresSymbol() ?? false) || Parent is FnSigNode;
-	}
-
-	public SyntaxNode? GetParentNodeThatDeclaresSymbol()
-	{
-		if (Parent?.DeclaresSymbol() ?? false)
-		{
-			return Parent;
-		}
-
-		if (Parent is FnSigNode sig)
-		{
-			return sig.Parent!; // fn or method
-		}
-
-		return null;
-	}
 }
 
 public enum LiteralTokenKind
@@ -1160,6 +1140,7 @@ public abstract class SyntaxNode : SyntaxEntity
 
 	/// <summary>
 	/// Returns whether or not this node declares a symbol. i.e. Calling <see cref="Reasoner.GetDeclaredSymbol(SyntaxNode)"/> on this should never return `null`.
+	/// This is only for the specific nodes that map to a symbol, and doesn't correspond to the fuzzier GetDeclaredSymbol.
 	/// </summary>
 	public bool DeclaresSymbol()
 	{
