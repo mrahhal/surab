@@ -257,6 +257,13 @@ public class SurabProject
 		});
 	}
 
+	public bool IsSymbolInProject(Symbol symbol)
+	{
+		if (symbol.DeclaringFile == null)
+			return false;
+		return VFS.Contains(symbol.DeclaringFile);
+	}
+
 	public string? GetDocumentationOfSymbol(Symbol? symbol)
 	{
 		if (symbol == null)

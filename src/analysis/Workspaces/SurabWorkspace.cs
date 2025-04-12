@@ -351,6 +351,13 @@ public class SurabWorkspace
 			});
 	}
 
+	/// <summary>
+	/// Returns whether a symbol is declared in the workspace.
+	/// </summary>
+	public bool IsSymbolInWorkspace(Symbol symbol)
+	{
+		return WorkspaceProjects.Any(p => p.IsSymbolInProject(symbol));
+	}
 	// ---
 
 	private void Initialize()
