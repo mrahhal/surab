@@ -370,7 +370,8 @@ public class SurabWorkspace
 				null => SymbolRefKind.Text,
 				_ => SymbolRefKind.Read,
 			};
-			refs.Add(new(node.Tree.File, node.Span, kind));
+			var span = node.GetMainIdentifierToken()?.Span ?? node.Span;
+			refs.Add(new(node.Tree.File, span, kind));
 		}
 
 		return refs;
