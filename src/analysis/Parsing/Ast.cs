@@ -1285,6 +1285,7 @@ public static class SyntaxNodeExtensions
 			ISyntaxNodeHasMainNameDef n => n.Name.Identifier,
 			FnDeclNode n => n.Sig.Name.Identifier,
 			MethodDeclNode n => n.Sig.Name.Identifier,
+			AliasDeclNode n => n.AsName.Name.Identifier,
 			_ => null,
 		};
 	}
