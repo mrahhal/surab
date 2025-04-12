@@ -214,7 +214,7 @@ public class VFS
 
 	public ProjectFile AddFile(ProjectFileKind kind, NormalizedPath path, string text)
 	{
-		ValidateIsInProject(path);
+		ValidateNewFileIsInProject(path);
 		var (name, _) = ProjectFileHelper.GetFileNameAndExt(path);
 		var folder = GetOrAddFolder(path);
 		var file = ProjectFile.Create(kind, path, name, text, folder);
@@ -243,10 +243,30 @@ public class VFS
 		return GetRootFolder().Files.FirstOrDefault(f => f.Kind is ProjectFileKind.ProjectConfig);
 	}
 
-	private void ValidateIsInProject(NormalizedPath filePath)
+	public bool Contains(ProjectFile file) => Contains(file.Path);
+
+	public bool Contains(NormalizedPath filePath)
 	{
-		// TODO:
-		if (!ProjectPath.IsEmpty && !filePath.IsEmpty && Path.GetRelativePath(ProjectPath.Value, filePath.Value).StartsWith(".."))
+		if (ProjectPath.IsEmpty)
+		{
+			// Probably in a test or an in memory proj.
+			// For now go with bruteforce.
+			return EnumerateFiles().Any(f => f.Path == filePath);
+		}
+
+		// TODO: Improve.
+		return !Path.GetRelativePath(ProjectPath.Value, filePath.Value).StartsWith("..");
+	}
+
+	private void ValidateNewFileIsInProject(NormalizedPath filePath)
+	{
+		if (ProjectPath.IsEmpty)
+		{
+			// Test or in memory. Don't bother.
+			return;
+		}
+
+		if (!Contains(filePath))
 		{
 			throw new Exception("File not in project.");
 		}

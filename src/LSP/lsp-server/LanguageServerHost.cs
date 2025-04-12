@@ -87,6 +87,8 @@ public class LanguageServerHost
 			.WithHandler<SemanticTokensFullHandler>()
 			.WithHandler<CompletionHandler>()
 			.WithHandler<SignatureHelpHandler>()
+			.WithHandler<RenameHandler>()
+			.WithHandler<PrepareRenameHandler>()
 
 			.OnRequest<TextDocumentPositionParams, GetSyntaxTreeRequest.Response>("surab/get-syntax-tree", p => GetSyntaxTreeRequest.HandlerAsync(p, Server));
 

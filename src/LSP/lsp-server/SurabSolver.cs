@@ -224,7 +224,7 @@ public class SurabSolver(
 		var symbol = GetTouchingSymbol(textDocument, position);
 		if (symbol == null)
 			return null;
-		var refs = GetAllReferences(symbol);
+		var refs = GetReferences(symbol);
 		return new LocationContainer(refs.Select(r => new Location
 		{
 			Uri = DocumentUri.FromFileSystemPath(r.File.Path.Value),
@@ -238,7 +238,7 @@ public class SurabSolver(
 		var symbol = GetTouchingSymbol(textDocument, position);
 		if (symbol == null)
 			return null;
-		var refs = GetAllReferences(symbol);
+		var refs = GetReferences(symbol);
 		return new DocumentHighlightContainer(refs.Where(r => r.File == sourceFile).Select(r => new DocumentHighlight
 		{
 			Kind = r.Kind,
@@ -246,26 +246,21 @@ public class SurabSolver(
 		}));
 	}
 
-	public List<(ProjectFile File, TextSpan Span, DocumentHighlightKind Kind)> GetAllReferences(Symbol symbol)
+	public IEnumerable<(ProjectFile File, TextSpan Span, DocumentHighlightKind Kind)> GetReferences(Symbol symbol)
 	{
-		var usages = Workspace.WorkspaceProjects.SelectMany(p => p.GetUsagesOfSymbolInProject(symbol));
-		var refs = new List<(ProjectFile, TextSpan, DocumentHighlightKind)>();
-		if (symbol.DeclaringNode != null)
+		var refs = Workspace.LookupReferences(symbol);
+		return refs.Select(r => (r.File, r.Span, Convert(r.Kind)));
+
+		static DocumentHighlightKind Convert(SymbolRefKind kind)
 		{
-			var declaringSpan = symbol.DeclaringNode.GetMainIdentifierToken()?.Span ?? symbol.DeclaringNode.Span;
-			refs.Add((symbol.DeclaringFile!, declaringSpan, DocumentHighlightKind.Text));
-		}
-		refs.AddRange(usages.Select(u =>
-		{
-			var kind = u.Parent?.Kind switch
+			return kind switch
 			{
-				SyntaxNodeKind.AssignmentExpr => DocumentHighlightKind.Write,
-				null => DocumentHighlightKind.Text,
-				_ => DocumentHighlightKind.Read,
+				SymbolRefKind.Decl or SymbolRefKind.Text => DocumentHighlightKind.Text,
+				SymbolRefKind.Read => DocumentHighlightKind.Read,
+				SymbolRefKind.Write => DocumentHighlightKind.Write,
+				_ => throw new UnreachableException(),
 			};
-			return (u.Tree.File, u.Span, kind);
-		}));
-		return refs;
+		}
 	}
 
 	private Symbol? GetTouchingSymbol(TextDocumentIdentifier textDocument, Position position)

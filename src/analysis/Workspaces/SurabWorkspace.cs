@@ -351,6 +351,40 @@ public class SurabWorkspace
 			});
 	}
 
+	public List<SymbolRef> LookupReferences(Symbol? symbol)
+	{
+		if (symbol == null)
+			return [];
+
+		List<SymbolRef> refs = [];
+		if (symbol.DeclaringNode != null)
+		{
+			var declaringSpan = symbol.DeclaringNode.GetMainIdentifierToken()?.Span ?? symbol.DeclaringNode.Span;
+			refs.Add(new(symbol.DeclaringFile!, declaringSpan, SymbolRefKind.Decl));
+		}
+		foreach (var node in WorkspaceProjects.SelectMany(p => p.GetUsagesOfSymbolInProject(symbol)))
+		{
+			var kind = node.Parent?.Kind switch
+			{
+				SyntaxNodeKind.AssignmentExpr => SymbolRefKind.Write,
+				null => SymbolRefKind.Text,
+				_ => SymbolRefKind.Read,
+			};
+			var span = node.GetMainIdentifierToken()?.Span ?? node.Span;
+			refs.Add(new(node.Tree.File, span, kind));
+		}
+
+		return refs;
+	}
+
+	/// <summary>
+	/// Returns whether a symbol is declared in the workspace.
+	/// </summary>
+	public bool IsSymbolInWorkspace(Symbol symbol)
+	{
+		return WorkspaceProjects.Any(p => p.IsSymbolInProject(symbol));
+	}
+
 	// ---
 
 	private void Initialize()
