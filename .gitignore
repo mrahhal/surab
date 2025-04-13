@@ -2,7 +2,10 @@
 obj
 bin
 /target
+/build
 node_modules
 surab-lsp-server.log
 *.vsix
 editor-groups.json
+
+/src/scpp/libs
