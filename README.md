@@ -9,7 +9,8 @@ Focused on: [TODO]
 
 ## Requirements
 
-- C++ installation and .NET 9.
+- C++ compiler with C++17 support.
+- .NET 9.
 - CMake (min 4.0) and add to path.
 - Rust {latest stable?}
 - LLVM and Clang 20.1 is used through prebuilt bins, and this is how to download tarballs and unzip into a location in the repo for scpp to work.
