@@ -9,7 +9,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 list(APPEND CMAKE_PREFIX_PATH "libs/llvm")
 
 if(NOT CMAKE_BUILD_TYPE)
-	# llvm/clang libs we depend on are always Release so we can't really do Debug here?
+	# llvm libs we depend on are always Release so we can't really do Debug here?
 	set(CMAKE_BUILD_TYPE "Debug" CACHE STRING
 		"Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel." FORCE)
 endif()
@@ -20,7 +20,7 @@ project(surab
 	LANGUAGES C CXX)
 
 find_package(llvm 20)
-find_package(clang 20)
+find_package(lld 20)
 
 configure_file(./cmake/config.json config.json)
 
@@ -28,7 +28,9 @@ configure_file(./cmake/config.json config.json)
 
 set(SCPP_SOURCES
 	surab_llvm.h
-	surab_llvm.cpp)
+	surab_llvm.cpp
+	surab_lld.h
+	surab_lld.cpp)
 
 set(SCPP_OUTPUT_DIR "${PROJECT_BINARY_DIR}/scpp")
 message("MESSAGE OUTPUT: ${SCPP_OUTPUT_DIR}")
@@ -44,10 +46,10 @@ endif()
 
 target_include_directories(scpp PUBLIC
 	${LLVM_INCLUDE_DIRS}
-	${CLANG_INCLUDE_DIRS})
+	${LLD_INCLUDE_DIRS})
 target_link_libraries(scpp PUBLIC
 	${LLVM_LIBRARIES}
-	${CLANG_LIBRARIES})
+	${LLD_LIBRARIES})
 
 set_target_properties(scpp PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${SCPP_OUTPUT_DIR})
 foreach(CONFIG_TYPE ${CMAKE_CONFIGURATION_TYPES})

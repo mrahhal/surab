@@ -7,6 +7,8 @@ namespace Surab.Compilation.LLVM;
 
 internal unsafe static class SCPPInterop
 {
+	// llvm
+
 	[DllImport("scpp", EntryPoint = "scpp_setup", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
 	public static extern bool setup(
 		string triple, sbyte** outError,
@@ -287,6 +289,11 @@ internal unsafe static class SCPPInterop
 
 	[DllImport("scpp", EntryPoint = "scpp_get_intrinsic", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
 	public static extern SCPPOpaque* get_intrinsic(SCPPOpaque* module, SCPPOpaque* b, SCPPIntrinsicOp op, SCPPOpaque** tys, uint numParams);
+
+	// lld
+
+	[DllImport("scpp", EntryPoint = "scpp_lld", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+	public static extern bool lld(string additionalLibs, string inputFiles, string outputFile, sbyte** outError);
 }
 
 // Ensure these are always up to date and match the corresponding values in scpp.

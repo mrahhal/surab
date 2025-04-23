@@ -88,7 +88,7 @@ public sealed class Compiler
 		{
 			throw new Exception("Error while printing to file: " + error);
 		}
-		return ClangRunner.Run([_context.Options.LLFileName]);
+		return LldRunner.Run([_context.Options.LLFileName]);
 	}
 
 	private static Target ParseTargetTriple(string targetTriple)

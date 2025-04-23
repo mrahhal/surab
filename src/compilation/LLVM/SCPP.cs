@@ -51,6 +51,18 @@ internal unsafe static class SCPP
 	{
 		return SCPPInterop.get_last_enum_attr_Kind();
 	}
+
+	public static bool Lld(IEnumerable<string> additionalLibs, IEnumerable<string> inputFiles, string outputFile, out string error)
+	{
+		sbyte* outError = null;
+		var result = SCPPInterop.lld(
+			string.Join(';', additionalLibs),
+			string.Join(';', inputFiles),
+			outputFile,
+			&outError);
+		error = outError == null ? string.Empty : SCPPExtensions.AsString(outError);
+		return result;
+	}
 }
 
 // A pointer to this represents an opaque pointer used when invoking bindings in scpp.

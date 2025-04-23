@@ -137,3 +137,8 @@ FIND_AND_ADD_LLVM_LIB(LLVMXRay)
 
 get_filename_component(LLVM_LIBDIRS "${LLVM_LLVMCORE_LIB}" DIRECTORY)
 find_path(LLVM_INCLUDE_DIRS NAMES llvm/IR/IRBuilder.h)
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(llvm DEFAULT_MSG LLVM_INCLUDE_DIRS LLVM_LIBRARIES)
+
+mark_as_advanced(LLVM_INCLUDE_DIRS LLVM_LIBRARIES)
