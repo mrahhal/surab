@@ -1,6 +1,11 @@
 #include "c_wrapping_defs.h"
 #include "surab_llvm.h"
 
+// This header has a few warnings that we don't really care about.
+#pragma warning(disable : 4624)
+#include "llvm/IR/Operator.h"
+#pragma warning(pop)
+
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
