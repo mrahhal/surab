@@ -42,6 +42,9 @@
 	"files.associations": {
 		"*.props": "xml",
 		"*.targets": "xml",
-		"*.def": "cpp"
+		"*.inc": "cpp",
+		"*.def": "cpp",
+		"cassert": "cpp",
+		"memory": "cpp"
 	}
 }
