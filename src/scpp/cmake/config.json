@@ -1,0 +1,5 @@
+{
+	"version_major": @surab_VERSION_MAJOR@,
+	"version_minor": @surab_VERSION_MINOR@,
+	"version_patch": @surab_VERSION_PATCH@
+}

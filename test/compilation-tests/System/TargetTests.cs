@@ -1,4 +1,4 @@
-﻿using LLVMSharp.Interop;
+﻿using Surab.Compilation.LLVM;
 
 namespace Surab.Compilation;
 
@@ -13,10 +13,11 @@ public partial class TargetTests
 		var structLayout = context.Target.GetStructLayout(testContext.Struct1);
 		var llvmType = context.LLVMTarget.LowerType(testContext.Struct1);
 
-		llvmType.StructElementTypes.Should().HaveCount(structLayout.Sections.Count);
-		llvmType.StructElementTypes[0].Should().Be(LLVMTypeRef.Int1);
-		llvmType.StructElementTypes[1].Should().Be(LLVMTypeRef.CreateArray(LLVMTypeRef.Int1, 7)); // Padding
-		llvmType.StructElementTypes[2].Should().Be(LLVMTypeRef.Double);
+		var structElementTypes = llvmType.GetStructElementTypes();
+		structElementTypes.Should().HaveCount(structLayout.Sections.Count);
+		structElementTypes[0].Should().Be(SCPPTypeRef.Int1);
+		structElementTypes[1].Should().Be(SCPPTypeRef.CreateArray(SCPPTypeRef.Int1, 7)); // Padding
+		structElementTypes[2].Should().Be(SCPPTypeRef.Double);
 	}
 
 	[Fact]
@@ -28,11 +29,12 @@ public partial class TargetTests
 		var structLayout = context.Target.GetStructLayout(testContext.Struct2);
 		var llvmType = context.LLVMTarget.LowerType(testContext.Struct2);
 
-		llvmType.StructElementTypes.Should().HaveCount(structLayout.Sections.Count);
-		llvmType.StructElementTypes[0].Should().Be(LLVMTypeRef.Int1);
-		llvmType.StructElementTypes[1].Should().Be(LLVMTypeRef.CreateArray(LLVMTypeRef.Int1, 7)); // Padding
-		llvmType.StructElementTypes[2].Should().Be(LLVMTypeRef.Double);
-		llvmType.StructElementTypes[3].Should().Be(LLVMTypeRef.Int1);
-		llvmType.StructElementTypes[4].Should().Be(LLVMTypeRef.CreateArray(LLVMTypeRef.Int1, 7)); // Padding
+		var structElementTypes = llvmType.GetStructElementTypes();
+		structElementTypes.Should().HaveCount(structLayout.Sections.Count);
+		structElementTypes[0].Should().Be(SCPPTypeRef.Int1);
+		structElementTypes[1].Should().Be(SCPPTypeRef.CreateArray(SCPPTypeRef.Int1, 7)); // Padding
+		structElementTypes[2].Should().Be(SCPPTypeRef.Double);
+		structElementTypes[3].Should().Be(SCPPTypeRef.Int1);
+		structElementTypes[4].Should().Be(SCPPTypeRef.CreateArray(SCPPTypeRef.Int1, 7)); // Padding
 	}
 }

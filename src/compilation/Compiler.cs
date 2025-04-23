@@ -1,5 +1,5 @@
 ﻿using System.Diagnostics;
-using LLVMSharp.Interop;
+using System.Runtime.InteropServices;
 using Surab.Analysis;
 using Surab.Compilation.LLVM;
 
@@ -76,13 +76,18 @@ public sealed class Compiler
 
 		if (VerificationEnabled)
 		{
-			_context.LLVM.Module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction);
+			if (!_context.LLVM.Module.Verify(out var messages))
+			{
+				throw new Exception("Verification failed: " + messages);
+			}
 		}
 
-		//_context.LLVM.PassManager.FinalizeFunctionPassManager();
-		//_context.LLVM.PassManager.Run(_context.LLVM.Module);
+		//_context.LLVM.Module.RunOptimizationPass();
 
-		_context.LLVM.Module.PrintToFile(_context.Options.LLFileName);
+		if (!_context.LLVM.Module.PrintToFile(_context.Options.LLFileName, out var error))
+		{
+			throw new Exception("Error while printing to file: " + error);
+		}
 		return ClangRunner.Run([_context.Options.LLFileName]);
 	}
 
@@ -150,7 +155,7 @@ internal sealed class FnCompiler : HirTreeVisitor
 
 		_llvmFnUnit = GetUnit(fnValue);
 		_llvmFn = LLVMTarget.GetFnInfoFromFnType(fnValue.Type);
-		Debug.Assert(_llvmFnUnit.Value.BasicBlocksCount == 0);
+		Debug.Assert(_llvmFnUnit.Value.GetBasicBlocksCount() == 0);
 	}
 
 	private Target Target => _context.Target;
@@ -193,7 +198,7 @@ internal sealed class FnCompiler : HirTreeVisitor
 			{
 				if (FnValue.IsMain && FnValue.ReturnType.KnownTypeTag == KnownTypeTag.@void)
 				{
-					LLVM.Builder.BuildRet(LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, 0));
+					LLVM.Builder.BuildRet(SCPPValueRef.CreateConstInt(SCPPTypeRef.Int32, 0));
 				}
 				else
 				{
@@ -208,11 +213,11 @@ internal sealed class FnCompiler : HirTreeVisitor
 			GenerateIntrinsic(intrinsicAttr.Name);
 		}
 
-		if (!_llvmFnUnit.Value.VerifyFunction(LLVMVerifierFailureAction.LLVMPrintMessageAction))
+		if (!SCPP.VerifyFunction(_llvmFnUnit.Value, out var error))
 		{
 			// TODO: Log? LLVM prints the problem on the console anyway.
-			//if (Compiler.VerificationEnabled)
-			//throw new Exception("LLVM function verification failed.");
+			if (Compiler.VerificationEnabled)
+				throw new Exception("LLVM function verification failed: " + error);
 		}
 
 		//LLVM.PassManager.RunFunctionPassManager(_llvmFnUnit.Value);
@@ -238,14 +243,14 @@ internal sealed class FnCompiler : HirTreeVisitor
 		var ptrInnerType = LLVMTarget.LowerType(ptrType.InnerType);
 		var offsetUnit = _paramUnits[1];
 
-		var gep = LLVM.Builder.BuildInBoundsGEP2(
+		var gep = LLVM.Builder.BuildInBoundsGEP(
 			ptrInnerType,
 			ptrUnit.Value,
 			[offsetUnit.Unwrap(LLVM).Value]);
-		//[LLVMValueRef.CreateConstInt(LLVMTypeRef.Int64, 0), LLVMValueRef.CreateConstInt(LLVMTypeRef.Int64, 2)]);
+		//[SCPPValueRef.CreateConstInt(SCPPTypeRef.Int64, 0), SCPPValueRef.CreateConstInt(SCPPTypeRef.Int64, 2)]);
 
 		// For arrays
-		//[LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, 0), offsetUnit.Unwrap(LLVM).Value]);
+		//[SCPPValueRef.CreateConstInt(SCPPTypeRef.Int32, 0), offsetUnit.Unwrap(LLVM).Value]);
 
 		LLVM.Builder.BuildRet(gep);
 	}
@@ -268,7 +273,7 @@ internal sealed class FnCompiler : HirTreeVisitor
 
 		foreach (var t in overallParams)
 		{
-			var paramValue = _llvmFnUnit.Value.GetParam((uint)llvmParamOffset);
+			var paramValue = _llvmFnUnit.Value.GetParam(llvmParamOffset);
 			var paramType = t.Type;
 			var paramName = t.Value.Name ?? string.Empty;
 			var llvmType = LLVMTarget.LowerType(paramType);
@@ -284,7 +289,7 @@ internal sealed class FnCompiler : HirTreeVisitor
 						var alignment = Target.GetAbiAlignment(paramType);
 
 						var ptr = LLVM.Builder.BuildAlloca(llvmType, paramName);
-						ptr.SetAlignment((uint)alignment.Bytes);
+						ptr.SetAlignment(alignment.Bytes);
 						LLVM.Builder.BuildStore(paramValue, ptr);
 						var unit = LLVMUnit.Wrapped(llvmType, ptr);
 
@@ -295,7 +300,7 @@ internal sealed class FnCompiler : HirTreeVisitor
 					{
 						// paramValue is already a ptr. Treat it as the wrapper ptr directly.
 						var alignment = Target.GetAbiAlignment(t.Type);
-						Debug.Assert(paramValue.TypeOf.Kind == LLVMTypeKind.LLVMPointerTypeKind, "Param value should already be a ptr.");
+						Debug.Assert(paramValue.GetTypeOf().GetKind() is SCPPTypeKind.pointer, "Param value should already be a ptr.");
 						var unit = LLVMUnit.Wrapped(llvmType, paramValue);
 						CreateParamUnit(t.Value, unit);
 					}
@@ -303,11 +308,11 @@ internal sealed class FnCompiler : HirTreeVisitor
 				case LLVMTypeLoweringKind.AsInt:
 					{
 						var layout = Target.GetLayout(t.Type);
-						var llvmIntType = LLVMTypeRef.CreateInt((uint)layout.Size.Bits);
-						var alignment = Math.Max(layout.Alignment.Bytes, (int)LLVM.TargetData.ABIAlignmentOfType(llvmIntType)).AsBytes();
+						var llvmIntType = SCPPTypeRef.CreateInt(layout.Size.Bits);
+						var alignment = Math.Max(layout.Alignment.Bytes, LLVM.TargetMachine.GetAbiAlignmentOfType(llvmIntType)).AsBytes();
 
 						var ptr = LLVM.Builder.BuildAlloca(llvmType, paramName);
-						ptr.SetAlignment((uint)alignment.Bytes);
+						ptr.SetAlignment(alignment.Bytes);
 						LLVM.Builder.BuildStore(paramValue, ptr);
 						var unit = LLVMUnit.Wrapped(llvmType, ptr);
 
@@ -348,7 +353,7 @@ internal sealed class FnCompiler : HirTreeVisitor
 		{
 			Visit(node.Expr);
 			var exprUnit = _stack.Pop();
-			LLVMValueRef? sretPtr = null;
+			SCPPValueRef? sretPtr = null;
 			if (_llvmFn.SRet.HasValue)
 			{
 				sretPtr = _llvmFnUnit.Value.GetParam(0);
@@ -373,15 +378,15 @@ internal sealed class FnCompiler : HirTreeVisitor
 
 		var argOffset = 0;
 		var llvmIndex = 0;
-		var llvmArgCount = (int)llvmFnType.ParamTypesCount;
-		var args = new List<LLVMValueRef>(llvmArgCount);
+		var llvmArgCount = llvmFnType.CountParamTypes();
+		var args = new List<SCPPValueRef>(llvmArgCount);
 
 		if (sret.HasValue)
 		{
 			var (size, alignment) = Target.GetLayout(fnType.ReturnType);
 
 			var sretAlloc = LLVM.Builder.BuildAlloca(sret.Value);
-			sretAlloc.SetAlignment((uint)alignment.Bytes);
+			sretAlloc.SetAlignment(alignment.Bytes);
 			args.Add(sretAlloc);
 
 			llvmIndex++;
@@ -421,9 +426,9 @@ internal sealed class FnCompiler : HirTreeVisitor
 						Debug.Assert(argUnit.IsWrapped);
 						var (_, argValuePtr) = argUnit;
 						var layout = Target.GetLayout(paramType);
-						var llvmIntType = LLVMTypeRef.CreateInt((uint)layout.Size.Bits);
-						var loaded = LLVM.Builder.BuildLoad2(llvmIntType, argValuePtr);
-						loaded.SetAlignment((uint)layout.Alignment.Bytes);
+						var llvmIntType = SCPPTypeRef.CreateInt(layout.Size.Bits);
+						var loaded = LLVM.Builder.BuildLoad(llvmIntType, argValuePtr);
+						loaded.SetAlignment(layout.Alignment.Bytes);
 						args.Add(loaded);
 					}
 					break;
@@ -433,8 +438,8 @@ internal sealed class FnCompiler : HirTreeVisitor
 			llvmIndex++;
 		}
 
-		var returnValue = LLVM.Builder.BuildCall2(llvmFnType, llvmFnValue, [.. args]);
-		attrs.Apply((index, attr) => returnValue.AddCallSiteAttributeAtIndex(index, attr));
+		var returnValue = LLVM.Builder.BuildCallWithType(llvmFnType, llvmFnValue, [.. args]);
+		attrs.Apply(returnValue.AddCallSiteAttribute);
 
 		if (sret.HasValue)
 		{
@@ -445,7 +450,7 @@ internal sealed class FnCompiler : HirTreeVisitor
 		else
 		{
 			// Always push a value, even if void, since this gets popped in VisitExprStmt.
-			_stack.Push(LLVMUnit.Unwrapped(llvmFnType.ReturnType, returnValue));
+			_stack.Push(LLVMUnit.Unwrapped(llvmFnType.GetFunctionReturnType(), returnValue));
 		}
 	}
 
@@ -480,7 +485,7 @@ internal sealed class FnCompiler : HirTreeVisitor
 				var conditionType = condition.Type;
 				Debug.Assert(conditionType.KnownTypeTag is KnownTypeTag.@bool);
 				var conditionResult = _stack.Pop();
-				var cmpResult = LLVM.Builder.BuildICmp(LLVMIntPredicate.LLVMIntEQ, conditionResult.Value, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, 1));
+				var cmpResult = LLVM.Builder.BuildICmp(ICmpPredicate.ICMP_EQ, conditionResult.Value, SCPPValueRef.CreateConstInt(SCPPTypeRef.Int1, 1));
 				var brThen = AddBasicBlock(thenBlockName);
 				var brElse = nextArm == null ? matchEndBlock : AddBasicBlock(elseBlockName);
 				LLVM.Builder.BuildCondBr(cmpResult, brThen, brElse);
@@ -518,19 +523,19 @@ internal sealed class FnCompiler : HirTreeVisitor
 		}
 	}
 
-	private LLVMBasicBlockRef EnterBasicBlock(string name)
+	private SCPPBasicBlockRef EnterBasicBlock(string name)
 	{
 		var block = _llvmFnUnit.Value.AppendBasicBlock(name);
 		LLVM.Builder.PositionAtEnd(block);
 		return block;
 	}
 
-	private LLVMBasicBlockRef AddBasicBlock(string name)
+	private SCPPBasicBlockRef AddBasicBlock(string name)
 	{
 		return _llvmFnUnit.Value.AppendBasicBlock(name);
 	}
 
-	private void SeekToBasicBlock(LLVMBasicBlockRef block)
+	private void SeekToBasicBlock(SCPPBasicBlockRef block)
 	{
 		LLVM.Builder.PositionAtEnd(block);
 	}
@@ -555,21 +560,21 @@ internal sealed class FnCompiler : HirTreeVisitor
 		var newValue = node.Op switch
 		{
 			UnaryOperatorTokenKind.Neg => BuildNeg(),
-			UnaryOperatorTokenKind.Not => LLVM.Builder.BuildICmp(LLVMIntPredicate.LLVMIntEQ, value, LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, 0)),
+			UnaryOperatorTokenKind.Not => LLVM.Builder.BuildICmp(ICmpPredicate.ICMP_EQ, value, SCPPValueRef.CreateConstInt(SCPPTypeRef.Int1, 0)),
 			_ => throw new NotImplementedException(),
 		};
 		// TODO:
-		_stack.Push(LLVMUnit.Unwrapped(LLVMTypeRef.Double, newValue));
+		_stack.Push(LLVMUnit.Unwrapped(SCPPTypeRef.Double, newValue));
 
-		LLVMValueRef BuildNeg()
+		SCPPValueRef BuildNeg()
 		{
 			if (node.Type.KnownTypeTag.IsNumericInteger())
 			{
-				return LLVM.Builder.BuildNeg(value);
+				return LLVM.Builder.BuildUnaryOp(SCPPUnaryOp.neg, value);
 			}
 			else
 			{
-				return LLVM.Builder.BuildFNeg(value);
+				return LLVM.Builder.BuildUnaryOp(SCPPUnaryOp.fneg, value);
 			}
 		}
 	}
@@ -609,29 +614,29 @@ internal sealed class FnCompiler : HirTreeVisitor
 			// TODO: Missing
 			_ => throw new NotImplementedException(),
 		};
-		_stack.Push(LLVMUnit.Unwrapped(LLVMTypeRef.Double, newValue));
+		_stack.Push(LLVMUnit.Unwrapped(SCPPTypeRef.Double, newValue));
 
-		LLVMValueRef BuildAdd()
+		SCPPValueRef BuildAdd()
 		{
 			if (node.Type.KnownTypeTag.IsNumericInteger())
 			{
-				return LLVM.Builder.BuildAdd(leftValue, rightValue);
+				return LLVM.Builder.BuildBinaryOp(SCPPBinaryOp.add, leftValue, rightValue);
 			}
 			else
 			{
-				return LLVM.Builder.BuildFAdd(leftValue, rightValue);
+				return LLVM.Builder.BuildBinaryOp(SCPPBinaryOp.fadd, leftValue, rightValue);
 			}
 		}
 
-		LLVMValueRef BuildSub()
+		SCPPValueRef BuildSub()
 		{
 			if (node.Type.KnownTypeTag.IsNumericInteger())
 			{
-				return LLVM.Builder.BuildSub(leftValue, rightValue);
+				return LLVM.Builder.BuildBinaryOp(SCPPBinaryOp.sub, leftValue, rightValue);
 			}
 			else
 			{
-				return LLVM.Builder.BuildFSub(leftValue, rightValue);
+				return LLVM.Builder.BuildBinaryOp(SCPPBinaryOp.fsub, leftValue, rightValue);
 			}
 		}
 	}
@@ -689,7 +694,7 @@ internal sealed class FnCompiler : HirTreeVisitor
 		var structLayout = Target.GetStructLayout(node.FieldValue.StructType);
 		var fieldSection = structLayout.Sections.First(s => s.FieldIndex == node.FieldValue.FieldIndex);
 
-		var ptrToField = LLVM.Builder.BuildStructGEP2(llvmEnclosingType, targetPtr, (uint)fieldSection.SectionIndex);
+		var ptrToField = LLVM.Builder.BuildStructGEP(llvmEnclosingType, targetPtr, fieldSection.SectionIndex);
 		var fieldLLVMType = LLVMTarget.LowerType(node.FieldValue.Type);
 		// We don't load it, for the same reason outlined in VisitVariableLoadExpr.
 		_stack.Push(LLVMUnit.Wrapped(fieldLLVMType, ptrToField));
@@ -708,7 +713,7 @@ internal sealed class FnCompiler : HirTreeVisitor
 		var fieldSection = structLayout.Sections.First(s => s.FieldIndex == node.FieldValue.FieldIndex);
 		var fieldLLVMType = LLVMTarget.LowerType(node.FieldValue.Type);
 
-		var ptrToField = LLVM.Builder.BuildStructGEP2(targetType, targetPtr, (uint)fieldSection.SectionIndex);
+		var ptrToField = LLVM.Builder.BuildStructGEP(targetType, targetPtr, fieldSection.SectionIndex);
 
 		var leftType = node.FieldValue.Type;
 		var rightType = node.Expr.Type;
@@ -740,14 +745,14 @@ internal sealed class FnCompiler : HirTreeVisitor
 						var llvmType = LLVMTarget.LowerType(node.Type);
 						// TODO: Do sign and zero extension more properly?
 						var signExtend = Target.GetIntegerSign(node.Type) == IntegerSign.Signed;
-						var llvmValue = LLVMValueRef.CreateConstInt(llvmType, v, signExtend);
+						var llvmValue = SCPPValueRef.CreateConstInt(llvmType, v, signExtend);
 						_stack.Push(LLVMUnit.Unwrapped(llvmType, llvmValue));
 					}
 					else if (node.Type.KnownTypeTag.IsNumericFloat())
 					{
 						var v = node.Data.GetNumericValueAsFloat();
 						var llvmType = LLVMTarget.LowerType(node.Type);
-						var llvmValue = LLVMValueRef.CreateConstReal(llvmType, v);
+						var llvmValue = SCPPValueRef.CreateConstReal(llvmType, v);
 						_stack.Push(LLVMUnit.Unwrapped(llvmType, llvmValue));
 					}
 					else
@@ -760,8 +765,8 @@ internal sealed class FnCompiler : HirTreeVisitor
 			case LiteralDataKind.Bool:
 				{
 					Debug.Assert(node.Data.TryGetBoolValue(out var v));
-					var llvmType = LLVMTypeRef.Int1;
-					var llvmValue = LLVMValueRef.CreateConstInt(llvmType, v ? (ulong)1 : 0);
+					var llvmType = SCPPTypeRef.Int1;
+					var llvmValue = SCPPValueRef.CreateConstInt(llvmType, v ? (ulong)1 : 0);
 					_stack.Push(LLVMUnit.Unwrapped(llvmType, llvmValue));
 				}
 				break;
@@ -769,7 +774,7 @@ internal sealed class FnCompiler : HirTreeVisitor
 			case LiteralDataKind.String:
 				{
 					Debug.Assert(node.Data.TryGetStringValue(out var v));
-					var llvmType = LLVMTypeRef.CreatePointer(LLVMTypeRef.Void, 0);
+					var llvmType = SCPPTypeRef.CreatePointer(SCPPTypeRef.Void, 0);
 					var llvmValue = LLVM.Builder.BuildGlobalStringPtr(v!);
 					_stack.Push(LLVMUnit.Unwrapped(llvmType, llvmValue));
 				}
@@ -820,10 +825,10 @@ internal sealed class FnCompiler : HirTreeVisitor
 		var (sret, attrs) = LLVMTarget.GetFnInfoFromFnType(fnValue.Type);
 		var (llvmPtrType, llvmFnType) = LLVMTarget.LowerType(fnValue.Type);
 
-		if (fnValue.IsMain && llvmFnType.ReturnType == LLVMTypeRef.Void)
+		if (fnValue.IsMain && llvmFnType.GetFunctionReturnType() == SCPPTypeRef.Void)
 		{
 			// Rewrite to return i32.
-			llvmFnType = LLVMTypeRef.CreateFunction(LLVMTypeRef.Int32, llvmFnType.ParamTypes);
+			llvmFnType = SCPPTypeRef.CreateFunctionType(SCPPTypeRef.Int32, llvmFnType.GetParamTypes());
 			// Do we need to rewrite llvmPtrType? It's an opaque ptr, so maybe not.
 		}
 
@@ -832,7 +837,7 @@ internal sealed class FnCompiler : HirTreeVisitor
 
 		if (!fnValue.IsExtern && !fnValue.IsMain)
 		{
-			llvmFnValue.Linkage = LLVMLinkage.LLVMInternalLinkage;
+			llvmFnValue.SetLinkage(SCPPLinkage.@internal);
 		}
 
 		// TODO: switch (cc) (C this is already the LLVM default if not set)
@@ -888,31 +893,31 @@ internal abstract class LLVMTarget
 	public abstract bool IsReturnSRetCore(HirFnType fnType);
 
 	// TODO: Support different calling conventions. Right now it's always Win64 cc.
-	public LLVMTypeRef LowerFnReturnType(HirFnType fnType)
+	public SCPPTypeRef LowerFnReturnType(HirFnType fnType)
 	{
 		if (fnType.ReturnType.KnownTypeTag == KnownTypeTag.@void)
-			return LLVMTypeRef.Void;
+			return SCPPTypeRef.Void;
 
 		Debug.Assert(!Target.GetAbiSize(fnType.ReturnType).IsZeroSized);
 
 		return LowerFnReturnTypeCore(fnType);
 	}
 
-	protected abstract LLVMTypeRef LowerFnReturnTypeCore(HirFnType fnType);
+	protected abstract SCPPTypeRef LowerFnReturnTypeCore(HirFnType fnType);
 
-	public void CompileFnReturnStmt(HirType returnType, LLVMUnit exprUnit, LLVMValueRef? sretOpt)
+	public void CompileFnReturnStmt(HirType returnType, LLVMUnit exprUnit, SCPPValueRef? sretOpt)
 	{
 		CompileFnReturnStmtCore(returnType, exprUnit, sretOpt);
 	}
 
-	protected abstract void CompileFnReturnStmtCore(HirType returnType, LLVMUnit exprUnit, LLVMValueRef? sretOpt);
+	protected abstract void CompileFnReturnStmtCore(HirType returnType, LLVMUnit exprUnit, SCPPValueRef? sretOpt);
 
 	/// <summary>
 	/// Lowers a type from Surab to LLVM.
 	/// </summary>
 	/// <param name="type">The Surab type to lower.</param>
 	/// <returns>The lowered LLVM type.</returns>
-	public LLVMTypeRef LowerType(HirType type)
+	public SCPPTypeRef LowerType(HirType type)
 	{
 		if (Context.TypeToLLVMType.TryGetValue(type, out var llvmType))
 		{
@@ -924,7 +929,7 @@ internal abstract class LLVMTarget
 		return llvmType;
 	}
 
-	private LLVMTypeRef LowerTypeCore(HirType type)
+	private SCPPTypeRef LowerTypeCore(HirType type)
 	{
 		if (type.Kind is HirTypeKind.GenericParam)
 		{
@@ -936,21 +941,21 @@ internal abstract class LLVMTarget
 		if (tag.IsNumericInteger())
 		{
 			var size = Target.GetAbiSize(type);
-			return LLVMTypeRef.CreateInt((uint)size.Bits);
+			return SCPPTypeRef.CreateInt(size.Bits);
 		}
 
 		if (tag is KnownTypeTag.@void)
-			return LLVMTypeRef.Void;
+			return SCPPTypeRef.Void;
 		if (tag is KnownTypeTag.@char or KnownTypeTag.@bool)
-			return LLVMTypeRef.Int1;
+			return SCPPTypeRef.Int1;
 
 		if (tag is KnownTypeTag.f32)
-			return LLVMTypeRef.Float;
+			return SCPPTypeRef.Float;
 		if (tag is KnownTypeTag.f64)
-			return LLVMTypeRef.Double;
+			return SCPPTypeRef.Double;
 
 		if (tag is KnownTypeTag.@string || type.Kind is HirTypeKind.Ptr)
-			return LLVMTypeRef.CreatePointer(LLVMTypeRef.Void, 0);
+			return SCPPTypeRef.CreatePointer(SCPPTypeRef.Void, 0);
 
 		if (type is HirStructType structType)
 		{
@@ -960,14 +965,14 @@ internal abstract class LLVMTarget
 			{
 				return m.Kind switch
 				{
-					StructLayoutSectionKind.Padding => LLVMTypeRef.CreateArray(LLVMTypeRef.Int1, (uint)m.Size.Bytes),
+					StructLayoutSectionKind.Padding => SCPPTypeRef.CreateArray(SCPPTypeRef.Int1, m.Size.Bytes),
 					StructLayoutSectionKind.Data => LowerType(fields[m.FieldIndex].Type),
 					_ => throw new UnreachableException(),
 				};
 			}).ToArray();
 			// TODO: Optionally mangled name instead.
-			var llvmType = LLVM.Context.CreateNamedStruct(structType.FullName);
-			llvmType.StructSetBody(elements, Packed: false);
+			var llvmType = SCPPTypeRef.CreateNamedStruct(structType.FullName);
+			llvmType.StructSetBody(elements, packed: false);
 			return llvmType;
 		}
 
@@ -985,7 +990,7 @@ internal abstract class LLVMTarget
 	/// </summary>
 	/// <param name="fnType">The Surab fn type to lower.</param>
 	/// <returns>The lowered LLVM type (which is an opaque ptr in the case of fns here) and the actual LLVM type (the actual fn type).</returns>
-	public (LLVMTypeRef llvmType, LLVMTypeRef llvmActualType) LowerType(HirFnType fnType)
+	public (SCPPTypeRef llvmType, SCPPTypeRef llvmActualType) LowerType(HirFnType fnType)
 	{
 		var (sret, _) = GetFnInfoFromFnType(fnType);
 		var returnType = LowerFnReturnType(fnType);
@@ -993,11 +998,11 @@ internal abstract class LLVMTarget
 		// TODO: Better way?
 		var llvmIndex = 0;
 		var capacity = fnType.ParamTypes.Count + 1; // Max length of llvm params.
-		var @params = new List<LLVMTypeRef>(capacity);
+		var @params = new List<SCPPTypeRef>(capacity);
 
 		if (sret.HasValue)
 		{
-			@params.Add(LLVMTypeRef.CreatePointer(LowerType(fnType.ReturnType), 0));
+			@params.Add(SCPPTypeRef.CreatePointer(LowerType(fnType.ReturnType), 0));
 			llvmIndex++;
 		}
 
@@ -1017,13 +1022,13 @@ internal abstract class LLVMTarget
 					break;
 				case LLVMTypeLoweringKind.ByCopyRef:
 					{
-						@params.Add(LLVMTypeRef.CreatePointer(paramLLVMType, 0));
+						@params.Add(SCPPTypeRef.CreatePointer(paramLLVMType, 0));
 					}
 					break;
 				case LLVMTypeLoweringKind.AsInt:
 					{
 						var layout = Target.GetLayout(paramType);
-						var llvmIntType = LLVMTypeRef.CreateInt((uint)layout.Size.Bits);
+						var llvmIntType = SCPPTypeRef.CreateInt(layout.Size.Bits);
 						@params.Add(llvmIntType);
 					}
 					break;
@@ -1032,10 +1037,11 @@ internal abstract class LLVMTarget
 			llvmIndex++;
 		}
 
-		var llvmFnType = LLVMTypeRef.CreateFunction(returnType, @params.ToArray(), false);
+		// SCPPTypeRef.CreateFunctionType
+		var llvmFnType = SCPPTypeRef.CreateFunctionType(returnType, CollectionsMarshal.AsSpan(@params), false);
 
 		// TODO: AddressSpace?
-		return (LLVMTypeRef.CreatePointer(llvmFnType, 0), llvmFnType);
+		return (SCPPTypeRef.CreatePointer(llvmFnType, 0), llvmFnType);
 	}
 
 	// TODO: Optimize calls to this method? This is being called multiple times in sequence when we compile an fn. We could cache the result.
@@ -1046,12 +1052,12 @@ internal abstract class LLVMTarget
 
 		// TODO: Better way?
 		var llvmIndex = 0;
-		var attrs = new LLVMFnAttrsDef();
+		var attrs = new SCPPFnAttrsDef();
 
 		var sret = IsReturnSRet(fnType);
 		if (sret)
 		{
-			attrs.AddParam(llvmIndex, LLVM.Context.CreateTypeAttribute(AttributeKind.StructRet, returnType));
+			attrs.AddParam(llvmIndex, SCPPAttributeRef.Create(SCPPAttributeKind.StructRet, returnType));
 			llvmIndex++;
 		}
 
@@ -1081,7 +1087,7 @@ internal abstract class LLVMTarget
 			llvmIndex++;
 		}
 
-		return new LLVMFn(sret ? returnType : (LLVMTypeRef?)null, attrs);
+		return new LLVMFn(sret ? returnType : (SCPPTypeRef?)null, attrs);
 	}
 
 	public LLVMTypeLowering GetLLVMLowering(HirType type)
@@ -1104,22 +1110,22 @@ internal abstract class x86_64WindowsLLVMTarget(CompilationContext context) : LL
 		return Target.Classify(fnType.ReturnType) == Classification.Memory;
 	}
 
-	protected override LLVMTypeRef LowerFnReturnTypeCore(HirFnType fnType)
+	protected override SCPPTypeRef LowerFnReturnTypeCore(HirFnType fnType)
 	{
 		var returnType = fnType.ReturnType;
 		var classification = Target.Classify(returnType);
 		return classification switch
 		{
-			Classification.Integer => returnType.IsScalar() ? LowerType(returnType) : LLVMTypeRef.CreateInt((uint)Target.GetAbiSize(returnType).Bits),
+			Classification.Integer => returnType.IsScalar() ? LowerType(returnType) : SCPPTypeRef.CreateInt(Target.GetAbiSize(returnType).Bits),
 			//win_i128 =>
-			Classification.Memory => LLVMTypeRef.Void,
+			Classification.Memory => SCPPTypeRef.Void,
 			Classification.SSE => LowerType(returnType),
 			_ => throw new UnreachableException(),
 		};
 	}
 
 	// Logic sync'd with LowerFnReturnTypeCore above.
-	protected override void CompileFnReturnStmtCore(HirType returnType, LLVMUnit exprUnit, LLVMValueRef? sretOpt)
+	protected override void CompileFnReturnStmtCore(HirType returnType, LLVMUnit exprUnit, SCPPValueRef? sretOpt)
 	{
 		Debug.Assert(!Target.GetAbiSize(returnType).IsZeroSized);
 
@@ -1140,7 +1146,7 @@ internal abstract class x86_64WindowsLLVMTarget(CompilationContext context) : LL
 			// sret
 			Debug.Assert(sretOpt.HasValue);
 			var sretPtr = sretOpt.Value;
-			Debug.Assert(sretPtr.TypeOf.Kind is LLVMTypeKind.LLVMPointerTypeKind);
+			Debug.Assert(sretPtr.GetTypeOf().GetKind() is SCPPTypeKind.pointer);
 			var (_, exprValue) = exprUnit.Unwrap(LLVM);
 			LLVM.Builder.BuildStore(exprValue, sretPtr);
 			return;
@@ -1153,9 +1159,9 @@ internal abstract class x86_64WindowsLLVMTarget(CompilationContext context) : LL
 			Debug.Assert(exprUnit.IsWrapped);
 			var (_, exprValuePtr) = exprUnit;
 			var layout = Target.GetLayout(returnType);
-			var llvmIntType = LLVMTypeRef.CreateInt((uint)layout.Size.Bits);
-			var loaded = LLVM.Builder.BuildLoad2(llvmIntType, exprValuePtr);
-			loaded.SetAlignment((uint)layout.Alignment.Bytes);
+			var llvmIntType = SCPPTypeRef.CreateInt(layout.Size.Bits);
+			var loaded = LLVM.Builder.BuildLoad(llvmIntType, exprValuePtr);
+			loaded.SetAlignment(layout.Alignment.Bytes);
 			LLVM.Builder.BuildRet(loaded);
 			return;
 		}

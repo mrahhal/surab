@@ -6,6 +6,7 @@ node_modules
 surab-lsp-server.log
 *.vsix
 *.lib
+*.dll
 editor-groups.json
 
 /src/scpp/libs
