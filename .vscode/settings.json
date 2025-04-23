@@ -38,5 +38,10 @@
 		"alignActions": false,
 		"alignLabels": true,
 		"alignTrailers": false
+	},
+	"files.associations": {
+		"*.props": "xml",
+		"*.targets": "xml",
+		"*.def": "cpp"
 	}
 }
