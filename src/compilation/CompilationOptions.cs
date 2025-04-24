@@ -6,6 +6,8 @@ public sealed class CompilationOptions
 
 	public string LLFileName => $"{Name}.ll";
 
+	public string ObjectFileName => $"{Name}.o";
+
 	public static CompilationOptions CreateDefault()
 	{
 		return new CompilationOptions

@@ -23,8 +23,8 @@ internal unsafe static class SCPPInterop
 	[DllImport("scpp", EntryPoint = "scpp_print_to_file", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
 	public static extern bool print_to_file(SCPPOpaque* module, string fileName, sbyte** outError);
 
-	[DllImport("scpp", EntryPoint = "scpp_run_opt_pass", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-	public static extern void run_opt_pass(SCPPOpaque* module);
+	[DllImport("scpp", EntryPoint = "scpp_emit_o", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+	public static extern bool emit_o(SCPPOpaque* module, SCPPOpaque* targetMachine, SCPPOptLevel optLevel, string outputFile, sbyte** outError);
 
 	[DllImport("scpp", EntryPoint = "scpp_get_abi_alignment_of_type", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
 	public static extern uint get_abi_alignment_of_type(SCPPOpaque* targetMachine, SCPPOpaque* ty);
@@ -526,4 +526,14 @@ internal enum SCPPTypeKind
 	token,
 	scalable_vector,
 	target_ext,
+}
+
+internal enum SCPPOptLevel
+{
+	O0,
+	O1,
+	O2,
+	O3,
+	Os,
+	Oz,
 }

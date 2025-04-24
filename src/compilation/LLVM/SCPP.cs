@@ -108,9 +108,12 @@ internal unsafe readonly struct SCPPModuleRef : IEquatable<SCPPModuleRef>
 		return result;
 	}
 
-	public void RunOptimizationPass()
+	public bool EmitObjectFile(SCPPTargetMachineRef targetMachine, SCPPOptLevel optLevel, string outputFile, out string error)
 	{
-		SCPPInterop.run_opt_pass(this);
+		sbyte* outError = null;
+		var result = SCPPInterop.emit_o(this, targetMachine, optLevel, outputFile, &outError);
+		error = outError == null ? string.Empty : SCPPExtensions.AsString(outError);
+		return result;
 	}
 
 	public SCPPValueRef AddFunction(string name, SCPPTypeRef fnType)

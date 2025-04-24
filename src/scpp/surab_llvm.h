@@ -37,7 +37,17 @@ SURAB_EXTERN_C DllExport bool scpp_verify_function(SCPPValueRef fn, char **outMe
 
 SURAB_EXTERN_C DllExport bool scpp_print_to_file(SCPPModuleRef module, const char *filename, char **outError);
 
-SURAB_EXTERN_C DllExport void scpp_run_opt_pass(SCPPModuleRef module);
+typedef enum
+{
+	scpp_O0,
+	scpp_O1,
+	scpp_O2,
+	scpp_O3,
+	scpp_Os,
+	scpp_Oz
+} SCPPOptLevel;
+
+SURAB_EXTERN_C DllExport bool scpp_emit_o(SCPPModuleRef module, SCPPTargetMachineRef targetMachine, SCPPOptLevel optLevel, char *outputFile, char **outError);
 
 SURAB_EXTERN_C DllExport uint32_t scpp_get_abi_alignment_of_type(SCPPTargetMachineRef targetMachine, SCPPTypeRef ty);
 

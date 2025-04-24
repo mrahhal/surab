@@ -7,6 +7,35 @@
 #include "llvm/Support/raw_os_ostream.h"
 #include "lld/Common/Driver.h"
 
+namespace lld
+{
+	namespace coff
+	{
+		bool link(llvm::ArrayRef<const char *> args, llvm::raw_ostream &stdoutOS, llvm::raw_ostream &stderrOS, bool exitEarly, bool disableOutput);
+	}
+
+	namespace elf
+	{
+		bool link(llvm::ArrayRef<const char *> args, llvm::raw_ostream &stdoutOS, llvm::raw_ostream &stderrOS, bool exitEarly, bool disableOutput);
+	}
+
+	namespace mingw
+	{
+		bool link(llvm::ArrayRef<const char *> args, llvm::raw_ostream &stdoutOS, llvm::raw_ostream &stderrOS, bool exitEarly, bool disableOutput);
+	}
+
+	namespace macho
+	{
+		bool link(llvm::ArrayRef<const char *> args, llvm::raw_ostream &stdoutOS, llvm::raw_ostream &stderrOS, bool exitEarly, bool disableOutput);
+	}
+
+	namespace wasm
+	{
+		bool link(llvm::ArrayRef<const char *> args, llvm::raw_ostream &stdoutOS, llvm::raw_ostream &stderrOS, bool exitEarly, bool disableOutput);
+	}
+
+} // namespace lld
+
 std::vector<std::string> split_string(const char *str, char delimiter)
 {
 	std::vector<std::string> result;
@@ -46,19 +75,8 @@ bool scpp_lld(const char *additionalLibs, const char *inputFiles, const char *ou
 
 	std::ostringstream errorStream;
 	llvm::raw_os_ostream llvmErrStream(errorStream);
-	llvm::ArrayRef<lld::DriverDef> drivers;
 
-	auto result = lld::lldMain(args, llvm::outs(), llvmErrStream, drivers);
-
-	if (!drivers.empty())
-	{
-		llvm::outs() << "LLD tried the following drivers: ";
-		for (const auto &driver : drivers)
-		{
-			llvm::outs() << driver.f << " ";
-		}
-		llvm::outs() << "\n";
-	}
+	auto result = lld::lldMain(args, llvm::outs(), llvmErrStream, LLD_ALL_DRIVERS);
 
 	if (result.retCode != 0 && outError)
 	{

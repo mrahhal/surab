@@ -82,13 +82,25 @@ public sealed class Compiler
 			}
 		}
 
-		//_context.LLVM.Module.RunOptimizationPass();
+		// TODO:
+		// - Use debug vs release libs depending on a compilation flag.
+		// - Add -O3 for release?
 
-		if (!_context.LLVM.Module.PrintToFile(_context.Options.LLFileName, out var error))
+		var wd = Directory.GetCurrentDirectory();
+
+		if (!_context.LLVM.Module.PrintToFile(_context.Options.LLFileName, out var printError))
 		{
-			throw new Exception("Error while printing to file: " + error);
+			throw new Exception("Error while printing to file: " + printError);
 		}
-		return LldRunner.Run([_context.Options.LLFileName]);
+
+		if (!_context.LLVM.Module.EmitObjectFile(
+			_context.LLVM.TargetMachine, SCPPOptLevel.O0,
+			Path.Combine(wd, _context.Options.ObjectFileName), out var emitError))
+		{
+			throw new Exception("Error while compiling to object file: " + emitError);
+		}
+
+		return LinkerRunner.Run([_context.Options.ObjectFileName]);
 	}
 
 	private static Target ParseTargetTriple(string targetTriple)

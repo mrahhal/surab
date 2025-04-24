@@ -7,6 +7,7 @@
 #pragma warning(pop)
 
 #include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
@@ -135,24 +136,72 @@ bool scpp_print_to_file(SCPPModuleRef module, const char *filename, char **outEr
 	return true;
 }
 
-void scpp_run_opt_pass(SCPPModuleRef module)
+llvm::OptimizationLevel map_opt_level(SCPPOptLevel optLevel)
 {
-	llvm::LoopAnalysisManager LAM;
-	llvm::FunctionAnalysisManager FAM;
-	llvm::CGSCCAnalysisManager CGAM;
-	llvm::ModuleAnalysisManager MAM;
+	switch (optLevel)
+	{
+	case SCPPOptLevel::scpp_O0:
+		return llvm::OptimizationLevel::O0;
+	case SCPPOptLevel::scpp_O1:
+		return llvm::OptimizationLevel::O1;
+	case SCPPOptLevel::scpp_O2:
+		return llvm::OptimizationLevel::O2;
+	case SCPPOptLevel::scpp_O3:
+		return llvm::OptimizationLevel::O3;
+	case SCPPOptLevel::scpp_Os:
+		return llvm::OptimizationLevel::Os;
+	case SCPPOptLevel::scpp_Oz:
+		return llvm::OptimizationLevel::Oz;
 
-	llvm::PassBuilder PB;
+	default:
+		llvm_unreachable("Unhandled opt level.");
+	}
+}
 
-	PB.registerModuleAnalyses(MAM);
-	PB.registerCGSCCAnalyses(CGAM);
-	PB.registerFunctionAnalyses(FAM);
-	PB.registerLoopAnalyses(LAM);
-	PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
+bool scpp_emit_o(SCPPModuleRef moduleRef, SCPPTargetMachineRef targetMachineRef, SCPPOptLevel optLevel, char *outputFile, char **outError)
+{
+	auto module = uw(moduleRef);
+	auto targetMachine = uw(targetMachineRef);
 
-	llvm::ModulePassManager MPM = PB.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::O2);
+	llvm::LoopAnalysisManager lam;
+	llvm::FunctionAnalysisManager fam;
+	llvm::CGSCCAnalysisManager cgam;
+	llvm::ModuleAnalysisManager mam;
 
-	MPM.run(*uw(module), MAM);
+	llvm::PassBuilder pb;
+
+	pb.registerModuleAnalyses(mam);
+	pb.registerCGSCCAnalyses(cgam);
+	pb.registerFunctionAnalyses(fam);
+	pb.registerLoopAnalyses(lam);
+	pb.crossRegisterProxies(lam, fam, cgam, mam);
+
+	llvm::ModulePassManager mpm = pb.buildPerModuleDefaultPipeline(
+		map_opt_level(optLevel));
+
+	mpm.run(*module, mam);
+
+	// Emit object file.
+
+	std::error_code ec;
+	llvm::raw_fd_ostream dest(outputFile, ec, llvm::sys::fs::OF_None);
+	if (ec)
+	{
+		llvm::errs() << "Failed to open output file: " << ec.message() << "\n";
+		return false;
+	}
+
+	llvm::legacy::PassManager codegenPass;
+	if (targetMachine->addPassesToEmitFile(codegenPass, dest, nullptr, llvm::CodeGenFileType::ObjectFile))
+	{
+		llvm::errs() << "Failed to set up object file emission\n";
+		return false;
+	}
+
+	codegenPass.run(*module);
+	dest.flush();
+
+	return true;
 }
 
 uint32_t scpp_get_abi_alignment_of_type(SCPPTargetMachineRef targetMachine, SCPPTypeRef ty)
