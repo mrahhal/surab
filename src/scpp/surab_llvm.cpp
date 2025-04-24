@@ -60,17 +60,13 @@ bool scpp_setup(
 	const char *triple, char **outError,
 	SCPPModuleRef *outModule, SCPPBuilderRef *outBuilder, SCPPTargetMachineRef *outTargetMachine)
 {
+	GlobalContext = new llvm::LLVMContext();
+
 	llvm::InitializeAllTargetInfos();
 	llvm::InitializeAllTargets();
 	llvm::InitializeAllTargetMCs();
 	llvm::InitializeAllAsmParsers();
 	llvm::InitializeAllAsmPrinters();
-
-	GlobalContext = new llvm::LLVMContext();
-	auto module = new llvm::Module("surab_main_module", *GlobalContext);
-	auto builder = new llvm::IRBuilder<>(*GlobalContext);
-
-	module->setTargetTriple(triple);
 
 	std::string error;
 	auto target = llvm::TargetRegistry::lookupTarget(triple, error);
@@ -84,6 +80,12 @@ bool scpp_setup(
 
 	llvm::TargetOptions topts;
 	auto targetMachine = target->createTargetMachine(triple, "", "", topts, std::nullopt /* CodeModel::Model, CodeGenOptLevel, bool JIT */);
+
+	auto module = new llvm::Module("surab_main_module", *GlobalContext);
+	auto builder = new llvm::IRBuilder<>(*GlobalContext);
+
+	module->setTargetTriple(triple);
+	module->setDataLayout(targetMachine->createDataLayout());
 
 	*outModule = w(module);
 	*outBuilder = w(builder);
