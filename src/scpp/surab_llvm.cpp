@@ -793,11 +793,6 @@ uint32_t scpp_get_enum_attr_kind_for_name(const char *name, size_t sLen)
 	return llvm::Attribute::getAttrKindFromName(llvm::StringRef(name, sLen));
 }
 
-uint32_t scpp_get_last_enum_attr_Kind()
-{
-	return llvm::Attribute::AttrKind::EndAttrKinds;
-}
-
 SCPPAttributeRef scpp_create_enum_attr(
 	uint32_t kindID,
 	uint64_t val)

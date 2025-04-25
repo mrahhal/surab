@@ -1,3 +1,5 @@
+# Not used anymore.
+
 find_path(LLD_INCLUDE_DIRS NAMES lld/Common/Driver.h
 	HINTS ${LLVM_INCLUDE_DIRS}
 	PATHS

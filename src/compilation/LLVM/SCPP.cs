@@ -42,26 +42,22 @@ internal unsafe static class SCPP
 		}
 	}
 
-	public static uint GetEnumKindForName(string name)
+	public static SCPPAttributeKind GetEnumKindForName(string name)
 	{
 		return SCPPInterop.get_enum_attr_kind_for_name(name, (UIntPtr)name.Length);
 	}
 
-	public static uint GetLastEnumAttrKind()
-	{
-		return SCPPInterop.get_last_enum_attr_Kind();
-	}
-
-	public static bool Lld(IEnumerable<string> additionalLibs, IEnumerable<string> inputFiles, string outputFile, out string error)
+	public static bool Clang(string triple, IEnumerable<string> additionalLibs, IEnumerable<string> inputFiles, string outputFile, out string error)
 	{
 		sbyte* outError = null;
-		var result = SCPPInterop.lld(
+		var result = SCPPInterop.clang(
+			triple,
 			string.Join(';', additionalLibs),
 			string.Join(';', inputFiles),
 			outputFile,
 			&outError);
 		error = outError == null ? string.Empty : SCPPExtensions.AsString(outError);
-		return result;
+		return result == 0;
 	}
 }
 
@@ -698,17 +694,17 @@ internal unsafe readonly struct SCPPAttributeRef
 
 	// ---
 
-	public static SCPPAttributeRef CreateEnum(uint kindID, ulong value)
+	public static SCPPAttributeRef CreateEnum(SCPPAttributeKind kind, ulong value)
 	{
-		return SCPPInterop.create_enum_attr(kindID, value);
+		return SCPPInterop.create_enum_attr(kind, value);
 	}
 
-	public static SCPPAttributeRef Create(SCPPAttributeKind kindID, SCPPTypeRef type)
+	public static SCPPAttributeRef Create(SCPPAttributeKind kind, SCPPTypeRef type)
 	{
-		return SCPPInterop.create_type_attr(kindID, type);
+		return SCPPInterop.create_type_attr(kind, type);
 	}
 
-	public uint GetEnumKind()
+	public SCPPAttributeKind GetEnumKind()
 	{
 		return SCPPInterop.get_enum_attr_kind(this);
 	}

@@ -12,16 +12,20 @@ internal sealed class LLVMCompilationContext
 	private readonly Dictionary<LLVMIntrinsic, LLVMUnit> _intrinsicToValue = [];
 
 	private LLVMCompilationContext(
+		string triple,
 		SCPPModuleRef module,
 		SCPPBuilderRef builder,
 		SCPPTargetMachineRef targetMachine)
 	{
+		Triple = triple;
 		Module = module;
 		Builder = builder;
 		TargetMachine = targetMachine;
 
 		InitIntrinsics();
 	}
+
+	public string Triple { get; }
 
 	public SCPPModuleRef Module { get; }
 
@@ -38,7 +42,7 @@ internal sealed class LLVMCompilationContext
 			throw new Exception(error);
 		}
 
-		return new(module.Value, builder.Value, targetMachine.Value);
+		return new(triple, module.Value, builder.Value, targetMachine.Value);
 	}
 
 	public void Verify()

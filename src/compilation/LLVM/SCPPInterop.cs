@@ -195,22 +195,19 @@ internal unsafe static class SCPPInterop
 	public static extern void set_param_alignment(SCPPOpaque* arg, uint align);
 
 	[DllImport("scpp", EntryPoint = "scpp_get_enum_attr_kind_for_name", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-	public static extern uint get_enum_attr_kind_for_name(string name, UIntPtr sLen);
-
-	[DllImport("scpp", EntryPoint = "scpp_get_last_enum_attr_Kind", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-	public static extern uint get_last_enum_attr_Kind();
+	public static extern SCPPAttributeKind get_enum_attr_kind_for_name(string name, UIntPtr sLen);
 
 	[DllImport("scpp", EntryPoint = "scpp_create_enum_attr", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-	public static extern SCPPOpaque* create_enum_attr(uint kindID, ulong val);
+	public static extern SCPPOpaque* create_enum_attr(SCPPAttributeKind kind, ulong val);
 
 	[DllImport("scpp", EntryPoint = "scpp_get_enum_attr_kind", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-	public static extern uint get_enum_attr_kind(SCPPOpaque* a);
+	public static extern SCPPAttributeKind get_enum_attr_kind(SCPPOpaque* a);
 
 	[DllImport("scpp", EntryPoint = "scpp_get_enum_attr_value", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
 	public static extern ulong get_enum_attr_value(SCPPOpaque* a);
 
 	[DllImport("scpp", EntryPoint = "scpp_create_type_attr", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-	public static extern SCPPOpaque* create_type_attr(SCPPAttributeKind kindID, SCPPOpaque* type_ref);
+	public static extern SCPPOpaque* create_type_attr(SCPPAttributeKind kind, SCPPOpaque* type_ref);
 
 	[DllImport("scpp", EntryPoint = "scpp_get_type_attr_value", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
 	public static extern SCPPOpaque* get_type_attr_value(SCPPOpaque* a);
@@ -292,8 +289,8 @@ internal unsafe static class SCPPInterop
 
 	// lld
 
-	[DllImport("scpp", EntryPoint = "scpp_lld", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-	public static extern bool lld(string additionalLibs, string inputFiles, string outputFile, sbyte** outError);
+	[DllImport("scpp", EntryPoint = "scpp_clang", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+	public static extern int clang(string triple, string additionalLibs, string inputFiles, string outputFile, sbyte** outError);
 }
 
 // Ensure these are always up to date and match the corresponding values in scpp.

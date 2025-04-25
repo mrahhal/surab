@@ -9,6 +9,6 @@
 
 #define DllExport __declspec(dllexport)
 
-SURAB_EXTERN_C DllExport bool scpp_lld(const char *additionalLibs, const char *inputFiles, const char *outputFile, const char **outError);
+SURAB_EXTERN_C DllExport int scpp_clang(const char *triple, const char *additionalLibs, const char *inputFiles, const char *outputFile, const char **outError);
 
 #endif

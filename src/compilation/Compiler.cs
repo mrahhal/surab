@@ -100,7 +100,7 @@ public sealed class Compiler
 			throw new Exception("Error while compiling to object file: " + emitError);
 		}
 
-		return LinkerRunner.Run([_context.Options.ObjectFileName]);
+		return LinkerRunner.Run(_context.LLVM.Triple, [_context.Options.ObjectFileName]);
 	}
 
 	private static Target ParseTargetTriple(string targetTriple)
