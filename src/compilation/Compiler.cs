@@ -1159,13 +1159,13 @@ internal abstract class x86_64WindowsLLVMTarget(CompilationContext context) : LL
 			Debug.Assert(sretPtr.GetTypeOf().GetKind() is SCPPTypeKind.pointer);
 			var (_, exprValue) = exprUnit.Unwrap(LLVM);
 			LLVM.Builder.BuildStore(exprValue, sretPtr);
+			LLVM.Builder.BuildRetVoid();
 			return;
 		}
 
 		if (classification is Classification.Integer)
 		{
 			// abi int
-
 			Debug.Assert(exprUnit.IsWrapped);
 			var (_, exprValuePtr) = exprUnit;
 			var layout = Target.GetLayout(returnType);

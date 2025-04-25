@@ -29,6 +29,27 @@ public class StructTests
 	}
 
 	[Fact]
+	public void MemoryStructRet()
+	{
+		IntegrationRunner.TestAnnotatedOutput(
+			"""
+			struct S {
+				a: f64;
+				b: f64;
+
+				fn new() S {
+					return S.{ a: 42.2, b: 43.2 };
+				}
+			}
+
+			fn main() {
+				var s = S.new();
+				print_f64(s.a); [|42.2|]
+			}
+			""");
+	}
+
+	[Fact]
 	public void DefaultFieldValues()
 	{
 		IntegrationRunner.TestAnnotatedOutput(
