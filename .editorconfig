@@ -14,6 +14,9 @@ indent_style = space
 indent_size = 2
 
 [*.cs]
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = true
+
 # CA1822: Mark members as static
 dotnet_diagnostic.CA1822.severity = none
 # CA1859: Use concrete types when possible for improved performance
