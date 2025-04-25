@@ -231,8 +231,6 @@ internal sealed class FnCompiler : HirTreeVisitor
 			if (Compiler.VerificationEnabled)
 				throw new Exception("LLVM function verification failed: " + error);
 		}
-
-		//LLVM.PassManager.RunFunctionPassManager(_llvmFnUnit.Value);
 	}
 
 	private void GenerateIntrinsic(string name)
