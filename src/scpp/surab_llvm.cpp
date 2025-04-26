@@ -206,6 +206,26 @@ bool scpp_emit_o(SCPPModuleRef moduleRef, SCPPTargetMachineRef targetMachineRef,
 	return true;
 }
 
+const char *scpp_get_module_name(SCPPModuleRef module)
+{
+	return uw(module)->getName().data();
+}
+
+const char *scpp_get_module_triple(SCPPModuleRef module)
+{
+	return uw(module)->getTargetTriple().c_str();
+}
+
+const char *scpp_get_target_machine_triple(SCPPTargetMachineRef targetMachine)
+{
+	return uw(targetMachine)->getTargetTriple().str().data();
+}
+
+const char *scpp_get_target_machine_cpu(SCPPTargetMachineRef targetMachine)
+{
+	return uw(targetMachine)->getTargetCPU().data();
+}
+
 uint32_t scpp_get_abi_alignment_of_type(SCPPTargetMachineRef targetMachine, SCPPTypeRef ty)
 {
 	return uw(targetMachine)->createDataLayout().getABITypeAlign(uw(ty)).value();
@@ -602,6 +622,11 @@ SCPPValueRef scpp_build_binary_op(
 		uw(rhs), name));
 }
 
+const char *scpp_get_value_name(SCPPValueRef val)
+{
+	return uw(val)->getName().data();
+}
+
 SCPPTypeRef scpp_type_of(SCPPValueRef val)
 {
 	return w(uw(val)->getType());
@@ -788,26 +813,21 @@ void scpp_set_param_alignment(SCPPValueRef arg, unsigned align)
 	a->addAttr(llvm::Attribute::getWithAlignment(a->getContext(), llvm::Align(align)));
 }
 
-uint32_t scpp_get_enum_attr_kind_for_name(const char *name, size_t sLen)
-{
-	return llvm::Attribute::getAttrKindFromName(llvm::StringRef(name, sLen));
-}
-
-SCPPAttributeRef scpp_create_enum_attr(
-	uint32_t kindID,
-	uint64_t val)
-{
-	auto &ctx = *GlobalContext;
-	auto attrKind = (llvm::Attribute::AttrKind)kindID;
-	return w(llvm::Attribute::get(ctx, attrKind, val));
-}
-
-uint32_t scpp_get_enum_attr_kind(SCPPAttributeRef a)
+uint32_t scpp_get_attr_kind(SCPPAttributeRef a)
 {
 	return uw(a).getKindAsEnum();
 }
 
-uint64_t scpp_get_enum_attr_value(SCPPAttributeRef a)
+SCPPAttributeRef scpp_create_enum_attr(
+	uint32_t kind,
+	uint64_t val)
+{
+	auto &ctx = *GlobalContext;
+	auto attrKind = (llvm::Attribute::AttrKind)kind;
+	return w(llvm::Attribute::get(ctx, attrKind, val));
+}
+
+uint64_t scpp_get_attr_value(SCPPAttributeRef a)
 {
 	auto attr = uw(a);
 	if (attr.isEnumAttribute())
@@ -815,19 +835,47 @@ uint64_t scpp_get_enum_attr_value(SCPPAttributeRef a)
 	return attr.getValueAsInt();
 }
 
+bool scpp_is_attr_enum(SCPPAttributeRef a)
+{
+	return uw(a).isEnumAttribute();
+}
+
+bool scpp_is_attr_type(SCPPAttributeRef a)
+{
+	return uw(a).isTypeAttribute();
+}
+
+bool scpp_is_attr_int(SCPPAttributeRef a)
+{
+	return uw(a).isIntAttribute();
+}
+
 SCPPAttributeRef scpp_create_type_attr(
-	uint32_t kindID,
+	uint32_t kind,
 	SCPPTypeRef type_ref)
 {
 	auto &ctx = *GlobalContext;
-	auto attrKind = (llvm::Attribute::AttrKind)kindID;
+	auto attrKind = (llvm::Attribute::AttrKind)kind;
 	return w(llvm::Attribute::get(ctx, attrKind, uw(type_ref)));
 }
 
 SCPPTypeRef scpp_get_type_attr_value(SCPPAttributeRef a)
 {
-	auto attr = uw(a);
-	return w(attr.getValueAsType());
+	return w(uw(a).getValueAsType());
+}
+
+SCPPAttributeRef scpp_create_int_attr(
+	uint32_t kind,
+	uint64_t val)
+{
+	auto &ctx = *GlobalContext;
+	auto attrKind = (llvm::Attribute::AttrKind)kind;
+	return w(llvm::Attribute::get(ctx, attrKind, val));
+}
+
+uint64_t scpp_get_int_attr_value(SCPPAttributeRef a)
+{
+	return uw(a).getValueAsInt();
 }
 
 void scpp_add_attr_at_index(

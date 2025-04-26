@@ -26,6 +26,18 @@ internal unsafe static class SCPPInterop
 	[DllImport("scpp", EntryPoint = "scpp_emit_o", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
 	public static extern bool emit_o(SCPPOpaque* module, SCPPOpaque* targetMachine, SCPPOptLevel optLevel, string outputFile, sbyte** outError);
 
+	[DllImport("scpp", EntryPoint = "scpp_get_module_name", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+	public static extern sbyte* get_module_name(SCPPOpaque* module);
+
+	[DllImport("scpp", EntryPoint = "scpp_get_module_triple", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+	public static extern sbyte* get_module_triple(SCPPOpaque* module);
+
+	[DllImport("scpp", EntryPoint = "scpp_get_target_machine_triple", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+	public static extern sbyte* get_target_machine_triple(SCPPOpaque* targetMachine);
+
+	[DllImport("scpp", EntryPoint = "scpp_get_target_machine_cpu", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+	public static extern sbyte* get_target_machine_cpu(SCPPOpaque* targetMachine);
+
 	[DllImport("scpp", EntryPoint = "scpp_get_abi_alignment_of_type", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
 	public static extern uint get_abi_alignment_of_type(SCPPOpaque* targetMachine, SCPPOpaque* ty);
 
@@ -96,7 +108,7 @@ internal unsafe static class SCPPInterop
 	public static extern SCPPOpaque* build_indirect_br(SCPPOpaque* b, SCPPOpaque* addr, uint numDests);
 
 	[DllImport("scpp", EntryPoint = "scpp_get_basic_block_name", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-	public static extern string get_basic_block_name(SCPPOpaque* bb);
+	public static extern sbyte* get_basic_block_name(SCPPOpaque* bb);
 
 	[DllImport("scpp", EntryPoint = "scpp_get_basic_block_parent", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
 	public static extern SCPPOpaque* get_basic_block_parent(SCPPOpaque* bb);
@@ -152,6 +164,9 @@ internal unsafe static class SCPPInterop
 	[DllImport("scpp", EntryPoint = "scpp_build_binary_op", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
 	public static extern SCPPOpaque* build_binary_op(SCPPOpaque* b, SCPPBinaryOp op, SCPPOpaque* lhs, SCPPOpaque* rhs, string name);
 
+	[DllImport("scpp", EntryPoint = "scpp_get_value_name", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+	public static extern sbyte* get_value_name(SCPPOpaque* val);
+
 	[DllImport("scpp", EntryPoint = "scpp_type_of", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
 	public static extern SCPPOpaque* type_of(SCPPOpaque* val);
 
@@ -194,23 +209,32 @@ internal unsafe static class SCPPInterop
 	[DllImport("scpp", EntryPoint = "scpp_set_param_alignment", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
 	public static extern void set_param_alignment(SCPPOpaque* arg, uint align);
 
-	[DllImport("scpp", EntryPoint = "scpp_get_enum_attr_kind_for_name", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-	public static extern SCPPAttributeKind get_enum_attr_kind_for_name(string name, UIntPtr sLen);
+	[DllImport("scpp", EntryPoint = "scpp_get_attr_kind", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+	public static extern SCPPAttributeKind get_attr_kind(SCPPOpaque* a);
+
+	[DllImport("scpp", EntryPoint = "scpp_is_attr_enum", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+	public static extern bool is_attr_enum(SCPPOpaque* a);
+
+	[DllImport("scpp", EntryPoint = "scpp_is_attr_type", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+	public static extern bool is_attr_type(SCPPOpaque* a);
+
+	[DllImport("scpp", EntryPoint = "scpp_is_attr_int", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+	public static extern bool is_attr_int(SCPPOpaque* a);
 
 	[DllImport("scpp", EntryPoint = "scpp_create_enum_attr", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-	public static extern SCPPOpaque* create_enum_attr(SCPPAttributeKind kind, ulong val);
-
-	[DllImport("scpp", EntryPoint = "scpp_get_enum_attr_kind", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-	public static extern SCPPAttributeKind get_enum_attr_kind(SCPPOpaque* a);
-
-	[DllImport("scpp", EntryPoint = "scpp_get_enum_attr_value", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-	public static extern ulong get_enum_attr_value(SCPPOpaque* a);
+	public static extern SCPPOpaque* create_enum_attr(SCPPAttributeKind kind);
 
 	[DllImport("scpp", EntryPoint = "scpp_create_type_attr", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
 	public static extern SCPPOpaque* create_type_attr(SCPPAttributeKind kind, SCPPOpaque* type_ref);
 
 	[DllImport("scpp", EntryPoint = "scpp_get_type_attr_value", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
 	public static extern SCPPOpaque* get_type_attr_value(SCPPOpaque* a);
+
+	[DllImport("scpp", EntryPoint = "scpp_create_int_attr", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+	public static extern SCPPOpaque* create_int_attr(SCPPAttributeKind kind, ulong val);
+
+	[DllImport("scpp", EntryPoint = "scpp_get_int_attr_value", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+	public static extern ulong get_int_attr_value(SCPPOpaque* a);
 
 	[DllImport("scpp", EntryPoint = "scpp_add_attr_at_index", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
 	public static extern void add_attr_at_index(SCPPOpaque* fn, int idx, SCPPOpaque* attr);
@@ -258,7 +282,7 @@ internal unsafe static class SCPPInterop
 	public static extern SCPPOpaque* struct_create_named(string name);
 
 	[DllImport("scpp", EntryPoint = "scpp_get_struct_name", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-	public static extern string get_struct_name(SCPPOpaque* ty);
+	public static extern sbyte* get_struct_name(SCPPOpaque* ty);
 
 	[DllImport("scpp", EntryPoint = "scpp_struct_set_body", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
 	public static extern void struct_set_body(SCPPOpaque* structTy, SCPPOpaque** elementTys, uint numElements, bool packed);
@@ -287,7 +311,7 @@ internal unsafe static class SCPPInterop
 	[DllImport("scpp", EntryPoint = "scpp_get_intrinsic", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
 	public static extern SCPPOpaque* get_intrinsic(SCPPOpaque* module, SCPPOpaque* b, SCPPIntrinsicOp op, SCPPOpaque** tys, uint numParams);
 
-	// lld
+	// clang
 
 	[DllImport("scpp", EntryPoint = "scpp_clang", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
 	public static extern int clang(string triple, string additionalLibs, string inputFiles, string outputFile, sbyte** outError);

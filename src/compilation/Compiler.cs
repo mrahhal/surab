@@ -310,7 +310,7 @@ internal sealed class FnCompiler : HirTreeVisitor
 					{
 						// paramValue is already a ptr. Treat it as the wrapper ptr directly.
 						var alignment = Target.GetAbiAlignment(t.Type);
-						Debug.Assert(paramValue.GetTypeOf().GetKind() is SCPPTypeKind.pointer, "Param value should already be a ptr.");
+						Debug.Assert(paramValue.TypeOf.Kind is SCPPTypeKind.pointer, "Param value should already be a ptr.");
 						var unit = LLVMUnit.Wrapped(llvmType, paramValue);
 						CreateParamUnit(t.Value, unit);
 					}
@@ -853,7 +853,7 @@ internal sealed class FnCompiler : HirTreeVisitor
 		// TODO: switch (cc) (C this is already the LLVM default if not set)
 		llvmFnValue.SetFunctionCallConv(CallConv.C);
 
-		attrs.Apply((index, attr) => llvmFnValue.AddAttributeAtIndex(index, attr));
+		attrs.Apply(llvmFnValue.AddAttributeAtIndex);
 
 		// Create an unwrapped unit out of direct fn values. This means direct calls to this fn value won't be loaded (in VisitCallExpr).
 		return LLVMUnit.Unwrapped(llvmPtrType, llvmFnValue);
@@ -1067,7 +1067,7 @@ internal abstract class LLVMTarget
 		var sret = IsReturnSRet(fnType);
 		if (sret)
 		{
-			attrs.AddParam(llvmIndex, SCPPAttributeRef.Create(SCPPAttributeKind.StructRet, returnType));
+			attrs.AddParam(llvmIndex, SCPPAttributeRef.CreateTypeAttr(SCPPAttributeKind.StructRet, returnType));
 			llvmIndex++;
 		}
 
@@ -1156,7 +1156,7 @@ internal abstract class x86_64WindowsLLVMTarget(CompilationContext context) : LL
 			// sret
 			Debug.Assert(sretOpt.HasValue);
 			var sretPtr = sretOpt.Value;
-			Debug.Assert(sretPtr.GetTypeOf().GetKind() is SCPPTypeKind.pointer);
+			Debug.Assert(sretPtr.TypeOf.Kind is SCPPTypeKind.pointer);
 			var (_, exprValue) = exprUnit.Unwrap(LLVM);
 			LLVM.Builder.BuildStore(exprValue, sretPtr);
 			LLVM.Builder.BuildRetVoid();

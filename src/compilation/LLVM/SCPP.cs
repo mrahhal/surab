@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Surab.Compilation.LLVM;
 
@@ -42,11 +43,6 @@ internal unsafe static class SCPP
 		}
 	}
 
-	public static SCPPAttributeKind GetEnumKindForName(string name)
-	{
-		return SCPPInterop.get_enum_attr_kind_for_name(name, (UIntPtr)name.Length);
-	}
-
 	public static bool Clang(string triple, IEnumerable<string> additionalLibs, IEnumerable<string> inputFiles, string outputFile, out string error)
 	{
 		sbyte* outError = null;
@@ -66,6 +62,7 @@ internal unsafe readonly struct SCPPOpaque
 {
 }
 
+[DebuggerDisplay("{ToString(),nq}")]
 internal unsafe readonly struct SCPPModuleRef : IEquatable<SCPPModuleRef>
 {
 	public readonly IntPtr Handle;
@@ -86,7 +83,13 @@ internal unsafe readonly struct SCPPModuleRef : IEquatable<SCPPModuleRef>
 
 	public override int GetHashCode() => Handle.GetHashCode();
 
+	public override string ToString() => $"{Name}";
+
 	// ---
+
+	public string Name => SCPPExtensions.AsString(SCPPInterop.get_module_name(this));
+
+	public string Triple => SCPPExtensions.AsString(SCPPInterop.get_module_triple(this));
 
 	public bool Verify(out string messages)
 	{
@@ -273,6 +276,7 @@ internal unsafe readonly struct SCPPBuilderRef
 	}
 }
 
+[DebuggerDisplay("{ToString(),nq}")]
 internal unsafe readonly struct SCPPTargetMachineRef
 {
 	public readonly IntPtr Handle;
@@ -293,7 +297,13 @@ internal unsafe readonly struct SCPPTargetMachineRef
 
 	public override int GetHashCode() => Handle.GetHashCode();
 
+	public override string ToString() => $"{Triple} - {CPU}";
+
 	// ---
+
+	public string Triple => SCPPExtensions.AsString(SCPPInterop.get_target_machine_triple(this));
+
+	public string CPU => SCPPExtensions.AsString(SCPPInterop.get_target_machine_cpu(this));
 
 	public int GetAbiAlignmentOfType(SCPPTypeRef type)
 	{
@@ -301,6 +311,7 @@ internal unsafe readonly struct SCPPTargetMachineRef
 	}
 }
 
+[DebuggerDisplay("{ToString(),nq}")]
 internal unsafe readonly struct SCPPTypeRef
 {
 	public readonly IntPtr Handle;
@@ -321,7 +332,15 @@ internal unsafe readonly struct SCPPTypeRef
 
 	public override int GetHashCode() => Handle.GetHashCode();
 
+	public override string ToString() => $"[{Kind}] {Name}";
+
 	// ---
+
+	public string Name => StructName ?? string.Empty;
+
+	public string? StructName => Kind is SCPPTypeKind.@struct ? SCPPExtensions.AsString(SCPPInterop.get_struct_name(this)) : null;
+
+	public SCPPTypeKind Kind => SCPPInterop.get_type_kind(this);
 
 	public static SCPPTypeRef Void => SCPPInterop.get_type(SCPPTypeOp.@void);
 	public static SCPPTypeRef Int1 => SCPPInterop.get_type(SCPPTypeOp.int1);
@@ -409,11 +428,6 @@ internal unsafe readonly struct SCPPTypeRef
 		return SCPPInterop.get_element_type(this);
 	}
 
-	public SCPPTypeKind GetKind()
-	{
-		return SCPPInterop.get_type_kind(this);
-	}
-
 	public int CountStructElementTypes()
 	{
 		return (int)SCPPInterop.count_struct_element_types(this);
@@ -432,6 +446,7 @@ internal unsafe readonly struct SCPPTypeRef
 	}
 }
 
+[DebuggerDisplay("{ToString(),nq}")]
 internal unsafe readonly struct SCPPValueRef
 {
 	public readonly IntPtr Handle;
@@ -452,7 +467,13 @@ internal unsafe readonly struct SCPPValueRef
 
 	public override int GetHashCode() => Handle.GetHashCode();
 
+	public override string ToString() => $"{Name}: {TypeOf}";
+
 	// ---
+
+	public string Name => SCPPExtensions.AsString(SCPPInterop.get_value_name(this));
+
+	public SCPPTypeRef TypeOf => SCPPInterop.type_of(this);
 
 	public SCPPTypeRef GetFunctionType()
 	{
@@ -588,11 +609,6 @@ internal unsafe readonly struct SCPPValueRef
 		SCPPInterop.set_param_alignment(this, (uint)align);
 	}
 
-	public SCPPTypeRef GetTypeOf()
-	{
-		return SCPPInterop.type_of(this);
-	}
-
 	public SCPPLinkage GetLinkage()
 	{
 		return SCPPInterop.get_linkage(this);
@@ -604,6 +620,7 @@ internal unsafe readonly struct SCPPValueRef
 	}
 }
 
+[DebuggerDisplay("{ToString(),nq}")]
 internal unsafe readonly struct SCPPBasicBlockRef
 {
 	public readonly IntPtr Handle;
@@ -624,7 +641,11 @@ internal unsafe readonly struct SCPPBasicBlockRef
 
 	public override int GetHashCode() => Handle.GetHashCode();
 
+	public override string ToString() => $"{Name}";
+
 	// ---
+
+	public string Name => SCPPExtensions.AsString(SCPPInterop.get_basic_block_name(this));
 
 	public void Delete()
 	{
@@ -644,11 +665,6 @@ internal unsafe readonly struct SCPPBasicBlockRef
 	public void MoveAfter(SCPPBasicBlockRef movePos)
 	{
 		SCPPInterop.move_basic_block_after(this, movePos);
-	}
-
-	public string GetName()
-	{
-		return SCPPInterop.get_basic_block_name(this);
 	}
 
 	public SCPPValueRef GetParent()
@@ -672,6 +688,8 @@ internal unsafe readonly struct SCPPBasicBlockRef
 	}
 }
 
+// This can be all kinds of LLVM attrs except for string. (so any attr that has an SCPPAttributeKind)
+[DebuggerDisplay("{ToString(),nq}")]
 internal unsafe readonly struct SCPPAttributeRef
 {
 	public readonly IntPtr Handle;
@@ -692,30 +710,47 @@ internal unsafe readonly struct SCPPAttributeRef
 
 	public override int GetHashCode() => Handle.GetHashCode();
 
+	public override string ToString() => $"{Kind}{ToStringValueExt()}";
+
+	private string ToStringValueExt()
+	{
+		if (IsType)
+			return $" ({GetTypeValue().Name})";
+		if (IsInt)
+			return $" ({GetIntValue()})";
+		return string.Empty;
+	}
+
 	// ---
 
-	public static SCPPAttributeRef CreateEnum(SCPPAttributeKind kind, ulong value)
+	public SCPPAttributeKind Kind => SCPPInterop.get_attr_kind(this);
+
+	public bool IsEnum => SCPPInterop.is_attr_enum(this);
+	public bool IsType => SCPPInterop.is_attr_type(this);
+	public bool IsInt => SCPPInterop.is_attr_int(this);
+
+	public static SCPPAttributeRef CreateEnumAttr(SCPPAttributeKind kind)
 	{
-		return SCPPInterop.create_enum_attr(kind, value);
+		return SCPPInterop.create_enum_attr(kind);
 	}
 
-	public static SCPPAttributeRef Create(SCPPAttributeKind kind, SCPPTypeRef type)
+	public static SCPPAttributeRef CreateTypeAttr(SCPPAttributeKind kind, SCPPTypeRef type)
 	{
 		return SCPPInterop.create_type_attr(kind, type);
-	}
-
-	public SCPPAttributeKind GetEnumKind()
-	{
-		return SCPPInterop.get_enum_attr_kind(this);
-	}
-
-	public ulong GetEnumValue()
-	{
-		return SCPPInterop.get_enum_attr_value(this);
 	}
 
 	public SCPPTypeRef GetTypeValue()
 	{
 		return SCPPInterop.get_type_attr_value(this);
+	}
+
+	public static SCPPAttributeRef CreateIntAttr(SCPPAttributeKind kind, ulong value)
+	{
+		return SCPPInterop.create_int_attr(kind, value);
+	}
+
+	public ulong GetIntValue()
+	{
+		return SCPPInterop.get_int_attr_value(this);
 	}
 }

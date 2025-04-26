@@ -49,6 +49,14 @@ typedef enum
 
 SURAB_EXTERN_C DllExport bool scpp_emit_o(SCPPModuleRef module, SCPPTargetMachineRef targetMachine, SCPPOptLevel optLevel, char *outputFile, char **outError);
 
+SURAB_EXTERN_C DllExport const char *scpp_get_module_name(SCPPModuleRef module);
+
+SURAB_EXTERN_C DllExport const char *scpp_get_module_triple(SCPPModuleRef module);
+
+SURAB_EXTERN_C DllExport const char *scpp_get_target_machine_triple(SCPPTargetMachineRef targetMachine);
+
+SURAB_EXTERN_C DllExport const char *scpp_get_target_machine_cpu(SCPPTargetMachineRef targetMachine);
+
 SURAB_EXTERN_C DllExport uint32_t scpp_get_abi_alignment_of_type(SCPPTargetMachineRef targetMachine, SCPPTypeRef ty);
 
 SURAB_EXTERN_C DllExport SCPPValueRef scpp_const_int(SCPPTypeRef intTy, uint64_t n, bool signExtend);
@@ -227,6 +235,8 @@ typedef enum
 SURAB_EXTERN_C DllExport SCPPValueRef scpp_build_binary_op(
 	SCPPBuilderRef b, SCPPBinaryOp op, SCPPValueRef lhs, SCPPValueRef rhs, const char *name);
 
+SURAB_EXTERN_C DllExport const char *scpp_get_value_name(SCPPValueRef val);
+
 SURAB_EXTERN_C DllExport SCPPTypeRef scpp_type_of(SCPPValueRef val);
 
 typedef enum
@@ -270,17 +280,19 @@ SURAB_EXTERN_C DllExport SCPPValueRef scpp_get_previous_param(SCPPValueRef arg);
 
 SURAB_EXTERN_C DllExport void scpp_set_param_alignment(SCPPValueRef arg, unsigned align);
 
-SURAB_EXTERN_C DllExport uint32_t scpp_get_enum_attr_kind_for_name(const char *name, size_t sLen);
+SURAB_EXTERN_C DllExport uint32_t scpp_get_attr_kind(SCPPAttributeRef a);
+
+SURAB_EXTERN_C DllExport bool scpp_is_attr_enum(SCPPAttributeRef a);
+
+SURAB_EXTERN_C DllExport bool scpp_is_attr_type(SCPPAttributeRef a);
+
+SURAB_EXTERN_C DllExport bool scpp_is_attr_int(SCPPAttributeRef a);
 
 SURAB_EXTERN_C DllExport SCPPAttributeRef scpp_create_enum_attr(
-	uint32_t kindID, uint64_t val);
-
-SURAB_EXTERN_C DllExport uint32_t scpp_get_enum_attr_kind(SCPPAttributeRef a);
-
-SURAB_EXTERN_C DllExport uint64_t scpp_get_enum_attr_value(SCPPAttributeRef a);
+	uint32_t kind, uint64_t val);
 
 SURAB_EXTERN_C DllExport SCPPAttributeRef scpp_create_type_attr(
-	uint32_t kindID, SCPPTypeRef type_ref);
+	uint32_t kind, SCPPTypeRef type_ref);
 
 SURAB_EXTERN_C DllExport SCPPTypeRef scpp_get_type_attr_value(SCPPAttributeRef a);
 
