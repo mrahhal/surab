@@ -27,11 +27,8 @@ jobs:
           dotnet-version: 9.x.x
 
       - name: Add GitHub nuget packages source
-        run: dotnet nuget add source \
-          --username ${{ github.actor }} \
-          --password ${{ secrets.GITHUB_TOKEN }} \
-          --store-password-in-clear-text \
-          --name github "https://nuget.pkg.github.com/mrahhal/index.json"
+        run: |
+          dotnet nuget add source --username ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/mrahhal/index.json"
 
       - name: Build rust
         run: cargo build --verbose
