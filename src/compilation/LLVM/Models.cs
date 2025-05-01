@@ -1,40 +1,38 @@
-﻿using LLVMSharp.Interop;
-
-namespace Surab.Compilation.LLVM;
+﻿namespace Surab.Compilation.LLVM;
 
 // TODO(docs): Explain more the idea behind LLVMUnit.IsWrapped.
 
 /// <summary>
 /// Represents an LLVM type and value pair that is optionally wrapped in a ptr.
 /// </summary>
-internal sealed class LLVMUnit(LLVMTypeRef type, LLVMValueRef value, bool isWrapped)
+internal sealed class LLVMUnit(SCPPTypeRef type, SCPPValueRef value, bool isWrapped)
 {
 	/// <summary>
 	/// The LLVM type of the unit.
 	/// </summary>
-	public LLVMTypeRef Type { get; } = type;
+	public SCPPTypeRef Type { get; } = type;
 
 	/// <summary>
 	/// The LLVM value of the unit.
 	/// </summary>
-	public LLVMValueRef Value { get; } = value;
+	public SCPPValueRef Value { get; } = value;
 
 	/// <summary>
 	/// Whether the value is the wrapper ptr of the actual value.
 	/// </summary>
 	public bool IsWrapped { get; } = isWrapped;
 
-	public static LLVMUnit Wrapped(LLVMTypeRef type, LLVMValueRef value)
+	public static LLVMUnit Wrapped(SCPPTypeRef type, SCPPValueRef value)
 	{
 		return new LLVMUnit(type, value, true);
 	}
 
-	public static LLVMUnit Unwrapped(LLVMTypeRef type, LLVMValueRef value)
+	public static LLVMUnit Unwrapped(SCPPTypeRef type, SCPPValueRef value)
 	{
 		return new LLVMUnit(type, value, false);
 	}
 
-	public void Deconstruct(out LLVMTypeRef type, out LLVMValueRef value)
+	public void Deconstruct(out SCPPTypeRef type, out SCPPValueRef value)
 	{
 		type = Type;
 		value = Value;
@@ -46,10 +44,10 @@ internal sealed class LLVMUnit(LLVMTypeRef type, LLVMValueRef value, bool isWrap
 	public LLVMUnit Unwrap(LLVMCompilationContext context)
 	{
 		if (!IsWrapped) return this;
-		return WithUnwrapped(context.Builder.BuildLoad2(Type, Value));
+		return WithUnwrapped(context.Builder.BuildLoad(Type, Value));
 	}
 
-	private LLVMUnit WithUnwrapped(LLVMValueRef unwrappedValue)
+	private LLVMUnit WithUnwrapped(SCPPValueRef unwrappedValue)
 	{
 		return Unwrapped(Type, unwrappedValue);
 	}
@@ -58,16 +56,16 @@ internal sealed class LLVMUnit(LLVMTypeRef type, LLVMValueRef value, bool isWrap
 /// <summary>
 /// Contains fn related info.
 /// </summary>
-internal class LLVMFn(LLVMTypeRef? sret, LLVMFnAttrsDef attrs)
+internal class LLVMFn(SCPPTypeRef? sret, SCPPFnAttrsDef attrs)
 {
 	/// <summary>
 	/// The type of the sret param if it exists, null otherwise.
 	/// </summary>
-	public LLVMTypeRef? SRet { get; } = sret;
+	public SCPPTypeRef? SRet { get; } = sret;
 
-	public LLVMFnAttrsDef Attrs => attrs;
+	public SCPPFnAttrsDef Attrs => attrs;
 
-	public void Deconstruct(out LLVMTypeRef? sret, out LLVMFnAttrsDef attrs)
+	public void Deconstruct(out SCPPTypeRef? sret, out SCPPFnAttrsDef attrs)
 	{
 		sret = SRet;
 		attrs = Attrs;

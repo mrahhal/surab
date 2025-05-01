@@ -1,5 +1,4 @@
-﻿using LLVMSharp.Interop;
-using Surab.Analysis;
+﻿using Surab.Analysis;
 using Surab.Compilation.LLVM;
 
 namespace Surab.Compilation;
@@ -35,5 +34,5 @@ public sealed class CompilationContext
 
 	internal Dictionary<HirValue, LLVMUnit> ValueToLLVMUnit { get; } = [];
 
-	internal Dictionary<HirType, LLVMTypeRef> TypeToLLVMType { get; } = [];
+	internal Dictionary<HirType, SCPPTypeRef> TypeToLLVMType { get; } = [];
 }
