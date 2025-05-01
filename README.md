@@ -35,6 +35,8 @@ The Surab compiler uses a native library called [scpp](./src/scpp/) to generate 
 
 You'll only need a C++ compiler on your system if you want to change scpp, then you will need a prebuilt archive for llvm+clang (unless you want to build it yourself from scratch). For more info on that, check the README under [scpp](./src/scpp/).
 
+[TODO]: A PAT might not be needed for contributors who won't publish scpp?
+
 For the scpp nuget packages, right now a GitHub packages feed (mrahhal) is used. You need to add that feed to the list of sources (replace OWNER and YOUR_GITHUB_PAT):
 
 ```
