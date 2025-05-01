@@ -579,7 +579,10 @@ public class Reasoner
 				return explicitType;
 
 			// TODO: How to account for integers that might end up being signed?
-			Debug.Assert(node.Literal.TryGetNumericIntegerValue(out var value));
+			if (!node.Literal.TryGetNumericIntegerValue(out var value))
+			{
+				throw new Exception("Unexpected");
+			}
 			if (value <= int.MaxValue)
 				return Workspace.ResolveKnownTypeSymbol(KnownTypeTag.i32);
 			else

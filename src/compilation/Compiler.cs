@@ -220,8 +220,10 @@ internal sealed class FnCompiler : HirTreeVisitor
 		}
 		else
 		{
-			Debug.Assert(
-				FnValue.AttrsList.TryGetIntrinsic(out var intrinsicAttr));
+			if (!FnValue.AttrsList.TryGetIntrinsic(out var intrinsicAttr))
+			{
+				throw new Exception("Unexpected");
+			}
 			GenerateIntrinsic(intrinsicAttr.Name);
 		}
 
@@ -774,7 +776,10 @@ internal sealed class FnCompiler : HirTreeVisitor
 
 			case LiteralDataKind.Bool:
 				{
-					Debug.Assert(node.Data.TryGetBoolValue(out var v));
+					if (!node.Data.TryGetBoolValue(out var v))
+					{
+						throw new Exception("Unexpected");
+					}
 					var llvmType = SCPPTypeRef.Int1;
 					var llvmValue = SCPPValueRef.CreateConstInt(llvmType, v ? (ulong)1 : 0);
 					_stack.Push(LLVMUnit.Unwrapped(llvmType, llvmValue));
@@ -783,7 +788,10 @@ internal sealed class FnCompiler : HirTreeVisitor
 
 			case LiteralDataKind.String:
 				{
-					Debug.Assert(node.Data.TryGetStringValue(out var v));
+					if (!node.Data.TryGetStringValue(out var v))
+					{
+						throw new Exception("Unexpected");
+					}
 					var llvmType = SCPPTypeRef.CreatePointer(SCPPTypeRef.Void, 0);
 					var llvmValue = LLVM.Builder.BuildGlobalStringPtr(v!);
 					_stack.Push(LLVMUnit.Unwrapped(llvmType, llvmValue));

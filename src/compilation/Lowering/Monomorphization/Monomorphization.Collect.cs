@@ -199,8 +199,10 @@ internal class MonomorphizationCollect
 			if (value.TryGetGenericArgs(out var genericArgs) &&
 				value.GetIsFullyConcrete())
 			{
-				Debug.Assert(
-					value.TryGetGenericParams(out var genericParams));
+				if (!value.TryGetGenericParams(out var genericParams))
+				{
+					throw new Exception("Unexpected");
+				}
 				var smap = new FlatSubstitutionMap();
 				smap.AddGenericSubstitutions(genericParams, genericArgs);
 				AddConcreteForSymbolDeep(value, smap);
@@ -212,8 +214,10 @@ internal class MonomorphizationCollect
 			if (type.TryGetGenericArgs(out var genericArgs) &&
 				type.GetIsFullyConcrete())
 			{
-				Debug.Assert(
-					type.TryGetGenericParams(out var genericParams));
+				if (!type.TryGetGenericParams(out var genericParams))
+				{
+					throw new Exception("Unexpected");
+				}
 				var smap = new FlatSubstitutionMap();
 				smap.AddGenericSubstitutions(genericParams, genericArgs);
 				AddConcreteForSymbolDeep(type, smap);
@@ -241,9 +245,10 @@ internal class MonomorphizationCollect
 		private bool AddConcreteForSymbol(HirValueOrType valueOrType, FlatSubstitutionMap smap)
 		{
 			// Symbol could be partially concrete (e.g. field of type `Map<i32, T>`).
-			Debug.Assert(
-				valueOrType.TryGetGenericArgs(out var genericArgs),
-				"Should only be here if the value or type has generic args.");
+			if (!valueOrType.TryGetGenericArgs(out var genericArgs))
+			{
+				throw new Exception("Unexpected: Should only be here if the value or type has generic args.");
+			}
 
 			// If smap has T -> f64, then the following does:
 			// <i32, T, Bar<T>> -> <i32, f64, Bar<f64>>
