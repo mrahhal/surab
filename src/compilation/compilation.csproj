@@ -6,11 +6,11 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<None Update="scpp.dll" CopyToOutputDirectory="PreserveNewest" />
+		<ProjectReference Include="..\analysis\analysis.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\analysis\analysis.csproj" />
+		<PackageReference Include="scpp" Version="0.0.1" />
 	</ItemGroup>
 
 </Project>
