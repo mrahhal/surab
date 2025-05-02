@@ -8,6 +8,3 @@ surab-lsp-server.log
 *.dll
 *.nupkg
 editor-groups.json
-
-/src/scpp/libs
-/src/scpp/build

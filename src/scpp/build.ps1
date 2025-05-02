@@ -1,8 +1,7 @@
 # host: windows
 
-cmake -B build -S .
-# cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=[vcpkg-root]/scripts/buildsystems/vcpkg.cmake
+cmake -S . -B build-windows -G "Visual Studio 17 2022"
 
-cmake --build ./build --config Release
+cmake --build build-windows --config Release
 
-# Copy-Item ./build/scpp/scpp.dll ../../src/compilation/scpp.dll
+Copy-Item ./build-windows/scpp/scpp.dll ./packages/scpp.runtime.win-x64
