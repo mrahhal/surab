@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+	<metadata minClientVersion="2.12">
+		<id>scpp.runtime.linux-x64</id>
+		<version>$version$</version>
+		<authors>Mohammad Rahhal</authors>
+		<owners>Mohammad Rahhal</owners>
+		<projectUrl>https://github.com/mrahhal/surab</projectUrl>
+		<description>linux x64 native library for Surab's scpp.</description>
+		<repository type="git" url="https://github.com/mrahhal/surab" />
+	</metadata>
+	<files>
+		<file src="scpp.so" target="runtimes/linux-x64/native/scpp.so" />
+	</files>
+</package>
