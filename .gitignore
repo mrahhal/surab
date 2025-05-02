@@ -6,5 +6,6 @@ node_modules
 surab-lsp-server.log
 *.vsix
 *.dll
+*.so
 *.nupkg
 editor-groups.json

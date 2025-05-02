@@ -10,6 +10,6 @@
 		<repository type="git" url="https://github.com/mrahhal/surab" />
 	</metadata>
 	<files>
-		<file src="scpp.so" target="runtimes/linux-x64/native/scpp.so" />
+		<file src="libscpp.so" target="runtimes/linux-x64/native/libscpp.so" />
 	</files>
 </package>
