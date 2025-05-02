@@ -12,4 +12,14 @@
 #define SURAB_EXTERN_END
 #endif
 
+#if defined(_WIN32)
+#if defined(SURAB_EXPORTS)
+#define SURAB_ABI __declspec(dllexport)
+#else
+#define SURAB_ABI __declspec(dllimport)
+#endif
+#else
+#define SURAB_ABI __attribute__((visibility("default")))
+#endif
+
 #endif

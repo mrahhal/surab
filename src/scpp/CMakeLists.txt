@@ -12,6 +12,8 @@ project(surab
 	HOMEPAGE_URL "https://surab-lang.org"
 	LANGUAGES C CXX)
 
+add_compile_definitions(SURAB_EXPORTS)
+
 find_package(llvm 20)
 find_package(clang 20)
 
