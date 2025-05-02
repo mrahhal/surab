@@ -5,6 +5,8 @@ cmake_minimum_required(VERSION 3.20)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 list(APPEND CMAKE_PREFIX_PATH "libs/llvm")
 
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+
 project(surab
 	VERSION 0.0.1
 	HOMEPAGE_URL "https://surab-lang.org"
