@@ -40,8 +40,6 @@ if (MSVC)
 	set_property(TARGET scpp PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
 endif()
 
-target_link_libraries(scpp PUBLIC -lz)
-
 if(MSVC)
 	target_link_libraries(scpp PUBLIC ntdll.lib ws2_32.lib) # ntdll is used in LLVM on windows.
 elseif(MINGW) # Is this needed?
