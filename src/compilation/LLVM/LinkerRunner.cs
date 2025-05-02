@@ -5,15 +5,35 @@ internal static class LinkerRunner
 	// Required native libs by Rust.
 	// The order and any duplication can be significant on some platforms.
 	// To get this list use `cargo rustc -- --print native-static-libs`.
-	private static readonly string AdditionalLibs = @"kernel32.lib advapi32.lib bcrypt.lib kernel32.lib ntdll.lib userenv.lib ws2_32.lib kernel32.lib ws2_32.lib kernel32.lib ntdll.lib kernel32.lib msvcrt.lib";
+	private static readonly string AdditionalLibsWindows = @"kernel32.lib advapi32.lib bcrypt.lib kernel32.lib ntdll.lib userenv.lib ws2_32.lib kernel32.lib ws2_32.lib kernel32.lib ntdll.lib kernel32.lib msvcrt.lib";
+	private static readonly string AdditionalLibsLinux = @"gcc_s util rt pthread m dl c";
 
 	public static string Run(string triple, IEnumerable<string> objectFiles, string? outputFileNameWithoutExtension = null)
 	{
 		outputFileNameWithoutExtension ??= "main";
-		// TODO: Platform
-		var outputFileName = $"{outputFileNameWithoutExtension}.exe";
+		var outputFileName = $"{outputFileNameWithoutExtension}";
+		var additionalLibs = string.Empty;
 
-		var surabRuntimeLib = Path.Combine(PathHelper.GetRuntimeTargetFolderPath(), "debug/surabrt.lib");
+		var surabRuntimeLibFileName = string.Empty;
+
+		if (OperatingSystem.IsWindows())
+		{
+			additionalLibs = AdditionalLibsWindows;
+			surabRuntimeLibFileName = "surabrt.lib";
+			outputFileName += ".exe";
+		}
+		else if (OperatingSystem.IsLinux())
+		{
+			additionalLibs = AdditionalLibsLinux;
+			surabRuntimeLibFileName = "libsurabrt.a";
+		}
+		else
+		{
+			throw new Exception();
+		}
+
+		// TODO: debug/release?
+		var surabRuntimeLib = Path.GetFullPath(Path.Combine(PathHelper.GetRuntimeTargetFolderPath(), $"debug/{surabRuntimeLibFileName}"));
 
 		var wd = Directory.GetCurrentDirectory();
 		ConsoleHelper.WriteInfo($"Running lld command... Dir: {wd}".NL());
@@ -22,7 +42,7 @@ internal static class LinkerRunner
 		// TODO: Platform. Provide the particular lld arg to use depending on platform.
 		if (!SCPP.Clang(
 			triple,
-			AdditionalLibs.Split(' '),
+			additionalLibs.Split(' '),
 			[surabRuntimeLib, .. objectFiles.Select(objectFile => Path.Combine(wd, objectFile))],
 			outputFilePath,
 			out var error))

@@ -24,13 +24,19 @@ std::vector<std::string> split_string(const char *str, char delimiter)
 	return result;
 }
 
+#if defined(_WIN32)
+#define FUSE_LD "-fuse-ld=lld-link"
+#else
+#define FUSE_LD "-fuse-ld=lld"
+#endif
+
 int scpp_clang(const char *triple, const char *additionalLibs, const char *inputFiles, const char *outputFile, const char **outError)
 {
 	// TODO: Use correct fuse-ld based on platform.
 
 	std::vector<const char *> args = {
 		"clang",
-		"-fuse-ld=lld-link",
+		FUSE_LD,
 	};
 
 	args.push_back("-o");
