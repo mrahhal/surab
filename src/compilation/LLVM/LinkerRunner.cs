@@ -39,11 +39,14 @@ internal static class LinkerRunner
 		ConsoleHelper.WriteInfo($"Running lld command... Dir: {wd}".NL());
 		var outputFilePath = Path.Combine(wd, outputFileName);
 
-		// TODO: Platform. Provide the particular lld arg to use depending on platform.
+		// NOTE: Order is important. In general, dependent should be linked first.
+		// This means runtime lib should come after the program's object files.
+		// scpp will link the additional libs after input files.
+
 		if (!SCPP.Clang(
 			triple,
 			additionalLibs.Split(' '),
-			[surabRuntimeLib, .. objectFiles.Select(objectFile => Path.Combine(wd, objectFile))],
+			[.. objectFiles.Select(objectFile => Path.Combine(wd, objectFile)), surabRuntimeLib],
 			outputFilePath,
 			out var error))
 		{

@@ -44,15 +44,15 @@ int scpp_clang(const char *triple, const char *additionalLibs, const char *input
 	args.push_back("-o");
 	args.push_back(outputFile);
 
+	for (auto &inputFile : split_string(inputFiles, ';'))
+	{
+		args.push_back(strdup(inputFile.c_str()));
+	}
+
 	for (auto &additionalLib : split_string(additionalLibs, ';'))
 	{
 		auto libArg = "-l" + additionalLib;
 		args.push_back(strdup(libArg.c_str()));
-	}
-
-	for (auto &inputFile : split_string(inputFiles, ';'))
-	{
-		args.push_back(strdup(inputFile.c_str()));
 	}
 
 	clang::IntrusiveRefCntPtr<clang::DiagnosticOptions> diagOpts = new clang::DiagnosticOptions();
