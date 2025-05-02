@@ -25,9 +25,10 @@ std::vector<std::string> split_string(const char *str, char delimiter)
 }
 
 #if defined(_WIN32)
+// TODO: Does this mean lld-link and thus llvm is required on windows? What if we remove this?
 #define FUSE_LD "-fuse-ld=lld-link"
 #else
-#define FUSE_LD "-fuse-ld=lld"
+#define FUSE_LD "-fuse-ld=ld"
 #endif
 
 int scpp_clang(const char *triple, const char *additionalLibs, const char *inputFiles, const char *outputFile, const char **outError)

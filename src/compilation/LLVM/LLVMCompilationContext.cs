@@ -36,7 +36,20 @@ internal sealed class LLVMCompilationContext
 	public static LLVMCompilationContext Create()
 	{
 		// TODO
-		var triple = "x86_64-pc-windows-msvc19.39.33218";
+		string? triple;
+		if (OperatingSystem.IsWindows())
+		{
+			triple = "x86_64-pc-windows-msvc";
+		}
+		else if (OperatingSystem.IsLinux())
+		{
+			triple = "x86_64-pc-linux-gnu";
+		}
+		else
+		{
+			throw new Exception();
+		}
+
 		if (!SCPP.Setup(triple, out var error, out var module, out var builder, out var targetMachine))
 		{
 			throw new Exception(error);
