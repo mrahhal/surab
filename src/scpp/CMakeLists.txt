@@ -30,6 +30,11 @@ set(SCPP_SOURCES
 set(SCPP_OUTPUT_DIR "${PROJECT_BINARY_DIR}/scpp")
 
 add_library(scpp SHARED ${SCPP_SOURCES})
+
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+	set_property(TARGET scpp PROPERTY POSITION_INDEPENDENT_CODE ON)
+endif()
+
 target_compile_features(scpp PRIVATE cxx_std_17)
 
 if (MSVC)

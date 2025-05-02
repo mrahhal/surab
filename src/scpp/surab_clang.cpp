@@ -38,6 +38,7 @@ int scpp_clang(const char *triple, const char *additionalLibs, const char *input
 	std::vector<const char *> args = {
 		"clang",
 		FUSE_LD,
+		"-fPIE"
 	};
 
 	args.push_back("-o");

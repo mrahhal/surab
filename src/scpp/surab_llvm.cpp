@@ -79,7 +79,7 @@ bool scpp_setup(
 	}
 
 	llvm::TargetOptions topts;
-	auto targetMachine = target->createTargetMachine(triple, "", "", topts, std::nullopt /* CodeModel::Model, CodeGenOptLevel, bool JIT */);
+	auto targetMachine = target->createTargetMachine(triple, "", "", topts, llvm::Reloc::PIC_ /* CodeModel::Model, CodeGenOptLevel, bool JIT */);
 
 	auto module = new llvm::Module("surab_main_module", *GlobalContext);
 	auto builder = new llvm::IRBuilder<>(*GlobalContext);
