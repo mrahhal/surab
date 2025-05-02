@@ -16,7 +16,7 @@ macro(FIND_AND_ADD_CLANG_LIB _libname_)
 	endif()
 endmacro(FIND_AND_ADD_CLANG_LIB)
 
-# To get the correct order, check clang/tools/driver/CMakeLists.txt in the llvm src.
+# There's no easy way to get the correct order for this, but check clang/tools/driver/CMakeLists.txt in the llvm src for an example.
 
 FIND_AND_ADD_CLANG_LIB(clangFrontendTool)
 FIND_AND_ADD_CLANG_LIB(clangCodeGen)
