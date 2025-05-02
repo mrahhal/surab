@@ -8,6 +8,8 @@ endmacro(FIND_AND_ADD_LLVM_LIB)
 # Get this list using `llvm-config --libfiles`, but not any llvm-config can be
 # used. The one that comes in the prebuilt binaries for scpp should be used.
 
+# Note: Order is important.
+
 FIND_AND_ADD_LLVM_LIB(LLVMWindowsManifest)
 FIND_AND_ADD_LLVM_LIB(LLVMXRay)
 FIND_AND_ADD_LLVM_LIB(LLVMLibDriver)
