@@ -10,6 +10,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<!-- For testing -->
+		<!--<None Include="scpp.dll" CopyToOutputDirectory="Always" />-->
+		<!--<None Include="libscpp.so" CopyToOutputDirectory="Always" />-->
+
 		<PackageReference Include="scpp" Version="0.0.5" />
 	</ItemGroup>
 

@@ -25,7 +25,7 @@ std::vector<std::string> split_string(const char *str, char delimiter)
 }
 
 #if defined(_WIN32)
-// TODO: Does this mean lld-link and thus llvm is required on windows? What if we remove this?
+// This would require lld-link to be installed on windows.
 #define FUSE_LD "-fuse-ld=lld-link"
 #else
 #define FUSE_LD "-fuse-ld=ld"
@@ -33,11 +33,10 @@ std::vector<std::string> split_string(const char *str, char delimiter)
 
 int scpp_clang(const char *triple, const char *additionalLibs, const char *inputFiles, const char *outputFile, const char **outError)
 {
-	// TODO: Use correct fuse-ld based on platform.
-
 	std::vector<const char *> args = {
 		"clang",
-		FUSE_LD,
+		// Can we just use system default linkers all the time?
+		// FUSE_LD,
 		"-fPIE"
 	};
 
@@ -64,13 +63,13 @@ int scpp_clang(const char *triple, const char *additionalLibs, const char *input
 	clang::driver::Driver driver("clang", triple, diags);
 	auto compilation = driver.BuildCompilation(args);
 
-	auto &jobs = compilation->getJobs();
-	for (const auto &job : jobs)
-	{
-		llvm::errs() << "Job: " << job.getExecutable() << "\n";
-		for (const auto &arg : job.getArguments())
-			llvm::errs() << "  Arg: " << arg << "\n";
-	}
+	// auto &jobs = compilation->getJobs();
+	// for (const auto &job : jobs)
+	// {
+	// 	llvm::outs() << "Job: " << job.getExecutable() << "\n";
+	// 	for (const auto &arg : job.getArguments())
+	// 		llvm::outs() << "  Arg: " << arg << "\n";
+	// }
 
 	llvm::SmallVector<std::pair<int, const clang::driver::Command *>, 4> results;
 	auto ret = driver.ExecuteCompilation(*compilation, results);
