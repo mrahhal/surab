@@ -45,18 +45,22 @@ if (MSVC)
 	set_property(TARGET scpp PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
 endif()
 
-target_include_directories(scpp PUBLIC
+target_include_directories(scpp PRIVATE
 	${CLANG_INCLUDE_DIRS}
 	${LLVM_INCLUDE_DIRS})
-target_link_libraries(scpp PUBLIC
+target_link_libraries(scpp PRIVATE
 	${CLANG_LIBRARIES}
 	${LLVM_LIBRARIES})
 
 if(MSVC)
-	target_link_libraries(scpp PUBLIC ntdll.lib ws2_32.lib) # ntdll is used in LLVM on windows.
+	target_link_libraries(scpp PRIVATE ntdll.lib ws2_32.lib) # ntdll is used in LLVM on windows.
 elseif(MINGW) # Is this needed?
-	target_link_libraries(scpp PUBLIC ntdll ws2_32)
+	target_link_libraries(scpp PRIVATE ntdll ws2_32)
 endif()
+
+# if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+# 	target_link_libraries(scpp PRIVATE -lz)
+# endif()
 
 set_target_properties(scpp PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${SCPP_OUTPUT_DIR})
 foreach(CONFIG_TYPE ${CMAKE_CONFIGURATION_TYPES})
