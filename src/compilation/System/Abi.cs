@@ -1,5 +1,7 @@
 ﻿using System.Diagnostics;
 
+using Surab.Analysis;
+
 namespace Surab.Compilation;
 
 internal enum Classification
@@ -24,19 +26,23 @@ internal static class Abi
 			var size = target.GetLayout(type).Size;
 			Debug.Assert(!size.IsZeroSized, "Classify shouldn't be called with zero sized types.");
 
+			if (!(size.Bytes is 1 or 2 or 4 or 8))
+			{
+				return Classification.Memory;
+			}
+
 			return type.GetRuntimeKind() switch
 			{
 				RuntimeTypeKind.Bool or
 				RuntimeTypeKind.Char or
 				RuntimeTypeKind.Ptr or
 				RuntimeTypeKind.Struct
-				=> size.Bytes switch
-				{
-					1 or 2 or 4 or 8 => Classification.Integer,
-					_ => Classification.Memory,
-				},
+				=> Classification.Integer,
 
-				RuntimeTypeKind.Numeric
+				RuntimeTypeKind.Numeric when type.KnownTypeTag.IsNumericInteger()
+				=> Classification.Integer,
+
+				RuntimeTypeKind.Numeric when type.KnownTypeTag.IsNumericFloat()
 				=> Classification.SSE,
 
 				_ => throw new UnreachableException(),
