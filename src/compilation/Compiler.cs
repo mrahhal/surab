@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
+
 using Surab.Analysis;
 using Surab.Compilation.LLVM;
 
@@ -33,6 +34,12 @@ public sealed class Compiler
 		CompilationOptions? options = null)
 	{
 		// Note: We're not taking any locks (particularly read) as the compilation doesn't run in an asynchronous environment right now.
+
+		if (string.IsNullOrEmpty(targetTriple))
+		{
+			// temp
+			targetTriple = "x86_64-pc-windows-msvc";
+		}
 
 		// TODO: std project diags are not being reported right now
 		var involvedProjects = project.GetInvolvedProjects();
