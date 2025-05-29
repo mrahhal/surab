@@ -36,7 +36,7 @@ internal static class LinkerRunner
 		var surabRuntimeLib = Path.GetFullPath(Path.Combine(PathHelper.GetRuntimeTargetFolderPath(), $"debug/{surabRuntimeLibFileName}"));
 
 		var wd = Directory.GetCurrentDirectory();
-		ConsoleHelper.WriteInfo($"Running lld command... Dir: {wd}".NL());
+		ConsoleHelper.WriteInfo($"Running clang command... Dir: {wd}".NL());
 		var outputFilePath = Path.Combine(wd, outputFileName);
 
 		// NOTE: Order is important. In general, dependent should be linked first.
