@@ -351,13 +351,13 @@ internal abstract class x86_64LinuxLLVMTarget(CompilationContext context) : LLVM
 		MEMORY,
 	}
 
+	// TODO: Optimize
 	/// <summary>
 	/// Useful wrapper around 8 classes representing all possible slots as defined by the ABI.
 	/// Each class corresponds to an eightbyte as defined in 3.2.3.
 	/// </summary>
-	internal readonly struct Classes
+	internal class Classes
 	{
-		// TODO: Optimize
 		public readonly Class[] _arr = new Class[8];
 
 		public Classes(params IEnumerable<Class> classes)
