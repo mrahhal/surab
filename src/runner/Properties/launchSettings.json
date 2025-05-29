@@ -1,0 +1,11 @@
+{
+	"profiles": {
+		"runner": {
+			"commandName": "Project"
+		},
+		"WSL": {
+			"commandName": "WSL2",
+			"distributionName": "" // Needs a default WSL distro to be linux with the prerequisites installed.
+		}
+	}
+}
