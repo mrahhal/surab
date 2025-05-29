@@ -358,6 +358,8 @@ internal abstract class x86_64LinuxLLVMTarget(CompilationContext context) : LLVM
 	/// </summary>
 	internal class Classes
 	{
+		// TODO (self-host): Wrap BitSize into ClassOffset with additional static verification?
+
 		public readonly Class[] _arr = new Class[8];
 
 		public Classes(params IEnumerable<Class> classes)
@@ -408,26 +410,6 @@ internal abstract class x86_64LinuxLLVMTarget(CompilationContext context) : LLVM
 				_arr[i] = value;
 			}
 		}
-
-		// TODO (self-host): Wrap BitSize into ClassOffset with additional static verification?
-
-		//public Class GetAtOffset(BitSize offset)
-		//{
-		//	var i = GetSlotIndexAtOffset(offset);
-		//	return _arr[i];
-		//}
-
-		//public void SetAtOffset(BitSize offset, Class c)
-		//{
-		//	var i = GetSlotIndexAtOffset(offset);
-		//	_arr[i] = c;
-		//}
-
-		//private int GetSlotIndexAtOffset(BitSize offset)
-		//{
-		//	Debug.Assert(offset.Bytes >= 0 && offset.Bytes <= 8 * 8); // eightbytes * 8 slots
-		//	return offset.Bytes / 8;
-		//}
 	}
 
 	private static readonly Classes MemoryClasses = new(Class.MEMORY);
