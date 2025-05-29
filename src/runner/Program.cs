@@ -12,6 +12,7 @@ var p = new Process
 	{
 		FileName = "cargo",
 		Arguments = "build",
+		WorkingDirectory = runtimeSrcFolderPath,
 	},
 };
 
