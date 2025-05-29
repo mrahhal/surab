@@ -591,12 +591,14 @@ internal abstract class x86_64LinuxLLVMTarget(CompilationContext context) : LLVM
 			return new IndirectABIArgInfo();
 		}
 
-		if (classes[0] is Class.SSE && classes[1] is Class.NO_CLASS)
+		if (classes[0] is Class.SSE && classes[1] is Class.NO_CLASS &&
+			type.GetRuntimeKind() is RuntimeTypeKind.Struct)
 		{
 			return new AsRealABIArgInfo();
 		}
 
-		if (classes[0] is Class.INTEGER && classes[1] is Class.NO_CLASS)
+		if (classes[0] is Class.INTEGER && classes[1] is Class.NO_CLASS &&
+			type.GetRuntimeKind() is RuntimeTypeKind.Struct)
 		{
 			return new AsIntegerABIArgInfo();
 		}
