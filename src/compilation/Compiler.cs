@@ -974,6 +974,10 @@ internal sealed class FnCompiler : HirTreeVisitor
 		}
 
 		// TODO: switch (cc) (C this is already the LLVM default if not set)
+		// Unless overriden in a function attribute:
+		// - If target platform is windows x64 => win64
+		// - If target platform is linux x64 => c
+		// Note: c == win64 if host platform is windows x64
 		llvmFnValue.SetFunctionCallConv(CallConv.C);
 
 		attrs.Apply(llvmFnValue.AddAttributeAtIndex);
