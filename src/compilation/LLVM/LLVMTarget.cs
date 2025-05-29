@@ -470,7 +470,7 @@ internal abstract class x86_64LinuxLLVMTarget(CompilationContext context) : LLVM
 		// "The classification of aggregate (structures and arrays) and union types works as follows:"
 
 		// "1. If the size of an object is larger than eight eightbytes, or it contains unaligned fields, it has class MEMORY."
-		if (layout.Size > 8.AsBytes()) // TODO: or unaligned fields
+		if (layout.Size > (8 * 8).AsBytes()) // TODO: or unaligned fields
 		{
 			return MemoryClasses;
 		}
@@ -500,7 +500,7 @@ internal abstract class x86_64LinuxLLVMTarget(CompilationContext context) : LLVM
 
 		// "(c) If the size of the aggregate exceeds two eightbytes and the first eightbyte
 		// isn’t SSE or any other eightbyte isn’t SSEUP, the whole argument is passed in memory."
-		if (layout.Size.Bytes > 2 &&
+		if (layout.Size.Bytes > (2 * 8) &&
 			(aggregateClasses[0] is not Class.SSE || !aggregateClasses.Enumerate().Skip(1).All(x => x is Class.SSEUP or Class.NO_CLASS)))
 		{
 			return MemoryClasses;
@@ -533,9 +533,9 @@ internal abstract class x86_64LinuxLLVMTarget(CompilationContext context) : LLVM
 			if (section.Kind is StructLayoutSectionKind.Data)
 			{
 				var field = type.Fields[section.FieldIndex];
-				if (field.Type is HirStructType fieldStructType)
+				if (field.Type.GetRuntimeKind() is RuntimeTypeKind.Struct)
 				{
-					currentOffset = ClassifyStruct(ref classes, fieldStructType, currentOffset);
+					currentOffset = ClassifyStruct(ref classes, (HirStructType)field.Type, currentOffset);
 				}
 				else
 				{
