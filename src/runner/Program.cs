@@ -11,6 +11,7 @@ var p = new Process
 	StartInfo =
 	{
 		FileName = "cargo",
+		//FileName = "/home/mrahhal/.cargo/bin/cargo", // This is the only way this is working when debugging WSL in VS. Not sure why.
 		Arguments = "build",
 		WorkingDirectory = runtimeSrcFolderPath,
 	},
