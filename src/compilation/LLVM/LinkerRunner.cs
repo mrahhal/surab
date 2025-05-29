@@ -50,7 +50,7 @@ internal static class LinkerRunner
 			outputFilePath,
 			out var error))
 		{
-			throw new Exception("Calling lld failed: " + error);
+			throw new Exception("Calling clang failed: " + error);
 		}
 
 		var exeFileInfo = new FileInfo(outputFilePath);
