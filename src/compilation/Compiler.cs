@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 using Surab.Analysis;
 using Surab.Compilation.LLVM;
@@ -36,8 +37,16 @@ public sealed class Compiler
 
 		if (string.IsNullOrEmpty(targetTriple))
 		{
-			// temp
-			targetTriple = "x86_64-pc-windows-msvc";
+			// TODO: temp
+			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+			{
+				targetTriple = "x86_64-pc-windows-msvc";
+			}
+			else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+			{
+				targetTriple = "x86_64-pc-linux-gnu";
+			}
+			Console.WriteLine($"Setting target triple to: {targetTriple}");
 		}
 
 		// TODO: std project diags are not being reported right now

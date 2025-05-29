@@ -29,7 +29,7 @@ internal abstract class LLVMTarget
 		return target switch
 		{
 			x86_64WindowsMSVCTarget => new x86_64WindowsMSVCLLVMTarget(context),
-			// TODO: linux
+			x86_64LinuxGNUTarget => new x86_64LinuxGNULLVMTarget(context),
 			_ => throw new UnreachableException(),
 		};
 	}
