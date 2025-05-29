@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+
 using Surab.Analysis;
 
 namespace Surab.Compilation;
@@ -11,11 +12,13 @@ public enum TargetArch
 public enum TargetOS
 {
 	Windows,
+	Linux,
 }
 
 public enum TargetEnv
 {
 	MSVC,
+	GNU,
 }
 
 public enum IntegerSign
@@ -34,7 +37,6 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 
 	public BitSize PtrWidth { get; protected set; }
 
-	// Should this be in Abi?
 	public Layout GetLayout(HirType type)
 	{
 		Debug.Assert(type.Kind is not HirTypeKind.GenericParam);
@@ -65,7 +67,6 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 		throw new UnreachableException();
 	}
 
-	// Should this be in Abi?
 	public StructLayout GetStructLayout(HirStructType structType)
 	{
 		ArgumentNullException.ThrowIfNull(structType);
@@ -111,9 +112,9 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 		}
 	}
 
-	public BitSize GetAbiSize(HirType type) => GetLayout(type).Size;
+	public BitSize GetSize(HirType type) => GetLayout(type).Size;
 
-	public BitSize GetAbiAlignment(HirType type) => GetLayout(type).Alignment;
+	public BitSize GetAlignment(HirType type) => GetLayout(type).Alignment;
 
 	public IntegerSign GetIntegerSign(HirType type)
 	{
@@ -128,23 +129,39 @@ public abstract class Target(TargetArch arch, TargetOS os, TargetEnv env)
 	}
 }
 
-internal abstract class x86_64WindowsTarget : Target
+internal abstract class x86_64Target : Target
 {
-	protected x86_64WindowsTarget(TargetEnv env) : base(TargetArch.x86_64, TargetOS.Windows, env)
+	protected x86_64Target(TargetOS os, TargetEnv env) : base(TargetArch.x86_64, os, env)
 	{
+		PtrWidth = 64.AsBits();
 	}
+}
 
-	public Classification Classify(HirType type)
+internal abstract class x86_64WindowsTarget : x86_64Target
+{
+	protected x86_64WindowsTarget(TargetEnv env) : base(TargetOS.Windows, env)
 	{
-		return Abi.x86_64.ClassifyTypeForWindows(type, this);
+		PtrWidth = 64.AsBits();
 	}
 }
 
 internal sealed class x86_64WindowsMSVCTarget : x86_64WindowsTarget
 {
-	public x86_64WindowsMSVCTarget() :
-		base(TargetEnv.MSVC)
+	public x86_64WindowsMSVCTarget() : base(TargetEnv.MSVC)
 	{
-		PtrWidth = 64.AsBits();
+	}
+}
+
+internal abstract class x86_64LinuxTarget : x86_64Target
+{
+	protected x86_64LinuxTarget(TargetEnv env) : base(TargetOS.Linux, env)
+	{
+	}
+}
+
+internal sealed class x86_64LinuxGNUTarget : x86_64LinuxTarget
+{
+	public x86_64LinuxGNUTarget() : base(TargetEnv.GNU)
+	{
 	}
 }

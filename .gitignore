@@ -9,3 +9,4 @@ surab-lsp-server.log
 *.so
 *.nupkg
 editor-groups.json
+*.csproj.user
