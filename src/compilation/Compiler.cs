@@ -112,7 +112,18 @@ public sealed class Compiler
 	private static Target ParseTargetTriple(string targetTriple)
 	{
 		// TODO
-		return new x86_64WindowsMSVCTarget();
+		if (targetTriple == "x86_64-pc-windows-msvc")
+		{
+			return new x86_64WindowsMSVCTarget();
+		}
+		else if (targetTriple == "x86_64-pc-linux-gnu")
+		{
+			return new x86_64LinuxGNUTarget();
+		}
+		else
+		{
+			throw new UnreachableException();
+		}
 	}
 }
 
