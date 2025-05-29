@@ -360,7 +360,7 @@ internal abstract class x86_64LinuxLLVMTarget(CompilationContext context) : LLVM
 	{
 		// TODO (self-host): Wrap BitSize into ClassOffset with additional static verification?
 
-		public readonly Class[] _arr = new Class[8];
+		private readonly Class[] _arr = new Class[8];
 
 		public Classes(params IEnumerable<Class> classes)
 		{
@@ -395,7 +395,7 @@ internal abstract class x86_64LinuxLLVMTarget(CompilationContext context) : LLVM
 		{
 			get
 			{
-				if (i > 8)
+				if (i >= 8)
 				{
 					throw new IndexOutOfRangeException("Classes have exactly 8 slots.");
 				}
@@ -403,7 +403,7 @@ internal abstract class x86_64LinuxLLVMTarget(CompilationContext context) : LLVM
 			}
 			set
 			{
-				if (i > 8)
+				if (i >= 8)
 				{
 					throw new IndexOutOfRangeException("Classes have exactly 8 slots.");
 				}
@@ -524,8 +524,6 @@ internal abstract class x86_64LinuxLLVMTarget(CompilationContext context) : LLVM
 					var fieldClasses = Classify(field.Type);
 					for (int slotIndex = currentOffset.Bytes / 8, j = 0; j < fieldClasses.Length; slotIndex++, j++)
 					{
-						Debug.Assert(slotIndex < 8 && slotIndex + j < 8); // eightbytes * 8 slots
-
 						if (fieldClasses[j] is Class.NO_CLASS)
 							break;
 
@@ -545,8 +543,7 @@ internal abstract class x86_64LinuxLLVMTarget(CompilationContext context) : LLVM
 	/// </summary>
 	private Class MergeInSlot(Class a, Class b)
 	{
-		// "4. Each field of an object is classified recursively so that always two fields 18 are considered.
-		// The resulting class is calculated according to the classes of the fields in the eightbyte: [...]"
+		// "The resulting class is calculated according to the classes of the fields in the eightbyte: [...]"
 		if (a == b) return a;
 		if (a == Class.NO_CLASS) return b;
 		if (b == Class.NO_CLASS) return a;
