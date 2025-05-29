@@ -4,6 +4,16 @@ fn print_i32(value: i32) {
 }
 
 @public
+fn print_i64(value: i64) {
+	surabrt_print_i64(value);
+}
+
+@public
+fn print_f32(value: f32) {
+	surabrt_print_f32(value);
+}
+
+@public
 fn print_f64(value: f64) {
 	surabrt_print_f64(value);
 }
@@ -25,6 +35,12 @@ fn print_string(value: string) {
 
 @extern
 fn surabrt_print_i32(value: i32);
+
+@extern
+fn surabrt_print_i64(value: i64);
+
+@extern
+fn surabrt_print_f32(value: f32);
 
 @extern
 fn surabrt_print_f64(value: f64);

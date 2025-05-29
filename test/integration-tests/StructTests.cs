@@ -3,7 +3,7 @@
 public class StructTests
 {
 	[Fact]
-	public void General_StructBasics()
+	public void Struct1()
 	{
 		IntegrationRunner.TestAnnotatedOutput(
 			"""
@@ -29,7 +29,37 @@ public class StructTests
 	}
 
 	[Fact]
-	public void MemoryStructRet()
+	public void Struct2()
+	{
+		IntegrationRunner.TestAnnotatedOutput(
+			"""
+			struct S1 {
+				a: f32;
+
+				fn new() S1 {
+					return S1.{ a: 42.2f32 };
+				}
+			}
+
+			struct S2 {
+				a: f64;
+
+				fn new() S2 {
+					return S2.{ a: 43.2 };
+				}
+			}
+
+			fn main() {
+				var s1 = S1.new();
+				print_f32(s1.a); [|42.2|]
+				var s2 = S2.new();
+				print_f64(s2.a); [|43.2|]
+			}
+			""");
+	}
+
+	[Fact]
+	public void Struct3()
 	{
 		IntegrationRunner.TestAnnotatedOutput(
 			"""

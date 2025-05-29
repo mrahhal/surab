@@ -14,6 +14,16 @@ pub extern "C" fn surabrt_print_i32(v: i32) {
 }
 
 #[unsafe(no_mangle)]
+pub extern "C" fn surabrt_print_i64(v: i64) {
+    println!("{}", v);
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn surabrt_print_f32(v: f32) {
+    println!("{}", v);
+}
+
+#[unsafe(no_mangle)]
 pub extern "C" fn surabrt_print_f64(v: f64) {
     println!("{}", v);
 }
