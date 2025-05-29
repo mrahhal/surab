@@ -43,7 +43,7 @@ public sealed class StructLayoutSection
 	public required BitSize Size { get; init; }
 
 	/// <summary>
-	/// Gets the index of the field in the struct this data section is associated with.
+	/// Gets the index of the <see cref="HirStructType.Fields"/> in the struct this data section is associated with.
 	/// This is -1 when Kind is Padding.
 	/// </summary>
 	public required int FieldIndex { get; init; }
