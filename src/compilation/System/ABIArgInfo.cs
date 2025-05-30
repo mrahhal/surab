@@ -1,8 +1,7 @@
 ﻿namespace Surab.Compilation;
 
 /// <summary>
-/// Represents ABI info for a return type or arg type on how to lower it to llvm
-/// while respecting the target ABI.
+/// Represents ABI passing info for a return type or arg type.
 /// </summary>
 public abstract class ABIArgInfo
 {
@@ -38,7 +37,7 @@ public sealed class AsIntegerABIArgInfo : ABIArgInfo
 }
 
 /// <summary>
-/// As a float. The arg should be passed as a float (usually a transparent struct of a float or double).
+/// As a real. The arg should be passed as a real (usually a transparent struct of a float or double).
 /// </summary>
 public sealed class AsRealABIArgInfo : ABIArgInfo
 {
