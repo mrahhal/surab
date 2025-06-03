@@ -163,20 +163,6 @@ internal abstract class Scope
 		};
 		return ResolvedType.Typed(resolvedType.AsTypeSymbolOrUnknown());
 	}
-
-	/// <summary>
-	/// Returns whether or not this scope should end with the given node.
-	/// </summary>
-	/// <remarks>
-	/// Some scopes (such as a local scope) should be extended to live beyond their associated node.
-	///
-	/// The default implementation always returns `true` so that the scope ends with its associated node.
-	/// This is overriden in a local scope for example to make it live longer.
-	/// </remarks>
-	internal virtual bool ShouldEndScope(SyntaxNode node)
-	{
-		return true;
-	}
 }
 
 /// <summary>
@@ -505,12 +491,6 @@ internal sealed class LocalScope(LocalSymbol symbol) : Scope
 	public override Symbol? LookupIdentifierHere(string identifier)
 	{
 		return LookupIdentifierIn(_symbol, identifier);
-	}
-
-	internal override bool ShouldEndScope(SyntaxNode node)
-	{
-		// A local scope lives until its containing block ends.
-		return node is BlockExprNode;
 	}
 }
 

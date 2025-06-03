@@ -1012,6 +1012,7 @@ public class Reasoner
 		public Scope? _parentScope;
 		public Symbol? _parentSymbol;
 		private TempTypeContext? _typeContext;
+		private LocalScope? _localScopeAwaitingActivation;
 
 		public Reasoner Reasoner { get; } = reasoner;
 		public SyntaxTree Tree => Reasoner.Tree;
@@ -1062,6 +1063,18 @@ public class Reasoner
 
 		public override void Visit(SyntaxNode node)
 		{
+			// The default behavior of created scopes is that they're active around their associated
+			// node. However, local scopes should be extended to live beyond their node, and are
+			// also not active on their associated node itself.
+			//
+			// We handle that using this _localScopeAwaitingActivation. We store a local scope and
+			// activate it later in the next sibling node through setting it as the parent here.
+			if (_localScopeAwaitingActivation != null)
+			{
+				_parentScope = _localScopeAwaitingActivation;
+				_localScopeAwaitingActivation = null;
+			}
+
 			var symbol = CreateSymbol(node);
 			var scope = CreateScope(node, symbol);
 			var typeContext = CreateTypeContext(node);
@@ -1072,9 +1085,23 @@ public class Reasoner
 				Debug.Assert(contextScopeForSymbol != null, "Unexpected state when there's a symbol but no context scope for it.");
 			}
 
-			if (scope != null || _parentScope != null)
+			LocalScope? localScopeAwaitingActivation = null;
+			if (scope is LocalScope localScope)
 			{
-				Reasoner._nodeToScopeMap[node] = scope ?? _parentScope!;
+				Debug.Assert(node.Parent != null);
+				Debug.Assert(typeContext == null);
+
+				// We wait until after we walk this node before setting _localScopeAwaitingActivation.
+				localScopeAwaitingActivation = localScope;
+				scope = null;
+			}
+			else if (scope != null)
+			{
+				SetScope(Reasoner, node, scope);
+			}
+			else if (_parentScope != null)
+			{
+				SetScope(Reasoner, node, _parentScope);
 			}
 
 			var prevParentScope = _parentScope;
@@ -1088,6 +1115,7 @@ public class Reasoner
 			{
 				_parentSymbol = symbol;
 			}
+
 			var prevTypeContext = _typeContext;
 			if (typeContext != null)
 			{
@@ -1096,14 +1124,28 @@ public class Reasoner
 
 			Walk(node);
 
-			if (scope?.ShouldEndScope(node) ?? true)
-			{
-				// Restoring the parent scope effectively means the scope ends here.
-				_parentScope = prevParentScope;
-			}
-
+			_parentScope = prevParentScope;
 			_parentSymbol = prevParentSymbol;
 			_typeContext = prevTypeContext;
+
+			if (_localScopeAwaitingActivation != null)
+			{
+				// This happens when we're going up a level and there's still a local scope awaiting
+				// activation. This usually means it's the last stmt of the prev block. Unused, so
+				// ensure we reset this otherwise the local scope will activate in the wrong level.
+				_localScopeAwaitingActivation = null;
+			}
+
+			if (localScopeAwaitingActivation != null)
+			{
+				_localScopeAwaitingActivation = localScopeAwaitingActivation;
+			}
+
+			static void SetScope(Reasoner reasoner, SyntaxNode node, Scope scope)
+			{
+				Debug.Assert(!reasoner._nodeToScopeMap.ContainsKey(node));
+				reasoner._nodeToScopeMap[node] = scope;
+			}
 		}
 
 		private Symbol? CreateSymbol(SyntaxNode node)
@@ -1170,15 +1212,21 @@ public class Reasoner
 			return scope;
 		}
 
-		private Scope? CreateScopeOnNode(SyntaxNode node, Symbol? symbol)
+		private Scope? CreateScopeOnNode(SyntaxNode node, Symbol? symbol, bool fromInside = false)
 		{
+			if (!fromInside && node.Parent is DeclStmtNode)
+			{
+				// Nodes having DeclStmtNode parent create their scopes there.
+				return null;
+			}
+
 			return node switch
 			{
 				FileNode n => CreateFileScope(n),
 
 				// This is very important to have here so that the decls inside can create a scope on this level.
 				// If we wait until we go deeper, we'll create scopes with smaller lifetimes.
-				DeclStmtNode n => CreateScopeOnNode(n.Decl, symbol),
+				DeclStmtNode n => CreateScopeOnNode(n.Decl, symbol, true),
 
 				// TODO: const?
 
