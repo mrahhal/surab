@@ -56,12 +56,50 @@ public class TypeCheckerTests
 	}
 
 	[Fact]
-	public void UnknownName()
+	public void Scoping()
 	{
 		Test("""
 			fn f() {
 				print_i32([|a|]);
 				var a = 2;
+			}
+			""");
+	}
+
+	[Fact]
+	public void Scoping2()
+	{
+		Test("""
+			fn f() {
+				var a = [|a|];
+				print_i32(a);
+			}
+			""");
+	}
+
+	[Fact]
+	public void Scoping3()
+	{
+		Test("""
+			fn f() {
+				var a = 1;
+				print_i32(a);
+				var b = a;
+				var c = a;
+			}
+			""");
+	}
+
+	[Fact]
+	public void Scoping4()
+	{
+		Test("""
+			fn f() {
+				{
+					var a = 2;
+					var b = a;
+				}
+				var c = [|b|];
 			}
 			""");
 	}
