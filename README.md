@@ -1,52 +1,147 @@
 # Surab
 
 [![CI](https://github.com/mrahhal/surab/actions/workflows/ci.yml/badge.svg)](https://github.com/mrahhal/surab/actions/workflows/ci.yml)
-<!-- [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT) -->
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-Surab is an experimental modern programming language written in [].
+Surab is an experimental programming language written in Rust and C#.
 
-Focused on: [TODO]
+## Guiding principles
 
-## Requirements
+- Consistent syntax -> Easy to read, write, and learn
+- One proper way to do something -> Decrease noise and mental overhead associated with choices
+- Builtin syntax to support common patterns -> Less boilerplate
+- Module system -> Better organization and more compilation trimming
+- Functional patterns only where it makes sense -> Succinct language syntax to support useful functional features
+- Mutability as intent, not type behavior -> Mutability is a first-class usage capability, not a property of types
 
-- C++ compiler with C++17 support.
-- .NET 9.
-- CMake (min 4.0) and add to path.
-- Rust {latest stable?}
-- LLVM and Clang 20.1 is used through prebuilt bins, and this is how to download tarballs and unzip into a location in the repo for scpp to work.
+## Example
+
+This is an example that works right now but does not represent the final design of the language.
+
+```srb
+import math;
+
+@public
+alias Area as f32;
+
+alias fn () Area as AreaGetter;
+
+fn print_area(getter: AreaGetter) {
+	var area = getter();
+	print(area);
+}
+
+/// Marks a type that has an [Area].
+@public
+trait HasArea {
+	get_area() Area;
+}
+
+struct Square {
+	side: f32;
+
+	impl HasArea {
+		get_area() Area {
+			math::pow(this.side, 2)
+		}
+	}
+}
+
+@extern
+fn call_into_c(num: f32);
+
+fn main() {
+	var square = Square.{
+		side: 4.0,
+	};
+	print_area(square.get_area);
+	call_into_c(square.side);
+}
+```
 
 ## Features
 
+Features marked as completed usually meet the completion criteria for an MVP version, not the final planned version. This list is not exhaustive.
+
+- [x] Full working pipeline: lexer, parser, analyzer, compiler, runner, language server
+- [x] C ABI and calling into Rust
+- [x] Local types and functions
+- [x] Type inference
+- [x] Module system
+- [x] Aliasing system
+- [x] Trait system
+	- [ ] Trait based restrictions
+- [ ] Pattern matching
+- [ ] Monadic system
+- [x] Unsafe pointers
+- [x] Bultins and intrinsics
+- [x] Generics
+- [ ] Mutable intent
+- [ ] Arrays, Slices, Enums, etc
+- [ ] Classes?, boxing, and heap allocations
+- [ ] Flow analysis
+- [ ] First class immutability
+- [ ] Runtime: GC
+- [ ] Testing framework
+- [ ] Builtin formatting
+- [ ] Code generation support (committed generated inline snippets)
+- [x] LSP (vscode)
+- [ ] Self-hosting: Eventual goal is to rewrite the compiler frontend in Surab and remove C#.
+
+## Spec
+
+Surab is a compiled garbage collected language with functional features.
+
+The full spec is not available in this repo right now as it's heavily subject to change.
+
+## Platforms
+
 Supported platforms to build from:
 
-- Windows x86_64
-- Windows aarch64
-- Linux x86_64
-- Linux aarch64
-- macOS
+- Windows x86_64 - ✅
+- Windows aarch64 - TBD
+- Linux x86_64 - ✅
+- Linux aarch64 - TBD
+- macOS - TBD
 
-Surab can cross compile to any of the supported targets:
+## Components
 
-[TODO]
+### [Analysis](src/analysis)
 
-## Development
+Written in C#, this includes lexing, parsing, and analyzing Surab source code. This is meant to be used as a drop in library to analyze any Surab source code.
 
-The Surab compiler uses a native library called [scpp](./src/scpp/) to generate LLVM IR and compile to machine code. In order to make contributing to Surab easy, a prebuilt scpp for each supported platform is offered through nuget packages. So unless you need to change scpp itself, you don't have to do anything special here.
+### [Compilation](src/compilation)
 
-You'll only need a C++ compiler on your system if you want to change scpp, then you will need a prebuilt archive for llvm+clang (unless you want to build it yourself from scratch). For more info on that, check the README under [scpp](./src/scpp/).
+Written in C#, this includes lowering and compiling into IR using LLVM (scpp). This is meant to be used as a drop in library that can compile any Surab source code.
 
-[TODO]: A PAT might not be needed for contributors who won't publish scpp?
+### [scpp](src/scpp)
 
-For the scpp nuget packages, right now a GitHub packages feed (mrahhal) is used. You need to add that feed to the list of sources (replace OWNER and YOUR_GITHUB_PAT):
+Written in C++, this is a native wrapper around the LLVM C++ library and is meant to be used by the compiler frontend to call into LLVM. Prebuilt bins of this native lib are provided to avoid the dependency on LLVM/Clang in the majority of cases. For more check [DEVELOPMENT.md](DEVELOPMENT.md).
 
-```
-dotnet nuget add source --username OWNER --password YOUR_GITHUB_PAT --store-password-in-clear-text --name github "https://nuget.pkg.github.com/mrahhal/index.json"
-```
+### [Runner](src/runner)
 
-The PAT you create needs to have the `read:packages` scope.
+Written in C#, this is an easy way to run through the full pipeline, to script some quick Surab code.
 
-For more info: https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-nuget-registry
+### [lib](src/lib)
 
-For more info on creating a PAT (classic): https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic
+Written in Surab, this contains the Surab libraries. Right now it includes a prelude module that is implicitly included in all Surab projects.
 
-Later, scpp should be published to nuget.org so this step will become unnecessary.
+### [Runtime](src/runtime)
+
+Written in Rust, this is the Surab runtime. Right now this only has some code to test the C ABI when Surab calls into Rust. Later it will include the GC and any other runtime requirement.
+
+### [LSP](src/LSP)
+
+Written in C#, this is a fully working language server that currently supports vscode and is to be developed along with the compiler. Currently has a syntax tokenizer and various analysis features along with diagnostic reporting.
+
+### [Scripts](scripts)
+
+Written in C#, contains a generator script that produces parts of the compiler frontend using json files (e.g. AST classes).
+
+### [Samples](samples)
+
+Samples written in Surab.
+
+## Roadmap
+
+There's no roadmap. I work on this when I feel like it and sometimes take long breaks. Give [CONTRIBUTING.md](CONTRIBUTING.md) and [DEVELOPMENT.md](DEVELOPMENT.md) a read if interested.
