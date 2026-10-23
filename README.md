@@ -5,6 +5,9 @@
 
 Surab is an experimental programming language written in Rust and C#.
 
+> [!NOTE]
+> AI is not used and is explicitly forbidden in most cases. It could only be used for a refactoring that touches a large number of files and cannot be accomplished using deterministic language server tools.
+
 ## Guiding principles
 
 - Consistent syntax -> Easy to read, write, and learn
